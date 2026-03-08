@@ -2,6 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bobinen Lager</title>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -9,13 +10,21 @@
 
 <style>
 body{
-  font-family:Arial;
+  font-family:Arial, sans-serif;
   background:#f2f4f7;
   margin:40px;
 }
 
 h1{
   text-align:center;
+  margin-bottom:25px;
+}
+
+.topbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-bottom:20px;
 }
 
 button{
@@ -38,6 +47,34 @@ button:hover{
 
 .delete:hover{
   background:#c0392b;
+}
+
+.reset{
+  background:#7f8c8d;
+}
+
+.reset:hover{
+  background:#636e72;
+}
+
+.search-box{
+  background:white;
+  border:1px solid #ccc;
+  border-radius:10px;
+  padding:15px;
+  margin-bottom:20px;
+}
+
+.search-title{
+  font-weight:bold;
+  margin-bottom:10px;
+}
+
+.search-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr auto;
+  gap:10px;
+  align-items:center;
 }
 
 table{
@@ -74,13 +111,15 @@ th{
   width:100%;
   height:100%;
   background:rgba(0,0,0,0.4);
+  z-index:1000;
 }
 
 .modal-content{
   background:white;
   padding:20px;
   width:400px;
-  margin:10% auto;
+  max-width:90%;
+  margin:8% auto;
   border-radius:10px;
 }
 
@@ -91,36 +130,33 @@ input{
   box-sizing:border-box;
 }
 
-.search-box{
-  margin-top:20px;
+.info-box{
+  margin-top:10px;
   margin-bottom:10px;
+  font-size:14px;
+  color:#444;
+}
+
+.no-results{
+  text-align:center;
   background:white;
-  padding:15px;
-  border-radius:8px;
+  padding:20px;
   border:1px solid #ccc;
+  border-top:none;
 }
 
-.search-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr 1fr;
-  gap:10px;
-}
+@media (max-width: 900px){
+  body{
+    margin:15px;
+  }
 
-.search-grid input{
-  margin:0;
-}
-
-@media (max-width: 800px){
   .search-grid{
     grid-template-columns:1fr;
   }
 
-  .modal-content{
-    width:90%;
-  }
-
-  body{
-    margin:15px;
+  th,td{
+    font-size:14px;
+    padding:6px;
   }
 }
 </style>
@@ -130,15 +166,21 @@ input{
 
 <h1>Bobinen Lager Management</h1>
 
-<button onclick="openAdd()">Neue Bobine hinzufügen</button>
+<div class="topbar">
+  <button onclick="openAdd()">Neue Bobine hinzufügen</button>
+</div>
 
 <div class="search-box">
+  <div class="search-title">Suche</div>
   <div class="search-grid">
-    <input id="searchNummer" placeholder="Suche nach Nummer" oninput="renderFilteredTable()">
-    <input id="searchTyp" placeholder="Suche nach Kabeltyp" oninput="renderFilteredTable()">
-    <input id="searchBaustelle" placeholder="Suche nach Baustelle" oninput="renderFilteredTable()">
+    <input id="searchNummer" type="text" placeholder="Nach Nummer suchen" oninput="renderFilteredTable()">
+    <input id="searchTyp" type="text" placeholder="Nach Kabeltyp suchen" oninput="renderFilteredTable()">
+    <input id="searchBaustelle" type="text" placeholder="Nach Baustelle suchen" oninput="renderFilteredTable()">
+    <button class="reset" onclick="resetSearch()">Suche zurücksetzen</button>
   </div>
 </div>
+
+<div class="info-box" id="resultInfo"></div>
 
 <table>
   <thead>
@@ -154,6 +196,10 @@ input{
   </thead>
   <tbody id="table"></tbody>
 </table>
+
+<div id="noResults" class="no-results" style="display:none;">
+  Keine passenden Bobinen gefunden.
+</div>
 
 <div id="modal" class="modal">
   <div class="modal-content">
@@ -206,7 +252,14 @@ let alleBobinen = [];
 
 function renderTable(data){
   const table = document.getElementById("table");
+  const noResults = document.getElementById("noResults");
   table.innerHTML = "";
+
+  if(data.length === 0){
+    noResults.style.display = "block";
+  }else{
+    noResults.style.display = "none";
+  }
 
   data.forEach(docItem => {
     const b = docItem.data();
@@ -230,6 +283,8 @@ function renderTable(data){
 
     table.appendChild(tr);
   });
+
+  document.getElementById("resultInfo").innerText = "Angezeigte Bobinen: " + data.length;
 }
 
 function renderFilteredTable(){
@@ -240,9 +295,9 @@ function renderFilteredTable(){
   const gefiltert = alleBobinen.filter(docItem => {
     const b = docItem.data();
 
-    const nummer = (b.nummer || "").toLowerCase();
-    const typ = (b.typ || "").toLowerCase();
-    const baustelle = (b.baustelle || "").toLowerCase();
+    const nummer = String(b.nummer || "").toLowerCase();
+    const typ = String(b.typ || "").toLowerCase();
+    const baustelle = String(b.baustelle || "").toLowerCase();
 
     const nummerPasst = nummer.includes(sucheNummer);
     const typPasst = typ.includes(sucheTyp);
@@ -254,11 +309,19 @@ function renderFilteredTable(){
   renderTable(gefiltert);
 }
 
+function resetSearch(){
+  document.getElementById("searchNummer").value = "";
+  document.getElementById("searchTyp").value = "";
+  document.getElementById("searchBaustelle").value = "";
+  renderFilteredTable();
+}
+
 bobinenCollection.onSnapshot(snapshot => {
   alleBobinen = snapshot.docs;
   renderFilteredTable();
 }, error => {
   console.error("Fehler bei Live-Daten:", error);
+  alert("Fehler beim Laden der Firebase-Daten.");
 });
 
 function openAdd(){
