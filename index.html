@@ -70,9 +70,9 @@ button:hover{
   margin-bottom:10px;
 }
 
-.search-grid{
+.search-row{
   display:grid;
-  grid-template-columns:1fr 1fr 1fr auto;
+  grid-template-columns:1fr auto;
   gap:10px;
   align-items:center;
 }
@@ -150,7 +150,7 @@ input{
     margin:15px;
   }
 
-  .search-grid{
+  .search-row{
     grid-template-columns:1fr;
   }
 
@@ -172,10 +172,8 @@ input{
 
 <div class="search-box">
   <div class="search-title">Suche</div>
-  <div class="search-grid">
-    <input id="searchNummer" type="text" placeholder="Nach Nummer suchen" oninput="renderFilteredTable()">
-    <input id="searchTyp" type="text" placeholder="Nach Kabeltyp suchen" oninput="renderFilteredTable()">
-    <input id="searchBaustelle" type="text" placeholder="Nach Baustelle suchen" oninput="renderFilteredTable()">
+  <div class="search-row">
+    <input id="searchInput" type="text" placeholder="Nach Nummer, Kabeltyp oder Baustelle suchen" oninput="renderFilteredTable()">
     <button class="reset" onclick="resetSearch()">Suche zurücksetzen</button>
   </div>
 </div>
@@ -288,9 +286,7 @@ function renderTable(data){
 }
 
 function renderFilteredTable(){
-  const sucheNummer = document.getElementById("searchNummer").value.trim().toLowerCase();
-  const sucheTyp = document.getElementById("searchTyp").value.trim().toLowerCase();
-  const sucheBaustelle = document.getElementById("searchBaustelle").value.trim().toLowerCase();
+  const suchbegriff = document.getElementById("searchInput").value.trim().toLowerCase();
 
   const gefiltert = alleBobinen.filter(docItem => {
     const b = docItem.data();
@@ -299,20 +295,18 @@ function renderFilteredTable(){
     const typ = String(b.typ || "").toLowerCase();
     const baustelle = String(b.baustelle || "").toLowerCase();
 
-    const nummerPasst = nummer.includes(sucheNummer);
-    const typPasst = typ.includes(sucheTyp);
-    const baustellePasst = baustelle.includes(sucheBaustelle);
-
-    return nummerPasst && typPasst && baustellePasst;
+    return (
+      nummer.includes(suchbegriff) ||
+      typ.includes(suchbegriff) ||
+      baustelle.includes(suchbegriff)
+    );
   });
 
   renderTable(gefiltert);
 }
 
 function resetSearch(){
-  document.getElementById("searchNummer").value = "";
-  document.getElementById("searchTyp").value = "";
-  document.getElementById("searchBaustelle").value = "";
+  document.getElementById("searchInput").value = "";
   renderFilteredTable();
 }
 
