@@ -187,6 +187,36 @@ input, select{
   padding-top:12px;
 }
 
+.material-toggle{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  width:100%;
+  background:#f7f9fb;
+  color:#222;
+  border:1px solid #ddd;
+  border-radius:8px;
+  padding:10px 12px;
+  font-size:14px;
+  font-weight:bold;
+  margin-top:10px;
+}
+
+.material-toggle:hover{
+  background:#eef3f8;
+}
+
+.material-toggle .arrow{
+  font-size:16px;
+  margin-left:10px;
+  color:#222;
+}
+
+.material-content{
+  display:none;
+  margin-top:10px;
+}
+
 .material-list{
   margin-top:10px;
 }
@@ -605,14 +635,37 @@ function createBaustelleCard(baustelle){
     `}
 
     <div class="material-box">
-      <strong>Materialliste</strong>
-      <div class="material-list">
-        ${materialHtml}
+      <button class="material-toggle" onclick="toggleMaterialList('${baustelle.id}')">
+        <span>Materialliste</span>
+        <span class="arrow" id="materialArrow_${baustelle.id}">▼</span>
+      </button>
+
+      <div class="material-content" id="materialContent_${baustelle.id}">
+        <div class="material-list">
+          ${materialHtml}
+        </div>
       </div>
     </div>
   `;
 
   return card;
+}
+
+function toggleMaterialList(baustelleId){
+  const content = document.getElementById("materialContent_" + baustelleId);
+  const arrow = document.getElementById("materialArrow_" + baustelleId);
+
+  if(!content || !arrow){
+    return;
+  }
+
+  if(content.style.display === "block"){
+    content.style.display = "none";
+    arrow.innerText = "▼";
+  }else{
+    content.style.display = "block";
+    arrow.innerText = "▲";
+  }
 }
 
 function openBaustelleModal(){
