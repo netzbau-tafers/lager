@@ -443,6 +443,7 @@ let alleMaterialien = [];
 let editBaustelleId = null;
 let currentBaustelleId = null;
 let editMaterialId = null;
+let openMaterialLists = {};
 
 function login(){
   const email = document.getElementById("loginEmail").value.trim();
@@ -494,6 +495,7 @@ auth.onAuthStateChanged((user) => {
     document.getElementById("resultInfo").innerText = "";
     alleBaustellen = [];
     alleMaterialien = [];
+    openMaterialLists = {};
   }
 });
 
@@ -593,6 +595,7 @@ function createBaustelleCard(baustelle){
 
   const statusBadgeClass = baustelle.status === "aktiv" ? "badge badge-aktiv" : "badge badge-beendet";
   const materialien = materialVonBaustelle(baustelle.id);
+  const isOpen = openMaterialLists[baustelle.id] === true;
 
   let materialHtml = "";
   if(materialien.length === 0){
@@ -637,10 +640,10 @@ function createBaustelleCard(baustelle){
     <div class="material-box">
       <button class="material-toggle" onclick="toggleMaterialList('${baustelle.id}')">
         <span>Materialliste</span>
-        <span class="arrow" id="materialArrow_${baustelle.id}">▼</span>
+        <span class="arrow" id="materialArrow_${baustelle.id}">${isOpen ? "▲" : "▼"}</span>
       </button>
 
-      <div class="material-content" id="materialContent_${baustelle.id}">
+      <div class="material-content" id="materialContent_${baustelle.id}" style="display:${isOpen ? "block" : "none"};">
         <div class="material-list">
           ${materialHtml}
         </div>
@@ -659,10 +662,14 @@ function toggleMaterialList(baustelleId){
     return;
   }
 
-  if(content.style.display === "block"){
+  const isCurrentlyOpen = openMaterialLists[baustelleId] === true;
+
+  if(isCurrentlyOpen){
+    openMaterialLists[baustelleId] = false;
     content.style.display = "none";
     arrow.innerText = "▼";
   }else{
+    openMaterialLists[baustelleId] = true;
     content.style.display = "block";
     arrow.innerText = "▲";
   }
