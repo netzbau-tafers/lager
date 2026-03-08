@@ -7,37 +7,61 @@
 <style>
 
 body{
-font-family:Arial;
-background:#f2f4f7;
+font-family:Segoe UI,Arial;
+background:#eef2f7;
 margin:40px;
 }
 
-h1{text-align:center;}
+h1{
+text-align:center;
+margin-bottom:30px;
+}
 
 button{
-padding:8px 12px;
+padding:8px 14px;
 cursor:pointer;
+border:none;
+border-radius:6px;
+background:#3b82f6;
+color:white;
+font-weight:500;
+}
+
+button:hover{
+background:#2563eb;
 }
 
 table{
 width:100%;
 border-collapse:collapse;
 margin-top:20px;
+background:white;
+border-radius:10px;
+overflow:hidden;
+box-shadow:0 4px 10px rgba(0,0,0,0.08);
 }
 
 th,td{
-border:1px solid #ccc;
-padding:8px;
+padding:10px;
 text-align:center;
 }
 
 th{
-background:#2c3e50;
+background:#1f2937;
 color:white;
 }
 
-.inuse{background:#ffd9d9;}
-.instock{background:#d9ffd9;}
+tr:nth-child(even){
+background:#f8fafc;
+}
+
+.inuse{
+background:#ffe5e5 !important;
+}
+
+.instock{
+background:#e6ffe6 !important;
+}
 
 .modal{
 display:none;
@@ -46,21 +70,32 @@ top:0;
 left:0;
 width:100%;
 height:100%;
-background:rgba(0,0,0,0.4);
+background:rgba(0,0,0,0.45);
 }
 
 .modal-content{
 background:white;
-padding:20px;
-width:400px;
-margin:10% auto;
-border-radius:10px;
+padding:25px;
+width:420px;
+margin:8% auto;
+border-radius:12px;
+box-shadow:0 10px 30px rgba(0,0,0,0.2);
 }
 
 input{
 width:100%;
-padding:8px;
-margin:6px 0;
+padding:10px;
+margin:6px 0 12px 0;
+border:1px solid #ccc;
+border-radius:6px;
+}
+
+.actions button{
+margin:2px;
+}
+
+.topbar{
+margin-bottom:15px;
 }
 
 </style>
@@ -70,7 +105,9 @@ margin:6px 0;
 
 <h1>Bobinen Lager Management</h1>
 
+<div class="topbar">
 <button onclick="openAdd()">Neue Bobine hinzufügen</button>
+</div>
 
 <table>
 
@@ -90,13 +127,12 @@ margin:6px 0;
 
 </table>
 
-<!-- ADD MODAL -->
 
-<div id="addModal" class="modal">
+<div id="formModal" class="modal">
 
 <div class="modal-content">
 
-<h3>Neue Bobine</h3>
+<h3 id="modalTitle">Neue Bobine</h3>
 
 <input id="nummer" placeholder="Nummer">
 <input id="typ" placeholder="Kabeltyp">
@@ -104,13 +140,12 @@ margin:6px 0;
 <input id="baustelle" placeholder="Baustelle">
 <input id="hersteller" placeholder="Hersteller">
 
-<button onclick="addBobine()">Speichern</button>
+<button onclick="saveBobine()">Speichern</button>
 <button onclick="closeModal()">Abbrechen</button>
 
 </div>
 </div>
 
-<!-- RETURN MODAL -->
 
 <div id="returnModal" class="modal">
 
@@ -130,9 +165,11 @@ margin:6px 0;
 </div>
 </div>
 
+
 <script>
 
 let bobinen = JSON.parse(localStorage.getItem("bobinen")) || [];
+let editIndex = null;
 let selectedIndex = null;
 
 function save(){
@@ -159,7 +196,7 @@ row.innerHTML=`
 <td>${b.hersteller}</td>
 <td>${b.status}</td>
 
-<td>
+<td class="actions">
 
 <button onclick="toggle(${i})">Status</button>
 <button onclick="edit(${i})">Bearbeiten</button>
@@ -176,17 +213,39 @@ table.appendChild(row);
 
 function openAdd(){
 
-document.getElementById("addModal").style.display="block";
+editIndex=null;
+
+document.getElementById("modalTitle").innerText="Neue Bobine";
+
+nummer.value="";
+typ.value="";
+laenge.value="";
+baustelle.value="";
+hersteller.value="";
+
+document.getElementById("formModal").style.display="block";
 
 }
 
-function closeModal(){
+function edit(i){
 
-document.querySelectorAll(".modal").forEach(m=>m.style.display="none");
+editIndex=i;
+
+let b=bobinen[i];
+
+document.getElementById("modalTitle").innerText="Bobine bearbeiten";
+
+nummer.value=b.nummer;
+typ.value=b.typ;
+laenge.value=b.laenge;
+baustelle.value=b.baustelle;
+hersteller.value=b.hersteller;
+
+document.getElementById("formModal").style.display="block";
 
 }
 
-function addBobine(){
+function saveBobine(){
 
 let b={
 
@@ -199,7 +258,16 @@ status:"Lager"
 
 };
 
+if(editIndex===null){
+
 bobinen.push(b);
+
+}else{
+
+b.status=bobinen[editIndex].status;
+bobinen[editIndex]=b;
+
+}
 
 save();
 render();
@@ -220,8 +288,8 @@ render();
 
 selectedIndex=i;
 
-document.getElementById("returnLaenge").value=bobinen[i].laenge;
-document.getElementById("returnBaustelle").value=bobinen[i].baustelle;
+returnLaenge.value=bobinen[i].laenge;
+returnBaustelle.value=bobinen[i].baustelle;
 
 document.getElementById("returnModal").style.display="block";
 
@@ -231,12 +299,8 @@ document.getElementById("returnModal").style.display="block";
 
 function confirmReturn(){
 
-bobinen[selectedIndex].laenge=
-document.getElementById("returnLaenge").value;
-
-bobinen[selectedIndex].baustelle=
-document.getElementById("returnBaustelle").value;
-
+bobinen[selectedIndex].laenge=returnLaenge.value;
+bobinen[selectedIndex].baustelle=returnBaustelle.value;
 bobinen[selectedIndex].status="Lager";
 
 save();
@@ -246,16 +310,9 @@ closeModal();
 
 }
 
-function edit(i){
+function closeModal(){
 
-bobinen[i].nummer=prompt("Nummer",bobinen[i].nummer);
-bobinen[i].typ=prompt("Typ",bobinen[i].typ);
-bobinen[i].laenge=prompt("Länge",bobinen[i].laenge);
-bobinen[i].baustelle=prompt("Baustelle",bobinen[i].baustelle);
-bobinen[i].hersteller=prompt("Hersteller",bobinen[i].hersteller);
-
-save();
-render();
+document.querySelectorAll(".modal").forEach(m=>m.style.display="none");
 
 }
 
@@ -265,4 +322,3 @@ render();
 
 </body>
 </html>
-```
