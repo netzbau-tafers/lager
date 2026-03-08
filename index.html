@@ -537,11 +537,36 @@ function confirmReturn(){
 }
 
 function deleteBobine(id){
-  if(confirm("Bobine aus dem Kabellager endgültig löschen?")){
-    bobinenCollection.doc(id).delete().catch(error => {
-      console.error("Fehler beim Löschen:", error);
-      alert("Fehler beim Löschen.");
-    });
+
+  bobinenCollection.doc(id).get().then(doc => {
+
+    if(!doc.exists){
+      alert("Bobine nicht gefunden.");
+      return;
+    }
+
+    const b = doc.data();
+
+    const text =
+      "Bobine wirklich löschen?\n\n" +
+      "Nummer: " + (b.nummer || "") + "\n" +
+      "Kabeltyp: " + (b.typ || "") + "\n" +
+      "Länge: " + (b.laenge || "") + "\n" +
+      "Baustelle: " + (b.baustelle || "") + "\n\n" +
+      "Diese Bobine wird endgültig aus dem Kabellager entfernt.";
+
+    if(confirm(text)){
+      bobinenCollection.doc(id).delete().catch(error => {
+        console.error("Fehler beim Löschen:", error);
+        alert("Fehler beim Löschen.");
+      });
+    }
+
+  }).catch(error => {
+    console.error("Fehler beim Laden der Bobine:", error);
+    alert("Fehler beim Laden der Bobinen-Daten.");
+  });
+
   }
 }
 
