@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>Bobinen Lager</title>
 
-<!-- Firebase SDK (compat-Version für einfache HTML-Datei) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
@@ -14,7 +13,11 @@ body{
   background:#f2f4f7;
   margin:40px;
 }
-h1{text-align:center;}
+
+h1{
+  text-align:center;
+}
+
 button{
   padding:8px 12px;
   cursor:pointer;
@@ -22,29 +25,47 @@ button{
   border-radius:5px;
   background:#3498db;
   color:white;
+  margin:2px;
 }
-button:hover{background:#2980b9;}
+
+button:hover{
+  background:#2980b9;
+}
+
 .delete{
   background:#e74c3c;
 }
-.delete:hover{background:#c0392b;}
+
+.delete:hover{
+  background:#c0392b;
+}
+
 table{
   width:100%;
   border-collapse:collapse;
   margin-top:20px;
   background:white;
 }
+
 th,td{
   border:1px solid #ccc;
   padding:8px;
   text-align:center;
 }
+
 th{
   background:#2c3e50;
   color:white;
 }
-.inuse{background:#ffd9d9;}
-.instock{background:#d9ffd9;}
+
+.inuse{
+  background:#ffd9d9;
+}
+
+.instock{
+  background:#d9ffd9;
+}
+
 .modal{
   display:none;
   position:fixed;
@@ -54,6 +75,7 @@ th{
   height:100%;
   background:rgba(0,0,0,0.4);
 }
+
 .modal-content{
   background:white;
   padding:20px;
@@ -61,10 +83,12 @@ th{
   margin:10% auto;
   border-radius:10px;
 }
+
 input{
   width:100%;
   padding:8px;
   margin:6px 0;
+  box-sizing:border-box;
 }
 </style>
 </head>
@@ -76,31 +100,50 @@ input{
 <button onclick="openAdd()">Neue Bobine hinzufügen</button>
 
 <table>
-<thead>
-<tr>
-<th>Nummer</th>
-<th>Kabeltyp</th>
-<th>Länge</th>
-<th>Baustelle</th>
-<th>Hersteller</th>
-<th>Status</th>
-<th>Aktionen</th>
-</tr>
-</thead>
-<tbody id="table"></tbody>
+  <thead>
+    <tr>
+      <th>Nummer</th>
+      <th>Kabeltyp</th>
+      <th>Länge</th>
+      <th>Baustelle</th>
+      <th>Hersteller</th>
+      <th>Status</th>
+      <th>Aktionen</th>
+    </tr>
+  </thead>
+  <tbody id="table"></tbody>
 </table>
 
+<!-- HINZUFÜGEN / BEARBEITEN -->
 <div id="modal" class="modal">
-<div class="modal-content">
-<h3 id="modalTitle">Neue Bobine</h3>
-<input id="nummer" placeholder="Nummer">
-<input id="typ" placeholder="Kabeltyp">
-<input id="laenge" placeholder="Länge (m)">
-<input id="baustelle" placeholder="Baustelle">
-<input id="hersteller" placeholder="Hersteller">
-<button onclick="saveBobine()">Speichern</button>
-<button onclick="closeModal()">Abbrechen</button>
+  <div class="modal-content">
+    <h3 id="modalTitle">Neue Bobine</h3>
+
+    <input id="nummer" placeholder="Nummer">
+    <input id="typ" placeholder="Kabeltyp">
+    <input id="laenge" placeholder="Länge (m)">
+    <input id="baustelle" placeholder="Baustelle">
+    <input id="hersteller" placeholder="Hersteller">
+
+    <button onclick="saveBobine()">Speichern</button>
+    <button onclick="closeModal()">Abbrechen</button>
+  </div>
 </div>
+
+<!-- RÜCKGABE INS LAGER -->
+<div id="returnModal" class="modal">
+  <div class="modal-content">
+    <h3>Bobine zurück ins Lager</h3>
+
+    <p>Länge aktualisieren</p>
+    <input id="returnLaenge" placeholder="Länge (m)">
+
+    <p>Baustelle</p>
+    <input id="returnBaustelle" placeholder="Baustelle">
+
+    <button onclick="confirmReturn()">Speichern</button>
+    <button onclick="closeModal()">Abbrechen</button>
+  </div>
 </div>
 
 <script>
@@ -115,89 +158,187 @@ const firebaseConfig = {
   measurementId: "G-B5MJGD3108"
 };
 
-// Firebase initialisieren
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const bobinenCollection = db.collection("bobinen");
 
 let editId = null;
+let selectedId = null;
 
-// Tabelle rendern
+// ---------------- Tabelle rendern ----------------
 function renderTable(data){
   const table = document.getElementById("table");
   table.innerHTML = "";
-  data.forEach(doc => {
-    const b = doc.data();
+
+  data.forEach(docItem => {
+    const b = docItem.data();
     const tr = document.createElement("tr");
-    tr.className = b.status==="Lager" ? "instock" : "inuse";
+
+    tr.className = b.status === "Lager" ? "instock" : "inuse";
+
     tr.innerHTML = `
-      <td>${b.nummer}</td>
-      <td>${b.typ}</td>
-      <td>${b.laenge}</td>
-      <td>${b.baustelle}</td>
-      <td>${b.hersteller}</td>
-      <td>${b.status}</td>
+      <td>${b.nummer || ""}</td>
+      <td>${b.typ || ""}</td>
+      <td>${b.laenge || ""}</td>
+      <td>${b.baustelle || ""}</td>
+      <td>${b.hersteller || ""}</td>
+      <td>${b.status || ""}</td>
       <td>
-        <button onclick="editBobine('${doc.id}')">Bearbeiten</button>
-        <button class="delete" onclick="deleteBobine('${doc.id}')">Löschen</button>
+        <button onclick="toggleStatus('${docItem.id}')">Status</button>
+        <button onclick="editBobine('${docItem.id}')">Bearbeiten</button>
+        <button class="delete" onclick="deleteBobine('${docItem.id}')">Löschen</button>
       </td>
     `;
+
     table.appendChild(tr);
   });
 }
 
-// Echtzeit-Listener für alle Geräte
+// ---------------- Live Sync für alle Geräte ----------------
 bobinenCollection.onSnapshot(snapshot => {
   renderTable(snapshot.docs);
+}, error => {
+  console.error("Fehler bei Live-Daten:", error);
 });
 
-// Popup öffnen
+// ---------------- Neue Bobine ----------------
 function openAdd(){
   editId = null;
+
   document.getElementById("modalTitle").innerText = "Neue Bobine";
-  nummer.value=""; typ.value=""; laenge.value=""; baustelle.value=""; hersteller.value="";
+  document.getElementById("nummer").value = "";
+  document.getElementById("typ").value = "";
+  document.getElementById("laenge").value = "";
+  document.getElementById("baustelle").value = "";
+  document.getElementById("hersteller").value = "";
+
   document.getElementById("modal").style.display = "block";
 }
 
-// Bearbeiten
+// ---------------- Bearbeiten ----------------
 function editBobine(id){
   editId = id;
-  bobinenCollection.doc(id).get().then(doc=>{
+
+  bobinenCollection.doc(id).get().then(doc => {
+    if(!doc.exists){
+      alert("Bobine nicht gefunden.");
+      return;
+    }
+
     const b = doc.data();
+
     document.getElementById("modalTitle").innerText = "Bobine bearbeiten";
-    nummer.value=b.nummer; typ.value=b.typ; laenge.value=b.laenge; baustelle.value=b.baustelle; hersteller.value=b.hersteller;
-    document.getElementById("modal").style.display="block";
+    document.getElementById("nummer").value = b.nummer || "";
+    document.getElementById("typ").value = b.typ || "";
+    document.getElementById("laenge").value = b.laenge || "";
+    document.getElementById("baustelle").value = b.baustelle || "";
+    document.getElementById("hersteller").value = b.hersteller || "";
+
+    document.getElementById("modal").style.display = "block";
+  }).catch(error => {
+    console.error("Fehler beim Laden:", error);
+    alert("Fehler beim Laden der Bobine.");
   });
 }
 
-// Speichern
+// ---------------- Speichern ----------------
 function saveBobine(){
   const data = {
-    nummer: nummer.value,
-    typ: typ.value,
-    laenge: laenge.value,
-    baustelle: baustelle.value,
-    hersteller: hersteller.value,
-    status: "Lager"
+    nummer: document.getElementById("nummer").value,
+    typ: document.getElementById("typ").value,
+    laenge: document.getElementById("laenge").value,
+    baustelle: document.getElementById("baustelle").value,
+    hersteller: document.getElementById("hersteller").value
   };
+
   if(editId){
-    bobinenCollection.doc(editId).update(data);
-  } else {
-    bobinenCollection.add(data);
+    bobinenCollection.doc(editId).get().then(doc => {
+      if(!doc.exists){
+        alert("Bobine nicht gefunden.");
+        return;
+      }
+
+      const alterStatus = doc.data().status || "Lager";
+      data.status = alterStatus;
+
+      return bobinenCollection.doc(editId).update(data);
+    }).then(() => {
+      closeModal();
+    }).catch(error => {
+      console.error("Fehler beim Bearbeiten:", error);
+      alert("Fehler beim Speichern.");
+    });
+  }else{
+    data.status = "Lager";
+
+    bobinenCollection.add(data).then(() => {
+      closeModal();
+    }).catch(error => {
+      console.error("Fehler beim Hinzufügen:", error);
+      alert("Fehler beim Hinzufügen.");
+    });
   }
-  closeModal();
 }
 
-// Löschen
+// ---------------- Status ändern ----------------
+function toggleStatus(id){
+  bobinenCollection.doc(id).get().then(doc => {
+    if(!doc.exists){
+      alert("Bobine nicht gefunden.");
+      return;
+    }
+
+    const b = doc.data();
+
+    if(b.status === "Lager"){
+      return bobinenCollection.doc(id).update({
+        status: "In Gebrauch"
+      });
+    }else{
+      selectedId = id;
+      document.getElementById("returnLaenge").value = b.laenge || "";
+      document.getElementById("returnBaustelle").value = b.baustelle || "";
+      document.getElementById("returnModal").style.display = "block";
+    }
+  }).catch(error => {
+    console.error("Fehler beim Status ändern:", error);
+    alert("Fehler beim Status ändern.");
+  });
+}
+
+// ---------------- Rückgabe bestätigen ----------------
+function confirmReturn(){
+  if(!selectedId){
+    return;
+  }
+
+  bobinenCollection.doc(selectedId).update({
+    laenge: document.getElementById("returnLaenge").value,
+    baustelle: document.getElementById("returnBaustelle").value,
+    status: "Lager"
+  }).then(() => {
+    selectedId = null;
+    closeModal();
+  }).catch(error => {
+    console.error("Fehler bei Rückgabe:", error);
+    alert("Fehler beim Zurückbuchen ins Lager.");
+  });
+}
+
+// ---------------- Löschen ----------------
 function deleteBobine(id){
   if(confirm("Bobine aus dem Kabellager endgültig löschen?")){
-    bobinenCollection.doc(id).delete();
+    bobinenCollection.doc(id).delete().catch(error => {
+      console.error("Fehler beim Löschen:", error);
+      alert("Fehler beim Löschen.");
+    });
   }
 }
 
-// Modal schließen
+// ---------------- Modal schließen ----------------
 function closeModal(){
-  document.getElementById("modal").style.display="none";
+  document.getElementById("modal").style.display = "none";
+  document.getElementById("returnModal").style.display = "none";
 }
 </script>
 
