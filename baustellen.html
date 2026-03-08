@@ -330,15 +330,19 @@ input, select{
 
 <div class="topbar">
   <button class="back" onclick="window.location.href='index.html'">Zurück zum Kabellager</button>
-  <button onclick="openBaustelleModal()">Neue Baustelle erstellen</button>
   <button class="back" onclick="logout()">Logout</button>
 </div>
 
 <div class="search-box">
   <div class="search-title">Suche</div>
+
   <div class="search-row">
     <input id="searchInput" type="text" placeholder="Nach Baustellenname, Nummer, Verantwortlicher oder Material suchen" oninput="renderAll()">
     <button class="back" onclick="resetSearch()">Suche zurücksetzen</button>
+  </div>
+
+  <div style="margin-top:15px;">
+    <button onclick="openBaustelleModal()">Neue Baustelle erstellen</button>
   </div>
 </div>
 
@@ -837,3 +841,4 @@ function closeModals(){
 
 </body>
 </html>
+
