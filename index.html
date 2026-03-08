@@ -80,10 +80,29 @@ button:hover{
   align-items:center;
 }
 
+.filter-row{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+  align-items:center;
+  margin-top:12px;
+}
+
 #searchInput{
   margin:0;
   font-size:16px;
   padding:12px;
+}
+
+select{
+  width:100%;
+  padding:10px;
+  margin:0;
+  box-sizing:border-box;
+  border:1px solid #ccc;
+  border-radius:6px;
+  font-size:15px;
+  background:white;
 }
 
 .info-box{
@@ -240,6 +259,14 @@ input{
     <input id="searchInput" type="text" placeholder="Nach Nummer, Kabeltyp oder Baustelle suchen" oninput="renderFilteredTable()">
     <button class="reset" onclick="resetSearch()">Suche zurücksetzen</button>
   </div>
+
+  <div class="filter-row">
+    <select id="statusFilter" onchange="renderFilteredTable()">
+      <option value="Alle">Alle</option>
+      <option value="Lager">Lager</option>
+      <option value="In Gebrauch">In Gebrauch</option>
+    </select>
+  </div>
 </div>
 
 <div class="info-box" id="resultInfo"></div>
@@ -351,6 +378,7 @@ function renderTable(data){
 
 function renderFilteredTable(){
   const suchbegriff = document.getElementById("searchInput").value.trim().toLowerCase();
+  const statusFilter = document.getElementById("statusFilter").value;
 
   const gefiltert = alleBobinen.filter(docItem => {
     const b = docItem.data();
@@ -358,12 +386,19 @@ function renderFilteredTable(){
     const nummer = String(b.nummer || "").toLowerCase();
     const typ = String(b.typ || "").toLowerCase();
     const baustelle = String(b.baustelle || "").toLowerCase();
+    const status = String(b.status || "");
 
-    return (
+    const suchbegriffLeer = suchbegriff === "";
+    const textPasst =
+      suchbegriffLeer ||
       nummer.includes(suchbegriff) ||
       typ.includes(suchbegriff) ||
-      baustelle.includes(suchbegriff)
-    );
+      baustelle.includes(suchbegriff);
+
+    const statusPasst =
+      statusFilter === "Alle" || status === statusFilter;
+
+    return textPasst && statusPasst;
   });
 
   renderTable(gefiltert);
@@ -371,6 +406,7 @@ function renderFilteredTable(){
 
 function resetSearch(){
   document.getElementById("searchInput").value = "";
+  document.getElementById("statusFilter").value = "Alle";
   renderFilteredTable();
 }
 
