@@ -1,0 +1,269 @@
+```html id="2sq2y7"
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Bobinen Lager</title>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f2f4f7;
+margin:40px;
+}
+
+h1{text-align:center;}
+
+button{
+padding:8px 12px;
+cursor:pointer;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:20px;
+}
+
+th,td{
+border:1px solid #ccc;
+padding:8px;
+text-align:center;
+}
+
+th{
+background:#2c3e50;
+color:white;
+}
+
+.inuse{background:#ffd9d9;}
+.instock{background:#d9ffd9;}
+
+.modal{
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.4);
+}
+
+.modal-content{
+background:white;
+padding:20px;
+width:400px;
+margin:10% auto;
+border-radius:10px;
+}
+
+input{
+width:100%;
+padding:8px;
+margin:6px 0;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>Bobinen Lager Management</h1>
+
+<button onclick="openAdd()">Neue Bobine hinzufügen</button>
+
+<table>
+
+<thead>
+<tr>
+<th>Nummer</th>
+<th>Kabeltyp</th>
+<th>Länge</th>
+<th>Baustelle</th>
+<th>Hersteller</th>
+<th>Status</th>
+<th>Aktion</th>
+</tr>
+</thead>
+
+<tbody id="table"></tbody>
+
+</table>
+
+<!-- ADD MODAL -->
+
+<div id="addModal" class="modal">
+
+<div class="modal-content">
+
+<h3>Neue Bobine</h3>
+
+<input id="nummer" placeholder="Nummer">
+<input id="typ" placeholder="Kabeltyp">
+<input id="laenge" placeholder="Länge (m)">
+<input id="baustelle" placeholder="Baustelle">
+<input id="hersteller" placeholder="Hersteller">
+
+<button onclick="addBobine()">Speichern</button>
+<button onclick="closeModal()">Abbrechen</button>
+
+</div>
+</div>
+
+<!-- RETURN MODAL -->
+
+<div id="returnModal" class="modal">
+
+<div class="modal-content">
+
+<h3>Bobine zurück ins Lager</h3>
+
+<p>Länge aktualisieren</p>
+<input id="returnLaenge">
+
+<p>Baustelle</p>
+<input id="returnBaustelle">
+
+<button onclick="confirmReturn()">Speichern</button>
+<button onclick="closeModal()">Abbrechen</button>
+
+</div>
+</div>
+
+<script>
+
+let bobinen = JSON.parse(localStorage.getItem("bobinen")) || [];
+let selectedIndex = null;
+
+function save(){
+localStorage.setItem("bobinen",JSON.stringify(bobinen));
+}
+
+function render(){
+
+let table=document.getElementById("table");
+table.innerHTML="";
+
+bobinen.forEach((b,i)=>{
+
+let row=document.createElement("tr");
+
+row.className = b.status=="Lager" ? "instock":"inuse";
+
+row.innerHTML=`
+
+<td>${b.nummer}</td>
+<td>${b.typ}</td>
+<td>${b.laenge}</td>
+<td>${b.baustelle}</td>
+<td>${b.hersteller}</td>
+<td>${b.status}</td>
+
+<td>
+
+<button onclick="toggle(${i})">Status</button>
+<button onclick="edit(${i})">Bearbeiten</button>
+
+</td>
+
+`;
+
+table.appendChild(row);
+
+});
+
+}
+
+function openAdd(){
+
+document.getElementById("addModal").style.display="block";
+
+}
+
+function closeModal(){
+
+document.querySelectorAll(".modal").forEach(m=>m.style.display="none");
+
+}
+
+function addBobine(){
+
+let b={
+
+nummer:nummer.value,
+typ:typ.value,
+laenge:laenge.value,
+baustelle:baustelle.value,
+hersteller:hersteller.value,
+status:"Lager"
+
+};
+
+bobinen.push(b);
+
+save();
+render();
+closeModal();
+
+}
+
+function toggle(i){
+
+if(bobinen[i].status=="Lager"){
+
+bobinen[i].status="In Gebrauch";
+
+save();
+render();
+
+}else{
+
+selectedIndex=i;
+
+document.getElementById("returnLaenge").value=bobinen[i].laenge;
+document.getElementById("returnBaustelle").value=bobinen[i].baustelle;
+
+document.getElementById("returnModal").style.display="block";
+
+}
+
+}
+
+function confirmReturn(){
+
+bobinen[selectedIndex].laenge=
+document.getElementById("returnLaenge").value;
+
+bobinen[selectedIndex].baustelle=
+document.getElementById("returnBaustelle").value;
+
+bobinen[selectedIndex].status="Lager";
+
+save();
+render();
+
+closeModal();
+
+}
+
+function edit(i){
+
+bobinen[i].nummer=prompt("Nummer",bobinen[i].nummer);
+bobinen[i].typ=prompt("Typ",bobinen[i].typ);
+bobinen[i].laenge=prompt("Länge",bobinen[i].laenge);
+bobinen[i].baustelle=prompt("Baustelle",bobinen[i].baustelle);
+bobinen[i].hersteller=prompt("Hersteller",bobinen[i].hersteller);
+
+save();
+render();
+
+}
+
+render();
+
+</script>
+
+</body>
+</html>
+```
