@@ -513,17 +513,21 @@ function resetSearch(){
   renderFilteredTable();
 }
 
-bobinenCollection.onSnapshot(snapshot => {
-  alleBobinen = snapshot.docs;
-  if(auth.currentUser){
+function startDatabaseListener(){
+
+  bobinenCollection.onSnapshot(snapshot => {
+
+    alleBobinen = snapshot.docs;
     renderFilteredTable();
-  }
-}, error => {
-  console.error("Fehler bei Live-Daten:", error);
-  if(auth.currentUser){
+
+  }, error => {
+
+    console.error("Fehler bei Live-Daten:", error);
     alert("Fehler beim Laden der Firebase-Daten.");
-  }
-});
+
+  });
+
+}
 
 function openAdd(){
   editId = null;
