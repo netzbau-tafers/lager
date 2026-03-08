@@ -90,6 +90,39 @@ input{
   margin:6px 0;
   box-sizing:border-box;
 }
+
+.search-box{
+  margin-top:20px;
+  margin-bottom:10px;
+  background:white;
+  padding:15px;
+  border-radius:8px;
+  border:1px solid #ccc;
+}
+
+.search-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:10px;
+}
+
+.search-grid input{
+  margin:0;
+}
+
+@media (max-width: 800px){
+  .search-grid{
+    grid-template-columns:1fr;
+  }
+
+  .modal-content{
+    width:90%;
+  }
+
+  body{
+    margin:15px;
+  }
+}
 </style>
 </head>
 
@@ -98,6 +131,14 @@ input{
 <h1>Bobinen Lager Management</h1>
 
 <button onclick="openAdd()">Neue Bobine hinzufügen</button>
+
+<div class="search-box">
+  <div class="search-grid">
+    <input id="searchNummer" placeholder="Suche nach Nummer" oninput="renderFilteredTable()">
+    <input id="searchTyp" placeholder="Suche nach Kabeltyp" oninput="renderFilteredTable()">
+    <input id="searchBaustelle" placeholder="Suche nach Baustelle" oninput="renderFilteredTable()">
+  </div>
+</div>
 
 <table>
   <thead>
@@ -114,7 +155,6 @@ input{
   <tbody id="table"></tbody>
 </table>
 
-<!-- HINZUFÜGEN / BEARBEITEN -->
 <div id="modal" class="modal">
   <div class="modal-content">
     <h3 id="modalTitle">Neue Bobine</h3>
@@ -130,7 +170,6 @@ input{
   </div>
 </div>
 
-<!-- RÜCKGABE INS LAGER -->
 <div id="returnModal" class="modal">
   <div class="modal-content">
     <h3>Bobine zurück ins Lager</h3>
@@ -147,7 +186,6 @@ input{
 </div>
 
 <script>
-// ---------------- Firebase Initialisierung ----------------
 const firebaseConfig = {
   apiKey: "AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",
   authDomain: "netzbau-tafers.firebaseapp.com",
@@ -164,8 +202,8 @@ const bobinenCollection = db.collection("bobinen");
 
 let editId = null;
 let selectedId = null;
+let alleBobinen = [];
 
-// ---------------- Tabelle rendern ----------------
 function renderTable(data){
   const table = document.getElementById("table");
   table.innerHTML = "";
@@ -194,14 +232,35 @@ function renderTable(data){
   });
 }
 
-// ---------------- Live Sync für alle Geräte ----------------
+function renderFilteredTable(){
+  const sucheNummer = document.getElementById("searchNummer").value.trim().toLowerCase();
+  const sucheTyp = document.getElementById("searchTyp").value.trim().toLowerCase();
+  const sucheBaustelle = document.getElementById("searchBaustelle").value.trim().toLowerCase();
+
+  const gefiltert = alleBobinen.filter(docItem => {
+    const b = docItem.data();
+
+    const nummer = (b.nummer || "").toLowerCase();
+    const typ = (b.typ || "").toLowerCase();
+    const baustelle = (b.baustelle || "").toLowerCase();
+
+    const nummerPasst = nummer.includes(sucheNummer);
+    const typPasst = typ.includes(sucheTyp);
+    const baustellePasst = baustelle.includes(sucheBaustelle);
+
+    return nummerPasst && typPasst && baustellePasst;
+  });
+
+  renderTable(gefiltert);
+}
+
 bobinenCollection.onSnapshot(snapshot => {
-  renderTable(snapshot.docs);
+  alleBobinen = snapshot.docs;
+  renderFilteredTable();
 }, error => {
   console.error("Fehler bei Live-Daten:", error);
 });
 
-// ---------------- Neue Bobine ----------------
 function openAdd(){
   editId = null;
 
@@ -215,7 +274,6 @@ function openAdd(){
   document.getElementById("modal").style.display = "block";
 }
 
-// ---------------- Bearbeiten ----------------
 function editBobine(id){
   editId = id;
 
@@ -241,46 +299,79 @@ function editBobine(id){
   });
 }
 
-// ---------------- Speichern ----------------
-function saveBobine(){
-  const data = {
-    nummer: document.getElementById("nummer").value,
-    typ: document.getElementById("typ").value,
-    laenge: document.getElementById("laenge").value,
-    baustelle: document.getElementById("baustelle").value,
-    hersteller: document.getElementById("hersteller").value
-  };
-
-  if(editId){
-    bobinenCollection.doc(editId).get().then(doc => {
-      if(!doc.exists){
-        alert("Bobine nicht gefunden.");
-        return;
-      }
-
-      const alterStatus = doc.data().status || "Lager";
-      data.status = alterStatus;
-
-      return bobinenCollection.doc(editId).update(data);
-    }).then(() => {
-      closeModal();
-    }).catch(error => {
-      console.error("Fehler beim Bearbeiten:", error);
-      alert("Fehler beim Speichern.");
-    });
-  }else{
-    data.status = "Lager";
-
-    bobinenCollection.add(data).then(() => {
-      closeModal();
-    }).catch(error => {
-      console.error("Fehler beim Hinzufügen:", error);
-      alert("Fehler beim Hinzufügen.");
-    });
-  }
+function nummerBereinigen(wert){
+  return wert.trim();
 }
 
-// ---------------- Status ändern ----------------
+function nummerSchonVorhanden(nummer, aktuelleId = null){
+  return bobinenCollection.where("nummer", "==", nummer).get().then(snapshot => {
+    let vorhanden = false;
+
+    snapshot.forEach(doc => {
+      if(doc.id !== aktuelleId){
+        vorhanden = true;
+      }
+    });
+
+    return vorhanden;
+  });
+}
+
+function saveBobine(){
+  const nummerWert = nummerBereinigen(document.getElementById("nummer").value);
+
+  if(nummerWert === ""){
+    alert("Bitte eine Nummer eingeben.");
+    return;
+  }
+
+  const data = {
+    nummer: nummerWert,
+    typ: document.getElementById("typ").value.trim(),
+    laenge: document.getElementById("laenge").value.trim(),
+    baustelle: document.getElementById("baustelle").value.trim(),
+    hersteller: document.getElementById("hersteller").value.trim()
+  };
+
+  nummerSchonVorhanden(nummerWert, editId).then(vorhanden => {
+    if(vorhanden){
+      alert("Diese Bobinen-Nummer ist bereits im Lager vorhanden.");
+      return;
+    }
+
+    if(editId){
+      bobinenCollection.doc(editId).get().then(doc => {
+        if(!doc.exists){
+          alert("Bobine nicht gefunden.");
+          return;
+        }
+
+        const alterStatus = doc.data().status || "Lager";
+        data.status = alterStatus;
+
+        return bobinenCollection.doc(editId).update(data);
+      }).then(() => {
+        closeModal();
+      }).catch(error => {
+        console.error("Fehler beim Bearbeiten:", error);
+        alert("Fehler beim Speichern.");
+      });
+    }else{
+      data.status = "Lager";
+
+      bobinenCollection.add(data).then(() => {
+        closeModal();
+      }).catch(error => {
+        console.error("Fehler beim Hinzufügen:", error);
+        alert("Fehler beim Hinzufügen.");
+      });
+    }
+  }).catch(error => {
+    console.error("Fehler bei Nummernprüfung:", error);
+    alert("Fehler bei der Prüfung der Nummer.");
+  });
+}
+
 function toggleStatus(id){
   bobinenCollection.doc(id).get().then(doc => {
     if(!doc.exists){
@@ -306,15 +397,14 @@ function toggleStatus(id){
   });
 }
 
-// ---------------- Rückgabe bestätigen ----------------
 function confirmReturn(){
   if(!selectedId){
     return;
   }
 
   bobinenCollection.doc(selectedId).update({
-    laenge: document.getElementById("returnLaenge").value,
-    baustelle: document.getElementById("returnBaustelle").value,
+    laenge: document.getElementById("returnLaenge").value.trim(),
+    baustelle: document.getElementById("returnBaustelle").value.trim(),
     status: "Lager"
   }).then(() => {
     selectedId = null;
@@ -325,7 +415,6 @@ function confirmReturn(){
   });
 }
 
-// ---------------- Löschen ----------------
 function deleteBobine(id){
   if(confirm("Bobine aus dem Kabellager endgültig löschen?")){
     bobinenCollection.doc(id).delete().catch(error => {
@@ -335,7 +424,6 @@ function deleteBobine(id){
   }
 }
 
-// ---------------- Modal schließen ----------------
 function closeModal(){
   document.getElementById("modal").style.display = "none";
   document.getElementById("returnModal").style.display = "none";
