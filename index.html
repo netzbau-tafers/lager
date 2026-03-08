@@ -31,6 +31,14 @@ button:hover{
 background:#2563eb;
 }
 
+.delete{
+background:#ef4444;
+}
+
+.delete:hover{
+background:#dc2626;
+}
+
 table{
 width:100%;
 border-collapse:collapse;
@@ -200,6 +208,7 @@ row.innerHTML=`
 
 <button onclick="toggle(${i})">Status</button>
 <button onclick="edit(${i})">Bearbeiten</button>
+<button class="delete" onclick="deleteBobine(${i})">Löschen</button>
 
 </td>
 
@@ -272,6 +281,19 @@ bobinen[editIndex]=b;
 save();
 render();
 closeModal();
+
+}
+
+function deleteBobine(i){
+
+if(confirm("Bobine wirklich löschen?")){
+
+bobinen.splice(i,1);
+
+save();
+render();
+
+}
 
 }
 
