@@ -1,79 +1,843 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="styles.css">
-    <title>Baustellen</title>
-    <style>
-        .collapsible {
-            background-color: #777;
-            color: white;
-            cursor: pointer;
-            padding: 10px;
-            width: 100%;
-            border: none;
-            text-align: left;
-            outline: none;
-            font-size: 15px;
-        }
-        .active, .collapsible:hover {
-            background-color: #555;
-        }
-        .content {
-            padding: 0 18px;
-            display: none;
-            overflow: hidden;
-            background-color: #f1f1f1;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Baustellen Material</title>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+<style>
+body{
+  font-family:Arial, sans-serif;
+  background:#f2f4f7;
+  margin:40px;
+  color:#222;
+}
+
+h1{
+  text-align:center;
+  margin-bottom:25px;
+}
+
+h2{
+  margin:0 0 15px 0;
+}
+
+h3{
+  margin-top:0;
+}
+
+.topbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-bottom:20px;
+}
+
+button{
+  padding:10px 14px;
+  cursor:pointer;
+  border:none;
+  border-radius:6px;
+  background:#3498db;
+  color:white;
+  margin:2px;
+  font-size:14px;
+}
+
+button:hover{
+  background:#2980b9;
+}
+
+.delete{
+  background:#e74c3c;
+}
+
+.delete:hover{
+  background:#c0392b;
+}
+
+.edit{
+  background:#f39c12;
+}
+
+.edit:hover{
+  background:#d68910;
+}
+
+.finish{
+  background:#27ae60;
+}
+
+.finish:hover{
+  background:#1e8449;
+}
+
+.back{
+  background:#555;
+}
+
+.back:hover{
+  background:#333;
+}
+
+.search-box{
+  background:white;
+  border:1px solid #ccc;
+  border-radius:10px;
+  padding:15px;
+  margin-bottom:20px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.05);
+}
+
+.search-title{
+  font-weight:bold;
+  margin-bottom:10px;
+}
+
+.search-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:10px;
+  align-items:center;
+}
+
+input, select{
+  width:100%;
+  padding:10px;
+  margin:6px 0 12px 0;
+  box-sizing:border-box;
+  border:1px solid #ccc;
+  border-radius:6px;
+  font-size:15px;
+  background:white;
+}
+
+#searchInput{
+  margin:0;
+  font-size:16px;
+  padding:12px;
+}
+
+.section{
+  margin-bottom:30px;
+}
+
+.section-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:12px;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.baustellen-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+  gap:18px;
+}
+
+.baustelle-card{
+  background:white;
+  border:1px solid #ddd;
+  border-radius:12px;
+  padding:18px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.06);
+}
+
+.baustelle-meta{
+  font-size:14px;
+  color:#555;
+  margin-bottom:6px;
+}
+
+.badge{
+  display:inline-block;
+  padding:5px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:bold;
+  margin-bottom:10px;
+}
+
+.badge-aktiv{
+  background:#d9ffd9;
+  color:#1b5e20;
+}
+
+.badge-beendet{
+  background:#e3e3e3;
+  color:#444;
+}
+
+.card-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:12px;
+}
+
+.material-box{
+  margin-top:15px;
+  border-top:1px solid #eee;
+  padding-top:12px;
+}
+
+.material-list{
+  margin-top:10px;
+}
+
+.material-item{
+  border:1px solid #e4e4e4;
+  border-radius:10px;
+  padding:12px;
+  margin-bottom:10px;
+  background:#fafafa;
+}
+
+.material-row{
+  margin-bottom:4px;
+}
+
+.material-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:8px;
+}
+
+.empty-box{
+  background:white;
+  border:1px dashed #bbb;
+  border-radius:10px;
+  padding:20px;
+  text-align:center;
+  color:#666;
+}
+
+.modal{
+  display:none;
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.45);
+  z-index:1000;
+}
+
+.modal-content{
+  background:white;
+  padding:20px;
+  width:420px;
+  max-width:92%;
+  margin:8% auto;
+  border-radius:10px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.2);
+}
+
+.login-screen{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:#f2f4f7;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:3000;
+  padding:20px;
+  box-sizing:border-box;
+}
+
+.login-card{
+  background:white;
+  width:420px;
+  max-width:95%;
+  padding:25px;
+  border-radius:12px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.2);
+}
+
+.login-card h2{
+  margin-top:0;
+  text-align:center;
+}
+
+.login-error{
+  color:#c0392b;
+  display:none;
+  margin-top:10px;
+  text-align:center;
+}
+
+.login-info{
+  color:#555;
+  font-size:14px;
+  text-align:center;
+  margin-bottom:15px;
+}
+
+.info-box{
+  margin:10px 0 20px 0;
+  font-size:14px;
+  color:#444;
+}
+
+@media (max-width: 900px){
+  body{
+    margin:15px;
+  }
+
+  .search-row{
+    grid-template-columns:1fr;
+  }
+
+  button{
+    font-size:16px;
+    padding:12px 16px;
+  }
+
+  .modal-content{
+    width:95%;
+    margin:15% auto;
+  }
+}
+</style>
 </head>
+
 <body>
-    <h1>Baustellenverwaltung</h1>
-    <button class="collapsible">Aktive Baustellen</button>
-    <div class="content">
-        <!-- Active construction sites will be listed here -->
-        <div class="construction-site"><h2>Bauvorhaben 1</h2>
-            <button class="collapsible">Materialliste</button>
-            <div class="content">
-                <!-- Materials for Bauvorhaben 1 -->
-                <p>Material 1, Material 2, Material 3</p>
-            </div>
-        </div>
-        <div class="construction-site"><h2>Bauvorhaben 2</h2>
-            <button class="collapsible">Materialliste</button>
-            <div class="content">
-                <!-- Materials for Bauvorhaben 2 -->
-                <p>Material 1, Material 2</p>
-            </div>
-        </div>
-    </div>
 
-    <button class="collapsible">Beendete Baustellen</button>
-    <div class="content">
-        <!-- Completed construction sites will be listed here -->
-        <div class="construction-site"><h2>Bauvorhaben A</h2>
-            <button class="collapsible">Materialliste</button>
-            <div class="content">
-                <!-- Materials for Bauvorhaben A -->
-                <p>Material X, Material Y</p>
-            </div>
-        </div>
-    </div>
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <h2>Login Baustellen Material</h2>
+    <div class="login-info">Bitte mit E-Mail und Passwort anmelden</div>
+    <input id="loginEmail" type="email" placeholder="E-Mail">
+    <input id="loginPassword" type="password" placeholder="Passwort">
+    <button onclick="login()">Login</button>
+    <p id="loginError" class="login-error">Login fehlgeschlagen. Bitte Daten prüfen.</p>
+  </div>
+</div>
 
-    <script>
-        var coll = document.getElementsByClassName("collapsible");
-        for (var i = 0; i < coll.length; i++) {
-            coll[i].addEventListener("click", function() {
-                this.classList.toggle("active");
-                var content = this.nextElementSibling;
-                if (content.style.display === "block") {
-                    content.style.display = "none";
-                } else {
-                    content.style.display = "block";
-                }
-            });
-        }
-    </script>
+<div id="appContent" style="display:none;">
+
+<h1>Baustellen Material</h1>
+
+<div class="topbar">
+  <button class="back" onclick="window.location.href='index.html'">Zurück zum Kabellager</button>
+  <button class="back" onclick="logout()">Logout</button>
+</div>
+
+<div class="search-box">
+  <div class="search-title">Suche</div>
+
+  <div class="search-row">
+    <input id="searchInput" type="text" placeholder="Nach Baustellenname, Nummer, Verantwortlicher oder Material suchen" oninput="renderAll()">
+    <button class="back" onclick="resetSearch()">Suche zurücksetzen</button>
+  </div>
+
+  <div style="margin-top:15px;">
+    <button onclick="openBaustelleModal()">Neue Baustelle erstellen</button>
+  </div>
+</div>
+
+<div class="info-box" id="resultInfo"></div>
+
+<div class="section">
+  <div class="section-header">
+    <h2>Aktive Baustellen</h2>
+  </div>
+  <div id="aktiveBaustellen" class="baustellen-grid"></div>
+</div>
+
+<div class="section">
+  <div class="section-header">
+    <h2>Beendete Baustellen</h2>
+  </div>
+  <div id="beendeteBaustellen" class="baustellen-grid"></div>
+</div>
+
+<div id="baustelleModal" class="modal">
+  <div class="modal-content">
+    <h3 id="baustelleModalTitle">Neue Baustelle</h3>
+    <input id="baustelleName" placeholder="Baustellen Name">
+    <input id="baustelleNummer" placeholder="Baustellen Nummer">
+    <input id="baustelleVerantwortlicher" placeholder="Verantwortlicher">
+    <button onclick="saveBaustelle()">Speichern</button>
+    <button class="back" onclick="closeModals()">Abbrechen</button>
+  </div>
+</div>
+
+<div id="materialModal" class="modal">
+  <div class="modal-content">
+    <h3 id="materialModalTitle">Material hinzufügen</h3>
+    <input id="materialName" placeholder="Material">
+    <input id="materialAnzahl" placeholder="Anzahl">
+    <input id="materialSpontis" placeholder="Spontis Nummer">
+    <button onclick="saveMaterial()">Speichern</button>
+    <button class="back" onclick="closeModals()">Abbrechen</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",
+  authDomain: "netzbau-tafers.firebaseapp.com",
+  projectId: "netzbau-tafers",
+  storageBucket: "netzbau-tafers.appspot.com",
+  messagingSenderId: "389541837675",
+  appId: "1:389541837675:web:db580ce67c57a9a16dea2e",
+  measurementId: "G-B5MJGD3108"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+const baustellenCollection = db.collection("baustellen");
+const materialCollection = db.collection("baustellen_material");
+
+let unsubscribeBaustellen = null;
+let unsubscribeMaterial = null;
+
+let alleBaustellen = [];
+let alleMaterialien = [];
+
+let editBaustelleId = null;
+let currentBaustelleId = null;
+let editMaterialId = null;
+
+function login(){
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+
+  auth.signInWithEmailAndPassword(email, password)
+    .then(() => {
+      document.getElementById("loginError").style.display = "none";
+      document.getElementById("loginPassword").value = "";
+    })
+    .catch((error) => {
+      console.error("Login Fehler:", error);
+      document.getElementById("loginError").style.display = "block";
+    });
+}
+
+function logout(){
+  stopListeners();
+
+  auth.signOut().catch((error) => {
+    console.error("Logout Fehler:", error);
+    alert("Fehler beim Logout.");
+  });
+}
+
+function stopListeners(){
+  if(unsubscribeBaustellen){
+    unsubscribeBaustellen();
+    unsubscribeBaustellen = null;
+  }
+
+  if(unsubscribeMaterial){
+    unsubscribeMaterial();
+    unsubscribeMaterial = null;
+  }
+}
+
+auth.onAuthStateChanged((user) => {
+  if(user){
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("appContent").style.display = "block";
+    startListeners();
+  }else{
+    stopListeners();
+    document.getElementById("loginScreen").style.display = "flex";
+    document.getElementById("appContent").style.display = "none";
+    document.getElementById("aktiveBaustellen").innerHTML = "";
+    document.getElementById("beendeteBaustellen").innerHTML = "";
+    document.getElementById("resultInfo").innerText = "";
+    alleBaustellen = [];
+    alleMaterialien = [];
+  }
+});
+
+function startListeners(){
+  if(!unsubscribeBaustellen){
+    unsubscribeBaustellen = baustellenCollection.onSnapshot(snapshot => {
+      alleBaustellen = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderAll();
+    }, error => {
+      console.error("Fehler Baustellen:", error);
+      alert("Fehler beim Laden der Baustellen.");
+    });
+  }
+
+  if(!unsubscribeMaterial){
+    unsubscribeMaterial = materialCollection.onSnapshot(snapshot => {
+      alleMaterialien = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderAll();
+    }, error => {
+      console.error("Fehler Material:", error);
+      alert("Fehler beim Laden der Materialien.");
+    });
+  }
+}
+
+function resetSearch(){
+  document.getElementById("searchInput").value = "";
+  renderAll();
+}
+
+function getSuchbegriff(){
+  return document.getElementById("searchInput").value.trim().toLowerCase();
+}
+
+function materialVonBaustelle(baustelleId){
+  return alleMaterialien.filter(m => m.baustelleId === baustelleId);
+}
+
+function baustellePasstZurSuche(baustelle){
+  const suchbegriff = getSuchbegriff();
+
+  if(suchbegriff === ""){
+    return true;
+  }
+
+  const name = String(baustelle.name || "").toLowerCase();
+  const nummer = String(baustelle.nummer || "").toLowerCase();
+  const verantwortlicher = String(baustelle.verantwortlicher || "").toLowerCase();
+
+  const materialien = materialVonBaustelle(baustelle.id);
+
+  const materialPasst = materialien.some(m => {
+    const material = String(m.material || "").toLowerCase();
+    const anzahl = String(m.anzahl || "").toLowerCase();
+    const spontis = String(m.spontis || "").toLowerCase();
+
+    return material.includes(suchbegriff) || anzahl.includes(suchbegriff) || spontis.includes(suchbegriff);
+  });
+
+  return (
+    name.includes(suchbegriff) ||
+    nummer.includes(suchbegriff) ||
+    verantwortlicher.includes(suchbegriff) ||
+    materialPasst
+  );
+}
+
+function renderAll(){
+  const aktiveContainer = document.getElementById("aktiveBaustellen");
+  const beendeteContainer = document.getElementById("beendeteBaustellen");
+
+  aktiveContainer.innerHTML = "";
+  beendeteContainer.innerHTML = "";
+
+  const aktive = alleBaustellen.filter(b => b.status === "aktiv" && baustellePasstZurSuche(b));
+  const beendete = alleBaustellen.filter(b => b.status === "beendet" && baustellePasstZurSuche(b));
+
+  if(aktive.length === 0){
+    aktiveContainer.innerHTML = '<div class="empty-box">Keine aktiven Baustellen gefunden.</div>';
+  }else{
+    aktive.forEach(b => aktiveContainer.appendChild(createBaustelleCard(b)));
+  }
+
+  if(beendete.length === 0){
+    beendeteContainer.innerHTML = '<div class="empty-box">Keine beendeten Baustellen gefunden.</div>';
+  }else{
+    beendete.forEach(b => beendeteContainer.appendChild(createBaustelleCard(b)));
+  }
+
+  document.getElementById("resultInfo").innerText =
+    "Aktive Baustellen: " + aktive.length + " | Beendete Baustellen: " + beendete.length;
+}
+
+function createBaustelleCard(baustelle){
+  const card = document.createElement("div");
+  card.className = "baustelle-card";
+
+  const statusBadgeClass = baustelle.status === "aktiv" ? "badge badge-aktiv" : "badge badge-beendet";
+  const materialien = materialVonBaustelle(baustelle.id);
+
+  let materialHtml = "";
+  if(materialien.length === 0){
+    materialHtml = '<div class="empty-box">Noch kein Material erfasst.</div>';
+  }else{
+    materialien.forEach(m => {
+      materialHtml += `
+        <div class="material-item">
+          <div class="material-row"><strong>Material:</strong> ${m.material || ""}</div>
+          <div class="material-row"><strong>Anzahl:</strong> ${m.anzahl || ""}</div>
+          <div class="material-row"><strong>Spontis Nummer:</strong> ${m.spontis || ""}</div>
+          ${baustelle.status === "aktiv" ? `
+          <div class="material-actions">
+            <button class="edit" onclick="openMaterialModal('${baustelle.id}','${m.id}')">Bearbeiten</button>
+            <button class="delete" onclick="deleteMaterial('${m.id}')">Löschen</button>
+          </div>
+          ` : ""}
+        </div>
+      `;
+    });
+  }
+
+  card.innerHTML = `
+    <div class="${statusBadgeClass}">${baustelle.status === "aktiv" ? "Aktiv" : "Beendet"}</div>
+    <h3>${baustelle.name || ""}</h3>
+    <div class="baustelle-meta"><strong>Baustellen Nummer:</strong> ${baustelle.nummer || ""}</div>
+    <div class="baustelle-meta"><strong>Verantwortlicher:</strong> ${baustelle.verantwortlicher || ""}</div>
+
+    ${baustelle.status === "aktiv" ? `
+    <div class="card-actions">
+      <button class="edit" onclick="editBaustelle('${baustelle.id}')">Bearbeiten</button>
+      <button onclick="openMaterialModal('${baustelle.id}')">Material hinzufügen</button>
+      <button class="finish" onclick="finishBaustelle('${baustelle.id}')">Baustelle beenden</button>
+      <button class="delete" onclick="deleteBaustelle('${baustelle.id}')">Löschen</button>
+    </div>
+    ` : `
+    <div class="card-actions">
+      <button class="delete" onclick="deleteBaustelle('${baustelle.id}')">Löschen</button>
+    </div>
+    `}
+
+    <div class="material-box">
+      <strong>Materialliste</strong>
+      <div class="material-list">
+        ${materialHtml}
+      </div>
+    </div>
+  `;
+
+  return card;
+}
+
+function openBaustelleModal(){
+  editBaustelleId = null;
+  document.getElementById("baustelleModalTitle").innerText = "Neue Baustelle";
+  document.getElementById("baustelleName").value = "";
+  document.getElementById("baustelleNummer").value = "";
+  document.getElementById("baustelleVerantwortlicher").value = "";
+  document.getElementById("baustelleModal").style.display = "block";
+}
+
+function editBaustelle(id){
+  const b = alleBaustellen.find(x => x.id === id);
+  if(!b){
+    alert("Baustelle nicht gefunden.");
+    return;
+  }
+
+  editBaustelleId = id;
+  document.getElementById("baustelleModalTitle").innerText = "Baustelle bearbeiten";
+  document.getElementById("baustelleName").value = b.name || "";
+  document.getElementById("baustelleNummer").value = b.nummer || "";
+  document.getElementById("baustelleVerantwortlicher").value = b.verantwortlicher || "";
+  document.getElementById("baustelleModal").style.display = "block";
+}
+
+function saveBaustelle(){
+  const name = document.getElementById("baustelleName").value.trim();
+  const nummer = document.getElementById("baustelleNummer").value.trim();
+  const verantwortlicher = document.getElementById("baustelleVerantwortlicher").value.trim();
+
+  if(name === "" || nummer === "" || verantwortlicher === ""){
+    alert("Bitte Baustellen Name, Baustellen Nummer und Verantwortlicher eingeben.");
+    return;
+  }
+
+  if(editBaustelleId){
+    const vorhandene = alleBaustellen.find(b => b.nummer === nummer && b.id !== editBaustelleId);
+    if(vorhandene){
+      alert("Diese Baustellen Nummer ist bereits vorhanden.");
+      return;
+    }
+
+    const alteBaustelle = alleBaustellen.find(b => b.id === editBaustelleId);
+    const status = alteBaustelle ? alteBaustelle.status : "aktiv";
+
+    baustellenCollection.doc(editBaustelleId).update({
+      name: name,
+      nummer: nummer,
+      verantwortlicher: verantwortlicher,
+      status: status
+    }).then(() => {
+      closeModals();
+    }).catch(error => {
+      console.error("Fehler beim Bearbeiten der Baustelle:", error);
+      alert("Fehler beim Speichern.");
+    });
+  }else{
+    const vorhandene = alleBaustellen.find(b => b.nummer === nummer);
+    if(vorhandene){
+      alert("Diese Baustellen Nummer ist bereits vorhanden.");
+      return;
+    }
+
+    baustellenCollection.add({
+      name: name,
+      nummer: nummer,
+      verantwortlicher: verantwortlicher,
+      status: "aktiv",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+      closeModals();
+    }).catch(error => {
+      console.error("Fehler beim Erstellen der Baustelle:", error);
+      alert("Fehler beim Speichern.");
+    });
+  }
+}
+
+function openMaterialModal(baustelleId, materialId = null){
+  currentBaustelleId = baustelleId;
+  editMaterialId = materialId;
+
+  if(materialId){
+    const m = alleMaterialien.find(x => x.id === materialId);
+    if(!m){
+      alert("Material nicht gefunden.");
+      return;
+    }
+
+    document.getElementById("materialModalTitle").innerText = "Material bearbeiten";
+    document.getElementById("materialName").value = m.material || "";
+    document.getElementById("materialAnzahl").value = m.anzahl || "";
+    document.getElementById("materialSpontis").value = m.spontis || "";
+  }else{
+    document.getElementById("materialModalTitle").innerText = "Material hinzufügen";
+    document.getElementById("materialName").value = "";
+    document.getElementById("materialAnzahl").value = "";
+    document.getElementById("materialSpontis").value = "";
+  }
+
+  document.getElementById("materialModal").style.display = "block";
+}
+
+function saveMaterial(){
+  const material = document.getElementById("materialName").value.trim();
+  const anzahl = document.getElementById("materialAnzahl").value.trim();
+  const spontis = document.getElementById("materialSpontis").value.trim();
+
+  if(material === "" || anzahl === "" || spontis === ""){
+    alert("Bitte Material, Anzahl und Spontis Nummer eingeben.");
+    return;
+  }
+
+  if(!currentBaustelleId){
+    alert("Keine Baustelle ausgewählt.");
+    return;
+  }
+
+  if(editMaterialId){
+    materialCollection.doc(editMaterialId).update({
+      material: material,
+      anzahl: anzahl,
+      spontis: spontis
+    }).then(() => {
+      closeModals();
+    }).catch(error => {
+      console.error("Fehler beim Bearbeiten des Materials:", error);
+      alert("Fehler beim Speichern.");
+    });
+  }else{
+    materialCollection.add({
+      baustelleId: currentBaustelleId,
+      material: material,
+      anzahl: anzahl,
+      spontis: spontis,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+      closeModals();
+    }).catch(error => {
+      console.error("Fehler beim Hinzufügen des Materials:", error);
+      alert("Fehler beim Speichern.");
+    });
+  }
+}
+
+function finishBaustelle(id){
+  const b = alleBaustellen.find(x => x.id === id);
+  if(!b){
+    alert("Baustelle nicht gefunden.");
+    return;
+  }
+
+  const text =
+    "Baustelle wirklich beenden?\n\n" +
+    "Name: " + (b.name || "") + "\n" +
+    "Nummer: " + (b.nummer || "") + "\n" +
+    "Verantwortlicher: " + (b.verantwortlicher || "") + "\n\n" +
+    "Die Baustelle wird zu den beendeten Baustellen verschoben.";
+
+  if(confirm(text)){
+    baustellenCollection.doc(id).update({
+      status: "beendet"
+    }).catch(error => {
+      console.error("Fehler beim Beenden der Baustelle:", error);
+      alert("Fehler beim Beenden.");
+    });
+  }
+}
+
+function deleteBaustelle(id){
+  const b = alleBaustellen.find(x => x.id === id);
+  if(!b){
+    alert("Baustelle nicht gefunden.");
+    return;
+  }
+
+  const text =
+    "Baustelle wirklich löschen?\n\n" +
+    "Name: " + (b.name || "") + "\n" +
+    "Nummer: " + (b.nummer || "") + "\n" +
+    "Verantwortlicher: " + (b.verantwortlicher || "") + "\n\n" +
+    "Auch die Materialliste dieser Baustelle wird gelöscht.";
+
+  if(confirm(text)){
+    const materialien = materialVonBaustelle(id);
+    const promises = materialien.map(m => materialCollection.doc(m.id).delete());
+
+    Promise.all(promises)
+      .then(() => baustellenCollection.doc(id).delete())
+      .catch(error => {
+        console.error("Fehler beim Löschen der Baustelle:", error);
+        alert("Fehler beim Löschen.");
+      });
+  }
+}
+
+function deleteMaterial(id){
+  const m = alleMaterialien.find(x => x.id === id);
+  if(!m){
+    alert("Material nicht gefunden.");
+    return;
+  }
+
+  const text =
+    "Material wirklich löschen?\n\n" +
+    "Material: " + (m.material || "") + "\n" +
+    "Anzahl: " + (m.anzahl || "") + "\n" +
+    "Spontis Nummer: " + (m.spontis || "");
+
+  if(confirm(text)){
+    materialCollection.doc(id).delete().catch(error => {
+      console.error("Fehler beim Löschen des Materials:", error);
+      alert("Fehler beim Löschen.");
+    });
+  }
+}
+
+function closeModals(){
+  document.getElementById("baustelleModal").style.display = "none";
+  document.getElementById("materialModal").style.display = "none";
+  currentBaustelleId = null;
+  editMaterialId = null;
+}
+</script>
+
 </body>
 </html>
