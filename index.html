@@ -4,92 +4,68 @@
 <meta charset="UTF-8">
 <title>Bobinen Lager</title>
 
-<!-- Firebase SDK -->
+<!-- Firebase SDK (compat-Version für einfache HTML-Datei) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
 body{
-font-family:Arial;
-background:#f2f4f7;
-margin:40px;
+  font-family:Arial;
+  background:#f2f4f7;
+  margin:40px;
 }
-
-h1{
-text-align:center;
-}
-
+h1{text-align:center;}
 button{
-padding:8px 12px;
-cursor:pointer;
-border:none;
-border-radius:5px;
-background:#3498db;
-color:white;
+  padding:8px 12px;
+  cursor:pointer;
+  border:none;
+  border-radius:5px;
+  background:#3498db;
+  color:white;
 }
-
-button:hover{
-background:#2980b9;
-}
-
+button:hover{background:#2980b9;}
 .delete{
-background:#e74c3c;
+  background:#e74c3c;
 }
-
-.delete:hover{
-background:#c0392b;
-}
-
+.delete:hover{background:#c0392b;}
 table{
-width:100%;
-border-collapse:collapse;
-margin-top:20px;
-background:white;
+  width:100%;
+  border-collapse:collapse;
+  margin-top:20px;
+  background:white;
 }
-
 th,td{
-border:1px solid #ccc;
-padding:8px;
-text-align:center;
+  border:1px solid #ccc;
+  padding:8px;
+  text-align:center;
 }
-
 th{
-background:#2c3e50;
-color:white;
+  background:#2c3e50;
+  color:white;
 }
-
-.inuse{
-background:#ffd9d9;
-}
-
-.instock{
-background:#d9ffd9;
-}
-
+.inuse{background:#ffd9d9;}
+.instock{background:#d9ffd9;}
 .modal{
-display:none;
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:rgba(0,0,0,0.4);
+  display:none;
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.4);
 }
-
 .modal-content{
-background:white;
-padding:20px;
-width:400px;
-margin:10% auto;
-border-radius:10px;
+  background:white;
+  padding:20px;
+  width:400px;
+  margin:10% auto;
+  border-radius:10px;
 }
-
 input{
-width:100%;
-padding:8px;
-margin:6px 0;
+  width:100%;
+  padding:8px;
+  margin:6px 0;
 }
-
 </style>
 </head>
 
@@ -111,34 +87,32 @@ margin:6px 0;
 <th>Aktionen</th>
 </tr>
 </thead>
-
 <tbody id="table"></tbody>
 </table>
 
 <div id="modal" class="modal">
 <div class="modal-content">
 <h3 id="modalTitle">Neue Bobine</h3>
-
 <input id="nummer" placeholder="Nummer">
 <input id="typ" placeholder="Kabeltyp">
 <input id="laenge" placeholder="Länge (m)">
 <input id="baustelle" placeholder="Baustelle">
 <input id="hersteller" placeholder="Hersteller">
-
 <button onclick="saveBobine()">Speichern</button>
 <button onclick="closeModal()">Abbrechen</button>
 </div>
 </div>
 
 <script>
-// --------- Firebase konfigurieren ---------
+// ---------------- Firebase Initialisierung ----------------
 const firebaseConfig = {
-  apiKey: "DEINE_API_KEY",
-  authDomain: "DEIN_PROJECT_ID.firebaseapp.com",
-  projectId: "DEIN_PROJECT_ID",
-  storageBucket: "DEIN_PROJECT_ID.appspot.com",
-  messagingSenderId: "DEIN_SENDER_ID",
-  appId: "DEINE_APP_ID"
+  apiKey: "AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",
+  authDomain: "netzbau-tafers.firebaseapp.com",
+  projectId: "netzbau-tafers",
+  storageBucket: "netzbau-tafers.appspot.com",
+  messagingSenderId: "389541837675",
+  appId: "1:389541837675:web:db580ce67c57a9a16dea2e",
+  measurementId: "G-B5MJGD3108"
 };
 
 // Firebase initialisieren
@@ -156,7 +130,6 @@ function renderTable(data){
     const b = doc.data();
     const tr = document.createElement("tr");
     tr.className = b.status==="Lager" ? "instock" : "inuse";
-
     tr.innerHTML = `
       <td>${b.nummer}</td>
       <td>${b.typ}</td>
@@ -182,11 +155,7 @@ bobinenCollection.onSnapshot(snapshot => {
 function openAdd(){
   editId = null;
   document.getElementById("modalTitle").innerText = "Neue Bobine";
-  nummer.value = "";
-  typ.value = "";
-  laenge.value = "";
-  baustelle.value = "";
-  hersteller.value = "";
+  nummer.value=""; typ.value=""; laenge.value=""; baustelle.value=""; hersteller.value="";
   document.getElementById("modal").style.display = "block";
 }
 
@@ -196,16 +165,12 @@ function editBobine(id){
   bobinenCollection.doc(id).get().then(doc=>{
     const b = doc.data();
     document.getElementById("modalTitle").innerText = "Bobine bearbeiten";
-    nummer.value = b.nummer;
-    typ.value = b.typ;
-    laenge.value = b.laenge;
-    baustelle.value = b.baustelle;
-    hersteller.value = b.hersteller;
-    document.getElementById("modal").style.display = "block";
+    nummer.value=b.nummer; typ.value=b.typ; laenge.value=b.laenge; baustelle.value=b.baustelle; hersteller.value=b.hersteller;
+    document.getElementById("modal").style.display="block";
   });
 }
 
-// Speichern (hinzufügen oder bearbeiten)
+// Speichern
 function saveBobine(){
   const data = {
     nummer: nummer.value,
@@ -215,13 +180,11 @@ function saveBobine(){
     hersteller: hersteller.value,
     status: "Lager"
   };
-
   if(editId){
     bobinenCollection.doc(editId).update(data);
   } else {
     bobinenCollection.add(data);
   }
-
   closeModal();
 }
 
@@ -234,9 +197,8 @@ function deleteBobine(id){
 
 // Modal schließen
 function closeModal(){
-  document.getElementById("modal").style.display = "none";
+  document.getElementById("modal").style.display="none";
 }
-
 </script>
 
 </body>
