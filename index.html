@@ -431,15 +431,21 @@ function logout(){
 }
 
 auth.onAuthStateChanged((user) => {
+
   if(user){
+
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
+
+    startDatabaseListener(); // Daten laden sobald Login fertig
+
   }else{
+
     document.getElementById("loginScreen").style.display = "flex";
     document.getElementById("appContent").style.display = "none";
-    document.getElementById("table").innerHTML = "";
-    document.getElementById("resultInfo").innerText = "";
+
   }
+
 });
 
 function renderTable(data){
