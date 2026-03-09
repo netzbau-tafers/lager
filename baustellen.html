@@ -116,7 +116,16 @@ input, select{
   background:white;
 }
 
-#searchInput{
+label{
+  display:block;
+  margin-top:6px;
+  font-size:14px;
+  font-weight:bold;
+  color:#333;
+}
+
+#searchInput,
+#vorlagenSearchInput{
   margin:0;
   font-size:16px;
   padding:12px;
@@ -277,7 +286,7 @@ input, select{
   width:100%;
   height:100%;
   background:#f2f4f7;
-  display:flex;
+  display:none;
   align-items:center;
   justify-content:center;
   z-index:3000;
@@ -317,6 +326,13 @@ input, select{
   margin:10px 0 20px 0;
   font-size:14px;
   color:#444;
+}
+
+.helper-text{
+  font-size:13px;
+  color:#666;
+  margin-top:-6px;
+  margin-bottom:10px;
 }
 
 @media (max-width: 900px){
@@ -392,6 +408,24 @@ input, select{
   <div id="beendeteBaustellen" class="baustellen-grid"></div>
 </div>
 
+<div class="section">
+  <div class="section-header">
+    <h2>Materialvorlagen verwalten</h2>
+    <button onclick="openVorlageModal()">Neue Vorlage</button>
+  </div>
+
+  <div class="search-box">
+    <div class="search-title">Vorlagen suchen</div>
+    <div class="search-row">
+      <input id="vorlagenSearchInput" type="text" placeholder="Nach Material oder Spontis Nummer suchen" oninput="renderVorlagen()">
+      <button class="back" onclick="resetVorlagenSearch()">Suche zurücksetzen</button>
+    </div>
+  </div>
+
+  <div id="vorlagenInfo" class="info-box"></div>
+  <div id="vorlagenListe" class="baustellen-grid"></div>
+</div>
+
 <div id="baustelleModal" class="modal">
   <div class="modal-content">
     <h3 id="baustelleModalTitle">Neue Baustelle</h3>
@@ -406,10 +440,28 @@ input, select{
 <div id="materialModal" class="modal">
   <div class="modal-content">
     <h3 id="materialModalTitle">Material hinzufügen</h3>
+
+    <label for="materialVorlageSelect">Material aus Vorlage wählen</label>
+    <select id="materialVorlageSelect" onchange="onVorlageChange()">
+      <option value="">Bitte auswählen</option>
+    </select>
+
+    <div class="helper-text">Wenn eine Vorlage gewählt wird, werden Material und Spontis Nummer automatisch übernommen.</div>
+
     <input id="materialName" placeholder="Material">
     <input id="materialAnzahl" placeholder="Anzahl">
-    <input id="materialSpontis" placeholder="Spontis Nummer">
+    <input id="materialSpontis" placeholder="Spontis Nummer (optional)">
     <button onclick="saveMaterial()">Speichern</button>
+    <button class="back" onclick="closeModals()">Abbrechen</button>
+  </div>
+</div>
+
+<div id="vorlageModal" class="modal">
+  <div class="modal-content">
+    <h3 id="vorlageModalTitle">Neue Materialvorlage</h3>
+    <input id="vorlageMaterial" placeholder="Material">
+    <input id="vorlageSpontis" placeholder="Spontis Nummer">
+    <button onclick="saveVorlage()">Speichern</button>
     <button class="back" onclick="closeModals()">Abbrechen</button>
   </div>
 </div>
@@ -433,16 +485,20 @@ const auth = firebase.auth();
 
 const baustellenCollection = db.collection("baustellen");
 const materialCollection = db.collection("baustellen_material");
+const vorlagenCollection = db.collection("material_vorlagen");
 
 let unsubscribeBaustellen = null;
 let unsubscribeMaterial = null;
+let unsubscribeVorlagen = null;
 
 let alleBaustellen = [];
 let alleMaterialien = [];
+let alleVorlagen = [];
 
 let editBaustelleId = null;
 let currentBaustelleId = null;
 let editMaterialId = null;
+let editVorlageId = null;
 let openMaterialLists = {};
 
 function login(){
@@ -479,6 +535,11 @@ function stopListeners(){
     unsubscribeMaterial();
     unsubscribeMaterial = null;
   }
+
+  if(unsubscribeVorlagen){
+    unsubscribeVorlagen();
+    unsubscribeVorlagen = null;
+  }
 }
 
 auth.onAuthStateChanged((user) => {
@@ -492,9 +553,12 @@ auth.onAuthStateChanged((user) => {
     document.getElementById("appContent").style.display = "none";
     document.getElementById("aktiveBaustellen").innerHTML = "";
     document.getElementById("beendeteBaustellen").innerHTML = "";
+    document.getElementById("vorlagenListe").innerHTML = "";
     document.getElementById("resultInfo").innerText = "";
+    document.getElementById("vorlagenInfo").innerText = "";
     alleBaustellen = [];
     alleMaterialien = [];
+    alleVorlagen = [];
     openMaterialLists = {};
   }
 });
@@ -519,6 +583,17 @@ function startListeners(){
       alert("Fehler beim Laden der Materialien.");
     });
   }
+
+  if(!unsubscribeVorlagen){
+    unsubscribeVorlagen = vorlagenCollection.onSnapshot(snapshot => {
+      alleVorlagen = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      fillVorlagenSelect();
+      renderVorlagen();
+    }, error => {
+      console.error("Fehler Materialvorlagen:", error);
+      alert("Fehler beim Laden der Materialvorlagen.");
+    });
+  }
 }
 
 function resetSearch(){
@@ -526,8 +601,17 @@ function resetSearch(){
   renderAll();
 }
 
+function resetVorlagenSearch(){
+  document.getElementById("vorlagenSearchInput").value = "";
+  renderVorlagen();
+}
+
 function getSuchbegriff(){
   return document.getElementById("searchInput").value.trim().toLowerCase();
+}
+
+function getVorlagenSuchbegriff(){
+  return document.getElementById("vorlagenSearchInput").value.trim().toLowerCase();
 }
 
 function materialVonBaustelle(baustelleId){
@@ -563,6 +647,19 @@ function baustellePasstZurSuche(baustelle){
   );
 }
 
+function vorlagePasstZurSuche(vorlage){
+  const suchbegriff = getVorlagenSuchbegriff();
+
+  if(suchbegriff === ""){
+    return true;
+  }
+
+  const material = String(vorlage.material || "").toLowerCase();
+  const spontis = String(vorlage.spontis || "").toLowerCase();
+
+  return material.includes(suchbegriff) || spontis.includes(suchbegriff);
+}
+
 function renderAll(){
   const aktiveContainer = document.getElementById("aktiveBaustellen");
   const beendeteContainer = document.getElementById("beendeteBaustellen");
@@ -589,6 +686,42 @@ function renderAll(){
     "Aktive Baustellen: " + aktive.length + " | Beendete Baustellen: " + beendete.length;
 }
 
+function renderVorlagen(){
+  const container = document.getElementById("vorlagenListe");
+  if(!container){
+    return;
+  }
+
+  container.innerHTML = "";
+
+  const gefilterteVorlagen = [...alleVorlagen]
+    .filter(v => vorlagePasstZurSuche(v))
+    .sort((a, b) => String(a.material || "").localeCompare(String(b.material || ""), "de"));
+
+  if(gefilterteVorlagen.length === 0){
+    container.innerHTML = '<div class="empty-box">Keine Materialvorlagen gefunden.</div>';
+  }else{
+    gefilterteVorlagen.forEach(v => {
+      const card = document.createElement("div");
+      card.className = "baustelle-card";
+
+      card.innerHTML = `
+        <h3>${escapeHtml(v.material || "")}</h3>
+        <div class="baustelle-meta"><strong>Spontis Nummer:</strong> ${escapeHtml(v.spontis || "")}</div>
+        <div class="card-actions">
+          <button class="edit" onclick="openVorlageModal('${v.id}')">Bearbeiten</button>
+          <button class="delete" onclick="deleteVorlage('${v.id}')">Löschen</button>
+        </div>
+      `;
+
+      container.appendChild(card);
+    });
+  }
+
+  document.getElementById("vorlagenInfo").innerText =
+    "Materialvorlagen: " + gefilterteVorlagen.length;
+}
+
 function createBaustelleCard(baustelle){
   const card = document.createElement("div");
   card.className = "baustelle-card";
@@ -604,9 +737,9 @@ function createBaustelleCard(baustelle){
     materialien.forEach(m => {
       materialHtml += `
         <div class="material-item">
-          <div class="material-row"><strong>Material:</strong> ${m.material || ""}</div>
-          <div class="material-row"><strong>Anzahl:</strong> ${m.anzahl || ""}</div>
-          <div class="material-row"><strong>Spontis Nummer:</strong> ${m.spontis || ""}</div>
+          <div class="material-row"><strong>Material:</strong> ${escapeHtml(m.material || "")}</div>
+          <div class="material-row"><strong>Anzahl:</strong> ${escapeHtml(m.anzahl || "")}</div>
+          <div class="material-row"><strong>Spontis Nummer:</strong> ${escapeHtml(m.spontis || "")}</div>
           ${baustelle.status === "aktiv" ? `
           <div class="material-actions">
             <button class="edit" onclick="openMaterialModal('${baustelle.id}','${m.id}')">Bearbeiten</button>
@@ -620,9 +753,9 @@ function createBaustelleCard(baustelle){
 
   card.innerHTML = `
     <div class="${statusBadgeClass}">${baustelle.status === "aktiv" ? "Aktiv" : "Beendet"}</div>
-    <h3>${baustelle.name || ""}</h3>
-    <div class="baustelle-meta"><strong>Baustellen Nummer:</strong> ${baustelle.nummer || ""}</div>
-    <div class="baustelle-meta"><strong>Verantwortlicher:</strong> ${baustelle.verantwortlicher || ""}</div>
+    <h3>${escapeHtml(baustelle.name || "")}</h3>
+    <div class="baustelle-meta"><strong>Baustellen Nummer:</strong> ${escapeHtml(baustelle.nummer || "")}</div>
+    <div class="baustelle-meta"><strong>Verantwortlicher:</strong> ${escapeHtml(baustelle.verantwortlicher || "")}</div>
 
     ${baustelle.status === "aktiv" ? `
     <div class="card-actions">
@@ -710,7 +843,7 @@ function saveBaustelle(){
   }
 
   if(editBaustelleId){
-    const vorhandene = alleBaustellen.find(b => b.nummer === nummer && b.id !== editBaustelleId);
+    const vorhandene = alleBaustellen.find(b => String(b.nummer || "").trim().toLowerCase() === nummer.toLowerCase() && b.id !== editBaustelleId);
     if(vorhandene){
       alert("Diese Baustellen Nummer ist bereits vorhanden.");
       return;
@@ -731,7 +864,7 @@ function saveBaustelle(){
       alert("Fehler beim Speichern.");
     });
   }else{
-    const vorhandene = alleBaustellen.find(b => b.nummer === nummer);
+    const vorhandene = alleBaustellen.find(b => String(b.nummer || "").trim().toLowerCase() === nummer.toLowerCase());
     if(vorhandene){
       alert("Diese Baustellen Nummer ist bereits vorhanden.");
       return;
@@ -752,9 +885,47 @@ function saveBaustelle(){
   }
 }
 
+function fillVorlagenSelect(){
+  const select = document.getElementById("materialVorlageSelect");
+  if(!select){
+    return;
+  }
+
+  select.innerHTML = '<option value="">Bitte auswählen</option>';
+
+  const sortierteVorlagen = [...alleVorlagen].sort((a, b) =>
+    String(a.material || "").localeCompare(String(b.material || ""), "de")
+  );
+
+  sortierteVorlagen.forEach(v => {
+    const option = document.createElement("option");
+    option.value = v.id;
+    option.textContent = (v.material || "") + " | Spontis: " + (v.spontis || "");
+    select.appendChild(option);
+  });
+}
+
+function onVorlageChange(){
+  const vorlageId = document.getElementById("materialVorlageSelect").value;
+
+  if(!vorlageId){
+    return;
+  }
+
+  const vorlage = alleVorlagen.find(v => v.id === vorlageId);
+  if(!vorlage){
+    return;
+  }
+
+  document.getElementById("materialName").value = vorlage.material || "";
+  document.getElementById("materialSpontis").value = vorlage.spontis || "";
+}
+
 function openMaterialModal(baustelleId, materialId = null){
   currentBaustelleId = baustelleId;
   editMaterialId = materialId;
+
+  fillVorlagenSelect();
 
   if(materialId){
     const m = alleMaterialien.find(x => x.id === materialId);
@@ -764,11 +935,13 @@ function openMaterialModal(baustelleId, materialId = null){
     }
 
     document.getElementById("materialModalTitle").innerText = "Material bearbeiten";
+    document.getElementById("materialVorlageSelect").value = "";
     document.getElementById("materialName").value = m.material || "";
     document.getElementById("materialAnzahl").value = m.anzahl || "";
     document.getElementById("materialSpontis").value = m.spontis || "";
   }else{
     document.getElementById("materialModalTitle").innerText = "Material hinzufügen";
+    document.getElementById("materialVorlageSelect").value = "";
     document.getElementById("materialName").value = "";
     document.getElementById("materialAnzahl").value = "";
     document.getElementById("materialSpontis").value = "";
@@ -782,8 +955,8 @@ function saveMaterial(){
   const anzahl = document.getElementById("materialAnzahl").value.trim();
   const spontis = document.getElementById("materialSpontis").value.trim();
 
-  if(material === "" || anzahl === "" || spontis === ""){
-    alert("Bitte Material, Anzahl und Spontis Nummer eingeben.");
+  if(material === "" || anzahl === ""){
+    alert("Bitte Material und Anzahl eingeben.");
     return;
   }
 
@@ -791,6 +964,8 @@ function saveMaterial(){
     alert("Keine Baustelle ausgewählt.");
     return;
   }
+
+  openMaterialLists[currentBaustelleId] = true;
 
   if(editMaterialId){
     materialCollection.doc(editMaterialId).update({
@@ -814,6 +989,71 @@ function saveMaterial(){
       closeModals();
     }).catch(error => {
       console.error("Fehler beim Hinzufügen des Materials:", error);
+      alert("Fehler beim Speichern.");
+    });
+  }
+}
+
+function openVorlageModal(id = null){
+  editVorlageId = id;
+
+  if(id){
+    const v = alleVorlagen.find(x => x.id === id);
+    if(!v){
+      alert("Vorlage nicht gefunden.");
+      return;
+    }
+
+    document.getElementById("vorlageModalTitle").innerText = "Materialvorlage bearbeiten";
+    document.getElementById("vorlageMaterial").value = v.material || "";
+    document.getElementById("vorlageSpontis").value = v.spontis || "";
+  }else{
+    document.getElementById("vorlageModalTitle").innerText = "Neue Materialvorlage";
+    document.getElementById("vorlageMaterial").value = "";
+    document.getElementById("vorlageSpontis").value = "";
+  }
+
+  document.getElementById("vorlageModal").style.display = "block";
+}
+
+function saveVorlage(){
+  const material = document.getElementById("vorlageMaterial").value.trim();
+  const spontis = document.getElementById("vorlageSpontis").value.trim();
+
+  if(material === "" || spontis === ""){
+    alert("Bitte Material und Spontis Nummer eingeben.");
+    return;
+  }
+
+  const doppelt = alleVorlagen.find(v =>
+    String(v.material || "").trim().toLowerCase() === material.toLowerCase() &&
+    v.id !== editVorlageId
+  );
+
+  if(doppelt){
+    alert("Diese Materialvorlage ist bereits vorhanden.");
+    return;
+  }
+
+  if(editVorlageId){
+    vorlagenCollection.doc(editVorlageId).update({
+      material: material,
+      spontis: spontis
+    }).then(() => {
+      closeModals();
+    }).catch(error => {
+      console.error("Fehler beim Bearbeiten der Vorlage:", error);
+      alert("Fehler beim Speichern.");
+    });
+  }else{
+    vorlagenCollection.add({
+      material: material,
+      spontis: spontis,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+      closeModals();
+    }).catch(error => {
+      console.error("Fehler beim Erstellen der Vorlage:", error);
       alert("Fehler beim Speichern.");
     });
   }
@@ -891,11 +1131,42 @@ function deleteMaterial(id){
   }
 }
 
+function deleteVorlage(id){
+  const v = alleVorlagen.find(x => x.id === id);
+  if(!v){
+    alert("Vorlage nicht gefunden.");
+    return;
+  }
+
+  const text =
+    "Materialvorlage wirklich löschen?\n\n" +
+    "Material: " + (v.material || "") + "\n" +
+    "Spontis Nummer: " + (v.spontis || "");
+
+  if(confirm(text)){
+    vorlagenCollection.doc(id).delete().catch(error => {
+      console.error("Fehler beim Löschen der Vorlage:", error);
+      alert("Fehler beim Löschen.");
+    });
+  }
+}
+
 function closeModals(){
   document.getElementById("baustelleModal").style.display = "none";
   document.getElementById("materialModal").style.display = "none";
+  document.getElementById("vorlageModal").style.display = "none";
   currentBaustelleId = null;
   editMaterialId = null;
+  editVorlageId = null;
+}
+
+function escapeHtml(value){
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 </script>
 
