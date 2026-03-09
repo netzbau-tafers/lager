@@ -36,6 +36,13 @@ h3{
   margin-bottom:12px;
 }
 
+.topbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-bottom:20px;
+}
+
 .logout-safe{
   background:#777;
 }
@@ -274,6 +281,7 @@ label{
   height:100%;
   background:rgba(0,0,0,0.45);
   z-index:1000;
+  overflow-y:auto;
 }
 
 .modal-content{
@@ -281,9 +289,12 @@ label{
   padding:20px;
   width:420px;
   max-width:92%;
-  margin:8% auto;
+  margin:40px auto;
   border-radius:10px;
   box-shadow:0 10px 25px rgba(0,0,0,0.2);
+  box-sizing:border-box;
+  max-height:calc(100vh - 40px);
+  overflow-y:auto;
 }
 
 .login-screen{
@@ -308,6 +319,7 @@ label{
   padding:25px;
   border-radius:12px;
   box-shadow:0 10px 25px rgba(0,0,0,0.2);
+  box-sizing:border-box;
 }
 
 .login-card h2{
@@ -369,10 +381,21 @@ label{
   padding:10px 12px;
   margin:0 0 8px 0;
   display:block;
+  box-sizing:border-box;
+  transform:none;
+  appearance:none;
+  -webkit-appearance:none;
+  -webkit-tap-highlight-color:transparent;
 }
 
 .vorlagen-treffer:hover{
   background:#eef3f8;
+}
+
+.vorlagen-treffer:focus,
+.vorlagen-treffer:active{
+  outline:none;
+  transform:none;
 }
 
 .vorlagen-treffer.active{
@@ -417,7 +440,8 @@ label{
 
   .modal-content{
     width:95%;
-    margin:15% auto;
+    margin:20px auto;
+    max-height:calc(100vh - 20px);
   }
 }
 </style>
@@ -429,8 +453,8 @@ label{
   <div class="login-card">
     <h2>Login Baustellenmaterial</h2>
     <div class="login-info">Bitte mit E-Mail und Passwort anmelden</div>
-    <input id="loginEmail" type="email" placeholder="E-Mail">
-    <input id="loginPassword" type="password" placeholder="Passwort">
+    <input id="loginEmail" type="email" placeholder="E-Mail" maxlength="120" autocomplete="username">
+    <input id="loginPassword" type="password" placeholder="Passwort" maxlength="120" autocomplete="current-password">
     <button onclick="login()">Login</button>
     <p id="loginError" class="login-error">Login fehlgeschlagen. Bitte Daten prüfen.</p>
   </div>
@@ -452,7 +476,7 @@ label{
   <div class="search-title">Suche</div>
 
   <div class="search-row">
-    <input id="searchInput" type="text" placeholder="Nach Baustellenname, Nummer, Verantwortlicher oder Material suchen" oninput="renderAll()">
+    <input id="searchInput" type="text" placeholder="Nach Baustellenname, Nummer, Verantwortlicher oder Material suchen" oninput="renderAll()" maxlength="120">
     <button class="back" onclick="resetSearch()">Suche zurücksetzen</button>
   </div>
 
@@ -492,7 +516,7 @@ label{
     <div class="search-box">
       <div class="search-title">Vorlagen suchen</div>
       <div class="search-row">
-        <input id="vorlagenSearchInput" type="text" placeholder="Nach Material oder Spontis Nummer suchen" oninput="renderVorlagen()">
+        <input id="vorlagenSearchInput" type="text" placeholder="Nach Material oder Spontis Nummer suchen" oninput="renderVorlagen()" maxlength="120">
         <button class="back" onclick="resetVorlagenSearch()">Suche zurücksetzen</button>
       </div>
     </div>
@@ -505,9 +529,9 @@ label{
 <div id="baustelleModal" class="modal">
   <div class="modal-content">
     <h3 id="baustelleModalTitle">Neue Baustelle</h3>
-    <input id="baustelleName" placeholder="Baustellen Name">
-    <input id="baustelleNummer" placeholder="Baustellen Nummer">
-    <input id="baustelleVerantwortlicher" placeholder="Verantwortlicher">
+    <input id="baustelleName" placeholder="Baustellen Name" maxlength="120">
+    <input id="baustelleNummer" placeholder="Baustellen Nummer" maxlength="60">
+    <input id="baustelleVerantwortlicher" placeholder="Verantwortlicher" maxlength="120">
     <button onclick="saveBaustelle()">Speichern</button>
     <button class="back" onclick="closeModals()">Abbrechen</button>
   </div>
@@ -518,7 +542,7 @@ label{
     <h3 id="materialModalTitle">Material hinzufügen</h3>
 
     <label for="materialVorlageSuche">Materialvorlage suchen</label>
-    <input id="materialVorlageSuche" type="text" placeholder="Nach Material oder Spontis Nummer suchen" oninput="renderMaterialVorlagenTreffer()">
+    <input id="materialVorlageSuche" type="text" placeholder="Nach Material oder Spontis Nummer suchen" oninput="renderMaterialVorlagenTreffer()" maxlength="120">
 
     <div class="helper-text">Treffer anklicken, dann werden Material und Spontis Nummer automatisch übernommen.</div>
 
@@ -526,9 +550,9 @@ label{
 
     <div id="materialVorlagenTreffer" class="vorlagen-picker"></div>
 
-    <input id="materialName" placeholder="Material">
-    <input id="materialAnzahl" placeholder="Anzahl">
-    <input id="materialSpontis" placeholder="Spontis Nummer (optional)">
+    <input id="materialName" placeholder="Material" maxlength="120">
+    <input id="materialAnzahl" placeholder="Anzahl" maxlength="40">
+    <input id="materialSpontis" placeholder="Spontis Nummer (optional)" maxlength="60">
     <button onclick="saveMaterial()">Speichern</button>
     <button class="back" onclick="closeModals()">Abbrechen</button>
   </div>
@@ -537,8 +561,8 @@ label{
 <div id="vorlageModal" class="modal">
   <div class="modal-content">
     <h3 id="vorlageModalTitle">Neue Materialvorlage</h3>
-    <input id="vorlageMaterial" placeholder="Material">
-    <input id="vorlageSpontis" placeholder="Spontis Nummer">
+    <input id="vorlageMaterial" placeholder="Material" maxlength="120">
+    <input id="vorlageSpontis" placeholder="Spontis Nummer" maxlength="60">
     <button onclick="saveVorlage()">Speichern</button>
     <button class="back" onclick="closeModals()">Abbrechen</button>
   </div>
@@ -580,6 +604,24 @@ let editVorlageId = null;
 let openMaterialLists = {};
 let vorlagenBereichOffen = false;
 let selectedVorlageId = null;
+
+function sanitizeInput(value, maxLength = 200){
+  return String(value || "")
+    .replace(/[<>]/g, "")
+    .replace(/[\u0000-\u001F\u007F]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function escapeHtml(value){
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 function login(){
   const email = document.getElementById("loginEmail").value.trim();
@@ -874,8 +916,8 @@ function waehleMaterialVorlage(vorlageId){
   }
 
   selectedVorlageId = vorlageId;
-  document.getElementById("materialName").value = vorlage.material || "";
-  document.getElementById("materialSpontis").value = vorlage.spontis || "";
+  document.getElementById("materialName").value = sanitizeInput(vorlage.material || "", 120);
+  document.getElementById("materialSpontis").value = sanitizeInput(vorlage.spontis || "", 60);
   updateAusgewaehlteVorlageInfo();
   renderMaterialVorlagenTreffer();
 }
@@ -1025,16 +1067,20 @@ function editBaustelle(id){
 
   editBaustelleId = id;
   document.getElementById("baustelleModalTitle").innerText = "Baustelle bearbeiten";
-  document.getElementById("baustelleName").value = b.name || "";
-  document.getElementById("baustelleNummer").value = b.nummer || "";
-  document.getElementById("baustelleVerantwortlicher").value = b.verantwortlicher || "";
+  document.getElementById("baustelleName").value = sanitizeInput(b.name || "", 120);
+  document.getElementById("baustelleNummer").value = sanitizeInput(b.nummer || "", 60);
+  document.getElementById("baustelleVerantwortlicher").value = sanitizeInput(b.verantwortlicher || "", 120);
   document.getElementById("baustelleModal").style.display = "block";
 }
 
 function saveBaustelle(){
-  const name = document.getElementById("baustelleName").value.trim();
-  const nummer = document.getElementById("baustelleNummer").value.trim();
-  const verantwortlicher = document.getElementById("baustelleVerantwortlicher").value.trim();
+  const name = sanitizeInput(document.getElementById("baustelleName").value, 120);
+  const nummer = sanitizeInput(document.getElementById("baustelleNummer").value, 60);
+  const verantwortlicher = sanitizeInput(document.getElementById("baustelleVerantwortlicher").value, 120);
+
+  document.getElementById("baustelleName").value = name;
+  document.getElementById("baustelleNummer").value = nummer;
+  document.getElementById("baustelleVerantwortlicher").value = verantwortlicher;
 
   if(name === "" || nummer === "" || verantwortlicher === ""){
     alert("Bitte Baustellen Name, Baustellen Nummer und Verantwortlicher eingeben.");
@@ -1099,9 +1145,9 @@ function openMaterialModal(baustelleId, materialId = null){
     }
 
     document.getElementById("materialModalTitle").innerText = "Material bearbeiten";
-    document.getElementById("materialName").value = m.material || "";
-    document.getElementById("materialAnzahl").value = m.anzahl || "";
-    document.getElementById("materialSpontis").value = m.spontis || "";
+    document.getElementById("materialName").value = sanitizeInput(m.material || "", 120);
+    document.getElementById("materialAnzahl").value = sanitizeInput(m.anzahl || "", 40);
+    document.getElementById("materialSpontis").value = sanitizeInput(m.spontis || "", 60);
   }else{
     document.getElementById("materialModalTitle").innerText = "Material hinzufügen";
     document.getElementById("materialName").value = "";
@@ -1115,9 +1161,13 @@ function openMaterialModal(baustelleId, materialId = null){
 }
 
 function saveMaterial(){
-  const material = document.getElementById("materialName").value.trim();
-  const anzahl = document.getElementById("materialAnzahl").value.trim();
-  const spontis = document.getElementById("materialSpontis").value.trim();
+  const material = sanitizeInput(document.getElementById("materialName").value, 120);
+  const anzahl = sanitizeInput(document.getElementById("materialAnzahl").value, 40);
+  const spontis = sanitizeInput(document.getElementById("materialSpontis").value, 60);
+
+  document.getElementById("materialName").value = material;
+  document.getElementById("materialAnzahl").value = anzahl;
+  document.getElementById("materialSpontis").value = spontis;
 
   if(material === "" || anzahl === ""){
     alert("Bitte Material und Anzahl eingeben.");
@@ -1169,8 +1219,8 @@ function openVorlageModal(id = null){
     }
 
     document.getElementById("vorlageModalTitle").innerText = "Materialvorlage bearbeiten";
-    document.getElementById("vorlageMaterial").value = v.material || "";
-    document.getElementById("vorlageSpontis").value = v.spontis || "";
+    document.getElementById("vorlageMaterial").value = sanitizeInput(v.material || "", 120);
+    document.getElementById("vorlageSpontis").value = sanitizeInput(v.spontis || "", 60);
   }else{
     document.getElementById("vorlageModalTitle").innerText = "Neue Materialvorlage";
     document.getElementById("vorlageMaterial").value = "";
@@ -1181,8 +1231,11 @@ function openVorlageModal(id = null){
 }
 
 function saveVorlage(){
-  const material = document.getElementById("vorlageMaterial").value.trim();
-  const spontis = document.getElementById("vorlageSpontis").value.trim();
+  const material = sanitizeInput(document.getElementById("vorlageMaterial").value, 120);
+  const spontis = sanitizeInput(document.getElementById("vorlageSpontis").value, 60);
+
+  document.getElementById("vorlageMaterial").value = material;
+  document.getElementById("vorlageSpontis").value = spontis;
 
   if(material === "" || spontis === ""){
     alert("Bitte Material und Spontis Nummer eingeben.");
@@ -1232,9 +1285,9 @@ function finishBaustelle(id){
 
   const text =
     "Baustelle wirklich beenden?\n\n" +
-    "Name: " + (b.name || "") + "\n" +
-    "Nummer: " + (b.nummer || "") + "\n" +
-    "Verantwortlicher: " + (b.verantwortlicher || "") + "\n\n" +
+    "Name: " + sanitizeInput(b.name || "", 120) + "\n" +
+    "Nummer: " + sanitizeInput(b.nummer || "", 60) + "\n" +
+    "Verantwortlicher: " + sanitizeInput(b.verantwortlicher || "", 120) + "\n\n" +
     "Die Baustelle wird zu den beendeten Baustellen verschoben.";
 
   if(confirm(text)){
@@ -1256,9 +1309,9 @@ function deleteBaustelle(id){
 
   const text =
     "Baustelle wirklich löschen?\n\n" +
-    "Name: " + (b.name || "") + "\n" +
-    "Nummer: " + (b.nummer || "") + "\n" +
-    "Verantwortlicher: " + (b.verantwortlicher || "") + "\n\n" +
+    "Name: " + sanitizeInput(b.name || "", 120) + "\n" +
+    "Nummer: " + sanitizeInput(b.nummer || "", 60) + "\n" +
+    "Verantwortlicher: " + sanitizeInput(b.verantwortlicher || "", 120) + "\n\n" +
     "Auch die Materialliste dieser Baustelle wird gelöscht.";
 
   if(confirm(text)){
@@ -1283,9 +1336,9 @@ function deleteMaterial(id){
 
   const text =
     "Material wirklich löschen?\n\n" +
-    "Material: " + (m.material || "") + "\n" +
-    "Anzahl: " + (m.anzahl || "") + "\n" +
-    "Spontis Nummer: " + (m.spontis || "");
+    "Material: " + sanitizeInput(m.material || "", 120) + "\n" +
+    "Anzahl: " + sanitizeInput(m.anzahl || "", 40) + "\n" +
+    "Spontis Nummer: " + sanitizeInput(m.spontis || "", 60);
 
   if(confirm(text)){
     materialCollection.doc(id).delete().catch(error => {
@@ -1304,8 +1357,8 @@ function deleteVorlage(id){
 
   const text =
     "Materialvorlage wirklich löschen?\n\n" +
-    "Material: " + (v.material || "") + "\n" +
-    "Spontis Nummer: " + (v.spontis || "");
+    "Material: " + sanitizeInput(v.material || "", 120) + "\n" +
+    "Spontis Nummer: " + sanitizeInput(v.spontis || "", 60);
 
   if(confirm(text)){
     vorlagenCollection.doc(id).delete().catch(error => {
@@ -1327,15 +1380,6 @@ function closeModals(){
   editMaterialId = null;
   editVorlageId = null;
   selectedVorlageId = null;
-}
-
-function escapeHtml(value){
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
 }
 </script>
 
