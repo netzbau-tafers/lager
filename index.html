@@ -362,8 +362,9 @@ input{
   td:nth-child(3):before{content:"Länge";}
   td:nth-child(4):before{content:"Baustelle";}
   td:nth-child(5):before{content:"Hersteller";}
-  td:nth-child(6):before{content:"Status";}
-  td:nth-child(7):before{content:"Aktionen";}
+  td:nth-child(6):before{content:"Hinzugefügt am";}
+  td:nth-child(7):before{content:"Status";}
+  td:nth-child(8):before{content:"Aktionen";}
 
   .modal-content{
     width:95%;
@@ -431,6 +432,7 @@ input{
       <th>Länge</th>
       <th>Baustelle</th>
       <th>Hersteller</th>
+      <th>Hinzugefügt am</th>
       <th>Status</th>
       <th>Aktionen</th>
     </tr>
@@ -511,6 +513,26 @@ function escapeHtml(value){
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function formatDatum(value){
+  if(!value){
+    return "";
+  }
+
+  try{
+    if(typeof value.toDate === "function"){
+      return value.toDate().toLocaleDateString("de-CH");
+    }
+
+    if(value.seconds){
+      return new Date(value.seconds * 1000).toLocaleDateString("de-CH");
+    }
+
+    return new Date(value).toLocaleDateString("de-CH");
+  }catch(error){
+    return "";
+  }
 }
 
 function toggleMenu(event){
@@ -619,6 +641,7 @@ function renderTable(data){
   data.forEach(docItem => {
     const b = docItem.data();
     const tr = document.createElement("tr");
+    const hinzugefuegtAm = formatDatum(b.hinzugefuegtAm);
 
     tr.className = b.status === "Lager" ? "instock" : "inuse";
 
@@ -628,6 +651,7 @@ function renderTable(data){
       <td>${escapeHtml(b.laenge || "")}</td>
       <td>${escapeHtml(b.baustelle || "")}</td>
       <td>${escapeHtml(b.hersteller || "")}</td>
+      <td>${escapeHtml(hinzugefuegtAm || "")}</td>
       <td>${escapeHtml(b.status || "")}</td>
       <td>
         <button onclick="toggleStatus('${docItem.id}')">Status</button>
@@ -797,6 +821,7 @@ function saveBobine(){
       });
     }else{
       data.status = "Lager";
+      data.hinzugefuegtAm = firebase.firestore.FieldValue.serverTimestamp();
 
       bobinenCollection.add(data).then(() => {
         closeModal();
