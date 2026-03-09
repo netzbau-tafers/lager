@@ -695,6 +695,43 @@ function escapeHtml(value){
     .replace(/'/g, "&#039;");
 }
 
+function formatFirestoreDate(value){
+  if(!value){
+    return "";
+  }
+
+  try{
+    if(typeof value.toDate === "function"){
+      return value.toDate().toLocaleDateString("de-CH");
+    }
+
+    if(value.seconds){
+      return new Date(value.seconds * 1000).toLocaleDateString("de-CH");
+    }
+
+    return new Date(value).toLocaleDateString("de-CH");
+  }catch(error){
+    return "";
+  }
+}
+
+function getFirestoreTime(value){
+  if(!value){
+    return 0;
+  }
+
+  if(typeof value.toMillis === "function"){
+    return value.toMillis();
+  }
+
+  if(value.seconds){
+    return value.seconds * 1000;
+  }
+
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
 function toggleMenu(event){
   if(event){
     event.stopPropagation();
@@ -935,8 +972,12 @@ function renderAll(){
   aktiveContainer.innerHTML = "";
   beendeteContainer.innerHTML = "";
 
-  const aktive = alleBaustellen.filter(b => b.status === "aktiv" && baustellePasstZurSuche(b));
-  const beendete = alleBaustellen.filter(b => b.status === "beendet" && baustellePasstZurSuche(b));
+  const aktive = [...alleBaustellen]
+    .filter(b => b.status === "aktiv" && baustellePasstZurSuche(b));
+
+  const beendete = [...alleBaustellen]
+    .filter(b => b.status === "beendet" && baustellePasstZurSuche(b))
+    .sort((a, b) => getFirestoreTime(b.abgeschlossenAm) - getFirestoreTime(a.abgeschlossenAm));
 
   if(aktive.length === 0){
     aktiveContainer.innerHTML = '<div class="empty-box">Keine aktiven Baustellen gefunden.</div>';
@@ -1066,6 +1107,7 @@ function createBaustelleCard(baustelle){
   const statusBadgeClass = baustelle.status === "aktiv" ? "badge badge-aktiv" : "badge badge-beendet";
   const materialien = materialVonBaustelle(baustelle.id);
   const isOpen = openMaterialLists[baustelle.id] === true;
+  const abgeschlossenText = formatFirestoreDate(baustelle.abgeschlossenAm);
 
   let materialHtml = "";
   if(materialien.length === 0){
@@ -1093,6 +1135,7 @@ function createBaustelleCard(baustelle){
     <h3>${escapeHtml(baustelle.name || "")}</h3>
     <div class="baustelle-meta"><strong>Baustellen Nummer:</strong> ${escapeHtml(baustelle.nummer || "")}</div>
     <div class="baustelle-meta"><strong>Verantwortlicher:</strong> ${escapeHtml(baustelle.verantwortlicher || "")}</div>
+    ${baustelle.status === "beendet" && abgeschlossenText ? `<div class="baustelle-meta"><strong>Abgeschlossen am:</strong> ${escapeHtml(abgeschlossenText)}</div>` : ""}
 
     ${baustelle.status === "aktiv" ? `
     <div class="card-actions">
@@ -1211,13 +1254,20 @@ function saveBaustelle(){
 
     const alteBaustelle = alleBaustellen.find(b => b.id === editBaustelleId);
     const status = alteBaustelle ? alteBaustelle.status : "aktiv";
+    const abgeschlossenAm = alteBaustelle && alteBaustelle.abgeschlossenAm ? alteBaustelle.abgeschlossenAm : null;
 
-    baustellenCollection.doc(editBaustelleId).update({
+    const updateData = {
       name: name,
       nummer: nummer,
       verantwortlicher: verantwortlicher,
       status: status
-    }).then(() => {
+    };
+
+    if(abgeschlossenAm){
+      updateData.abgeschlossenAm = abgeschlossenAm;
+    }
+
+    baustellenCollection.doc(editBaustelleId).update(updateData).then(() => {
       closeModals();
     }).catch(error => {
       console.error("Fehler beim Bearbeiten der Baustelle:", error);
@@ -1412,7 +1462,8 @@ function finishBaustelle(id){
 
   if(confirm(text)){
     baustellenCollection.doc(id).update({
-      status: "beendet"
+      status: "beendet",
+      abgeschlossenAm: firebase.firestore.FieldValue.serverTimestamp()
     }).catch(error => {
       console.error("Fehler beim Beenden der Baustelle:", error);
       alert("Fehler beim Beenden.");
