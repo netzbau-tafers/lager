@@ -1214,7 +1214,7 @@ function saveMaterial(){
 }
 
 function openVorlageModal(id = null){
-  if(!isAdminUser){
+  if(id && !isAdminUser){
     alert("Nur Admins dürfen Vorlagen bearbeiten.");
     return;
   }
