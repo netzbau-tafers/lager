@@ -244,7 +244,7 @@ input{
   left:0;
   width:100%;
   height:100%;
-  background:#f2f4f7;
+  background:#e6eaef;
   display:none;
   align-items:center;
   justify-content:center;
@@ -397,6 +397,8 @@ input{
     <button class="menu-button" onclick="toggleMenu(event)">☰</button>
     <div id="dropdownMenu" class="dropdown-menu">
       <button onclick="goToBaustellenmaterial()">Zum Baustellenmaterial</button>
+      <button onclick="goToLogs()">Logs</button>
+      <button onclick="goToFunFacts()">Fun Facts</button>
       <button class="logout-safe" onclick="logout()">Logout</button>
     </div>
   </div>
@@ -491,6 +493,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 const bobinenCollection = db.collection("bobinen");
+const kabelNutzungCollection = db.collection("kabel_nutzung");
 
 let editId = null;
 let selectedId = null;
@@ -535,6 +538,24 @@ function formatDatum(value){
   }
 }
 
+function parseMeters(value){
+  const cleaned = String(value || "")
+    .replace(",", ".")
+    .replace(/[^0-9.\-]/g, "")
+    .trim();
+
+  if(cleaned === ""){
+    return 0;
+  }
+
+  const number = parseFloat(cleaned);
+  return Number.isNaN(number) ? 0 : number;
+}
+
+function roundMeters(value){
+  return Math.round(Number(value || 0) * 100) / 100;
+}
+
 function toggleMenu(event){
   if(event){
     event.stopPropagation();
@@ -558,6 +579,16 @@ function closeMenu(){
 function goToBaustellenmaterial(){
   closeMenu();
   window.location.href = "baustellen.html";
+}
+
+function goToLogs(){
+  closeMenu();
+  window.location.href = "logs.html";
+}
+
+function goToFunFacts(){
+  closeMenu();
+  window.location.href = "funfacts.html";
 }
 
 document.addEventListener("click", function(event){
@@ -810,7 +841,11 @@ function saveBobine(){
         }
 
         const alterStatus = doc.data().status || "Lager";
+        const hinzugefuegtAm = doc.data().hinzugefuegtAm || null;
         data.status = alterStatus;
+        if(hinzugefuegtAm){
+          data.hinzugefuegtAm = hinzugefuegtAm;
+        }
 
         return bobinenCollection.doc(editId).update(data);
       }).then(() => {
@@ -846,8 +881,23 @@ function toggleStatus(id){
     const b = doc.data();
 
     if(b.status === "Lager"){
+      const startMeters = roundMeters(parseMeters(b.laenge));
+
       return bobinenCollection.doc(id).update({
         status: "In Gebrauch"
+      }).then(() => {
+        return kabelNutzungCollection.add({
+          bobineId: id,
+          nummer: sanitizeInput(b.nummer || "", 60),
+          typ: sanitizeInput(b.typ || "", 120),
+          baustelle: sanitizeInput(b.baustelle || "", 120),
+          startMeters: startMeters,
+          endMeters: null,
+          usedMeters: null,
+          startAt: firebase.firestore.FieldValue.serverTimestamp(),
+          returnAt: null,
+          status: "offen"
+        });
       });
     }else{
       selectedId = id;
@@ -872,10 +922,51 @@ function confirmReturn(){
   document.getElementById("returnLaenge").value = returnLaenge;
   document.getElementById("returnBaustelle").value = returnBaustelle;
 
-  bobinenCollection.doc(selectedId).update({
-    laenge: returnLaenge,
-    baustelle: returnBaustelle,
-    status: "Lager"
+  const endMeters = roundMeters(parseMeters(returnLaenge));
+
+  bobinenCollection.doc(selectedId).get().then(doc => {
+    if(!doc.exists){
+      alert("Bobine nicht gefunden.");
+      return;
+    }
+
+    const b = doc.data();
+
+    return bobinenCollection.doc(selectedId).update({
+      laenge: returnLaenge,
+      baustelle: returnBaustelle,
+      status: "Lager"
+    }).then(() => {
+      return kabelNutzungCollection
+        .where("bobineId", "==", selectedId)
+        .where("status", "==", "offen")
+        .get()
+        .then(snapshot => {
+          if(snapshot.empty){
+            return;
+          }
+
+          const letzterEintrag = snapshot.docs.sort((a, b) => {
+            const aData = a.data();
+            const bData = b.data();
+            const aTime = aData.startAt && aData.startAt.seconds ? aData.startAt.seconds : 0;
+            const bTime = bData.startAt && bData.startAt.seconds ? bData.startAt.seconds : 0;
+            return bTime - aTime;
+          })[0];
+
+          const nutzung = letzterEintrag.data();
+          const startMeters = Number(nutzung.startMeters || 0);
+          const usedMeters = roundMeters(Math.max(0, startMeters - endMeters));
+
+          return kabelNutzungCollection.doc(letzterEintrag.id).update({
+            endMeters: endMeters,
+            usedMeters: usedMeters,
+            baustelle: returnBaustelle,
+            returnAt: firebase.firestore.FieldValue.serverTimestamp(),
+            status: "geschlossen"
+          });
+        });
+    });
   }).then(() => {
     selectedId = null;
     closeModal();
