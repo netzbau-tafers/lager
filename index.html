@@ -28,6 +28,13 @@ h1{
   margin-bottom:12px;
 }
 
+.topbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-bottom:20px;
+}
+
 .logout-safe{
   background:#777;
 }
@@ -157,6 +164,7 @@ th{
   height:100%;
   background:rgba(0,0,0,0.45);
   z-index:1000;
+  overflow-y:auto;
 }
 
 .modal-content{
@@ -164,9 +172,12 @@ th{
   padding:20px;
   width:420px;
   max-width:92%;
-  margin:8% auto;
+  margin:40px auto;
   border-radius:10px;
   box-shadow:0 10px 25px rgba(0,0,0,0.2);
+  box-sizing:border-box;
+  max-height:calc(100vh - 40px);
+  overflow-y:auto;
 }
 
 input{
@@ -194,7 +205,7 @@ input{
   width:100%;
   height:100%;
   background:#f2f4f7;
-  display:flex;
+  display:none;
   align-items:center;
   justify-content:center;
   z-index:3000;
@@ -209,6 +220,7 @@ input{
   padding:25px;
   border-radius:12px;
   box-shadow:0 10px 25px rgba(0,0,0,0.2);
+  box-sizing:border-box;
 }
 
 .login-card h2{
@@ -298,7 +310,8 @@ input{
 
   .modal-content{
     width:95%;
-    margin:15% auto;
+    margin:20px auto;
+    max-height:calc(100vh - 20px);
   }
 }
 </style>
@@ -310,8 +323,8 @@ input{
   <div class="login-card">
     <h2>Login Kabellager</h2>
     <div class="login-info">Bitte mit E-Mail und Passwort anmelden</div>
-    <input id="loginEmail" type="email" placeholder="E-Mail">
-    <input id="loginPassword" type="password" placeholder="Passwort">
+    <input id="loginEmail" type="email" placeholder="E-Mail" maxlength="120" autocomplete="username">
+    <input id="loginPassword" type="password" placeholder="Passwort" maxlength="120" autocomplete="current-password">
     <button onclick="login()">Login</button>
     <p id="loginError" class="login-error">Login fehlgeschlagen. Bitte Daten prüfen.</p>
   </div>
@@ -326,13 +339,13 @@ input{
 </div>
 
 <div class="topbar">
-  <button class="back" onclick="window.location.href='baustellen.html'">Zum Baustellenmaterial</button>
+  <button onclick="window.location.href='baustellen.html'">Zum Baustellenmaterial</button>
 </div>
 
 <div class="search-box">
   <div class="search-title">Suche</div>
   <div class="search-row">
-    <input id="searchInput" type="text" placeholder="Nach Nummer, Kabeltyp oder Baustelle suchen" oninput="renderFilteredTable()">
+    <input id="searchInput" type="text" placeholder="Nach Nummer, Kabeltyp oder Baustelle suchen" oninput="renderFilteredTable()" maxlength="120">
     <button class="reset" onclick="resetSearch()">Suche zurücksetzen</button>
   </div>
 
@@ -374,11 +387,11 @@ input{
   <div class="modal-content">
     <h3 id="modalTitle">Neue Bobine</h3>
 
-    <input id="nummer" placeholder="Nummer">
-    <input id="typ" placeholder="Kabeltyp">
-    <input id="laenge" placeholder="Länge (m)">
-    <input id="baustelle" placeholder="Baustelle">
-    <input id="hersteller" placeholder="Hersteller">
+    <input id="nummer" placeholder="Nummer" maxlength="60">
+    <input id="typ" placeholder="Kabeltyp" maxlength="120">
+    <input id="laenge" placeholder="Länge (m)" maxlength="40">
+    <input id="baustelle" placeholder="Baustelle" maxlength="120">
+    <input id="hersteller" placeholder="Hersteller" maxlength="120">
 
     <button onclick="saveBobine()">Speichern</button>
     <button onclick="closeModal()">Abbrechen</button>
@@ -390,10 +403,10 @@ input{
     <h3>Bobine zurück ins Lager</h3>
 
     <p>Länge aktualisieren</p>
-    <input id="returnLaenge" placeholder="Länge (m)">
+    <input id="returnLaenge" placeholder="Länge (m)" maxlength="40">
 
     <p>Baustelle</p>
-    <input id="returnBaustelle" placeholder="Baustelle">
+    <input id="returnBaustelle" placeholder="Baustelle" maxlength="120">
 
     <button onclick="confirmReturn()">Speichern</button>
     <button onclick="closeModal()">Abbrechen</button>
@@ -421,6 +434,25 @@ const bobinenCollection = db.collection("bobinen");
 let editId = null;
 let selectedId = null;
 let alleBobinen = [];
+let unsubscribeBobinen = null;
+
+function sanitizeInput(value, maxLength = 200){
+  return String(value || "")
+    .replace(/[<>]/g, "")
+    .replace(/[\u0000-\u001F\u007F]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function escapeHtml(value){
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 function login(){
   const email = document.getElementById("loginEmail").value.trim();
@@ -450,22 +482,27 @@ function logout(){
   });
 }
 
+function stopListeners(){
+  if(unsubscribeBobinen){
+    unsubscribeBobinen();
+    unsubscribeBobinen = null;
+  }
+}
+
 auth.onAuthStateChanged((user) => {
-
   if(user){
-
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
-
-    startDatabaseListener(); // Daten laden sobald Login fertig
-
+    startDatabaseListener();
   }else{
-
+    stopListeners();
     document.getElementById("loginScreen").style.display = "flex";
     document.getElementById("appContent").style.display = "none";
-
+    document.getElementById("table").innerHTML = "";
+    document.getElementById("resultInfo").innerText = "";
+    document.getElementById("noResults").style.display = "none";
+    alleBobinen = [];
   }
-
 });
 
 function renderTable(data){
@@ -486,12 +523,12 @@ function renderTable(data){
     tr.className = b.status === "Lager" ? "instock" : "inuse";
 
     tr.innerHTML = `
-      <td>${b.nummer || ""}</td>
-      <td>${b.typ || ""}</td>
-      <td>${b.laenge || ""}</td>
-      <td>${b.baustelle || ""}</td>
-      <td>${b.hersteller || ""}</td>
-      <td>${b.status || ""}</td>
+      <td>${escapeHtml(b.nummer || "")}</td>
+      <td>${escapeHtml(b.typ || "")}</td>
+      <td>${escapeHtml(b.laenge || "")}</td>
+      <td>${escapeHtml(b.baustelle || "")}</td>
+      <td>${escapeHtml(b.hersteller || "")}</td>
+      <td>${escapeHtml(b.status || "")}</td>
       <td>
         <button onclick="toggleStatus('${docItem.id}')">Status</button>
         <button onclick="editBobine('${docItem.id}')">Bearbeiten</button>
@@ -540,19 +577,17 @@ function resetSearch(){
 }
 
 function startDatabaseListener(){
+  if(unsubscribeBobinen){
+    return;
+  }
 
-  bobinenCollection.onSnapshot(snapshot => {
-
+  unsubscribeBobinen = bobinenCollection.onSnapshot(snapshot => {
     alleBobinen = snapshot.docs;
     renderFilteredTable();
-
   }, error => {
-
     console.error("Fehler bei Live-Daten:", error);
     alert("Fehler beim Laden der Firebase-Daten.");
-
   });
-
 }
 
 function openAdd(){
@@ -580,11 +615,11 @@ function editBobine(id){
     const b = doc.data();
 
     document.getElementById("modalTitle").innerText = "Bobine bearbeiten";
-    document.getElementById("nummer").value = b.nummer || "";
-    document.getElementById("typ").value = b.typ || "";
-    document.getElementById("laenge").value = b.laenge || "";
-    document.getElementById("baustelle").value = b.baustelle || "";
-    document.getElementById("hersteller").value = b.hersteller || "";
+    document.getElementById("nummer").value = sanitizeInput(b.nummer || "", 60);
+    document.getElementById("typ").value = sanitizeInput(b.typ || "", 120);
+    document.getElementById("laenge").value = sanitizeInput(b.laenge || "", 40);
+    document.getElementById("baustelle").value = sanitizeInput(b.baustelle || "", 120);
+    document.getElementById("hersteller").value = sanitizeInput(b.hersteller || "", 120);
 
     document.getElementById("modal").style.display = "block";
   }).catch(error => {
@@ -594,7 +629,7 @@ function editBobine(id){
 }
 
 function nummerBereinigen(wert){
-  return wert.trim();
+  return sanitizeInput(wert, 60);
 }
 
 function nummerSchonVorhanden(nummer, aktuelleId = null){
@@ -613,6 +648,16 @@ function nummerSchonVorhanden(nummer, aktuelleId = null){
 
 function saveBobine(){
   const nummerWert = nummerBereinigen(document.getElementById("nummer").value);
+  const typ = sanitizeInput(document.getElementById("typ").value, 120);
+  const laenge = sanitizeInput(document.getElementById("laenge").value, 40);
+  const baustelle = sanitizeInput(document.getElementById("baustelle").value, 120);
+  const hersteller = sanitizeInput(document.getElementById("hersteller").value, 120);
+
+  document.getElementById("nummer").value = nummerWert;
+  document.getElementById("typ").value = typ;
+  document.getElementById("laenge").value = laenge;
+  document.getElementById("baustelle").value = baustelle;
+  document.getElementById("hersteller").value = hersteller;
 
   if(nummerWert === ""){
     alert("Bitte eine Nummer eingeben.");
@@ -621,10 +666,10 @@ function saveBobine(){
 
   const data = {
     nummer: nummerWert,
-    typ: document.getElementById("typ").value.trim(),
-    laenge: document.getElementById("laenge").value.trim(),
-    baustelle: document.getElementById("baustelle").value.trim(),
-    hersteller: document.getElementById("hersteller").value.trim()
+    typ: typ,
+    laenge: laenge,
+    baustelle: baustelle,
+    hersteller: hersteller
   };
 
   nummerSchonVorhanden(nummerWert, editId).then(vorhanden => {
@@ -681,8 +726,8 @@ function toggleStatus(id){
       });
     }else{
       selectedId = id;
-      document.getElementById("returnLaenge").value = b.laenge || "";
-      document.getElementById("returnBaustelle").value = b.baustelle || "";
+      document.getElementById("returnLaenge").value = sanitizeInput(b.laenge || "", 40);
+      document.getElementById("returnBaustelle").value = sanitizeInput(b.baustelle || "", 120);
       document.getElementById("returnModal").style.display = "block";
     }
   }).catch(error => {
@@ -696,9 +741,15 @@ function confirmReturn(){
     return;
   }
 
+  const returnLaenge = sanitizeInput(document.getElementById("returnLaenge").value, 40);
+  const returnBaustelle = sanitizeInput(document.getElementById("returnBaustelle").value, 120);
+
+  document.getElementById("returnLaenge").value = returnLaenge;
+  document.getElementById("returnBaustelle").value = returnBaustelle;
+
   bobinenCollection.doc(selectedId).update({
-    laenge: document.getElementById("returnLaenge").value.trim(),
-    baustelle: document.getElementById("returnBaustelle").value.trim(),
+    laenge: returnLaenge,
+    baustelle: returnBaustelle,
     status: "Lager"
   }).then(() => {
     selectedId = null;
@@ -710,9 +761,7 @@ function confirmReturn(){
 }
 
 function deleteBobine(id){
-
   bobinenCollection.doc(id).get().then(doc => {
-
     if(!doc.exists){
       alert("Bobine nicht gefunden.");
       return;
@@ -722,10 +771,10 @@ function deleteBobine(id){
 
     const text =
       "Bobine wirklich löschen?\n\n" +
-      "Nummer: " + (b.nummer || "") + "\n" +
-      "Kabeltyp: " + (b.typ || "") + "\n" +
-      "Länge: " + (b.laenge || "") + "\n" +
-      "Baustelle: " + (b.baustelle || "") + "\n\n" +
+      "Nummer: " + sanitizeInput(b.nummer || "", 60) + "\n" +
+      "Kabeltyp: " + sanitizeInput(b.typ || "", 120) + "\n" +
+      "Länge: " + sanitizeInput(b.laenge || "", 40) + "\n" +
+      "Baustelle: " + sanitizeInput(b.baustelle || "", 120) + "\n\n" +
       "Diese Bobine wird endgültig aus dem Kabellager entfernt.";
 
     if(confirm(text)){
@@ -734,12 +783,10 @@ function deleteBobine(id){
         alert("Fehler beim Löschen.");
       });
     }
-
   }).catch(error => {
     console.error("Fehler beim Laden der Bobine:", error);
     alert("Fehler beim Laden der Bobinen-Daten.");
   });
-
 }
 
 function closeModal(){
