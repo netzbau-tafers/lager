@@ -815,6 +815,24 @@ function toggleMaterialList(baustelleId){
   }
 }
 
+  function toggleVorlagenBereich(){
+  const content = document.getElementById("vorlagenContent");
+  const arrow = document.getElementById("vorlagenArrow");
+
+  if(!content || !arrow){
+    return;
+  }
+
+  if(vorlagenBereichOffen){
+    vorlagenBereichOffen = false;
+    content.style.display = "none";
+    arrow.innerText = "▼";
+  }else{
+    vorlagenBereichOffen = true;
+    content.style.display = "block";
+    arrow.innerText = "▲";
+  }
+}
 function openBaustelleModal(){
   editBaustelleId = null;
   document.getElementById("baustelleModalTitle").innerText = "Neue Baustelle";
