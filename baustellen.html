@@ -17,9 +17,17 @@ body{
   color:#222;
 }
 
-h1{
-  text-align:center;
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
   margin-bottom:25px;
+  gap:15px;
+}
+
+.header h1{
+  margin:0;
+  text-align:left;
 }
 
 h2{
@@ -471,6 +479,14 @@ label{
     margin:15px;
   }
 
+  .header{
+    margin-bottom:20px;
+  }
+
+  .header h1{
+    font-size:28px;
+  }
+
   .search-row{
     grid-template-columns:1fr;
   }
@@ -513,7 +529,9 @@ label{
 
 <div id="appContent" style="display:none;">
 
-<div class="topbar">
+<div class="header">
+  <h1>Baustellenmaterial</h1>
+
   <div class="menu-wrap">
     <button class="menu-button" onclick="toggleMenu(event)">☰</button>
     <div id="dropdownMenu" class="dropdown-menu">
@@ -522,8 +540,6 @@ label{
     </div>
   </div>
 </div>
-
-<h1>Baustellenmaterial</h1>
 
 <div class="search-box">
   <div class="search-title">Suche</div>
