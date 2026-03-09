@@ -10,6 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <style>
+
 body{
   font-family:Arial, sans-serif;
   background:#f2f4f7;
@@ -17,17 +18,15 @@ body{
   color:#222;
 }
 
-h1{
-  text-align:center;
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
   margin-bottom:25px;
 }
 
-.topbar{
-  display:flex;
-  justify-content:flex-end;
-  align-items:center;
-  margin-bottom:20px;
-  position:relative;
+.header h1{
+  margin:0;
 }
 
 .menu-wrap{
@@ -141,7 +140,6 @@ button:hover{
   display:grid;
   grid-template-columns:1fr;
   gap:10px;
-  align-items:center;
   margin-top:12px;
 }
 
@@ -154,8 +152,6 @@ button:hover{
 select{
   width:100%;
   padding:10px;
-  margin:0;
-  box-sizing:border-box;
   border:1px solid #ccc;
   border-radius:6px;
   font-size:15px;
@@ -181,7 +177,6 @@ th,td{
   border:1px solid #ccc;
   padding:8px;
   text-align:center;
-  vertical-align:middle;
 }
 
 th{
@@ -206,7 +201,6 @@ th{
   height:100%;
   background:rgba(0,0,0,0.45);
   z-index:1000;
-  overflow-y:auto;
 }
 
 .modal-content{
@@ -216,20 +210,14 @@ th{
   max-width:92%;
   margin:40px auto;
   border-radius:10px;
-  box-shadow:0 10px 25px rgba(0,0,0,0.2);
-  box-sizing:border-box;
-  max-height:calc(100vh - 40px);
-  overflow-y:auto;
 }
 
 input{
   width:100%;
   padding:10px;
   margin:6px 0 12px 0;
-  box-sizing:border-box;
   border:1px solid #ccc;
   border-radius:6px;
-  font-size:15px;
 }
 
 .no-results{
@@ -251,23 +239,13 @@ input{
   align-items:center;
   justify-content:center;
   z-index:3000;
-  padding:20px;
-  box-sizing:border-box;
 }
 
 .login-card{
   background:white;
   width:420px;
-  max-width:95%;
   padding:25px;
   border-radius:12px;
-  box-shadow:0 10px 25px rgba(0,0,0,0.2);
-  box-sizing:border-box;
-}
-
-.login-card h2{
-  margin-top:0;
-  text-align:center;
 }
 
 .login-error{
@@ -277,629 +255,447 @@ input{
   text-align:center;
 }
 
-.login-info{
-  color:#555;
-  font-size:14px;
-  text-align:center;
-  margin-bottom:15px;
-}
-
-.logout{
-  background:#555;
-}
-
-.logout:hover{
-  background:#333;
-}
-
-@media (max-width: 900px){
-  body{
-    margin:15px;
-  }
-
-  .search-row{
-    grid-template-columns:1fr;
-  }
-
-  button{
-    font-size:16px;
-    padding:12px 16px;
-  }
-
-  .menu-button{
-    font-size:24px;
-    padding:12px 16px;
-  }
-
-  .dropdown-menu{
-    min-width:240px;
-  }
-
-  table, thead, tbody, th, td, tr{
-    display:block;
-    width:100%;
-  }
-
-  thead{
-    display:none;
-  }
-
-  table{
-    background:transparent;
-    box-shadow:none;
-  }
-
-  tr{
-    background:white;
-    margin-bottom:15px;
-    padding:12px;
-    border:1px solid #ccc;
-    border-radius:10px;
-    box-shadow:0 2px 6px rgba(0,0,0,0.05);
-  }
-
-  td{
-    border:none;
-    text-align:left;
-    padding:6px 0;
-  }
-
-  td:before{
-    font-weight:bold;
-    display:block;
-    margin-bottom:2px;
-    color:#333;
-  }
-
-  td:nth-child(1):before{content:"Nummer";}
-  td:nth-child(2):before{content:"Kabeltyp";}
-  td:nth-child(3):before{content:"Länge";}
-  td:nth-child(4):before{content:"Baustelle";}
-  td:nth-child(5):before{content:"Hersteller";}
-  td:nth-child(6):before{content:"Status";}
-  td:nth-child(7):before{content:"Aktionen";}
-
-  .modal-content{
-    width:95%;
-    margin:20px auto;
-    max-height:calc(100vh - 20px);
-  }
-}
 </style>
 </head>
 
 <body>
 
 <div id="loginScreen" class="login-screen">
-  <div class="login-card">
-    <h2>Login Kabellager</h2>
-    <div class="login-info">Bitte mit E-Mail und Passwort anmelden</div>
-    <input id="loginEmail" type="email" placeholder="E-Mail" maxlength="120" autocomplete="username">
-    <input id="loginPassword" type="password" placeholder="Passwort" maxlength="120" autocomplete="current-password">
-    <button onclick="login()">Login</button>
-    <p id="loginError" class="login-error">Login fehlgeschlagen. Bitte Daten prüfen.</p>
-  </div>
+<div class="login-card">
+
+<h2>Login Kabellager</h2>
+
+<input id="loginEmail" type="email" placeholder="E-Mail">
+<input id="loginPassword" type="password" placeholder="Passwort">
+
+<button onclick="login()">Login</button>
+
+<p id="loginError" class="login-error">
+Login fehlgeschlagen
+</p>
+
+</div>
 </div>
 
 <div id="appContent" style="display:none;">
 
-<div class="topbar">
-  <div class="menu-wrap">
-    <button class="menu-button" onclick="toggleMenu(event)">☰</button>
-    <div id="dropdownMenu" class="dropdown-menu">
-      <button onclick="goToBaustellenmaterial()">Zum Baustellenmaterial</button>
-      <button class="logout-safe" onclick="logout()">Logout</button>
-    </div>
-  </div>
-</div>
+<div class="header">
 
 <h1>Kabellager</h1>
 
+<div class="menu-wrap">
+
+<button class="menu-button" onclick="toggleMenu(event)">☰</button>
+
+<div id="dropdownMenu" class="dropdown-menu">
+
+<button onclick="goToBaustellenmaterial()">
+Zum Baustellenmaterial
+</button>
+
+<button class="logout-safe" onclick="logout()">
+Logout
+</button>
+
+</div>
+</div>
+</div>
+
 <div class="search-box">
-  <div class="search-title">Suche</div>
-  <div class="search-row">
-    <input id="searchInput" type="text" placeholder="Nach Nummer, Kabeltyp oder Baustelle suchen" oninput="renderFilteredTable()" maxlength="120">
-    <button class="reset" onclick="resetSearch()">Suche zurücksetzen</button>
-  </div>
 
-  <div class="filter-row">
-    <select id="statusFilter" onchange="renderFilteredTable()">
-      <option value="Alle">Alle</option>
-      <option value="Lager">Lager</option>
-      <option value="In Gebrauch">In Gebrauch</option>
-    </select>
-  </div>
+<div class="search-title">Suche</div>
 
-  <div style="margin-top:15px;">
-    <button onclick="openAdd()">Neue Bobine hinzufügen</button>
-  </div>
+<div class="search-row">
+<input id="searchInput" type="text" placeholder="Nach Nummer, Kabeltyp oder Baustelle suchen" oninput="renderFilteredTable()">
+<button class="reset" onclick="resetSearch()">Suche zurücksetzen</button>
+</div>
+
+<div class="filter-row">
+
+<select id="statusFilter" onchange="renderFilteredTable()">
+<option value="Alle">Alle</option>
+<option value="Lager">Lager</option>
+<option value="In Gebrauch">In Gebrauch</option>
+</select>
+
+</div>
+
+<div style="margin-top:15px;">
+<button onclick="openAdd()">Neue Bobine hinzufügen</button>
+</div>
+
 </div>
 
 <div class="info-box" id="resultInfo"></div>
 
 <table>
-  <thead>
-    <tr>
-      <th>Nummer</th>
-      <th>Kabeltyp</th>
-      <th>Länge</th>
-      <th>Baustelle</th>
-      <th>Hersteller</th>
-      <th>Status</th>
-      <th>Aktionen</th>
-    </tr>
-  </thead>
-  <tbody id="table"></tbody>
+
+<thead>
+<tr>
+<th>Nummer</th>
+<th>Kabeltyp</th>
+<th>Länge</th>
+<th>Baustelle</th>
+<th>Hersteller</th>
+<th>Status</th>
+<th>Aktionen</th>
+</tr>
+</thead>
+
+<tbody id="table"></tbody>
+
 </table>
 
 <div id="noResults" class="no-results" style="display:none;">
-  Keine passenden Bobinen gefunden.
+Keine passenden Bobinen gefunden
 </div>
 
 <div id="modal" class="modal">
-  <div class="modal-content">
-    <h3 id="modalTitle">Neue Bobine</h3>
 
-    <input id="nummer" placeholder="Nummer" maxlength="60">
-    <input id="typ" placeholder="Kabeltyp" maxlength="120">
-    <input id="laenge" placeholder="Länge (m)" maxlength="40">
-    <input id="baustelle" placeholder="Baustelle" maxlength="120">
-    <input id="hersteller" placeholder="Hersteller" maxlength="120">
+<div class="modal-content">
 
-    <button onclick="saveBobine()">Speichern</button>
-    <button onclick="closeModal()">Abbrechen</button>
-  </div>
+<h3 id="modalTitle">Neue Bobine</h3>
+
+<input id="nummer" placeholder="Nummer">
+<input id="typ" placeholder="Kabeltyp">
+<input id="laenge" placeholder="Länge (m)">
+<input id="baustelle" placeholder="Baustelle">
+<input id="hersteller" placeholder="Hersteller">
+
+<button onclick="saveBobine()">Speichern</button>
+<button onclick="closeModal()">Abbrechen</button>
+
+</div>
 </div>
 
 <div id="returnModal" class="modal">
-  <div class="modal-content">
-    <h3>Bobine zurück ins Lager</h3>
 
-    <p>Länge aktualisieren</p>
-    <input id="returnLaenge" placeholder="Länge (m)" maxlength="40">
+<div class="modal-content">
 
-    <p>Baustelle</p>
-    <input id="returnBaustelle" placeholder="Baustelle" maxlength="120">
+<h3>Bobine zurück ins Lager</h3>
 
-    <button onclick="confirmReturn()">Speichern</button>
-    <button onclick="closeModal()">Abbrechen</button>
-  </div>
+<p>Länge aktualisieren</p>
+<input id="returnLaenge">
+
+<p>Baustelle</p>
+<input id="returnBaustelle">
+
+<button onclick="confirmReturn()">Speichern</button>
+<button onclick="closeModal()">Abbrechen</button>
+
+</div>
 </div>
 
 </div>
 
 <script>
+
 const firebaseConfig = {
-  apiKey: "AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",
-  authDomain: "netzbau-tafers.firebaseapp.com",
-  projectId: "netzbau-tafers",
-  storageBucket: "netzbau-tafers.appspot.com",
-  messagingSenderId: "389541837675",
-  appId: "1:389541837675:web:db580ce67c57a9a16dea2e",
-  measurementId: "G-B5MJGD3108"
+apiKey:"AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",
+authDomain:"netzbau-tafers.firebaseapp.com",
+projectId:"netzbau-tafers",
+storageBucket:"netzbau-tafers.appspot.com",
+messagingSenderId:"389541837675",
+appId:"1:389541837675:web:db580ce67c57a9a16dea2e"
 };
 
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-const auth = firebase.auth();
-const bobinenCollection = db.collection("bobinen");
 
-let editId = null;
-let selectedId = null;
-let alleBobinen = [];
-let unsubscribeBobinen = null;
+const db=firebase.firestore();
+const auth=firebase.auth();
 
-function sanitizeInput(value, maxLength = 200){
-  return String(value || "")
-    .replace(/[<>]/g, "")
-    .replace(/[\u0000-\u001F\u007F]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, maxLength);
-}
+const bobinenCollection=db.collection("bobinen");
 
-function escapeHtml(value){
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
+let editId=null;
+let selectedId=null;
+let alleBobinen=[];
+let unsubscribeBobinen=null;
 
 function toggleMenu(event){
-  if(event){
-    event.stopPropagation();
-  }
-
-  const menu = document.getElementById("dropdownMenu");
-  if(!menu){
-    return;
-  }
-
-  menu.classList.toggle("open");
+event.stopPropagation();
+document.getElementById("dropdownMenu").classList.toggle("open");
 }
 
 function closeMenu(){
-  const menu = document.getElementById("dropdownMenu");
-  if(menu){
-    menu.classList.remove("open");
-  }
+document.getElementById("dropdownMenu").classList.remove("open");
 }
 
-function goToBaustellenmaterial(){
-  closeMenu();
-  window.location.href = "baustellen.html";
+document.addEventListener("click",function(event){
+
+const menuWrap=document.querySelector(".menu-wrap");
+
+if(!menuWrap.contains(event.target)){
+closeMenu();
 }
 
-document.addEventListener("click", function(event){
-  const menu = document.getElementById("dropdownMenu");
-  const menuWrap = document.querySelector(".menu-wrap");
-
-  if(!menu || !menuWrap){
-    return;
-  }
-
-  if(!menuWrap.contains(event.target)){
-    closeMenu();
-  }
 });
 
-function login(){
-  const email = document.getElementById("loginEmail").value.trim();
-  const password = document.getElementById("loginPassword").value;
+function goToBaustellenmaterial(){
+closeMenu();
+window.location.href="baustellen.html";
+}
 
-  auth.signInWithEmailAndPassword(email, password)
-    .then(() => {
-      document.getElementById("loginError").style.display = "none";
-      document.getElementById("loginPassword").value = "";
-    })
-    .catch((error) => {
-      console.error("Login Fehler:", error);
-      document.getElementById("loginError").style.display = "block";
-    });
+function login(){
+
+const email=document.getElementById("loginEmail").value;
+const password=document.getElementById("loginPassword").value;
+
+auth.signInWithEmailAndPassword(email,password)
+
+.then(()=>{
+document.getElementById("loginError").style.display="none";
+})
+
+.catch(()=>{
+document.getElementById("loginError").style.display="block";
+});
+
 }
 
 function logout(){
-  closeMenu();
 
-  if(!confirm("Wirklich ausloggen?")){
-    return;
-  }
+closeMenu();
 
-  stopListeners();
+if(!confirm("Wirklich ausloggen?")) return;
 
-  auth.signOut().catch((error) => {
-    console.error("Logout Fehler:", error);
-    alert("Fehler beim Logout.");
-  });
+auth.signOut();
+
 }
 
-function stopListeners(){
-  if(unsubscribeBobinen){
-    unsubscribeBobinen();
-    unsubscribeBobinen = null;
-  }
+auth.onAuthStateChanged(user=>{
+
+if(user){
+
+document.getElementById("loginScreen").style.display="none";
+document.getElementById("appContent").style.display="block";
+
+startDatabaseListener();
+
+}else{
+
+document.getElementById("loginScreen").style.display="flex";
+document.getElementById("appContent").style.display="none";
+
 }
 
-auth.onAuthStateChanged((user) => {
-  if(user){
-    document.getElementById("loginScreen").style.display = "none";
-    document.getElementById("appContent").style.display = "block";
-    startDatabaseListener();
-  }else{
-    stopListeners();
-    closeMenu();
-    document.getElementById("loginScreen").style.display = "flex";
-    document.getElementById("appContent").style.display = "none";
-    document.getElementById("table").innerHTML = "";
-    document.getElementById("resultInfo").innerText = "";
-    document.getElementById("noResults").style.display = "none";
-    alleBobinen = [];
-  }
 });
 
-function renderTable(data){
-  const table = document.getElementById("table");
-  const noResults = document.getElementById("noResults");
-  table.innerHTML = "";
+function startDatabaseListener(){
 
-  if(data.length === 0){
-    noResults.style.display = "block";
-  }else{
-    noResults.style.display = "none";
-  }
+unsubscribeBobinen=bobinenCollection.onSnapshot(snapshot=>{
 
-  data.forEach(docItem => {
-    const b = docItem.data();
-    const tr = document.createElement("tr");
+alleBobinen=snapshot.docs;
 
-    tr.className = b.status === "Lager" ? "instock" : "inuse";
+renderFilteredTable();
 
-    tr.innerHTML = `
-      <td>${escapeHtml(b.nummer || "")}</td>
-      <td>${escapeHtml(b.typ || "")}</td>
-      <td>${escapeHtml(b.laenge || "")}</td>
-      <td>${escapeHtml(b.baustelle || "")}</td>
-      <td>${escapeHtml(b.hersteller || "")}</td>
-      <td>${escapeHtml(b.status || "")}</td>
-      <td>
-        <button onclick="toggleStatus('${docItem.id}')">Status</button>
-        <button onclick="editBobine('${docItem.id}')">Bearbeiten</button>
-        <button class="delete" onclick="deleteBobine('${docItem.id}')">Löschen</button>
-      </td>
-    `;
+});
 
-    table.appendChild(tr);
-  });
-
-  document.getElementById("resultInfo").innerText = "Angezeigte Bobinen: " + data.length;
 }
 
 function renderFilteredTable(){
-  const suchbegriff = document.getElementById("searchInput").value.trim().toLowerCase();
-  const statusFilter = document.getElementById("statusFilter").value;
 
-  const gefiltert = alleBobinen.filter(docItem => {
-    const b = docItem.data();
+const suchbegriff=document.getElementById("searchInput").value.toLowerCase();
 
-    const nummer = String(b.nummer || "").toLowerCase();
-    const typ = String(b.typ || "").toLowerCase();
-    const baustelle = String(b.baustelle || "").toLowerCase();
-    const status = String(b.status || "");
+const statusFilter=document.getElementById("statusFilter").value;
 
-    const suchbegriffLeer = suchbegriff === "";
-    const textPasst =
-      suchbegriffLeer ||
-      nummer.includes(suchbegriff) ||
-      typ.includes(suchbegriff) ||
-      baustelle.includes(suchbegriff);
+const gefiltert=alleBobinen.filter(doc=>{
 
-    const statusPasst =
-      statusFilter === "Alle" || status === statusFilter;
+const b=doc.data();
 
-    return textPasst && statusPasst;
-  });
+const nummer=(b.nummer||"").toLowerCase();
+const typ=(b.typ||"").toLowerCase();
+const baustelle=(b.baustelle||"").toLowerCase();
 
-  renderTable(gefiltert);
+const status=b.status||"";
+
+const textPasst=
+nummer.includes(suchbegriff)||
+typ.includes(suchbegriff)||
+baustelle.includes(suchbegriff);
+
+const statusPasst=
+statusFilter==="Alle"||status===statusFilter;
+
+return textPasst&&statusPasst;
+
+});
+
+renderTable(gefiltert);
+
+}
+
+function renderTable(data){
+
+const table=document.getElementById("table");
+
+table.innerHTML="";
+
+data.forEach(doc=>{
+
+const b=doc.data();
+
+const tr=document.createElement("tr");
+
+tr.className=b.status==="Lager"?"instock":"inuse";
+
+tr.innerHTML=`
+<td>${b.nummer||""}</td>
+<td>${b.typ||""}</td>
+<td>${b.laenge||""}</td>
+<td>${b.baustelle||""}</td>
+<td>${b.hersteller||""}</td>
+<td>${b.status||""}</td>
+<td>
+<button onclick="toggleStatus('${doc.id}')">Status</button>
+<button onclick="editBobine('${doc.id}')">Bearbeiten</button>
+<button class="delete" onclick="deleteBobine('${doc.id}')">Löschen</button>
+</td>
+`;
+
+table.appendChild(tr);
+
+});
+
+document.getElementById("resultInfo").innerText=
+"Angezeigte Bobinen: "+data.length;
+
 }
 
 function resetSearch(){
-  document.getElementById("searchInput").value = "";
-  document.getElementById("statusFilter").value = "Alle";
-  renderFilteredTable();
-}
 
-function startDatabaseListener(){
-  if(unsubscribeBobinen){
-    return;
-  }
+document.getElementById("searchInput").value="";
+document.getElementById("statusFilter").value="Alle";
 
-  unsubscribeBobinen = bobinenCollection.onSnapshot(snapshot => {
-    alleBobinen = snapshot.docs;
-    renderFilteredTable();
-  }, error => {
-    console.error("Fehler bei Live-Daten:", error);
-    alert("Fehler beim Laden der Firebase-Daten.");
-  });
+renderFilteredTable();
+
 }
 
 function openAdd(){
-  editId = null;
 
-  document.getElementById("modalTitle").innerText = "Neue Bobine";
-  document.getElementById("nummer").value = "";
-  document.getElementById("typ").value = "";
-  document.getElementById("laenge").value = "";
-  document.getElementById("baustelle").value = "";
-  document.getElementById("hersteller").value = "";
+editId=null;
 
-  document.getElementById("modal").style.display = "block";
+document.getElementById("modalTitle").innerText="Neue Bobine";
+
+document.getElementById("nummer").value="";
+document.getElementById("typ").value="";
+document.getElementById("laenge").value="";
+document.getElementById("baustelle").value="";
+document.getElementById("hersteller").value="";
+
+document.getElementById("modal").style.display="block";
+
 }
 
 function editBobine(id){
-  editId = id;
 
-  bobinenCollection.doc(id).get().then(doc => {
-    if(!doc.exists){
-      alert("Bobine nicht gefunden.");
-      return;
-    }
+editId=id;
 
-    const b = doc.data();
+bobinenCollection.doc(id).get()
 
-    document.getElementById("modalTitle").innerText = "Bobine bearbeiten";
-    document.getElementById("nummer").value = sanitizeInput(b.nummer || "", 60);
-    document.getElementById("typ").value = sanitizeInput(b.typ || "", 120);
-    document.getElementById("laenge").value = sanitizeInput(b.laenge || "", 40);
-    document.getElementById("baustelle").value = sanitizeInput(b.baustelle || "", 120);
-    document.getElementById("hersteller").value = sanitizeInput(b.hersteller || "", 120);
+.then(doc=>{
 
-    document.getElementById("modal").style.display = "block";
-  }).catch(error => {
-    console.error("Fehler beim Laden:", error);
-    alert("Fehler beim Laden der Bobine.");
-  });
-}
+const b=doc.data();
 
-function nummerBereinigen(wert){
-  return sanitizeInput(wert, 60);
-}
+document.getElementById("modalTitle").innerText="Bobine bearbeiten";
 
-function nummerSchonVorhanden(nummer, aktuelleId = null){
-  return bobinenCollection.where("nummer", "==", nummer).get().then(snapshot => {
-    let vorhanden = false;
+document.getElementById("nummer").value=b.nummer||"";
+document.getElementById("typ").value=b.typ||"";
+document.getElementById("laenge").value=b.laenge||"";
+document.getElementById("baustelle").value=b.baustelle||"";
+document.getElementById("hersteller").value=b.hersteller||"";
 
-    snapshot.forEach(doc => {
-      if(doc.id !== aktuelleId){
-        vorhanden = true;
-      }
-    });
+document.getElementById("modal").style.display="block";
 
-    return vorhanden;
-  });
+});
+
 }
 
 function saveBobine(){
-  const nummerWert = nummerBereinigen(document.getElementById("nummer").value);
-  const typ = sanitizeInput(document.getElementById("typ").value, 120);
-  const laenge = sanitizeInput(document.getElementById("laenge").value, 40);
-  const baustelle = sanitizeInput(document.getElementById("baustelle").value, 120);
-  const hersteller = sanitizeInput(document.getElementById("hersteller").value, 120);
 
-  document.getElementById("nummer").value = nummerWert;
-  document.getElementById("typ").value = typ;
-  document.getElementById("laenge").value = laenge;
-  document.getElementById("baustelle").value = baustelle;
-  document.getElementById("hersteller").value = hersteller;
+const nummer=document.getElementById("nummer").value;
 
-  if(nummerWert === ""){
-    alert("Bitte eine Nummer eingeben.");
-    return;
-  }
+const data={
+nummer:nummer,
+typ:document.getElementById("typ").value,
+laenge:document.getElementById("laenge").value,
+baustelle:document.getElementById("baustelle").value,
+hersteller:document.getElementById("hersteller").value
+};
 
-  const data = {
-    nummer: nummerWert,
-    typ: typ,
-    laenge: laenge,
-    baustelle: baustelle,
-    hersteller: hersteller
-  };
+if(editId){
 
-  nummerSchonVorhanden(nummerWert, editId).then(vorhanden => {
-    if(vorhanden){
-      alert("Diese Bobinen-Nummer ist bereits im Lager vorhanden.");
-      return;
-    }
+bobinenCollection.doc(editId).update(data);
 
-    if(editId){
-      bobinenCollection.doc(editId).get().then(doc => {
-        if(!doc.exists){
-          alert("Bobine nicht gefunden.");
-          return;
-        }
+}else{
 
-        const alterStatus = doc.data().status || "Lager";
-        data.status = alterStatus;
+data.status="Lager";
 
-        return bobinenCollection.doc(editId).update(data);
-      }).then(() => {
-        closeModal();
-      }).catch(error => {
-        console.error("Fehler beim Bearbeiten:", error);
-        alert("Fehler beim Speichern.");
-      });
-    }else{
-      data.status = "Lager";
+bobinenCollection.add(data);
 
-      bobinenCollection.add(data).then(() => {
-        closeModal();
-      }).catch(error => {
-        console.error("Fehler beim Hinzufügen:", error);
-        alert("Fehler beim Hinzufügen.");
-      });
-    }
-  }).catch(error => {
-    console.error("Fehler bei Nummernprüfung:", error);
-    alert("Fehler bei der Prüfung der Nummer.");
-  });
+}
+
+closeModal();
+
 }
 
 function toggleStatus(id){
-  bobinenCollection.doc(id).get().then(doc => {
-    if(!doc.exists){
-      alert("Bobine nicht gefunden.");
-      return;
-    }
 
-    const b = doc.data();
+bobinenCollection.doc(id).get()
 
-    if(b.status === "Lager"){
-      return bobinenCollection.doc(id).update({
-        status: "In Gebrauch"
-      });
-    }else{
-      selectedId = id;
-      document.getElementById("returnLaenge").value = sanitizeInput(b.laenge || "", 40);
-      document.getElementById("returnBaustelle").value = sanitizeInput(b.baustelle || "", 120);
-      document.getElementById("returnModal").style.display = "block";
-    }
-  }).catch(error => {
-    console.error("Fehler beim Status ändern:", error);
-    alert("Fehler beim Status ändern.");
-  });
+.then(doc=>{
+
+const b=doc.data();
+
+if(b.status==="Lager"){
+
+bobinenCollection.doc(id).update({status:"In Gebrauch"});
+
+}else{
+
+selectedId=id;
+
+document.getElementById("returnLaenge").value=b.laenge||"";
+document.getElementById("returnBaustelle").value=b.baustelle||"";
+
+document.getElementById("returnModal").style.display="block";
+
+}
+
+});
+
 }
 
 function confirmReturn(){
-  if(!selectedId){
-    return;
-  }
 
-  const returnLaenge = sanitizeInput(document.getElementById("returnLaenge").value, 40);
-  const returnBaustelle = sanitizeInput(document.getElementById("returnBaustelle").value, 120);
+bobinenCollection.doc(selectedId).update({
 
-  document.getElementById("returnLaenge").value = returnLaenge;
-  document.getElementById("returnBaustelle").value = returnBaustelle;
+laenge:document.getElementById("returnLaenge").value,
+baustelle:document.getElementById("returnBaustelle").value,
+status:"Lager"
 
-  bobinenCollection.doc(selectedId).update({
-    laenge: returnLaenge,
-    baustelle: returnBaustelle,
-    status: "Lager"
-  }).then(() => {
-    selectedId = null;
-    closeModal();
-  }).catch(error => {
-    console.error("Fehler bei Rückgabe:", error);
-    alert("Fehler beim Zurückbuchen ins Lager.");
-  });
+});
+
+closeModal();
+
 }
 
 function deleteBobine(id){
-  bobinenCollection.doc(id).get().then(doc => {
-    if(!doc.exists){
-      alert("Bobine nicht gefunden.");
-      return;
-    }
 
-    const b = doc.data();
+if(confirm("Bobine wirklich löschen?")){
 
-    const text =
-      "Bobine wirklich löschen?\n\n" +
-      "Nummer: " + sanitizeInput(b.nummer || "", 60) + "\n" +
-      "Kabeltyp: " + sanitizeInput(b.typ || "", 120) + "\n" +
-      "Länge: " + sanitizeInput(b.laenge || "", 40) + "\n" +
-      "Baustelle: " + sanitizeInput(b.baustelle || "", 120) + "\n\n" +
-      "Diese Bobine wird endgültig aus dem Kabellager entfernt.";
+bobinenCollection.doc(id).delete();
 
-    if(confirm(text)){
-      bobinenCollection.doc(id).delete().catch(error => {
-        console.error("Fehler beim Löschen:", error);
-        alert("Fehler beim Löschen.");
-      });
-    }
-  }).catch(error => {
-    console.error("Fehler beim Laden der Bobine:", error);
-    alert("Fehler beim Laden der Bobinen-Daten.");
-  });
+}
+
 }
 
 function closeModal(){
-  document.getElementById("modal").style.display = "none";
-  document.getElementById("returnModal").style.display = "none";
+
+document.getElementById("modal").style.display="none";
+document.getElementById("returnModal").style.display="none";
+
 }
 
-window.onclick = function(event){
-  const modal = document.getElementById("modal");
-  const returnModal = document.getElementById("returnModal");
-
-  if(event.target === modal){
-    closeModal();
-  }
-
-  if(event.target === returnModal){
-    closeModal();
-  }
-}
 </script>
 
 </body>
