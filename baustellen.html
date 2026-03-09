@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Baustellen Material</title>
+<title>Lagermanager</title>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -335,6 +335,65 @@ label{
   margin-bottom:10px;
 }
 
+.vorlagen-picker{
+  border:1px solid #ddd;
+  border-radius:10px;
+  background:#fafafa;
+  padding:10px;
+  margin-bottom:12px;
+  max-height:220px;
+  overflow-y:auto;
+}
+
+.vorlagen-picker-empty{
+  color:#666;
+  font-size:14px;
+  text-align:center;
+  padding:10px;
+}
+
+.vorlagen-treffer{
+  width:100%;
+  text-align:left;
+  background:white;
+  color:#222;
+  border:1px solid #ddd;
+  border-radius:8px;
+  padding:10px 12px;
+  margin:0 0 8px 0;
+  display:block;
+}
+
+.vorlagen-treffer:hover{
+  background:#eef3f8;
+}
+
+.vorlagen-treffer.active{
+  background:#dfefff;
+  border-color:#3498db;
+}
+
+.vorlagen-treffer-title{
+  font-weight:bold;
+  margin-bottom:4px;
+}
+
+.vorlagen-treffer-sub{
+  font-size:13px;
+  color:#555;
+}
+
+.ausgewaehlte-vorlage{
+  background:#eef6ff;
+  border:1px solid #cfe3ff;
+  color:#1f4f82;
+  border-radius:8px;
+  padding:10px 12px;
+  margin-top:6px;
+  margin-bottom:12px;
+  font-size:14px;
+}
+
 @media (max-width: 900px){
   body{
     margin:15px;
@@ -361,7 +420,7 @@ label{
 
 <div id="loginScreen" class="login-screen">
   <div class="login-card">
-    <h2>Login Baustellen Material</h2>
+    <h2>Login Baustellenmaterial</h2>
     <div class="login-info">Bitte mit E-Mail und Passwort anmelden</div>
     <input id="loginEmail" type="email" placeholder="E-Mail">
     <input id="loginPassword" type="password" placeholder="Passwort">
@@ -372,7 +431,7 @@ label{
 
 <div id="appContent" style="display:none;">
 
-<h1>Baustellen Material</h1>
+<h1>Baustellenmaterial</h1>
 
 <div class="topbar">
   <button class="back" onclick="window.location.href='index.html'">Zurück zum Kabellager</button>
@@ -448,12 +507,14 @@ label{
   <div class="modal-content">
     <h3 id="materialModalTitle">Material hinzufügen</h3>
 
-    <label for="materialVorlageSelect">Material aus Vorlage wählen</label>
-    <select id="materialVorlageSelect" onchange="onVorlageChange()">
-      <option value="">Bitte auswählen</option>
-    </select>
+    <label for="materialVorlageSuche">Materialvorlage suchen</label>
+    <input id="materialVorlageSuche" type="text" placeholder="Nach Material oder Spontis Nummer suchen" oninput="renderMaterialVorlagenTreffer()">
 
-    <div class="helper-text">Wenn eine Vorlage gewählt wird, werden Material und Spontis Nummer automatisch übernommen.</div>
+    <div class="helper-text">Treffer anklicken, dann werden Material und Spontis Nummer automatisch übernommen.</div>
+
+    <div id="ausgewaehlteVorlageInfo" class="ausgewaehlte-vorlage" style="display:none;"></div>
+
+    <div id="materialVorlagenTreffer" class="vorlagen-picker"></div>
 
     <input id="materialName" placeholder="Material">
     <input id="materialAnzahl" placeholder="Anzahl">
@@ -508,6 +569,7 @@ let editMaterialId = null;
 let editVorlageId = null;
 let openMaterialLists = {};
 let vorlagenBereichOffen = false;
+let selectedVorlageId = null;
 
 function login(){
   const email = document.getElementById("loginEmail").value.trim();
@@ -564,10 +626,14 @@ auth.onAuthStateChanged((user) => {
     document.getElementById("vorlagenListe").innerHTML = "";
     document.getElementById("resultInfo").innerText = "";
     document.getElementById("vorlagenInfo").innerText = "";
+    document.getElementById("vorlagenContent").style.display = "none";
+    document.getElementById("vorlagenArrow").innerText = "▼";
     alleBaustellen = [];
     alleMaterialien = [];
     alleVorlagen = [];
     openMaterialLists = {};
+    vorlagenBereichOffen = false;
+    selectedVorlageId = null;
   }
 });
 
@@ -595,8 +661,9 @@ function startListeners(){
   if(!unsubscribeVorlagen){
     unsubscribeVorlagen = vorlagenCollection.onSnapshot(snapshot => {
       alleVorlagen = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      fillVorlagenSelect();
       renderVorlagen();
+      renderMaterialVorlagenTreffer();
+      updateAusgewaehlteVorlageInfo();
     }, error => {
       console.error("Fehler Materialvorlagen:", error);
       alert("Fehler beim Laden der Materialvorlagen.");
@@ -620,6 +687,15 @@ function getSuchbegriff(){
 
 function getVorlagenSuchbegriff(){
   return document.getElementById("vorlagenSearchInput").value.trim().toLowerCase();
+}
+
+function getMaterialVorlageSuchbegriff(){
+  const input = document.getElementById("materialVorlageSuche");
+  if(!input){
+    return "";
+  }
+
+  return input.value.trim().toLowerCase();
 }
 
 function materialVonBaustelle(baustelleId){
@@ -657,6 +733,19 @@ function baustellePasstZurSuche(baustelle){
 
 function vorlagePasstZurSuche(vorlage){
   const suchbegriff = getVorlagenSuchbegriff();
+
+  if(suchbegriff === ""){
+    return true;
+  }
+
+  const material = String(vorlage.material || "").toLowerCase();
+  const spontis = String(vorlage.spontis || "").toLowerCase();
+
+  return material.includes(suchbegriff) || spontis.includes(suchbegriff);
+}
+
+function materialVorlagePasstZurSuche(vorlage){
+  const suchbegriff = getMaterialVorlageSuchbegriff();
 
   if(suchbegriff === ""){
     return true;
@@ -728,6 +817,75 @@ function renderVorlagen(){
 
   document.getElementById("vorlagenInfo").innerText =
     "Materialvorlagen: " + gefilterteVorlagen.length;
+}
+
+function renderMaterialVorlagenTreffer(){
+  const container = document.getElementById("materialVorlagenTreffer");
+  if(!container){
+    return;
+  }
+
+  container.innerHTML = "";
+
+  const gefilterteVorlagen = [...alleVorlagen]
+    .filter(v => materialVorlagePasstZurSuche(v))
+    .sort((a, b) => String(a.material || "").localeCompare(String(b.material || ""), "de"));
+
+  if(gefilterteVorlagen.length === 0){
+    container.innerHTML = '<div class="vorlagen-picker-empty">Keine passende Materialvorlage gefunden.</div>';
+    return;
+  }
+
+  gefilterteVorlagen.forEach(v => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "vorlagen-treffer" + (selectedVorlageId === v.id ? " active" : "");
+    button.onclick = function(){
+      waehleMaterialVorlage(v.id);
+    };
+
+    button.innerHTML = `
+      <div class="vorlagen-treffer-title">${escapeHtml(v.material || "")}</div>
+      <div class="vorlagen-treffer-sub">Spontis Nummer: ${escapeHtml(v.spontis || "")}</div>
+    `;
+
+    container.appendChild(button);
+  });
+}
+
+function waehleMaterialVorlage(vorlageId){
+  const vorlage = alleVorlagen.find(v => v.id === vorlageId);
+  if(!vorlage){
+    return;
+  }
+
+  selectedVorlageId = vorlageId;
+  document.getElementById("materialName").value = vorlage.material || "";
+  document.getElementById("materialSpontis").value = vorlage.spontis || "";
+  updateAusgewaehlteVorlageInfo();
+  renderMaterialVorlagenTreffer();
+}
+
+function updateAusgewaehlteVorlageInfo(){
+  const info = document.getElementById("ausgewaehlteVorlageInfo");
+  if(!info){
+    return;
+  }
+
+  const vorlage = alleVorlagen.find(v => v.id === selectedVorlageId);
+
+  if(!vorlage){
+    info.style.display = "none";
+    info.innerHTML = "";
+    return;
+  }
+
+  info.style.display = "block";
+  info.innerHTML =
+    "<strong>Ausgewählte Vorlage:</strong> " +
+    escapeHtml(vorlage.material || "") +
+    " | <strong>Spontis Nummer:</strong> " +
+    escapeHtml(vorlage.spontis || "");
 }
 
 function createBaustelleCard(baustelle){
@@ -816,7 +974,7 @@ function toggleMaterialList(baustelleId){
   }
 }
 
-  function toggleVorlagenBereich(){
+function toggleVorlagenBereich(){
   const content = document.getElementById("vorlagenContent");
   const arrow = document.getElementById("vorlagenArrow");
 
@@ -834,6 +992,7 @@ function toggleMaterialList(baustelleId){
     arrow.innerText = "▲";
   }
 }
+
 function openBaustelleModal(){
   editBaustelleId = null;
   document.getElementById("baustelleModalTitle").innerText = "Neue Baustelle";
@@ -911,47 +1070,12 @@ function saveBaustelle(){
   }
 }
 
-function fillVorlagenSelect(){
-  const select = document.getElementById("materialVorlageSelect");
-  if(!select){
-    return;
-  }
-
-  select.innerHTML = '<option value="">Bitte auswählen</option>';
-
-  const sortierteVorlagen = [...alleVorlagen].sort((a, b) =>
-    String(a.material || "").localeCompare(String(b.material || ""), "de")
-  );
-
-  sortierteVorlagen.forEach(v => {
-    const option = document.createElement("option");
-    option.value = v.id;
-    option.textContent = (v.material || "") + " | Spontis: " + (v.spontis || "");
-    select.appendChild(option);
-  });
-}
-
-function onVorlageChange(){
-  const vorlageId = document.getElementById("materialVorlageSelect").value;
-
-  if(!vorlageId){
-    return;
-  }
-
-  const vorlage = alleVorlagen.find(v => v.id === vorlageId);
-  if(!vorlage){
-    return;
-  }
-
-  document.getElementById("materialName").value = vorlage.material || "";
-  document.getElementById("materialSpontis").value = vorlage.spontis || "";
-}
-
 function openMaterialModal(baustelleId, materialId = null){
   currentBaustelleId = baustelleId;
   editMaterialId = materialId;
+  selectedVorlageId = null;
 
-  fillVorlagenSelect();
+  document.getElementById("materialVorlageSuche").value = "";
 
   if(materialId){
     const m = alleMaterialien.find(x => x.id === materialId);
@@ -961,18 +1085,18 @@ function openMaterialModal(baustelleId, materialId = null){
     }
 
     document.getElementById("materialModalTitle").innerText = "Material bearbeiten";
-    document.getElementById("materialVorlageSelect").value = "";
     document.getElementById("materialName").value = m.material || "";
     document.getElementById("materialAnzahl").value = m.anzahl || "";
     document.getElementById("materialSpontis").value = m.spontis || "";
   }else{
     document.getElementById("materialModalTitle").innerText = "Material hinzufügen";
-    document.getElementById("materialVorlageSelect").value = "";
     document.getElementById("materialName").value = "";
     document.getElementById("materialAnzahl").value = "";
     document.getElementById("materialSpontis").value = "";
   }
 
+  renderMaterialVorlagenTreffer();
+  updateAusgewaehlteVorlageInfo();
   document.getElementById("materialModal").style.display = "block";
 }
 
@@ -1181,9 +1305,14 @@ function closeModals(){
   document.getElementById("baustelleModal").style.display = "none";
   document.getElementById("materialModal").style.display = "none";
   document.getElementById("vorlageModal").style.display = "none";
+  document.getElementById("materialVorlageSuche").value = "";
+  document.getElementById("materialVorlagenTreffer").innerHTML = "";
+  document.getElementById("ausgewaehlteVorlageInfo").style.display = "none";
+  document.getElementById("ausgewaehlteVorlageInfo").innerHTML = "";
   currentBaustelleId = null;
   editMaterialId = null;
   editVorlageId = null;
+  selectedVorlageId = null;
 }
 
 function escapeHtml(value){
