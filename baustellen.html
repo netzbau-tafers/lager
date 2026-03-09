@@ -867,7 +867,7 @@ function renderVorlagen(){
         <h3>${escapeHtml(v.material || "")}</h3>
         <div class="baustelle-meta"><strong>Spontis Nummer:</strong> ${escapeHtml(v.spontis || "")}</div>
         <div class="card-actions">
-          <button class="edit" onclick="openVorlageModal('${v.id}')">Bearbeiten</button>
+          ${isAdminUser ? `<button class="edit" onclick="openVorlageModal('${v.id}')">Bearbeiten</button>` : ""}
           ${isAdminUser ? `<button class="delete" onclick="deleteVorlage('${v.id}')">Löschen</button>` : ""}
         </div>
       `;
@@ -989,6 +989,7 @@ function createBaustelleCard(baustelle){
       <button class="edit" onclick="editBaustelle('${baustelle.id}')">Bearbeiten</button>
       <button onclick="openMaterialModal('${baustelle.id}')">Material hinzufügen</button>
       <button class="finish" onclick="finishBaustelle('${baustelle.id}')">Baustelle beenden</button>
+      <button class="delete" onclick="deleteBaustelle('${baustelle.id}')">Löschen</button>
     </div>
     ` : `
     <div class="card-actions">
@@ -1213,6 +1214,11 @@ function saveMaterial(){
 }
 
 function openVorlageModal(id = null){
+  if(!isAdminUser){
+    alert("Nur Admins dürfen Vorlagen bearbeiten.");
+    return;
+  }
+
   editVorlageId = id;
 
   if(id){
