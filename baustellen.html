@@ -30,17 +30,59 @@ h3{
   margin-top:0;
 }
 
-.topbar-left{
-  display:flex;
-  justify-content:flex-start;
-  margin-bottom:12px;
-}
-
 .topbar{
   display:flex;
-  flex-wrap:wrap;
-  gap:10px;
+  justify-content:flex-end;
+  align-items:center;
   margin-bottom:20px;
+  position:relative;
+}
+
+.menu-wrap{
+  position:relative;
+}
+
+.menu-button{
+  background:#555;
+  color:white;
+  border:none;
+  border-radius:8px;
+  padding:10px 14px;
+  font-size:22px;
+  line-height:1;
+  cursor:pointer;
+}
+
+.menu-button:hover{
+  background:#333;
+}
+
+.dropdown-menu{
+  display:none;
+  position:absolute;
+  top:48px;
+  right:0;
+  min-width:220px;
+  background:white;
+  border:1px solid #ccc;
+  border-radius:10px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.12);
+  padding:8px;
+  z-index:2000;
+}
+
+.dropdown-menu.open{
+  display:block;
+}
+
+.dropdown-menu button{
+  width:100%;
+  text-align:left;
+  margin:0 0 8px 0;
+}
+
+.dropdown-menu button:last-child{
+  margin-bottom:0;
 }
 
 .logout-safe{
@@ -438,6 +480,15 @@ label{
     padding:12px 16px;
   }
 
+  .menu-button{
+    font-size:24px;
+    padding:12px 16px;
+  }
+
+  .dropdown-menu{
+    min-width:240px;
+  }
+
   .modal-content{
     width:95%;
     margin:20px auto;
@@ -462,15 +513,17 @@ label{
 
 <div id="appContent" style="display:none;">
 
-<h1>Baustellenmaterial</h1>
-
-<div class="topbar-left">
-  <button class="logout-safe" onclick="logout()">Logout</button>
-</div>
-
 <div class="topbar">
-  <button onclick="window.location.href='index.html'">Zum Kabellager</button>
+  <div class="menu-wrap">
+    <button class="menu-button" onclick="toggleMenu(event)">☰</button>
+    <div id="dropdownMenu" class="dropdown-menu">
+      <button onclick="goToKabellager()">Zum Kabellager</button>
+      <button class="logout-safe" onclick="logout()">Logout</button>
+    </div>
+  </div>
 </div>
+
+<h1>Baustellenmaterial</h1>
 
 <div class="search-box">
   <div class="search-title">Suche</div>
@@ -626,6 +679,44 @@ function escapeHtml(value){
     .replace(/'/g, "&#039;");
 }
 
+function toggleMenu(event){
+  if(event){
+    event.stopPropagation();
+  }
+
+  const menu = document.getElementById("dropdownMenu");
+  if(!menu){
+    return;
+  }
+
+  menu.classList.toggle("open");
+}
+
+function closeMenu(){
+  const menu = document.getElementById("dropdownMenu");
+  if(menu){
+    menu.classList.remove("open");
+  }
+}
+
+function goToKabellager(){
+  closeMenu();
+  window.location.href = "index.html";
+}
+
+document.addEventListener("click", function(event){
+  const menu = document.getElementById("dropdownMenu");
+  const menuWrap = document.querySelector(".menu-wrap");
+
+  if(!menu || !menuWrap){
+    return;
+  }
+
+  if(!menuWrap.contains(event.target)){
+    closeMenu();
+  }
+});
+
 function login(){
   const email = document.getElementById("loginEmail").value.trim();
   const password = document.getElementById("loginPassword").value;
@@ -642,6 +733,8 @@ function login(){
 }
 
 function logout(){
+  closeMenu();
+
   if(!confirm("Wirklich ausloggen?")){
     return;
   }
@@ -680,6 +773,7 @@ auth.onAuthStateChanged((user) => {
   }else{
     isAdminUser = false;
     stopListeners();
+    closeMenu();
     document.getElementById("loginScreen").style.display = "flex";
     document.getElementById("appContent").style.display = "none";
     document.getElementById("aktiveBaustellen").innerHTML = "";
@@ -1390,6 +1484,22 @@ function closeModals(){
   editMaterialId = null;
   editVorlageId = null;
   selectedVorlageId = null;
+}
+
+window.onclick = function(event){
+  const baustelleModal = document.getElementById("baustelleModal");
+  const materialModal = document.getElementById("materialModal");
+  const vorlageModal = document.getElementById("vorlageModal");
+
+  if(event.target === baustelleModal){
+    closeModals();
+  }
+  if(event.target === materialModal){
+    closeModals();
+  }
+  if(event.target === vorlageModal){
+    closeModals();
+  }
 }
 </script>
 
