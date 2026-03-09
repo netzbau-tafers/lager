@@ -30,11 +30,18 @@ h3{
   margin-top:0;
 }
 
-.topbar{
+.topbar-left{
   display:flex;
-  flex-wrap:wrap;
-  gap:10px;
-  margin-bottom:20px;
+  justify-content:flex-start;
+  margin-bottom:12px;
+}
+
+.logout-safe{
+  background:#777;
+}
+
+.logout-safe:hover{
+  background:#555;
 }
 
 button{
@@ -433,9 +440,12 @@ label{
 
 <h1>Baustellenmaterial</h1>
 
+<div class="topbar-left">
+  <button class="logout-safe" onclick="logout()">Logout</button>
+</div>
+
 <div class="topbar">
   <button class="back" onclick="window.location.href='index.html'">Zurück zum Kabellager</button>
-  <button class="back" onclick="logout()">Logout</button>
 </div>
 
 <div class="search-box">
@@ -587,6 +597,10 @@ function login(){
 }
 
 function logout(){
+  if(!confirm("Wirklich ausloggen?")){
+    return;
+  }
+
   stopListeners();
 
   auth.signOut().catch((error) => {
