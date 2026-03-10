@@ -375,6 +375,7 @@ input{
       <div id="dropdownMenu" class="dropdown-menu">
         <button onclick="goToKabellager()"><i class="fa-solid fa-warehouse"></i> Kabellager</button>
         <button onclick="goToBaustellen()"><i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial</button>
+        <button onclick="goToLogs()"><i class="fa-solid fa-clipboard-list"></i> Logs</button>
         <button class="logout-safe" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
       </div>
     </div>
@@ -517,6 +518,11 @@ function goToKabellager(){
 function goToBaustellen(){
   closeMenu();
   window.location.href = "baustellen.html";
+}
+
+function goToLogs(){
+  closeMenu();
+  window.location.href = "logs.html";
 }
 
 function login(){
