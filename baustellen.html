@@ -2000,7 +2000,40 @@ function deleteVorlage(id){
     });
   }
 }
+function markActiveMenu(){
 
+  const path = window.location.pathname;
+
+  let currentPage = "";
+
+  if(path.includes("index")){
+    currentPage = "index";
+  }
+  else if(path.includes("baustellen")){
+    currentPage = "baustellen";
+  }
+  else if(path.includes("archiv")){
+    currentPage = "archiv";
+  }
+  else if(path.includes("logs")){
+    currentPage = "logs";
+  }
+
+  const buttons = document.querySelectorAll("#dropdownMenu button");
+
+  buttons.forEach(btn => {
+
+    const page = btn.getAttribute("data-page");
+
+    if(page === currentPage){
+      btn.classList.add("active-page");
+    }
+
+  });
+
+}
+
+document.addEventListener("DOMContentLoaded", markActiveMenu);
 function closeModals(){
   document.getElementById("baustelleModal").style.display = "none";
   document.getElementById("materialModal").style.display = "none";
