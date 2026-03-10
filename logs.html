@@ -1,0 +1,49 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return request.auth != null &&
+        (
+          request.auth.uid == "smnnQd4RhEQZR3uuNN0otNALUqi1"
+        );
+    }
+
+    match /bobinen/{document} {
+      allow read, create, update, delete: if signedIn();
+    }
+
+    match /baustellen/{document} {
+      allow read: if signedIn();
+      allow create: if signedIn();
+      allow update: if signedIn();
+
+      allow delete: if
+        (signedIn() && resource.data.status == "aktiv") ||
+        (isAdmin() && resource.data.status in ["beendet", "rausschreiben", "archiviert"]);
+    }
+
+    match /baustellen_material/{document} {
+      allow read, create, update, delete: if signedIn();
+    }
+
+    match /material_vorlagen/{document} {
+      allow read: if signedIn();
+      allow create: if signedIn();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /logs/{document} {
+      allow read: if signedIn();
+      allow create: if signedIn();
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+  }
+}
