@@ -1,49 +1,709 @@
-rules_version = '2';
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logs</title>
 
-service cloud.firestore {
-  match /databases/{database}/documents {
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-    function signedIn() {
-      return request.auth != null;
-    }
+<style>
+body{
+  font-family:Arial, sans-serif;
+  background:#e6eaef;
+  margin:40px;
+  color:#222;
+}
 
-    function isAdmin() {
-      return request.auth != null &&
-        (
-          request.auth.uid == "smnnQd4RhEQZR3uuNN0otNALUqi1"
-        );
-    }
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:25px;
+  gap:15px;
+}
 
-    match /bobinen/{document} {
-      allow read, create, update, delete: if signedIn();
-    }
+.header h1{
+  margin:0;
+}
 
-    match /baustellen/{document} {
-      allow read: if signedIn();
-      allow create: if signedIn();
-      allow update: if signedIn();
+.menu-wrap{
+  position:relative;
+}
 
-      allow delete: if
-        (signedIn() && resource.data.status == "aktiv") ||
-        (isAdmin() && resource.data.status in ["beendet", "rausschreiben", "archiviert"]);
-    }
+.menu-button{
+  background:#555;
+  color:white;
+  border:none;
+  border-radius:10px;
+  padding:11px 15px;
+  font-size:20px;
+  line-height:1;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:48px;
+  min-height:44px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.10);
+  transition:background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
 
-    match /baustellen_material/{document} {
-      allow read, create, update, delete: if signedIn();
-    }
+.menu-button:hover{
+  background:#333;
+  transform:translateY(-1px);
+  box-shadow:0 4px 10px rgba(0,0,0,0.14);
+}
 
-    match /material_vorlagen/{document} {
-      allow read: if signedIn();
-      allow create: if signedIn();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
-    }
+.dropdown-menu{
+  display:none;
+  position:absolute;
+  top:52px;
+  right:0;
+  min-width:220px;
+  background:white;
+  border:1px solid #ccc;
+  border-radius:12px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.12);
+  padding:8px;
+  z-index:2000;
+}
 
-    match /logs/{document} {
-      allow read: if signedIn();
-      allow create: if signedIn();
-      allow update: if false;
-      allow delete: if isAdmin();
-    }
+.dropdown-menu.open{
+  display:block;
+}
+
+.dropdown-menu button{
+  width:100%;
+  text-align:left;
+  margin:0 0 8px 0;
+}
+
+.dropdown-menu button:last-child{
+  margin-bottom:0;
+}
+
+button{
+  padding:10px 14px;
+  cursor:pointer;
+  border:none;
+  border-radius:8px;
+  background:#3498db;
+  color:white;
+  margin:2px;
+  font-size:14px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);
+  transition:background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+button:hover{
+  background:#2980b9;
+  transform:translateY(-1px);
+  box-shadow:0 4px 10px rgba(0,0,0,0.12);
+}
+
+button i{
+  font-size:14px;
+}
+
+.back{
+  background:#555;
+}
+
+.back:hover{
+  background:#333;
+}
+
+.logout-safe{
+  background:#777;
+}
+
+.logout-safe:hover{
+  background:#555;
+}
+
+.delete{
+  background:#e74c3c;
+}
+
+.delete:hover{
+  background:#c0392b;
+}
+
+.search-box{
+  background:white;
+  border:1px solid #ccc;
+  border-radius:10px;
+  padding:15px;
+  margin-bottom:20px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.05);
+}
+
+.search-title{
+  font-weight:bold;
+  margin-bottom:10px;
+}
+
+.search-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:10px;
+  align-items:center;
+}
+
+.filter-row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  align-items:center;
+  margin-top:12px;
+}
+
+input, select{
+  width:100%;
+  padding:10px;
+  margin:0;
+  box-sizing:border-box;
+  border:1px solid #ccc;
+  border-radius:6px;
+  font-size:15px;
+  background:white;
+}
+
+.info-box{
+  margin:10px 0 20px 0;
+  font-size:14px;
+  color:#444;
+}
+
+.logs-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(340px,1fr));
+  gap:18px;
+}
+
+.log-card{
+  background:white;
+  border:1px solid #ddd;
+  border-radius:12px;
+  padding:18px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.06);
+}
+
+.log-head{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:flex-start;
+  margin-bottom:10px;
+}
+
+.log-title{
+  font-size:18px;
+  font-weight:bold;
+  margin:0;
+}
+
+.log-time{
+  font-size:13px;
+  color:#666;
+  white-space:nowrap;
+}
+
+.log-meta{
+  font-size:14px;
+  color:#555;
+  margin-bottom:6px;
+}
+
+.log-details{
+  margin-top:12px;
+  padding:12px;
+  border:1px solid #e4e4e4;
+  border-radius:10px;
+  background:#fafafa;
+  font-size:14px;
+  color:#333;
+  white-space:pre-wrap;
+  word-break:break-word;
+}
+
+.badge{
+  display:inline-block;
+  padding:5px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:bold;
+  margin-bottom:10px;
+}
+
+.badge-kabellager{
+  background:#dff3ff;
+  color:#1e5f8a;
+}
+
+.badge-baustellen{
+  background:#fff1d8;
+  color:#9a5a00;
+}
+
+.empty-box{
+  background:white;
+  border:1px dashed #bbb;
+  border-radius:10px;
+  padding:20px;
+  text-align:center;
+  color:#666;
+}
+
+.login-screen{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:#f2f4f7;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:3000;
+  padding:20px;
+  box-sizing:border-box;
+}
+
+.login-card{
+  background:white;
+  width:420px;
+  max-width:95%;
+  padding:25px;
+  border-radius:12px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.2);
+  box-sizing:border-box;
+}
+
+.login-card h2{
+  margin-top:0;
+  text-align:center;
+}
+
+.login-error{
+  color:#c0392b;
+  display:none;
+  margin-top:10px;
+  text-align:center;
+}
+
+.login-info{
+  color:#555;
+  font-size:14px;
+  text-align:center;
+  margin-bottom:15px;
+}
+
+@media (max-width: 900px){
+  body{
+    margin:15px;
+  }
+
+  .search-row,
+  .filter-row{
+    grid-template-columns:1fr;
+  }
+
+  button{
+    font-size:16px;
+    padding:12px 16px;
+  }
+
+  .menu-button{
+    font-size:22px;
+    padding:12px 16px;
+  }
+
+  .dropdown-menu{
+    min-width:240px;
   }
 }
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <h2>Login Logs</h2>
+    <div class="login-info">Bitte mit E-Mail und Passwort anmelden</div>
+    <input id="loginEmail" type="email" placeholder="E-Mail" maxlength="120" autocomplete="username">
+    <input id="loginPassword" type="password" placeholder="Passwort" maxlength="120" autocomplete="current-password">
+    <button onclick="login()"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
+    <p id="loginError" class="login-error">Login fehlgeschlagen. Bitte Daten prüfen.</p>
+  </div>
+</div>
+
+<div id="appContent" style="display:none;">
+
+  <div class="header">
+    <h1>Logs</h1>
+
+    <div class="menu-wrap">
+      <button class="menu-button" onclick="toggleMenu(event)" title="Menü öffnen">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <div id="dropdownMenu" class="dropdown-menu">
+        <button onclick="goToKabellager()"><i class="fa-solid fa-warehouse"></i> Kabellager</button>
+        <button onclick="goToBaustellen()"><i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial</button>
+        <button onclick="goToArchiv()"><i class="fa-solid fa-box-archive"></i> Archiv</button>
+        <button class="logout-safe" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="search-box">
+    <div class="search-title">Logs durchsuchen</div>
+
+    <div class="search-row">
+      <input id="searchInput" type="text" placeholder="Nach Aktion, Benutzer, Bereich oder Details suchen" oninput="renderLogs()" maxlength="120">
+      <button class="back" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
+    </div>
+
+    <div class="filter-row">
+      <select id="bereichFilter" onchange="renderLogs()">
+        <option value="Alle">Alle Bereiche</option>
+        <option value="Kabellager">Kabellager</option>
+        <option value="Baustellenmaterial">Baustellenmaterial</option>
+      </select>
+
+      <select id="benutzerFilter" onchange="renderLogs()">
+        <option value="Alle">Alle Benutzer</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="resultInfo" class="info-box"></div>
+  <div id="logsListe" class="logs-grid"></div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",
+  authDomain: "netzbau-tafers.firebaseapp.com",
+  projectId: "netzbau-tafers",
+  storageBucket: "netzbau-tafers.appspot.com",
+  messagingSenderId: "389541837675",
+  appId: "1:389541837675:web:db580ce67c57a9a16dea2e",
+  measurementId: "G-B5MJGD3108"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+const logsCollection = db.collection("logs");
+
+const ADMIN_UID = "smnnQd4RhEQZR3uuNN0otNALUqi1";
+
+let unsubscribeLogs = null;
+let alleLogs = [];
+let isAdminUser = false;
+
+function escapeHtml(value){
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function getMillis(value){
+  if(!value){
+    return 0;
+  }
+
+  if(typeof value.toMillis === "function"){
+    return value.toMillis();
+  }
+
+  if(value.seconds){
+    return value.seconds * 1000;
+  }
+
+  const t = new Date(value).getTime();
+  return Number.isNaN(t) ? 0 : t;
+}
+
+function formatDateTime(value){
+  if(!value){
+    return "";
+  }
+
+  try{
+    if(typeof value.toDate === "function"){
+      return value.toDate().toLocaleString("de-CH");
+    }
+
+    if(value.seconds){
+      return new Date(value.seconds * 1000).toLocaleString("de-CH");
+    }
+
+    return new Date(value).toLocaleString("de-CH");
+  }catch(error){
+    return "";
+  }
+}
+
+function toggleMenu(event){
+  if(event){
+    event.stopPropagation();
+  }
+
+  const menu = document.getElementById("dropdownMenu");
+  if(menu){
+    menu.classList.toggle("open");
+  }
+}
+
+function closeMenu(){
+  const menu = document.getElementById("dropdownMenu");
+  if(menu){
+    menu.classList.remove("open");
+  }
+}
+
+document.addEventListener("click", function(event){
+  const menu = document.getElementById("dropdownMenu");
+  const menuWrap = document.querySelector(".menu-wrap");
+
+  if(!menu || !menuWrap){
+    return;
+  }
+
+  if(!menuWrap.contains(event.target)){
+    closeMenu();
+  }
+});
+
+function goToKabellager(){
+  closeMenu();
+  window.location.href = "index.html";
+}
+
+function goToBaustellen(){
+  closeMenu();
+  window.location.href = "baustellen.html";
+}
+
+function goToArchiv(){
+  closeMenu();
+  window.location.href = "archiv.html";
+}
+
+function login(){
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+
+  auth.signInWithEmailAndPassword(email, password)
+    .then(() => {
+      document.getElementById("loginError").style.display = "none";
+      document.getElementById("loginPassword").value = "";
+    })
+    .catch((error) => {
+      console.error("Login Fehler:", error);
+      document.getElementById("loginError").style.display = "block";
+    });
+}
+
+function logout(){
+  closeMenu();
+
+  if(!confirm("Wirklich ausloggen?")){
+    return;
+  }
+
+  stopListeners();
+
+  auth.signOut().catch((error) => {
+    console.error("Logout Fehler:", error);
+    alert("Fehler beim Logout.");
+  });
+}
+
+function stopListeners(){
+  if(unsubscribeLogs){
+    unsubscribeLogs();
+    unsubscribeLogs = null;
+  }
+}
+
+auth.onAuthStateChanged((user) => {
+  if(user){
+    isAdminUser = user.uid === ADMIN_UID;
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("appContent").style.display = "block";
+    cleanupOldLogs();
+    startLogsListener();
+  }else{
+    isAdminUser = false;
+    stopListeners();
+    closeMenu();
+    document.getElementById("loginScreen").style.display = "flex";
+    document.getElementById("appContent").style.display = "none";
+    document.getElementById("logsListe").innerHTML = "";
+    document.getElementById("resultInfo").innerText = "";
+    alleLogs = [];
+    renderBenutzerFilter();
+  }
+});
+
+function cleanupOldLogs(){
+  if(!isAdminUser){
+    return;
+  }
+
+  const limitDate = new Date();
+  limitDate.setDate(limitDate.getDate() - 14);
+
+  logsCollection
+    .where("createdAt", "<", limitDate)
+    .get()
+    .then(snapshot => {
+      const promises = [];
+      snapshot.forEach(doc => {
+        promises.push(logsCollection.doc(doc.id).delete());
+      });
+      return Promise.all(promises);
+    })
+    .catch(error => {
+      console.error("Fehler beim Löschen alter Logs:", error);
+    });
+}
+
+function startLogsListener(){
+  if(unsubscribeLogs){
+    return;
+  }
+
+  unsubscribeLogs = logsCollection.onSnapshot(snapshot => {
+    alleLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderBenutzerFilter();
+    renderLogs();
+  }, error => {
+    console.error("Fehler Logs:", error);
+    alert("Fehler beim Laden der Logs.");
+  });
+}
+
+function renderBenutzerFilter(){
+  const select = document.getElementById("benutzerFilter");
+  if(!select){
+    return;
+  }
+
+  const currentValue = select.value || "Alle";
+
+  const benutzer = [...new Set(
+    alleLogs
+      .map(l => String(l.benutzerEmail || "").trim())
+      .filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b, "de"));
+
+  select.innerHTML = '<option value="Alle">Alle Benutzer</option>';
+
+  benutzer.forEach(email => {
+    const option = document.createElement("option");
+    option.value = email;
+    option.textContent = email;
+    select.appendChild(option);
+  });
+
+  const exists = [...select.options].some(opt => opt.value === currentValue);
+  select.value = exists ? currentValue : "Alle";
+}
+
+function resetSearch(){
+  document.getElementById("searchInput").value = "";
+  document.getElementById("bereichFilter").value = "Alle";
+  document.getElementById("benutzerFilter").value = "Alle";
+  renderLogs();
+}
+
+function passtZurSuche(log){
+  const suchbegriff = document.getElementById("searchInput").value.trim().toLowerCase();
+  const bereichFilter = document.getElementById("bereichFilter").value;
+  const benutzerFilter = document.getElementById("benutzerFilter").value;
+
+  const bereich = String(log.bereich || "");
+  const aktion = String(log.aktion || "");
+  const objektTyp = String(log.objektTyp || "");
+  const benutzerEmail = String(log.benutzerEmail || "");
+  const details = String(log.details || "");
+
+  const textPasst = suchbegriff === "" || (
+    bereich.toLowerCase().includes(suchbegriff) ||
+    aktion.toLowerCase().includes(suchbegriff) ||
+    objektTyp.toLowerCase().includes(suchbegriff) ||
+    benutzerEmail.toLowerCase().includes(suchbegriff) ||
+    details.toLowerCase().includes(suchbegriff)
+  );
+
+  const bereichPasst = bereichFilter === "Alle" || bereich === bereichFilter;
+  const benutzerPasst = benutzerFilter === "Alle" || benutzerEmail === benutzerFilter;
+
+  return textPasst && bereichPasst && benutzerPasst;
+}
+
+function getBereichBadgeClass(bereich){
+  return bereich === "Kabellager" ? "badge badge-kabellager" : "badge badge-baustellen";
+}
+
+function renderLogs(){
+  const container = document.getElementById("logsListe");
+  container.innerHTML = "";
+
+  const logs = [...alleLogs]
+    .filter(passtZurSuche)
+    .sort((a, b) => getMillis(b.createdAt) - getMillis(a.createdAt));
+
+  if(logs.length === 0){
+    container.innerHTML = '<div class="empty-box">Keine passenden Logs gefunden.</div>';
+  }else{
+    logs.forEach(log => {
+      const card = document.createElement("div");
+      card.className = "log-card";
+
+      const bereich = escapeHtml(log.bereich || "");
+      const aktion = escapeHtml(log.aktion || "");
+      const objektTyp = escapeHtml(log.objektTyp || "");
+      const benutzerEmail = escapeHtml(log.benutzerEmail || "-");
+      const zeit = escapeHtml(formatDateTime(log.createdAt) || "-");
+      const details = escapeHtml(log.details || "-");
+
+      card.innerHTML = `
+        <div class="${getBereichBadgeClass(log.bereich)}">${bereich}</div>
+
+        <div class="log-head">
+          <div class="log-title">${aktion}</div>
+          <div class="log-time">${zeit}</div>
+        </div>
+
+        <div class="log-meta"><strong>Benutzer:</strong> ${benutzerEmail}</div>
+        <div class="log-meta"><strong>Objekt:</strong> ${objektTyp}</div>
+
+        <div class="log-details">${details}</div>
+      `;
+
+      container.appendChild(card);
+    });
+  }
+
+  document.getElementById("resultInfo").innerText = "Angezeigte Logs: " + logs.length;
+}
+</script>
+
+</body>
+</html>
