@@ -39,14 +39,6 @@ h3{
   margin-top:0;
 }
 
-.topbar{
-  display:flex;
-  justify-content:flex-end;
-  align-items:center;
-  margin-bottom:20px;
-  position:relative;
-}
-
 .menu-wrap{
   position:relative;
 }
@@ -594,6 +586,7 @@ label{
     <div id="dropdownMenu" class="dropdown-menu">
       <button onclick="goToKabellager()"><i class="fa-solid fa-warehouse"></i> Kabellager</button>
       <button onclick="goToArchiv()"><i class="fa-solid fa-box-archive"></i> Archiv</button>
+      <button onclick="goToLogs()"><i class="fa-solid fa-clipboard-list"></i> Logs</button>
       <button class="logout-safe" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
     </div>
   </div>
@@ -635,21 +628,21 @@ label{
   </button>
 
   <div id="vorlagenContent" class="material-content" style="display:none;">
-<div class="section-header" style="margin-top:12px;">
-  <h2>Materialvorlagen verwalten</h2>
-</div>
+    <div class="section-header" style="margin-top:12px;">
+      <h2>Materialvorlagen verwalten</h2>
+    </div>
 
-<div class="search-box">
-  <div class="search-title">Vorlagen suchen</div>
-  <div class="search-row">
-    <input id="vorlagenSearchInput" type="text" placeholder="Nach Material oder Spontis Nummer suchen" oninput="renderVorlagen()" maxlength="120">
-    <button class="back" onclick="resetVorlagenSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
-  </div>
+    <div class="search-box">
+      <div class="search-title">Vorlagen suchen</div>
+      <div class="search-row">
+        <input id="vorlagenSearchInput" type="text" placeholder="Nach Material oder Spontis Nummer suchen" oninput="renderVorlagen()" maxlength="120">
+        <button class="back" onclick="resetVorlagenSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
+      </div>
 
-  <div style="margin-top:15px;">
-    <button onclick="openVorlageModal()"><i class="fa-solid fa-plus"></i> Neue Vorlage</button>
-  </div>
-</div>
+      <div style="margin-top:15px;">
+        <button onclick="openVorlageModal()"><i class="fa-solid fa-plus"></i> Neue Vorlage</button>
+      </div>
+    </div>
 
     <div id="vorlagenInfo" class="info-box"></div>
     <div id="vorlagenListe" class="baustellen-grid"></div>
@@ -718,6 +711,7 @@ const auth = firebase.auth();
 const baustellenCollection = db.collection("baustellen");
 const materialCollection = db.collection("baustellen_material");
 const vorlagenCollection = db.collection("material_vorlagen");
+const logsCollection = db.collection("logs");
 
 const ADMIN_UID = "smnnQd4RhEQZR3uuNN0otNALUqi1";
 
@@ -737,6 +731,23 @@ let openMaterialLists = {};
 let vorlagenBereichOffen = false;
 let selectedVorlageId = null;
 let isAdminUser = false;
+
+function writeLog(bereich, aktion, objektTyp, objektId, details){
+  const user = auth.currentUser;
+
+  return logsCollection.add({
+    bereich: bereich,
+    aktion: aktion,
+    objektTyp: objektTyp,
+    objektId: objektId || "",
+    benutzerEmail: user && user.email ? user.email : "",
+    benutzerUid: user && user.uid ? user.uid : "",
+    details: details || "",
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(error => {
+    console.error("Fehler beim Schreiben des Logs:", error);
+  });
+}
 
 function sanitizeInput(value, maxLength = 200){
   return String(value || "")
@@ -821,6 +832,11 @@ function goToKabellager(){
 function goToArchiv(){
   closeMenu();
   window.location.href = "archiv.html";
+}
+
+function goToLogs(){
+  closeMenu();
+  window.location.href = "logs.html";
 }
 
 document.addEventListener("click", function(event){
@@ -1383,6 +1399,16 @@ function saveBaustelle(){
     }
 
     baustellenCollection.doc(editBaustelleId).update(updateData).then(() => {
+      writeLog(
+        "Baustellenmaterial",
+        "Baustelle bearbeitet",
+        "baustelle",
+        editBaustelleId,
+        "Name: " + name +
+        " | Nummer: " + nummer +
+        " | Verantwortlicher: " + verantwortlicher +
+        " | Status: " + status
+      );
       closeModals();
     }).catch(error => {
       console.error("Fehler beim Bearbeiten der Baustelle:", error);
@@ -1405,7 +1431,16 @@ function saveBaustelle(){
       verantwortlicher: verantwortlicher,
       status: "aktiv",
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => {
+    }).then((docRef) => {
+      writeLog(
+        "Baustellenmaterial",
+        "Baustelle erstellt",
+        "baustelle",
+        docRef.id,
+        "Name: " + name +
+        " | Nummer: " + nummer +
+        " | Verantwortlicher: " + verantwortlicher
+      );
       closeModals();
     }).catch(error => {
       console.error("Fehler beim Erstellen der Baustelle:", error);
@@ -1471,6 +1506,15 @@ function saveMaterial(){
       anzahl: anzahl,
       spontis: spontis
     }).then(() => {
+      writeLog(
+        "Baustellenmaterial",
+        "Material bearbeitet",
+        "material",
+        editMaterialId,
+        "Material: " + material +
+        " | Anzahl: " + anzahl +
+        " | Spontis Nummer: " + spontis
+      );
       closeModals();
     }).catch(error => {
       console.error("Fehler beim Bearbeiten des Materials:", error);
@@ -1483,7 +1527,17 @@ function saveMaterial(){
       anzahl: anzahl,
       spontis: spontis,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => {
+    }).then((docRef) => {
+      writeLog(
+        "Baustellenmaterial",
+        "Material hinzugefügt",
+        "material",
+        docRef.id,
+        "Baustelle-ID: " + currentBaustelleId +
+        " | Material: " + material +
+        " | Anzahl: " + anzahl +
+        " | Spontis Nummer: " + spontis
+      );
       closeModals();
     }).catch(error => {
       console.error("Fehler beim Hinzufügen des Materials:", error);
@@ -1546,6 +1600,14 @@ function saveVorlage(){
       material: material,
       spontis: spontis
     }).then(() => {
+      writeLog(
+        "Baustellenmaterial",
+        "Materialvorlage bearbeitet",
+        "vorlage",
+        editVorlageId,
+        "Material: " + material +
+        " | Spontis Nummer: " + spontis
+      );
       closeModals();
     }).catch(error => {
       console.error("Fehler beim Bearbeiten der Vorlage:", error);
@@ -1556,7 +1618,15 @@ function saveVorlage(){
       material: material,
       spontis: spontis,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => {
+    }).then((docRef) => {
+      writeLog(
+        "Baustellenmaterial",
+        "Materialvorlage erstellt",
+        "vorlage",
+        docRef.id,
+        "Material: " + material +
+        " | Spontis Nummer: " + spontis
+      );
       closeModals();
     }).catch(error => {
       console.error("Fehler beim Erstellen der Vorlage:", error);
@@ -1583,6 +1653,17 @@ function finishBaustelle(id){
     baustellenCollection.doc(id).update({
       status: "rausschreiben",
       abgeschlossenAm: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+      writeLog(
+        "Baustellenmaterial",
+        "Baustelle beendet",
+        "baustelle",
+        id,
+        "Name: " + (b.name || "") +
+        " | Nummer: " + (b.nummer || "") +
+        " | Verantwortlicher: " + (b.verantwortlicher || "") +
+        " | Neuer Status: Ausbuchen"
+      );
     }).catch(error => {
       console.error("Fehler beim Beenden der Baustelle:", error);
       alert("Fehler beim Beenden.");
@@ -1612,6 +1693,15 @@ function archiveBaustelle(id){
     baustellenCollection.doc(id).update({
       status: "archiviert",
       archiviertAm: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+      writeLog(
+        "Baustellenmaterial",
+        "Baustelle archiviert",
+        "baustelle",
+        id,
+        "Name: " + (b.name || "") +
+        " | Nummer: " + (b.nummer || "")
+      );
     }).catch(error => {
       console.error("Fehler beim Archivieren der Baustelle:", error);
       alert("Fehler beim Archivieren.");
@@ -1808,6 +1898,17 @@ function deleteBaustelle(id){
 
     Promise.all(promises)
       .then(() => baustellenCollection.doc(id).delete())
+      .then(() => {
+        writeLog(
+          "Baustellenmaterial",
+          "Baustelle gelöscht",
+          "baustelle",
+          id,
+          "Name: " + (b.name || "") +
+          " | Nummer: " + (b.nummer || "") +
+          " | Verantwortlicher: " + (b.verantwortlicher || "")
+        );
+      })
       .catch(error => {
         console.error("Fehler beim Löschen der Baustelle:", error);
         alert("Fehler beim Löschen.");
@@ -1829,7 +1930,17 @@ function deleteMaterial(id){
     "Spontis Nummer: " + sanitizeInput(m.spontis || "", 60);
 
   if(confirm(text)){
-    materialCollection.doc(id).delete().catch(error => {
+    materialCollection.doc(id).delete().then(() => {
+      writeLog(
+        "Baustellenmaterial",
+        "Material gelöscht",
+        "material",
+        id,
+        "Material: " + (m.material || "") +
+        " | Anzahl: " + (m.anzahl || "") +
+        " | Spontis Nummer: " + (m.spontis || "")
+      );
+    }).catch(error => {
       console.error("Fehler beim Löschen des Materials:", error);
       alert("Fehler beim Löschen.");
     });
@@ -1849,7 +1960,16 @@ function deleteVorlage(id){
     "Spontis Nummer: " + sanitizeInput(v.spontis || "", 60);
 
   if(confirm(text)){
-    vorlagenCollection.doc(id).delete().catch(error => {
+    vorlagenCollection.doc(id).delete().then(() => {
+      writeLog(
+        "Baustellenmaterial",
+        "Materialvorlage gelöscht",
+        "vorlage",
+        id,
+        "Material: " + (v.material || "") +
+        " | Spontis Nummer: " + (v.spontis || "")
+      );
+    }).catch(error => {
       console.error("Fehler beim Löschen der Vorlage:", error);
       alert("Fehler beim Löschen.");
     });
