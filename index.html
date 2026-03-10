@@ -545,11 +545,29 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 const bobinenCollection = db.collection("bobinen");
+const logsCollection = db.collection("logs");
 
 let editId = null;
 let selectedId = null;
 let alleBobinen = [];
 let unsubscribeBobinen = null;
+
+function writeLog(bereich, aktion, objektTyp, objektId, details){
+  const user = auth.currentUser;
+
+  return logsCollection.add({
+    bereich: bereich,
+    aktion: aktion,
+    objektTyp: objektTyp,
+    objektId: objektId || "",
+    benutzerEmail: user && user.email ? user.email : "",
+    benutzerUid: user && user.uid ? user.uid : "",
+    details: details || "",
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(error => {
+    console.error("Fehler beim Schreiben des Logs:", error);
+  });
+}
 
 function sanitizeInput(value, maxLength = 200){
   return String(value || "")
@@ -618,7 +636,7 @@ function goToArchiv(){
   closeMenu();
   window.location.href = "archiv.html";
 }
-  
+
 function goToLogs(){
   closeMenu();
   window.location.href = "logs.html";
@@ -702,43 +720,41 @@ function renderTable(data){
     noResults.style.display = "none";
   }
 
-data.forEach(docItem => {
-  const b = docItem.data();
-  const tr = document.createElement("tr");
-  const hinzugefuegtAm = formatDatum(b.hinzugefuegtAm);
+  data.forEach(docItem => {
+    const b = docItem.data();
+    const tr = document.createElement("tr");
+    const hinzugefuegtAm = formatDatum(b.hinzugefuegtAm);
 
-  tr.className = b.status === "Lager" ? "instock" : "inuse";
+    tr.className = b.status === "Lager" ? "instock" : "inuse";
 
-  const statusButtonText = b.status === "Lager" ? "In Gebrauch" : "Zurück ins Lager";
-  const statusButtonIcon = b.status === "Lager"
-    ? "fa-arrow-right"
-    : "fa-rotate-left";
+    const statusButtonText = b.status === "Lager" ? "In Gebrauch" : "Zurück ins Lager";
+    const statusButtonIcon = b.status === "Lager" ? "fa-arrow-right" : "fa-rotate-left";
 
-  tr.innerHTML = `
-    <td>${escapeHtml(b.nummer || "")}</td>
-    <td>${escapeHtml(b.typ || "")}</td>
-    <td>${escapeHtml(b.laenge || "")}</td>
-    <td>${escapeHtml(b.baustelle || "")}</td>
-    <td>${escapeHtml(b.hersteller || "")}</td>
-    <td>${escapeHtml(hinzugefuegtAm || "")}</td>
-    <td>${escapeHtml(b.status || "")}</td>
-    <td>
-      <div class="table-actions">
-        <button class="status-btn" onclick="toggleStatus('${docItem.id}')">
-          <i class="fa-solid ${statusButtonIcon}"></i> ${statusButtonText}
-        </button>
-        <button class="edit-btn" onclick="editBobine('${docItem.id}')">
-          <i class="fa-solid fa-pen"></i> Bearbeiten
-        </button>
-        <button class="delete" onclick="deleteBobine('${docItem.id}')">
-          <i class="fa-solid fa-trash"></i> Löschen
-        </button>
-      </div>
-    </td>
-  `;
+    tr.innerHTML = `
+      <td>${escapeHtml(b.nummer || "")}</td>
+      <td>${escapeHtml(b.typ || "")}</td>
+      <td>${escapeHtml(b.laenge || "")}</td>
+      <td>${escapeHtml(b.baustelle || "")}</td>
+      <td>${escapeHtml(b.hersteller || "")}</td>
+      <td>${escapeHtml(hinzugefuegtAm || "")}</td>
+      <td>${escapeHtml(b.status || "")}</td>
+      <td>
+        <div class="table-actions">
+          <button class="status-btn" onclick="toggleStatus('${docItem.id}')">
+            <i class="fa-solid ${statusButtonIcon}"></i> ${statusButtonText}
+          </button>
+          <button class="edit-btn" onclick="editBobine('${docItem.id}')">
+            <i class="fa-solid fa-pen"></i> Bearbeiten
+          </button>
+          <button class="delete" onclick="deleteBobine('${docItem.id}')">
+            <i class="fa-solid fa-trash"></i> Löschen
+          </button>
+        </div>
+      </td>
+    `;
 
-  table.appendChild(tr);
-});
+    table.appendChild(tr);
+  });
 
   document.getElementById("resultInfo").innerText = "Angezeigte Bobinen: " + data.length;
 }
@@ -889,7 +905,20 @@ function saveBobine(){
         const alterStatus = doc.data().status || "Lager";
         data.status = alterStatus;
 
-        return bobinenCollection.doc(editId).update(data);
+        return bobinenCollection.doc(editId).update(data).then(() => {
+          writeLog(
+            "Kabellager",
+            "Bobine bearbeitet",
+            "bobine",
+            editId,
+            "Nummer: " + nummerWert +
+            " | Typ: " + typ +
+            " | Länge: " + laenge +
+            " | Baustelle: " + baustelle +
+            " | Hersteller: " + hersteller +
+            " | Status: " + alterStatus
+          );
+        });
       }).then(() => {
         closeModal();
       }).catch(error => {
@@ -900,7 +929,18 @@ function saveBobine(){
       data.status = "Lager";
       data.hinzugefuegtAm = firebase.firestore.FieldValue.serverTimestamp();
 
-      bobinenCollection.add(data).then(() => {
+      bobinenCollection.add(data).then((docRef) => {
+        writeLog(
+          "Kabellager",
+          "Bobine erstellt",
+          "bobine",
+          docRef.id,
+          "Nummer: " + nummerWert +
+          " | Typ: " + typ +
+          " | Länge: " + laenge +
+          " | Baustelle: " + baustelle +
+          " | Hersteller: " + hersteller
+        );
         closeModal();
       }).catch(error => {
         console.error("Fehler beim Hinzufügen:", error);
@@ -925,6 +965,16 @@ function toggleStatus(id){
     if(b.status === "Lager"){
       return bobinenCollection.doc(id).update({
         status: "In Gebrauch"
+      }).then(() => {
+        writeLog(
+          "Kabellager",
+          "Bobine auf In Gebrauch gesetzt",
+          "bobine",
+          id,
+          "Nummer: " + (b.nummer || "") +
+          " | Typ: " + (b.typ || "") +
+          " | Baustelle: " + (b.baustelle || "")
+        );
       });
     }else{
       selectedId = id;
@@ -949,13 +999,32 @@ function confirmReturn(){
   document.getElementById("returnLaenge").value = returnLaenge;
   document.getElementById("returnBaustelle").value = returnBaustelle;
 
-  bobinenCollection.doc(selectedId).update({
-    laenge: returnLaenge,
-    baustelle: returnBaustelle,
-    status: "Lager"
-  }).then(() => {
-    selectedId = null;
-    closeModal();
+  bobinenCollection.doc(selectedId).get().then(doc => {
+    if(!doc.exists){
+      alert("Bobine nicht gefunden.");
+      return;
+    }
+
+    const b = doc.data();
+
+    return bobinenCollection.doc(selectedId).update({
+      laenge: returnLaenge,
+      baustelle: returnBaustelle,
+      status: "Lager"
+    }).then(() => {
+      writeLog(
+        "Kabellager",
+        "Bobine zurück ins Lager gebucht",
+        "bobine",
+        selectedId,
+        "Nummer: " + (b.nummer || "") +
+        " | Typ: " + (b.typ || "") +
+        " | Neue Länge: " + returnLaenge +
+        " | Baustelle: " + returnBaustelle
+      );
+      selectedId = null;
+      closeModal();
+    });
   }).catch(error => {
     console.error("Fehler bei Rückgabe:", error);
     alert("Fehler beim Zurückbuchen ins Lager.");
@@ -980,7 +1049,19 @@ function deleteBobine(id){
       "Diese Bobine wird endgültig aus dem Kabellager entfernt.";
 
     if(confirm(text)){
-      bobinenCollection.doc(id).delete().catch(error => {
+      bobinenCollection.doc(id).delete().then(() => {
+        writeLog(
+          "Kabellager",
+          "Bobine gelöscht",
+          "bobine",
+          id,
+          "Nummer: " + (b.nummer || "") +
+          " | Typ: " + (b.typ || "") +
+          " | Länge: " + (b.laenge || "") +
+          " | Baustelle: " + (b.baustelle || "") +
+          " | Hersteller: " + (b.hersteller || "")
+        );
+      }).catch(error => {
         console.error("Fehler beim Löschen:", error);
         alert("Fehler beim Löschen.");
       });
