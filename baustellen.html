@@ -8,6 +8,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
 body{
@@ -54,26 +55,35 @@ h3{
   background:#555;
   color:white;
   border:none;
-  border-radius:8px;
-  padding:10px 14px;
-  font-size:22px;
+  border-radius:10px;
+  padding:11px 15px;
+  font-size:20px;
   line-height:1;
   cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:48px;
+  min-height:44px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.10);
+  transition:background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
 }
 
 .menu-button:hover{
   background:#333;
+  transform:translateY(-1px);
+  box-shadow:0 4px 10px rgba(0,0,0,0.14);
 }
 
 .dropdown-menu{
   display:none;
   position:absolute;
-  top:48px;
+  top:52px;
   right:0;
   min-width:220px;
   background:white;
   border:1px solid #ccc;
-  border-radius:10px;
+  border-radius:12px;
   box-shadow:0 8px 20px rgba(0,0,0,0.12);
   padding:8px;
   z-index:2000;
@@ -105,15 +115,27 @@ button{
   padding:10px 14px;
   cursor:pointer;
   border:none;
-  border-radius:6px;
+  border-radius:8px;
   background:#3498db;
   color:white;
   margin:2px;
   font-size:14px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);
+  transition:background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
 }
 
 button:hover{
   background:#2980b9;
+  transform:translateY(-1px);
+  box-shadow:0 4px 10px rgba(0,0,0,0.12);
+}
+
+button i{
+  font-size:14px;
 }
 
 .delete{
@@ -299,10 +321,14 @@ label{
   font-size:14px;
   font-weight:bold;
   margin-top:10px;
+  box-shadow:none;
+  gap:10px;
 }
 
 .material-toggle:hover{
   background:#eef3f8;
+  box-shadow:none;
+  transform:none;
 }
 
 .material-toggle .arrow{
@@ -462,10 +488,13 @@ label{
   appearance:none;
   -webkit-appearance:none;
   -webkit-tap-highlight-color:transparent;
+  box-shadow:none;
 }
 
 .vorlagen-treffer:hover{
   background:#eef3f8;
+  box-shadow:none;
+  transform:none;
 }
 
 .vorlagen-treffer:focus,
@@ -523,7 +552,7 @@ label{
   }
 
   .menu-button{
-    font-size:24px;
+    font-size:22px;
     padding:12px 16px;
   }
 
@@ -548,7 +577,7 @@ label{
     <div class="login-info">Bitte mit E-Mail und Passwort anmelden</div>
     <input id="loginEmail" type="email" placeholder="E-Mail" maxlength="120" autocomplete="username">
     <input id="loginPassword" type="password" placeholder="Passwort" maxlength="120" autocomplete="current-password">
-    <button onclick="login()">Login</button>
+    <button onclick="login()"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
     <p id="loginError" class="login-error">Login fehlgeschlagen. Bitte Daten prüfen.</p>
   </div>
 </div>
@@ -559,11 +588,13 @@ label{
   <h1>Baustellenmaterial</h1>
 
   <div class="menu-wrap">
-    <button class="menu-button" onclick="toggleMenu(event)">☰</button>
+    <button class="menu-button" onclick="toggleMenu(event)" title="Menü öffnen">
+      <i class="fa-solid fa-bars"></i>
+    </button>
     <div id="dropdownMenu" class="dropdown-menu">
-      <button onclick="goToKabellager()">Kabellager</button>
-      <button onclick="goToArchiv()">Archiv</button>
-      <button class="logout-safe" onclick="logout()">Logout</button>
+      <button onclick="goToKabellager()"><i class="fa-solid fa-warehouse"></i> Kabellager</button>
+      <button onclick="goToArchiv()"><i class="fa-solid fa-box-archive"></i> Archiv</button>
+      <button class="logout-safe" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
     </div>
   </div>
 </div>
@@ -573,11 +604,11 @@ label{
 
   <div class="search-row">
     <input id="searchInput" type="text" placeholder="Nach Baustellenname, Nummer, Verantwortlicher oder Material suchen" oninput="renderAll()" maxlength="120">
-    <button class="back" onclick="resetSearch()">Suche zurücksetzen</button>
+    <button class="back" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
   </div>
 
   <div style="margin-top:15px;">
-    <button onclick="openBaustelleModal()">Neue Baustelle erstellen</button>
+    <button onclick="openBaustelleModal()"><i class="fa-solid fa-plus"></i> Neue Baustelle erstellen</button>
   </div>
 </div>
 
@@ -599,21 +630,21 @@ label{
 
 <div class="section">
   <button class="material-toggle" onclick="toggleVorlagenBereich()">
-    <span>Materialvorlagen verwalten</span>
+    <span><i class="fa-solid fa-layer-group"></i> Materialvorlagen verwalten</span>
     <span class="arrow" id="vorlagenArrow">▼</span>
   </button>
 
   <div id="vorlagenContent" class="material-content" style="display:none;">
     <div class="section-header" style="margin-top:12px;">
       <h2>Materialvorlagen verwalten</h2>
-      <button onclick="openVorlageModal()">Neue Vorlage</button>
+      <button onclick="openVorlageModal()"><i class="fa-solid fa-plus"></i> Neue Vorlage</button>
     </div>
 
     <div class="search-box">
       <div class="search-title">Vorlagen suchen</div>
       <div class="search-row">
         <input id="vorlagenSearchInput" type="text" placeholder="Nach Material oder Spontis Nummer suchen" oninput="renderVorlagen()" maxlength="120">
-        <button class="back" onclick="resetVorlagenSearch()">Suche zurücksetzen</button>
+        <button class="back" onclick="resetVorlagenSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
       </div>
     </div>
 
@@ -628,8 +659,8 @@ label{
     <input id="baustelleName" placeholder="Baustellen Name" maxlength="120">
     <input id="baustelleNummer" placeholder="Baustellen Nummer" maxlength="60">
     <input id="baustelleVerantwortlicher" placeholder="Verantwortlicher" maxlength="120">
-    <button onclick="saveBaustelle()">Speichern</button>
-    <button class="back" onclick="closeModals()">Abbrechen</button>
+    <button onclick="saveBaustelle()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
+    <button class="back" onclick="closeModals()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
   </div>
 </div>
 
@@ -649,8 +680,8 @@ label{
     <input id="materialName" placeholder="Material" maxlength="120">
     <input id="materialAnzahl" placeholder="Anzahl" maxlength="40">
     <input id="materialSpontis" placeholder="Spontis Nummer (optional)" maxlength="60">
-    <button onclick="saveMaterial()">Speichern</button>
-    <button class="back" onclick="closeModals()">Abbrechen</button>
+    <button onclick="saveMaterial()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
+    <button class="back" onclick="closeModals()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
   </div>
 </div>
 
@@ -659,8 +690,8 @@ label{
     <h3 id="vorlageModalTitle">Neue Materialvorlage</h3>
     <input id="vorlageMaterial" placeholder="Material" maxlength="120">
     <input id="vorlageSpontis" placeholder="Spontis Nummer" maxlength="60">
-    <button onclick="saveVorlage()">Speichern</button>
-    <button class="back" onclick="closeModals()">Abbrechen</button>
+    <button onclick="saveVorlage()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
+    <button class="back" onclick="closeModals()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
   </div>
 </div>
 
@@ -1078,8 +1109,8 @@ function renderVorlagen(){
         <h3>${escapeHtml(v.material || "")}</h3>
         <div class="baustelle-meta"><strong>Spontis Nummer:</strong> ${escapeHtml(v.spontis || "")}</div>
         <div class="card-actions">
-          ${isAdminUser ? `<button class="edit" onclick="openVorlageModal('${v.id}')">Bearbeiten</button>` : ""}
-          ${isAdminUser ? `<button class="delete" onclick="deleteVorlage('${v.id}')">Löschen</button>` : ""}
+          ${isAdminUser ? `<button class="edit" onclick="openVorlageModal('${v.id}')"><i class="fa-solid fa-pen"></i> Bearbeiten</button>` : ""}
+          ${isAdminUser ? `<button class="delete" onclick="deleteVorlage('${v.id}')"><i class="fa-solid fa-trash"></i> Löschen</button>` : ""}
         </div>
       `;
 
@@ -1182,8 +1213,8 @@ function createBaustelleCard(baustelle){
           <div class="material-row"><strong>Spontis Nummer:</strong> ${escapeHtml(m.spontis || "")}</div>
           ${baustelle.status === "aktiv" ? `
           <div class="material-actions">
-            <button class="edit" onclick="openMaterialModal('${baustelle.id}','${m.id}')">Bearbeiten</button>
-            <button class="delete" onclick="deleteMaterial('${m.id}')">Löschen</button>
+            <button class="edit" onclick="openMaterialModal('${baustelle.id}','${m.id}')"><i class="fa-solid fa-pen"></i> Bearbeiten</button>
+            <button class="delete" onclick="deleteMaterial('${m.id}')"><i class="fa-solid fa-trash"></i> Löschen</button>
           </div>
           ` : ""}
         </div>
@@ -1196,18 +1227,18 @@ function createBaustelleCard(baustelle){
   if(baustelle.status === "aktiv"){
     actionsHtml = `
       <div class="card-actions">
-        <button class="edit" onclick="editBaustelle('${baustelle.id}')">Bearbeiten</button>
-        <button onclick="openMaterialModal('${baustelle.id}')">Material hinzufügen</button>
-        <button class="finish" onclick="finishBaustelle('${baustelle.id}')">Baustelle beenden</button>
-        <button class="delete" onclick="deleteBaustelle('${baustelle.id}')">Löschen</button>
+        <button class="edit" onclick="editBaustelle('${baustelle.id}')"><i class="fa-solid fa-pen"></i> Bearbeiten</button>
+        <button onclick="openMaterialModal('${baustelle.id}')"><i class="fa-solid fa-plus"></i> Material hinzufügen</button>
+        <button class="finish" onclick="finishBaustelle('${baustelle.id}')"><i class="fa-solid fa-check"></i> Baustelle beenden</button>
+        <button class="delete" onclick="deleteBaustelle('${baustelle.id}')"><i class="fa-solid fa-trash"></i> Löschen</button>
       </div>
     `;
   }else if(baustelle.status === "rausschreiben"){
     actionsHtml = `
       <div class="card-actions">
-        <button class="print-btn" onclick="printBaustelle('${baustelle.id}')">🖨 Drucken</button>
-        ${isAdminUser ? `<button class="archive" onclick="archiveBaustelle('${baustelle.id}')">Archivieren</button>` : ""}
-        ${isAdminUser ? `<button class="delete" onclick="deleteBaustelle('${baustelle.id}')">Löschen</button>` : ""}
+        <button class="print-btn" onclick="printBaustelle('${baustelle.id}')"><i class="fa-solid fa-print"></i> Drucken</button>
+        ${isAdminUser ? `<button class="archive" onclick="archiveBaustelle('${baustelle.id}')"><i class="fa-solid fa-box-archive"></i> Archivieren</button>` : ""}
+        ${isAdminUser ? `<button class="delete" onclick="deleteBaustelle('${baustelle.id}')"><i class="fa-solid fa-trash"></i> Löschen</button>` : ""}
       </div>
     `;
   }
@@ -1223,7 +1254,7 @@ function createBaustelleCard(baustelle){
 
     <div class="material-box">
       <button class="material-toggle" onclick="toggleMaterialList('${baustelle.id}')">
-        <span>Materialliste</span>
+        <span><i class="fa-solid fa-list-check"></i> Materialliste</span>
         <span class="arrow" id="materialArrow_${baustelle.id}">${isOpen ? "▲" : "▼"}</span>
       </button>
 
