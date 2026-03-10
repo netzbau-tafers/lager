@@ -1521,28 +1521,32 @@ function saveMaterial(){
       alert("Fehler beim Speichern.");
     });
   }else{
-    materialCollection.add({
-      baustelleId: currentBaustelleId,
-      material: material,
-      anzahl: anzahl,
-      spontis: spontis,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then((docRef) => {
-      writeLog(
-        "Baustellenmaterial",
-        "Material hinzugefügt",
-        "material",
-        docRef.id,
-        "Baustelle-ID: " + currentBaustelleId +
-        " | Material: " + material +
-        " | Anzahl: " + anzahl +
-        " | Spontis Nummer: " + spontis
-      );
-      closeModals();
-    }).catch(error => {
-      console.error("Fehler beim Hinzufügen des Materials:", error);
-      alert("Fehler beim Speichern.");
-    });
+materialCollection.add({
+  baustelleId: currentBaustelleId,
+  material: material,
+  anzahl: anzahl,
+  spontis: spontis,
+  createdAt: firebase.firestore.FieldValue.serverTimestamp()
+}).then((docRef) => {
+  const baustelle = alleBaustellen.find(b => b.id === currentBaustelleId);
+
+  writeLog(
+    "Baustellenmaterial",
+    "Material hinzugefügt",
+    "material",
+    docRef.id,
+    "Baustelle: " + (baustelle ? (baustelle.name || "") : "") +
+    " | Baustellen Nummer: " + (baustelle ? (baustelle.nummer || "") : "") +
+    " | Material: " + material +
+    " | Anzahl: " + anzahl +
+    " | Spontis Nummer: " + spontis
+  );
+
+  closeModals();
+}).catch(error => {
+  console.error("Fehler beim Hinzufügen des Materials:", error);
+  alert("Fehler beim Speichern.");
+});
   }
 }
 
