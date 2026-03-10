@@ -696,32 +696,43 @@ function renderTable(data){
     noResults.style.display = "none";
   }
 
-  data.forEach(docItem => {
-    const b = docItem.data();
-    const tr = document.createElement("tr");
-    const hinzugefuegtAm = formatDatum(b.hinzugefuegtAm);
+data.forEach(docItem => {
+  const b = docItem.data();
+  const tr = document.createElement("tr");
+  const hinzugefuegtAm = formatDatum(b.hinzugefuegtAm);
 
-    tr.className = b.status === "Lager" ? "instock" : "inuse";
+  tr.className = b.status === "Lager" ? "instock" : "inuse";
 
-    tr.innerHTML = `
-      <td>${escapeHtml(b.nummer || "")}</td>
-      <td>${escapeHtml(b.typ || "")}</td>
-      <td>${escapeHtml(b.laenge || "")}</td>
-      <td>${escapeHtml(b.baustelle || "")}</td>
-      <td>${escapeHtml(b.hersteller || "")}</td>
-      <td>${escapeHtml(hinzugefuegtAm || "")}</td>
-      <td>${escapeHtml(b.status || "")}</td>
-      <td>
-        <div class="table-actions">
-          <button class="status-btn" onclick="toggleStatus('${docItem.id}')"><i class="fa-solid fa-right-left"></i> Status</button>
-          <button class="edit-btn" onclick="editBobine('${docItem.id}')"><i class="fa-solid fa-pen"></i> Bearbeiten</button>
-          <button class="delete" onclick="deleteBobine('${docItem.id}')"><i class="fa-solid fa-trash"></i> Löschen</button>
-        </div>
-      </td>
-    `;
+  const statusButtonText = b.status === "Lager" ? "In Gebrauch" : "Zurück ins Lager";
+  const statusButtonIcon = b.status === "Lager"
+    ? "fa-arrow-right"
+    : "fa-rotate-left";
 
-    table.appendChild(tr);
-  });
+  tr.innerHTML = `
+    <td>${escapeHtml(b.nummer || "")}</td>
+    <td>${escapeHtml(b.typ || "")}</td>
+    <td>${escapeHtml(b.laenge || "")}</td>
+    <td>${escapeHtml(b.baustelle || "")}</td>
+    <td>${escapeHtml(b.hersteller || "")}</td>
+    <td>${escapeHtml(hinzugefuegtAm || "")}</td>
+    <td>${escapeHtml(b.status || "")}</td>
+    <td>
+      <div class="table-actions">
+        <button class="status-btn" onclick="toggleStatus('${docItem.id}')">
+          <i class="fa-solid ${statusButtonIcon}"></i> ${statusButtonText}
+        </button>
+        <button class="edit-btn" onclick="editBobine('${docItem.id}')">
+          <i class="fa-solid fa-pen"></i> Bearbeiten
+        </button>
+        <button class="delete" onclick="deleteBobine('${docItem.id}')">
+          <i class="fa-solid fa-trash"></i> Löschen
+        </button>
+      </div>
+    </td>
+  `;
+
+  table.appendChild(tr);
+});
 
   document.getElementById("resultInfo").innerText = "Angezeigte Bobinen: " + data.length;
 }
