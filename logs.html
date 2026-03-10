@@ -57,7 +57,13 @@ body{
   transform:translateY(-1px);
   box-shadow:0 4px 10px rgba(0,0,0,0.14);
 }
-
+  
+.active-page{
+  background:#e0e0e0 !important;
+  color:#333 !important;
+  cursor:default;
+  
+}
 .dropdown-menu{
   display:none;
   position:absolute;
@@ -355,12 +361,27 @@ input, select{
       <button class="menu-button" onclick="toggleMenu(event)" title="Menü öffnen">
         <i class="fa-solid fa-bars"></i>
       </button>
-      <div id="dropdownMenu" class="dropdown-menu">
-        <button onclick="goToKabellager()"><i class="fa-solid fa-warehouse"></i> Kabellager</button>
-        <button onclick="goToBaustellen()"><i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial</button>
-        <button onclick="goToArchiv()"><i class="fa-solid fa-box-archive"></i> Archiv</button>
-        <button class="logout-safe" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
-      </div>
+<div id="dropdownMenu" class="dropdown-menu">
+  <button onclick="goToKabellager()" data-page="index">
+    <i class="fa-solid fa-warehouse"></i> Kabellager
+  </button>
+
+  <button onclick="goToBaustellen()" data-page="baustellen">
+    <i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial
+  </button>
+
+  <button onclick="goToArchiv()" data-page="archiv">
+    <i class="fa-solid fa-box-archive"></i> Archiv
+  </button>
+
+  <button onclick="closeMenu()" data-page="logs">
+    <i class="fa-solid fa-clipboard-list"></i> Logs
+  </button>
+
+  <button class="logout-safe" onclick="logout()">
+    <i class="fa-solid fa-right-from-bracket"></i> Logout
+  </button>
+</div>
     </div>
   </div>
 
@@ -533,6 +554,32 @@ function logout(){
   });
 }
 
+function markActiveMenu(){
+  const path = window.location.pathname.toLowerCase();
+  let currentPage = "";
+
+  if(path.includes("index")){
+    currentPage = "index";
+  }else if(path.includes("baustellen")){
+    currentPage = "baustellen";
+  }else if(path.includes("archiv")){
+    currentPage = "archiv";
+  }else if(path.includes("logs")){
+    currentPage = "logs";
+  }
+
+  const buttons = document.querySelectorAll("#dropdownMenu button");
+
+  buttons.forEach(btn => {
+    const page = btn.getAttribute("data-page");
+    if(page === currentPage){
+      btn.classList.add("active-page");
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded", markActiveMenu);
+  
 function stopListeners(){
   if(unsubscribeLogs){
     unsubscribeLogs();
