@@ -57,6 +57,12 @@ body{
   transform:translateY(-1px);
   box-shadow:0 4px 10px rgba(0,0,0,0.14);
 }
+  
+.active-page{
+  background:#e0e0e0 !important;
+  color:#333 !important;
+  cursor:default;
+}
 
 .dropdown-menu{
   display:none;
@@ -372,12 +378,27 @@ input{
       <button class="menu-button" onclick="toggleMenu(event)" title="Menü öffnen">
         <i class="fa-solid fa-bars"></i>
       </button>
-      <div id="dropdownMenu" class="dropdown-menu">
-        <button onclick="goToKabellager()"><i class="fa-solid fa-warehouse"></i> Kabellager</button>
-        <button onclick="goToBaustellen()"><i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial</button>
-        <button onclick="goToLogs()"><i class="fa-solid fa-clipboard-list"></i> Logs</button>
-        <button class="logout-safe" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
-      </div>
+<div id="dropdownMenu" class="dropdown-menu">
+  <button onclick="goToKabellager()" class="active-page">
+    <i class="fa-solid fa-warehouse"></i> Kabellager
+  </button>
+
+  <button onclick="goToBaustellenmaterial()">
+    <i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial
+  </button>
+
+  <button onclick="goToArchiv()">
+    <i class="fa-solid fa-box-archive"></i> Archiv
+  </button>
+
+  <button onclick="goToLogs()">
+    <i class="fa-solid fa-clipboard-list"></i> Logs
+  </button>
+
+  <button class="logout-safe" onclick="logout()">
+    <i class="fa-solid fa-right-from-bracket"></i> Logout
+  </button>
+</div>
     </div>
   </div>
 
