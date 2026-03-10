@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lagermanager</title>
+<title>Archiv</title>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -27,14 +27,693 @@ body{
 
 .header h1{
   margin:0;
+}
+
+.menu-wrap{
+  position:relative;
+}
+
+.menu-button{
+  background:#555;
+  color:white;
+  border:none;
+  border-radius:8px;
+  padding:10px 14px;
+  font-size:22px;
+  line-height:1;
+  cursor:pointer;
+}
+
+.menu-button:hover{
+  background:#333;
+}
+
+.dropdown-menu{
+  display:none;
+  position:absolute;
+  top:48px;
+  right:0;
+  min-width:220px;
+  background:white;
+  border:1px solid #ccc;
+  border-radius:10px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.12);
+  padding:8px;
+  z-index:2000;
+}
+
+.dropdown-menu.open{
+  display:block;
+}
+
+.dropdown-menu button{
+  width:100%;
   text-align:left;
+  margin:0 0 8px 0;
 }
 
-h2{
-  margin:0 0 15px 0;
+.dropdown-menu button:last-child{
+  margin-bottom:0;
 }
 
-h3{
+button{
+  padding:10px 14px;
+  cursor:pointer;
+  border:none;
+  border-radius:6px;
+  background:#3498db;
+  color:white;
+  margin:2px;
+  font-size:14px;
+}
+
+button:hover{
+  background:#2980b9;
+}
+
+.delete{
+  background:#e74c3c;
+}
+
+.delete:hover{
+  background:#c0392b;
+}
+
+.back{
+  background:#555;
+}
+
+.back:hover{
+  background:#333;
+}
+
+.logout-safe{
+  background:#777;
+}
+
+.logout-safe:hover{
+  background:#555;
+}
+
+.search-box{
+  background:white;
+  border:1px solid #ccc;
+  border-radius:10px;
+  padding:15px;
+  margin-bottom:20px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.05);
+}
+
+.search-title{
+  font-weight:bold;
+  margin-bottom:10px;
+}
+
+.search-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:10px;
+  align-items:center;
+}
+
+input{
+  width:100%;
+  padding:10px;
+  margin:0;
+  box-sizing:border-box;
+  border:1px solid #ccc;
+  border-radius:6px;
+  font-size:15px;
+  background:white;
+}
+
+.section{
+  margin-bottom:30px;
+}
+
+.baustellen-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+  gap:18px;
+}
+
+.baustelle-card{
+  background:white;
+  border:1px solid #ddd;
+  border-radius:12px;
+  padding:18px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.06);
+}
+
+.baustelle-meta{
+  font-size:14px;
+  color:#555;
+  margin-bottom:6px;
+}
+
+.badge{
+  display:inline-block;
+  padding:5px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:bold;
+  margin-bottom:10px;
+}
+
+.badge-archiviert{
+  background:#ece3ff;
+  color:#5b3ea8;
+}
+
+.card-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:12px;
+}
+
+.material-box{
+  margin-top:15px;
+  border-top:1px solid #eee;
+  padding-top:12px;
+}
+
+.material-toggle{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  width:100%;
+  background:#f7f9fb;
+  color:#222;
+  border:1px solid #ddd;
+  border-radius:8px;
+  padding:10px 12px;
+  font-size:14px;
+  font-weight:bold;
+  margin-top:10px;
+}
+
+.material-toggle:hover{
+  background:#eef3f8;
+}
+
+.material-content{
+  display:none;
+  margin-top:10px;
+}
+
+.material-item{
+  border:1px solid #e4e4e4;
+  border-radius:10px;
+  padding:12px;
+  margin-bottom:10px;
+  background:#fafafa;
+}
+
+.material-row{
+  margin-bottom:4px;
+}
+
+.empty-box{
+  background:white;
+  border:1px dashed #bbb;
+  border-radius:10px;
+  padding:20px;
+  text-align:center;
+  color:#666;
+}
+
+.login-screen{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:#f2f4f7;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:3000;
+  padding:20px;
+  box-sizing:border-box;
+}
+
+.login-card{
+  background:white;
+  width:420px;
+  max-width:95%;
+  padding:25px;
+  border-radius:12px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.2);
+  box-sizing:border-box;
+}
+
+.login-card h2{
+  margin-top:0;
+  text-align:center;
+}
+
+.login-error{
+  color:#c0392b;
+  display:none;
+  margin-top:10px;
+  text-align:center;
+}
+
+.info-box{
+  margin:10px 0 20px 0;
+  font-size:14px;
+  color:#444;
+}
+
+@media (max-width: 900px){
+  body{
+    margin:15px;
+  }
+
+  .search-row{
+    grid-template-columns:1fr;
+  }
+
+  button{
+    font-size:16px;
+    padding:12px 16px;
+  }
+
+  .menu-button{
+    font-size:24px;
+    padding:12px 16px;
+  }
+
+  .dropdown-menu{
+    min-width:240px;
+  }
+}
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <h2>Login Archiv</h2>
+    <input id="loginEmail" type="email" placeholder="E-Mail" maxlength="120" autocomplete="username">
+    <input id="loginPassword" type="password" placeholder="Passwort" maxlength="120" autocomplete="current-password" style="margin-top:10px;">
+    <button style="margin-top:12px;" onclick="login()">Login</button>
+    <p id="loginError" class="login-error">Login fehlgeschlagen. Bitte Daten prüfen.</p>
+  </div>
+</div>
+
+<div id="appContent" style="display:none;">
+
+  <div class="header">
+    <h1>Archiv</h1>
+
+    <div class="menu-wrap">
+      <button class="menu-button" onclick="toggleMenu(event)">☰</button>
+      <div id="dropdownMenu" class="dropdown-menu">
+        <button onclick="goToKabellager()">Zum Kabellager</button>
+        <button onclick="goToBaustellen()">Zu Baustellenmaterial</button>
+        <button class="logout-safe" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="search-box">
+    <div class="search-title">Archiv durchsuchen</div>
+    <div class="search-row">
+      <input id="searchInput" type="text" placeholder="Nach Baustellenname, Nummer, Verantwortlicher oder Material suchen" oninput="renderArchiv()" maxlength="120">
+      <button class="back" onclick="resetSearch()">Suche zurücksetzen</button>
+    </div>
+  </div>
+
+  <div id="resultInfo" class="info-box"></div>
+
+  <div class="section">
+    <div id="archivListe" class="baustellen-grid"></div>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",
+  authDomain: "netzbau-tafers.firebaseapp.com",
+  projectId: "netzbau-tafers",
+  storageBucket: "netzbau-tafers.appspot.com",
+  messagingSenderId: "389541837675",
+  appId: "1:389541837675:web:db580ce67c57a9a16dea2e",
+  measurementId: "G-B5MJGD3108"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+const baustellenCollection = db.collection("baustellen");
+const materialCollection = db.collection("baustellen_material");
+
+const ADMIN_UID = "smnnQd4RhEQZR3uuNN0otNALUqi1";
+
+let unsubscribeBaustellen = null;
+let unsubscribeMaterial = null;
+
+let alleBaustellen = [];
+let alleMaterialien = [];
+let openMaterialLists = {};
+let isAdminUser = false;
+
+function sanitizeInput(value, maxLength = 200){
+  return String(value || "")
+    .replace(/[<>]/g, "")
+    .replace(/[\u0000-\u001F\u007F]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function escapeHtml(value){
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function formatFirestoreDate(value){
+  if(!value){
+    return "";
+  }
+
+  try{
+    if(typeof value.toDate === "function"){
+      return value.toDate().toLocaleDateString("de-CH");
+    }
+
+    if(value.seconds){
+      return new Date(value.seconds * 1000).toLocaleDateString("de-CH");
+    }
+
+    return new Date(value).toLocaleDateString("de-CH");
+  }catch(error){
+    return "";
+  }
+}
+
+function getFirestoreTime(value){
+  if(!value){
+    return 0;
+  }
+
+  if(typeof value.toMillis === "function"){
+    return value.toMillis();
+  }
+
+  if(value.seconds){
+    return value.seconds * 1000;
+  }
+
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
+function toggleMenu(event){
+  if(event){
+    event.stopPropagation();
+  }
+
+  const menu = document.getElementById("dropdownMenu");
+  if(menu){
+    menu.classList.toggle("open");
+  }
+}
+
+function closeMenu(){
+  const menu = document.getElementById("dropdownMenu");
+  if(menu){
+    menu.classList.remove("open");
+  }
+}
+
+document.addEventListener("click", function(event){
+  const menu = document.getElementById("dropdownMenu");
+  const menuWrap = document.querySelector(".menu-wrap");
+
+  if(!menu || !menuWrap){
+    return;
+  }
+
+  if(!menuWrap.contains(event.target)){
+    closeMenu();
+  }
+});
+
+function goToKabellager(){
+  closeMenu();
+  window.location.href = "index.html";
+}
+
+function goToBaustellen(){
+  closeMenu();
+  window.location.href = "baustellen.html";
+}
+
+function login(){
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+
+  auth.signInWithEmailAndPassword(email, password)
+    .then(() => {
+      document.getElementById("loginError").style.display = "none";
+      document.getElementById("loginPassword").value = "";
+    })
+    .catch((error) => {
+      console.error("Login Fehler:", error);
+      document.getElementById("loginError").style.display = "block";
+    });
+}
+
+function logout(){
+  closeMenu();
+
+  if(!confirm("Wirklich ausloggen?")){
+    return;
+  }
+
+  stopListeners();
+
+  auth.signOut().catch((error) => {
+    console.error("Logout Fehler:", error);
+    alert("Fehler beim Logout.");
+  });
+}
+
+function stopListeners(){
+  if(unsubscribeBaustellen){
+    unsubscribeBaustellen();
+    unsubscribeBaustellen = null;
+  }
+
+  if(unsubscribeMaterial){
+    unsubscribeMaterial();
+    unsubscribeMaterial = null;
+  }
+}
+
+auth.onAuthStateChanged((user) => {
+  if(user){
+    isAdminUser = user.uid === ADMIN_UID;
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("appContent").style.display = "block";
+    startListeners();
+  }else{
+    isAdminUser = false;
+    stopListeners();
+    document.getElementById("loginScreen").style.display = "flex";
+    document.getElementById("appContent").style.display = "none";
+    document.getElementById("archivListe").innerHTML = "";
+    document.getElementById("resultInfo").innerText = "";
+    alleBaustellen = [];
+    alleMaterialien = [];
+    openMaterialLists = {};
+  }
+});
+
+function startListeners(){
+  if(!unsubscribeBaustellen){
+    unsubscribeBaustellen = baustellenCollection.onSnapshot(snapshot => {
+      alleBaustellen = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderArchiv();
+    }, error => {
+      console.error("Fehler Baustellen:", error);
+      alert("Fehler beim Laden der Baustellen.");
+    });
+  }
+
+  if(!unsubscribeMaterial){
+    unsubscribeMaterial = materialCollection.onSnapshot(snapshot => {
+      alleMaterialien = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderArchiv();
+    }, error => {
+      console.error("Fehler Material:", error);
+      alert("Fehler beim Laden der Materialien.");
+    });
+  }
+}
+
+function resetSearch(){
+  document.getElementById("searchInput").value = "";
+  renderArchiv();
+}
+
+function getSuchbegriff(){
+  return document.getElementById("searchInput").value.trim().toLowerCase();
+}
+
+function materialVonBaustelle(baustelleId){
+  return alleMaterialien.filter(m => m.baustelleId === baustelleId);
+}
+
+function baustellePasstZurSuche(baustelle){
+  const suchbegriff = getSuchbegriff();
+
+  if(suchbegriff === ""){
+    return true;
+  }
+
+  const name = String(baustelle.name || "").toLowerCase();
+  const nummer = String(baustelle.nummer || "").toLowerCase();
+  const verantwortlicher = String(baustelle.verantwortlicher || "").toLowerCase();
+
+  const materialien = materialVonBaustelle(baustelle.id);
+
+  const materialPasst = materialien.some(m => {
+    const material = String(m.material || "").toLowerCase();
+    const anzahl = String(m.anzahl || "").toLowerCase();
+    const spontis = String(m.spontis || "").toLowerCase();
+
+    return material.includes(suchbegriff) || anzahl.includes(suchbegriff) || spontis.includes(suchbegriff);
+  });
+
+  return (
+    name.includes(suchbegriff) ||
+    nummer.includes(suchbegriff) ||
+    verantwortlicher.includes(suchbegriff) ||
+    materialPasst
+  );
+}
+
+function renderArchiv(){
+  const container = document.getElementById("archivListe");
+  container.innerHTML = "";
+
+  const archivierte = [...alleBaustellen]
+    .filter(b => b.status === "archiviert" && baustellePasstZurSuche(b))
+    .sort((a, b) => getFirestoreTime(b.archiviertAm || b.abgeschlossenAm) - getFirestoreTime(a.archiviertAm || a.abgeschlossenAm));
+
+  if(archivierte.length === 0){
+    container.innerHTML = '<div class="empty-box">Keine archivierten Baustellen gefunden.</div>';
+  }else{
+    archivierte.forEach(b => container.appendChild(createBaustelleCard(b)));
+  }
+
+  document.getElementById("resultInfo").innerText = "Archivierte Baustellen: " + archivierte.length;
+}
+
+function createBaustelleCard(baustelle){
+  const card = document.createElement("div");
+  card.className = "baustelle-card";
+
+  const materialien = materialVonBaustelle(baustelle.id);
+  const isOpen = openMaterialLists[baustelle.id] === true;
+  const abgeschlossenText = formatFirestoreDate(baustelle.abgeschlossenAm);
+  const archiviertText = formatFirestoreDate(baustelle.archiviertAm);
+
+  let materialHtml = "";
+  if(materialien.length === 0){
+    materialHtml = '<div class="empty-box">Keine Materialdaten vorhanden.</div>';
+  }else{
+    materialien.forEach(m => {
+      materialHtml += `
+        <div class="material-item">
+          <div class="material-row"><strong>Material:</strong> ${escapeHtml(m.material || "")}</div>
+          <div class="material-row"><strong>Anzahl:</strong> ${escapeHtml(m.anzahl || "")}</div>
+          <div class="material-row"><strong>Spontis Nummer:</strong> ${escapeHtml(m.spontis || "")}</div>
+        </div>
+      `;
+    });
+  }
+
+  card.innerHTML = `
+    <div class="badge badge-archiviert">Archiviert</div>
+    <h3>${escapeHtml(baustelle.name || "")}</h3>
+    <div class="baustelle-meta"><strong>Baustellen Nummer:</strong> ${escapeHtml(baustelle.nummer || "")}</div>
+    <div class="baustelle-meta"><strong>Verantwortlicher:</strong> ${escapeHtml(baustelle.verantwortlicher || "")}</div>
+    ${abgeschlossenText ? `<div class="baustelle-meta"><strong>Abgeschlossen am:</strong> ${escapeHtml(abgeschlossenText)}</div>` : ""}
+    ${archiviertText ? `<div class="baustelle-meta"><strong>Archiviert am:</strong> ${escapeHtml(archiviertText)}</div>` : ""}
+
+    <div class="card-actions">
+      ${isAdminUser ? `<button class="delete" onclick="deleteBaustelle('${baustelle.id}')">Löschen</button>` : ""}
+    </div>
+
+    <div class="material-box">
+      <button class="material-toggle" onclick="toggleMaterialList('${baustelle.id}')">
+        <span>Materialliste</span>
+        <span>${isOpen ? "▲" : "▼"}</span>
+      </button>
+
+      <div class="material-content" id="materialContent_${baustelle.id}" style="display:${isOpen ? "block" : "none"};">
+        ${materialHtml}
+      </div>
+    </div>
+  `;
+
+  return card;
+}
+
+function toggleMaterialList(baustelleId){
+  const content = document.getElementById("materialContent_" + baustelleId);
+  if(!content){
+    return;
+  }
+
+  openMaterialLists[baustelleId] = !openMaterialLists[baustelleId];
+  renderArchiv();
+}
+
+function deleteBaustelle(id){
+  if(!isAdminUser){
+    alert("Nur Admins dürfen archivierte Baustellen löschen.");
+    return;
+  }
+
+  const b = alleBaustellen.find(x => x.id === id);
+  if(!b){
+    alert("Baustelle nicht gefunden.");
+    return;
+  }
+
+  const text =
+    "Archivierte Baustelle wirklich löschen?\n\n" +
+    "Name: " + sanitizeInput(b.name || "", 120) + "\n" +
+    "Nummer: " + sanitizeInput(b.nummer || "", 60) + "\n\n" +
+    "Auch die Materialliste dieser Baustelle wird gelöscht.";
+
+  if(confirm(text)){
+    const materialien = materialVonBaustelle(id);
+    const promises = materialien.map(m => materialCollection.doc(m.id).delete());
+
+    Promise.all(promises)
+      .then(() => baustellenCollection.doc(id).delete())
+      .catch(error => {
+        console.error("Fehler beim Löschen der Baustelle:", error);
+        alert("Fehler beim Löschen.");
+      });
+  }
+}
+</script>
+
+</body>
+</html>h3{
   margin-top:0;
 }
 
