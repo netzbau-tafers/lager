@@ -379,19 +379,19 @@ input{
         <i class="fa-solid fa-bars"></i>
       </button>
 <div id="dropdownMenu" class="dropdown-menu">
-  <button onclick="goToKabellager()" class="active-page">
+  <button onclick="goToKabellager()" data-page="index">
     <i class="fa-solid fa-warehouse"></i> Kabellager
   </button>
 
-  <button onclick="goToBaustellenmaterial()">
+  <button onclick="goToBaustellen()" data-page="baustellen">
     <i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial
   </button>
 
-  <button onclick="goToArchiv()">
+  <button onclick="closeMenu()" data-page="archiv">
     <i class="fa-solid fa-box-archive"></i> Archiv
   </button>
 
-  <button onclick="goToLogs()">
+  <button onclick="goToLogs()" data-page="logs">
     <i class="fa-solid fa-clipboard-list"></i> Logs
   </button>
 
@@ -912,6 +912,31 @@ function printBaustelle(id){
   };
 }
 
+function markActiveMenu(){
+  const path = window.location.pathname.toLowerCase();
+  let currentPage = "";
+
+  if(path.includes("index")){
+    currentPage = "index";
+  }else if(path.includes("baustellen")){
+    currentPage = "baustellen";
+  }else if(path.includes("archiv")){
+    currentPage = "archiv";
+  }else if(path.includes("logs")){
+    currentPage = "logs";
+  }
+
+  const buttons = document.querySelectorAll("#dropdownMenu button");
+
+  buttons.forEach(btn => {
+    const page = btn.getAttribute("data-page");
+    if(page === currentPage){
+      btn.classList.add("active-page");
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded", markActiveMenu);
 function deleteBaustelle(id){
   if(!isAdminUser){
     alert("Nur Admins dürfen archivierte Baustellen löschen.");
