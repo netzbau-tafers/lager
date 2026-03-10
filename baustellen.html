@@ -635,18 +635,21 @@ label{
   </button>
 
   <div id="vorlagenContent" class="material-content" style="display:none;">
-    <div class="section-header" style="margin-top:12px;">
-      <h2>Materialvorlagen verwalten</h2>
-      <button onclick="openVorlageModal()"><i class="fa-solid fa-plus"></i> Neue Vorlage</button>
-    </div>
+<div class="section-header" style="margin-top:12px;">
+  <h2>Materialvorlagen verwalten</h2>
+</div>
 
-    <div class="search-box">
-      <div class="search-title">Vorlagen suchen</div>
-      <div class="search-row">
-        <input id="vorlagenSearchInput" type="text" placeholder="Nach Material oder Spontis Nummer suchen" oninput="renderVorlagen()" maxlength="120">
-        <button class="back" onclick="resetVorlagenSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
-      </div>
-    </div>
+<div class="search-box">
+  <div class="search-title">Vorlagen suchen</div>
+  <div class="search-row">
+    <input id="vorlagenSearchInput" type="text" placeholder="Nach Material oder Spontis Nummer suchen" oninput="renderVorlagen()" maxlength="120">
+    <button class="back" onclick="resetVorlagenSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
+  </div>
+
+  <div style="margin-top:15px;">
+    <button onclick="openVorlageModal()"><i class="fa-solid fa-plus"></i> Neue Vorlage</button>
+  </div>
+</div>
 
     <div id="vorlagenInfo" class="info-box"></div>
     <div id="vorlagenListe" class="baustellen-grid"></div>
