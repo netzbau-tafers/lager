@@ -148,6 +148,14 @@ button:hover{
   background:#6c3483;
 }
 
+.print-btn{
+  background:#2d7d46;
+}
+
+.print-btn:hover{
+  background:#236338;
+}
+
 .back{
   background:#555;
 }
@@ -706,7 +714,7 @@ function sanitizeInput(value, maxLength = 200){
 }
 
 function escapeHtml(value){
-  return String(value)
+  return String(value || "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -1197,6 +1205,7 @@ function createBaustelleCard(baustelle){
   }else if(baustelle.status === "rausschreiben"){
     actionsHtml = `
       <div class="card-actions">
+        <button class="print-btn" onclick="printBaustelle('${baustelle.id}')">🖨 Drucken</button>
         ${isAdminUser ? `<button class="archive" onclick="archiveBaustelle('${baustelle.id}')">Archivieren</button>` : ""}
         ${isAdminUser ? `<button class="delete" onclick="deleteBaustelle('${baustelle.id}')">Löschen</button>` : ""}
       </div>
@@ -1308,15 +1317,21 @@ function saveBaustelle(){
   }
 
   if(editBaustelleId){
-    const vorhandene = alleBaustellen.find(b => String(b.nummer || "").trim().toLowerCase() === nummer.toLowerCase() && b.id !== editBaustelleId);
-    if(vorhandene){
-      alert("Diese Baustellen Nummer ist bereits vorhanden.");
+    const vorhandeneAktive = alleBaustellen.find(b =>
+      String(b.nummer || "").trim().toLowerCase() === nummer.toLowerCase() &&
+      b.status === "aktiv" &&
+      b.id !== editBaustelleId
+    );
+
+    if(vorhandeneAktive){
+      alert("Diese Baustellen Nummer ist bereits bei einer aktiven Baustelle vorhanden.");
       return;
     }
 
     const alteBaustelle = alleBaustellen.find(b => b.id === editBaustelleId);
     const status = alteBaustelle ? alteBaustelle.status : "aktiv";
     const abgeschlossenAm = alteBaustelle && alteBaustelle.abgeschlossenAm ? alteBaustelle.abgeschlossenAm : null;
+    const archiviertAm = alteBaustelle && alteBaustelle.archiviertAm ? alteBaustelle.archiviertAm : null;
 
     const updateData = {
       name: name,
@@ -1329,6 +1344,10 @@ function saveBaustelle(){
       updateData.abgeschlossenAm = abgeschlossenAm;
     }
 
+    if(archiviertAm){
+      updateData.archiviertAm = archiviertAm;
+    }
+
     baustellenCollection.doc(editBaustelleId).update(updateData).then(() => {
       closeModals();
     }).catch(error => {
@@ -1336,9 +1355,13 @@ function saveBaustelle(){
       alert("Fehler beim Speichern.");
     });
   }else{
-    const vorhandene = alleBaustellen.find(b => String(b.nummer || "").trim().toLowerCase() === nummer.toLowerCase());
-    if(vorhandene){
-      alert("Diese Baustellen Nummer ist bereits vorhanden.");
+    const vorhandeneAktive = alleBaustellen.find(b =>
+      String(b.nummer || "").trim().toLowerCase() === nummer.toLowerCase() &&
+      b.status === "aktiv"
+    );
+
+    if(vorhandeneAktive){
+      alert("Diese Baustellen Nummer ist bereits bei einer aktiven Baustelle vorhanden.");
       return;
     }
 
@@ -1560,6 +1583,170 @@ function archiveBaustelle(id){
       alert("Fehler beim Archivieren.");
     });
   }
+}
+
+function printBaustelle(id){
+  const baustelle = alleBaustellen.find(x => x.id === id);
+  if(!baustelle){
+    alert("Baustelle nicht gefunden.");
+    return;
+  }
+
+  const materialien = materialVonBaustelle(id);
+  const abgeschlossenText = formatFirestoreDate(baustelle.abgeschlossenAm);
+  const archiviertText = formatFirestoreDate(baustelle.archiviertAm);
+  const statusLabel = getStatusLabel(baustelle.status);
+
+  let materialRows = "";
+
+  if(materialien.length === 0){
+    materialRows = `
+      <tr>
+        <td colspan="3" style="text-align:center;">Keine Materialdaten vorhanden</td>
+      </tr>
+    `;
+  }else{
+    materialien.forEach(m => {
+      materialRows += `
+        <tr>
+          <td>${escapeHtml(m.material || "")}</td>
+          <td>${escapeHtml(m.anzahl || "")}</td>
+          <td>${escapeHtml(m.spontis || "")}</td>
+        </tr>
+      `;
+    });
+  }
+
+  const printWindow = window.open("", "_blank", "width=900,height=700");
+
+  if(!printWindow){
+    alert("Das Druckfenster konnte nicht geöffnet werden. Bitte Popups erlauben.");
+    return;
+  }
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="de">
+    <head>
+      <meta charset="UTF-8">
+      <title>Baustelle drucken</title>
+      <style>
+        body{
+          font-family:Arial, sans-serif;
+          color:#222;
+          margin:30px;
+        }
+
+        .print-header{
+          border-bottom:2px solid #333;
+          padding-bottom:12px;
+          margin-bottom:20px;
+        }
+
+        .print-title{
+          font-size:28px;
+          font-weight:bold;
+          margin-bottom:8px;
+        }
+
+        .print-subtitle{
+          font-size:16px;
+          color:#555;
+        }
+
+        .info-box{
+          margin-bottom:25px;
+        }
+
+        .info-row{
+          margin-bottom:8px;
+          font-size:15px;
+        }
+
+        .section-title{
+          font-size:20px;
+          font-weight:bold;
+          margin:25px 0 12px 0;
+        }
+
+        table{
+          width:100%;
+          border-collapse:collapse;
+          margin-top:10px;
+        }
+
+        th, td{
+          border:1px solid #999;
+          padding:10px;
+          text-align:left;
+          vertical-align:top;
+          font-size:14px;
+        }
+
+        th{
+          background:#f0f0f0;
+        }
+
+        .footer{
+          margin-top:35px;
+          font-size:12px;
+          color:#666;
+          border-top:1px solid #ccc;
+          padding-top:10px;
+        }
+
+        @media print{
+          body{
+            margin:18mm;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="print-header">
+        <div class="print-title">Baustelle</div>
+        <div class="print-subtitle">${escapeHtml(baustelle.name || "")}</div>
+      </div>
+
+      <div class="info-box">
+        <div class="info-row"><strong>Status:</strong> ${escapeHtml(statusLabel)}</div>
+        <div class="info-row"><strong>Baustellen Name:</strong> ${escapeHtml(baustelle.name || "")}</div>
+        <div class="info-row"><strong>Baustellen Nummer:</strong> ${escapeHtml(baustelle.nummer || "")}</div>
+        <div class="info-row"><strong>Verantwortlicher:</strong> ${escapeHtml(baustelle.verantwortlicher || "")}</div>
+        <div class="info-row"><strong>Abgeschlossen am:</strong> ${escapeHtml(abgeschlossenText || "-")}</div>
+        ${baustelle.status === "archiviert" ? `<div class="info-row"><strong>Archiviert am:</strong> ${escapeHtml(archiviertText || "-")}</div>` : ""}
+      </div>
+
+      <div class="section-title">Materialliste</div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Material</th>
+            <th>Anzahl</th>
+            <th>Spontis Nummer</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${materialRows}
+        </tbody>
+      </table>
+
+      <div class="footer">
+        Ausdruck erstellt am: ${escapeHtml(new Date().toLocaleString("de-CH"))}
+      </div>
+    </body>
+    </html>
+  `;
+
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+
+  printWindow.onload = function(){
+    printWindow.focus();
+    printWindow.print();
+  };
 }
 
 function deleteBaustelle(id){
