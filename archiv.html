@@ -8,6 +8,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
 body{
@@ -37,26 +38,35 @@ body{
   background:#555;
   color:white;
   border:none;
-  border-radius:8px;
-  padding:10px 14px;
-  font-size:22px;
+  border-radius:10px;
+  padding:11px 15px;
+  font-size:20px;
   line-height:1;
   cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:48px;
+  min-height:44px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.10);
+  transition:background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
 }
 
 .menu-button:hover{
   background:#333;
+  transform:translateY(-1px);
+  box-shadow:0 4px 10px rgba(0,0,0,0.14);
 }
 
 .dropdown-menu{
   display:none;
   position:absolute;
-  top:48px;
+  top:52px;
   right:0;
   min-width:220px;
   background:white;
   border:1px solid #ccc;
-  border-radius:10px;
+  border-radius:12px;
   box-shadow:0 8px 20px rgba(0,0,0,0.12);
   padding:8px;
   z-index:2000;
@@ -80,15 +90,27 @@ button{
   padding:10px 14px;
   cursor:pointer;
   border:none;
-  border-radius:6px;
+  border-radius:8px;
   background:#3498db;
   color:white;
   margin:2px;
   font-size:14px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);
+  transition:background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
 }
 
 button:hover{
   background:#2980b9;
+  transform:translateY(-1px);
+  box-shadow:0 4px 10px rgba(0,0,0,0.12);
+}
+
+button i{
+  font-size:14px;
 }
 
 .delete{
@@ -219,10 +241,20 @@ input{
   font-size:14px;
   font-weight:bold;
   margin-top:10px;
+  box-shadow:none;
+  gap:10px;
 }
 
 .material-toggle:hover{
   background:#eef3f8;
+  box-shadow:none;
+  transform:none;
+}
+
+.material-toggle .arrow{
+  font-size:16px;
+  margin-left:10px;
+  color:#222;
 }
 
 .material-content{
@@ -309,7 +341,7 @@ input{
   }
 
   .menu-button{
-    font-size:24px;
+    font-size:22px;
     padding:12px 16px;
   }
 
@@ -326,7 +358,7 @@ input{
     <h2>Login Archiv</h2>
     <input id="loginEmail" type="email" placeholder="E-Mail" maxlength="120" autocomplete="username">
     <input id="loginPassword" type="password" placeholder="Passwort" maxlength="120" autocomplete="current-password" style="margin-top:10px;">
-    <button style="margin-top:12px;" onclick="login()">Login</button>
+    <button style="margin-top:12px;" onclick="login()"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
     <p id="loginError" class="login-error">Login fehlgeschlagen. Bitte Daten prüfen.</p>
   </div>
 </div>
@@ -337,11 +369,13 @@ input{
     <h1>Archiv</h1>
 
     <div class="menu-wrap">
-      <button class="menu-button" onclick="toggleMenu(event)">☰</button>
+      <button class="menu-button" onclick="toggleMenu(event)" title="Menü öffnen">
+        <i class="fa-solid fa-bars"></i>
+      </button>
       <div id="dropdownMenu" class="dropdown-menu">
-        <button onclick="goToKabellager()">Kabellager</button>
-        <button onclick="goToBaustellen()">Baustellenmaterial</button>
-        <button class="logout-safe" onclick="logout()">Logout</button>
+        <button onclick="goToKabellager()"><i class="fa-solid fa-warehouse"></i> Kabellager</button>
+        <button onclick="goToBaustellen()"><i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial</button>
+        <button class="logout-safe" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
       </div>
     </div>
   </div>
@@ -350,7 +384,7 @@ input{
     <div class="search-title">Archiv durchsuchen</div>
     <div class="search-row">
       <input id="searchInput" type="text" placeholder="Nach Baustellenname, Nummer, Verantwortlicher oder Material suchen" oninput="renderArchiv()" maxlength="120">
-      <button class="back" onclick="resetSearch()">Suche zurücksetzen</button>
+      <button class="back" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
     </div>
   </div>
 
@@ -660,14 +694,14 @@ function createBaustelleCard(baustelle){
     ${archiviertText ? `<div class="baustelle-meta"><strong>Archiviert am:</strong> ${escapeHtml(archiviertText)}</div>` : ""}
 
     <div class="card-actions">
-      <button class="print-btn" onclick="printBaustelle('${baustelle.id}')">🖨 Drucken</button>
-      ${isAdminUser ? `<button class="delete" onclick="deleteBaustelle('${baustelle.id}')">Löschen</button>` : ""}
+      <button class="print-btn" onclick="printBaustelle('${baustelle.id}')"><i class="fa-solid fa-print"></i> Drucken</button>
+      ${isAdminUser ? `<button class="delete" onclick="deleteBaustelle('${baustelle.id}')"><i class="fa-solid fa-trash"></i> Löschen</button>` : ""}
     </div>
 
     <div class="material-box">
       <button class="material-toggle" onclick="toggleMaterialList('${baustelle.id}')">
-        <span>Materialliste</span>
-        <span>${isOpen ? "▲" : "▼"}</span>
+        <span><i class="fa-solid fa-list-check"></i> Materialliste</span>
+        <span class="arrow">${isOpen ? "▲" : "▼"}</span>
       </button>
 
       <div class="material-content" id="materialContent_${baustelle.id}" style="display:${isOpen ? "block" : "none"};">
