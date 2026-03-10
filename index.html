@@ -450,6 +450,7 @@ input{
     <div id="dropdownMenu" class="dropdown-menu">
       <button onclick="goToBaustellenmaterial()"><i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial</button>
       <button onclick="goToArchiv()"><i class="fa-solid fa-box-archive"></i> Archiv</button>
+      <button onclick="goToLogs()"><i class="fa-solid fa-clipboard-list"></i> Logs</button>
       <button class="logout-safe" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
     </div>
   </div>
@@ -616,6 +617,11 @@ function goToBaustellenmaterial(){
 function goToArchiv(){
   closeMenu();
   window.location.href = "archiv.html";
+}
+  
+function goToLogs(){
+  closeMenu();
+  window.location.href = "logs.html";
 }
 
 document.addEventListener("click", function(event){
