@@ -8,6 +8,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
 body{
@@ -22,6 +23,7 @@ body{
   justify-content:space-between;
   align-items:center;
   margin-bottom:25px;
+  gap:15px;
 }
 
 .header h1{
@@ -36,26 +38,35 @@ body{
   background:#555;
   color:white;
   border:none;
-  border-radius:8px;
-  padding:10px 14px;
-  font-size:22px;
+  border-radius:10px;
+  padding:11px 15px;
+  font-size:20px;
   line-height:1;
   cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:48px;
+  min-height:44px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.10);
+  transition:background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
 }
 
 .menu-button:hover{
   background:#333;
+  transform:translateY(-1px);
+  box-shadow:0 4px 10px rgba(0,0,0,0.14);
 }
 
 .dropdown-menu{
   display:none;
   position:absolute;
-  top:48px;
+  top:52px;
   right:0;
   min-width:220px;
   background:white;
   border:1px solid #ccc;
-  border-radius:10px;
+  border-radius:12px;
   box-shadow:0 8px 20px rgba(0,0,0,0.12);
   padding:8px;
   z-index:2000;
@@ -87,15 +98,27 @@ button{
   padding:10px 14px;
   cursor:pointer;
   border:none;
-  border-radius:6px;
+  border-radius:8px;
   background:#3498db;
   color:white;
   margin:2px;
   font-size:14px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);
+  transition:background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
 }
 
 button:hover{
   background:#2980b9;
+  transform:translateY(-1px);
+  box-shadow:0 4px 10px rgba(0,0,0,0.12);
+}
+
+button i{
+  font-size:14px;
 }
 
 .delete{
@@ -112,6 +135,30 @@ button:hover{
 
 .reset:hover{
   background:#636e72;
+}
+
+.status-btn{
+  background:#2d7d46;
+}
+
+.status-btn:hover{
+  background:#236338;
+}
+
+.edit-btn{
+  background:#f39c12;
+}
+
+.edit-btn:hover{
+  background:#d68910;
+}
+
+.back{
+  background:#555;
+}
+
+.back:hover{
+  background:#333;
 }
 
 .search-box{
@@ -193,6 +240,13 @@ th{
 
 .instock{
   background:#d9ffd9;
+}
+
+.table-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  justify-content:center;
 }
 
 .modal{
@@ -282,14 +336,6 @@ input{
   margin-bottom:15px;
 }
 
-.logout{
-  background:#555;
-}
-
-.logout:hover{
-  background:#333;
-}
-
 @media (max-width: 900px){
   body{
     margin:15px;
@@ -309,7 +355,7 @@ input{
   }
 
   .menu-button{
-    font-size:24px;
+    font-size:22px;
     padding:12px 16px;
   }
 
@@ -366,6 +412,10 @@ input{
   td:nth-child(7):before{content:"Status";}
   td:nth-child(8):before{content:"Aktionen";}
 
+  .table-actions{
+    justify-content:flex-start;
+  }
+
   .modal-content{
     width:95%;
     margin:20px auto;
@@ -383,7 +433,7 @@ input{
     <div class="login-info">Bitte mit E-Mail und Passwort anmelden</div>
     <input id="loginEmail" type="email" placeholder="E-Mail" maxlength="120" autocomplete="username">
     <input id="loginPassword" type="password" placeholder="Passwort" maxlength="120" autocomplete="current-password">
-    <button onclick="login()">Login</button>
+    <button onclick="login()"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
     <p id="loginError" class="login-error">Login fehlgeschlagen. Bitte Daten prüfen.</p>
   </div>
 </div>
@@ -394,12 +444,14 @@ input{
   <h1>Kabellager</h1>
 
   <div class="menu-wrap">
-    <button class="menu-button" onclick="toggleMenu(event)">☰</button>
-<div id="dropdownMenu" class="dropdown-menu">
-  <button onclick="goToBaustellenmaterial()">Baustellenmaterial</button>
-  <button onclick="goToArchiv()">Archiv</button>
-  <button class="logout-safe" onclick="logout()">Logout</button>
-</div>
+    <button class="menu-button" onclick="toggleMenu(event)" title="Menü öffnen">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+    <div id="dropdownMenu" class="dropdown-menu">
+      <button onclick="goToBaustellenmaterial()"><i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial</button>
+      <button onclick="goToArchiv()"><i class="fa-solid fa-box-archive"></i> Archiv</button>
+      <button class="logout-safe" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+    </div>
   </div>
 </div>
 
@@ -407,7 +459,7 @@ input{
   <div class="search-title">Suche</div>
   <div class="search-row">
     <input id="searchInput" type="text" placeholder="Nach Nummer, Kabeltyp oder Baustelle suchen" oninput="renderFilteredTable()" maxlength="120">
-    <button class="reset" onclick="resetSearch()">Suche zurücksetzen</button>
+    <button class="reset" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
   </div>
 
   <div class="filter-row">
@@ -419,7 +471,7 @@ input{
   </div>
 
   <div style="margin-top:15px;">
-    <button onclick="openAdd()">Neue Bobine hinzufügen</button>
+    <button onclick="openAdd()"><i class="fa-solid fa-plus"></i> Neue Bobine hinzufügen</button>
   </div>
 </div>
 
@@ -455,8 +507,8 @@ input{
     <input id="baustelle" placeholder="Baustelle" maxlength="120">
     <input id="hersteller" placeholder="Hersteller" maxlength="120">
 
-    <button onclick="saveBobine()">Speichern</button>
-    <button onclick="closeModal()">Abbrechen</button>
+    <button onclick="saveBobine()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
+    <button class="back" onclick="closeModal()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
   </div>
 </div>
 
@@ -470,8 +522,8 @@ input{
     <p>Baustelle</p>
     <input id="returnBaustelle" placeholder="Baustelle" maxlength="120">
 
-    <button onclick="confirmReturn()">Speichern</button>
-    <button onclick="closeModal()">Abbrechen</button>
+    <button onclick="confirmReturn()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
+    <button class="back" onclick="closeModal()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
   </div>
 </div>
 
@@ -508,7 +560,7 @@ function sanitizeInput(value, maxLength = 200){
 }
 
 function escapeHtml(value){
-  return String(value)
+  return String(value || "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -565,6 +617,7 @@ function goToArchiv(){
   closeMenu();
   window.location.href = "archiv.html";
 }
+
 document.addEventListener("click", function(event){
   const menu = document.getElementById("dropdownMenu");
   const menuWrap = document.querySelector(".menu-wrap");
@@ -659,9 +712,11 @@ function renderTable(data){
       <td>${escapeHtml(hinzugefuegtAm || "")}</td>
       <td>${escapeHtml(b.status || "")}</td>
       <td>
-        <button onclick="toggleStatus('${docItem.id}')">Status</button>
-        <button onclick="editBobine('${docItem.id}')">Bearbeiten</button>
-        <button class="delete" onclick="deleteBobine('${docItem.id}')">Löschen</button>
+        <div class="table-actions">
+          <button class="status-btn" onclick="toggleStatus('${docItem.id}')"><i class="fa-solid fa-right-left"></i> Status</button>
+          <button class="edit-btn" onclick="editBobine('${docItem.id}')"><i class="fa-solid fa-pen"></i> Bearbeiten</button>
+          <button class="delete" onclick="deleteBobine('${docItem.id}')"><i class="fa-solid fa-trash"></i> Löschen</button>
+        </div>
       </td>
     `;
 
