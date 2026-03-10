@@ -590,19 +590,19 @@ label{
       <i class="fa-solid fa-bars"></i>
     </button>
 <div id="dropdownMenu" class="dropdown-menu">
-  <button onclick="goToKabellager()" class="active-page">
+  <button onclick="goToKabellager()" data-page="index">
     <i class="fa-solid fa-warehouse"></i> Kabellager
   </button>
 
-  <button onclick="goToBaustellenmaterial()">
+  <button onclick="closeMenu()" data-page="baustellen">
     <i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial
   </button>
 
-  <button onclick="goToArchiv()">
+  <button onclick="goToArchiv()" data-page="archiv">
     <i class="fa-solid fa-box-archive"></i> Archiv
   </button>
 
-  <button onclick="goToLogs()">
+  <button onclick="goToLogs()" data-page="logs">
     <i class="fa-solid fa-clipboard-list"></i> Logs
   </button>
 
