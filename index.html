@@ -395,10 +395,11 @@ input{
 
   <div class="menu-wrap">
     <button class="menu-button" onclick="toggleMenu(event)">☰</button>
-    <div id="dropdownMenu" class="dropdown-menu">
-      <button onclick="goToBaustellenmaterial()">Zum Baustellenmaterial</button>
-      <button class="logout-safe" onclick="logout()">Logout</button>
-    </div>
+<div id="dropdownMenu" class="dropdown-menu">
+  <button onclick="goToBaustellenmaterial()">Zum Baustellenmaterial</button>
+  <button onclick="goToArchiv()">Zum Archiv</button>
+  <button class="logout-safe" onclick="logout()">Logout</button>
+</div>
   </div>
 </div>
 
@@ -559,7 +560,11 @@ function goToBaustellenmaterial(){
   closeMenu();
   window.location.href = "baustellen.html";
 }
-
+  
+function goToArchiv(){
+  closeMenu();
+  window.location.href = "archiv.html";
+}
 document.addEventListener("click", function(event){
   const menu = document.getElementById("dropdownMenu");
   const menuWrap = document.querySelector(".menu-wrap");
