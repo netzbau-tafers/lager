@@ -962,21 +962,23 @@ function toggleStatus(id){
 
     const b = doc.data();
 
-    if(b.status === "Lager"){
-      return bobinenCollection.doc(id).update({
-        status: "In Gebrauch"
-      }).then(() => {
-        writeLog(
-          "Kabellager",
-          "Bobine auf In Gebrauch gesetzt",
-          "bobine",
-          id,
-          "Nummer: " + (b.nummer || "") +
-          " | Typ: " + (b.typ || "") +
-          " | Baustelle: " + (b.baustelle || "")
-        );
-      });
-    }else{
+if(b.status === "Lager"){
+  return bobinenCollection.doc(id).update({
+    status: "In Gebrauch"
+  }).then(() => {
+    writeLog(
+      "Kabellager",
+      "Bobine auf In Gebrauch gesetzt",
+      "bobine",
+      id,
+      "Nummer: " + (b.nummer || "") +
+      " | Typ: " + (b.typ || "") +
+      " | Länge: " + (b.laenge || "") +
+      " | Baustelle: " + (b.baustelle || "") +
+      " | Hersteller: " + (b.hersteller || "")
+    );
+  });
+}else{
       selectedId = id;
       document.getElementById("returnLaenge").value = sanitizeInput(b.laenge || "", 40);
       document.getElementById("returnBaustelle").value = sanitizeInput(b.baustelle || "", 120);
