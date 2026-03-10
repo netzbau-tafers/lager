@@ -1004,7 +1004,7 @@ function getStatusLabel(status){
     return "Aktiv";
   }
   if(status === "rausschreiben"){
-    return "Rausschreiben";
+    return "Ausbuchen";
   }
   if(status === "archiviert"){
     return "Archiviert";
@@ -1543,7 +1543,7 @@ function finishBaustelle(id){
     "Name: " + sanitizeInput(b.name || "", 120) + "\n" +
     "Nummer: " + sanitizeInput(b.nummer || "", 60) + "\n" +
     "Verantwortlicher: " + sanitizeInput(b.verantwortlicher || "", 120) + "\n\n" +
-    "Die Baustelle wird zu den beendeten Baustellen verschoben und erhält zuerst den Status 'Rausschreiben'.";
+    "Die Baustelle wird zu den beendeten Baustellen verschoben und erhält zuerst den Status 'Ausbuchen'.";
 
   if(confirm(text)){
     baustellenCollection.doc(id).update({
