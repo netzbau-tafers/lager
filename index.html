@@ -6,7 +6,7 @@
 <title>Lagermanager</title>
 
 <link rel="icon" type="image/png" sizes="48x48" href="favicon.png">
-  
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -59,7 +59,7 @@ body{
   transform:translateY(-1px);
   box-shadow:0 4px 10px rgba(0,0,0,0.14);
 }
-  
+
 .active-page{
   background:#e0e0e0 !important;
   color:#333 !important;
@@ -230,7 +230,7 @@ table{
   box-shadow:0 2px 6px rgba(0,0,0,0.05);
 }
 
-th,td{
+th, td{
   border:1px solid #ccc;
   padding:8px;
   text-align:center;
@@ -250,11 +250,116 @@ th{
   background:#d9ffd9;
 }
 
+.main-row td{
+  vertical-align:middle;
+}
+
+.details-row{
+  display:none;
+}
+
+.details-row.open{
+  display:table-row;
+}
+
+.details-cell{
+  background:#f8f9fb;
+  text-align:left;
+  padding:14px 16px;
+}
+
+.details-grid{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:12px;
+}
+
+.details-item{
+  background:white;
+  border:1px solid #d8dee6;
+  border-radius:10px;
+  padding:12px;
+  box-shadow:0 1px 4px rgba(0,0,0,0.04);
+}
+
+.details-label{
+  font-size:12px;
+  font-weight:bold;
+  color:#666;
+  margin-bottom:5px;
+  text-transform:uppercase;
+  letter-spacing:0.4px;
+}
+
+.details-value{
+  font-size:14px;
+  color:#222;
+  word-break:break-word;
+}
+
 .table-actions{
   display:flex;
   flex-wrap:wrap;
   gap:6px;
   justify-content:center;
+  align-items:center;
+}
+
+.details-toggle-btn{
+  background:#5c6f82;
+}
+
+.details-toggle-btn:hover{
+  background:#495968;
+}
+
+.row-menu-wrap{
+  position:relative;
+  display:inline-block;
+}
+
+.row-menu-button{
+  background:#555;
+  color:white;
+  border:none;
+  border-radius:8px;
+  padding:10px 12px;
+  min-width:42px;
+  min-height:40px;
+  font-size:16px;
+  line-height:1;
+}
+
+.row-menu-button:hover{
+  background:#333;
+}
+
+.row-dropdown{
+  display:none;
+  position:absolute;
+  top:46px;
+  right:0;
+  min-width:170px;
+  background:white;
+  border:1px solid #ccc;
+  border-radius:10px;
+  box-shadow:0 8px 18px rgba(0,0,0,0.12);
+  padding:8px;
+  z-index:1500;
+}
+
+.row-dropdown.open{
+  display:block;
+}
+
+.row-dropdown button{
+  width:100%;
+  text-align:left;
+  margin:0 0 6px 0;
+}
+
+.row-dropdown button:last-child{
+  margin-bottom:0;
 }
 
 .modal{
@@ -404,24 +509,39 @@ input{
     padding:6px 0;
   }
 
-  td:before{
+  .main-row td:before{
     font-weight:bold;
     display:block;
     margin-bottom:2px;
     color:#333;
   }
 
-  td:nth-child(1):before{content:"Nummer";}
-  td:nth-child(2):before{content:"Kabeltyp";}
-  td:nth-child(3):before{content:"Länge";}
-  td:nth-child(4):before{content:"Baustelle";}
-  td:nth-child(5):before{content:"Hersteller";}
-  td:nth-child(6):before{content:"Hinzugefügt am";}
-  td:nth-child(7):before{content:"Status";}
-  td:nth-child(8):before{content:"Aktionen";}
+  .main-row td:nth-child(1):before{content:"Nummer";}
+  .main-row td:nth-child(2):before{content:"Kabeltyp";}
+  .main-row td:nth-child(3):before{content:"Länge";}
+  .main-row td:nth-child(4):before{content:"Baustelle";}
+  .main-row td:nth-child(5):before{content:"Aktionen";}
 
   .table-actions{
     justify-content:flex-start;
+  }
+
+  .details-row{
+    margin-top:-10px;
+    border-top:none;
+  }
+
+  .details-row.open{
+    display:block;
+  }
+
+  .details-cell{
+    padding:10px 0 0 0;
+    background:transparent;
+  }
+
+  .details-grid{
+    grid-template-columns:1fr;
   }
 
   .modal-content{
@@ -448,108 +568,107 @@ input{
 
 <div id="appContent" style="display:none;">
 
-<div class="header">
-  <h1>Kabellager</h1>
+  <div class="header">
+    <h1>Kabellager</h1>
 
-  <div class="menu-wrap">
-    <button class="menu-button" onclick="toggleMenu(event)" title="Menü öffnen">
-      <i class="fa-solid fa-bars"></i>
-    </button>
-<div id="dropdownMenu" class="dropdown-menu">
-  <button onclick="closeMenu()" data-page="index">
-    <i class="fa-solid fa-warehouse"></i> Kabellager
-  </button>
+    <div class="menu-wrap">
+      <button class="menu-button" onclick="toggleMenu(event)" title="Menü öffnen">
+        <i class="fa-solid fa-bars"></i>
+      </button>
 
-  <button onclick="goToBaustellenmaterial()" data-page="baustellen">
-    <i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial
-  </button>
+      <div id="dropdownMenu" class="dropdown-menu">
+        <button onclick="closeMenu()" data-page="index">
+          <i class="fa-solid fa-warehouse"></i> Kabellager
+        </button>
 
-  <button onclick="goToArchiv()" data-page="archiv">
-    <i class="fa-solid fa-box-archive"></i> Archiv
-  </button>
+        <button onclick="goToBaustellenmaterial()" data-page="baustellen">
+          <i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial
+        </button>
 
-  <button onclick="goToLogs()" data-page="logs">
-    <i class="fa-solid fa-clipboard-list"></i> Logs
-  </button>
+        <button onclick="goToArchiv()" data-page="archiv">
+          <i class="fa-solid fa-box-archive"></i> Archiv
+        </button>
 
-  <button class="logout-safe" onclick="logout()">
-    <i class="fa-solid fa-right-from-bracket"></i> Logout
-  </button>
-</div>
-  </div>
-</div>
+        <button onclick="goToLogs()" data-page="logs">
+          <i class="fa-solid fa-clipboard-list"></i> Logs
+        </button>
 
-<div class="search-box">
-  <div class="search-title">Suche</div>
-  <div class="search-row">
-    <input id="searchInput" type="text" placeholder="Nach Nummer, Kabeltyp oder Baustelle suchen" oninput="renderFilteredTable()" maxlength="120">
-    <button class="reset" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
+        <button class="logout-safe" onclick="logout()">
+          <i class="fa-solid fa-right-from-bracket"></i> Logout
+        </button>
+      </div>
+    </div>
   </div>
 
-  <div class="filter-row">
-    <select id="statusFilter" onchange="renderFilteredTable()">
-      <option value="Alle">Alle</option>
-      <option value="Lager">Lager</option>
-      <option value="In Gebrauch">In Gebrauch</option>
-    </select>
+  <div class="search-box">
+    <div class="search-title">Suche</div>
+
+    <div class="search-row">
+      <input id="searchInput" type="text" placeholder="Nach Nummer, Kabeltyp oder Baustelle suchen" oninput="renderFilteredTable()" maxlength="120">
+      <button class="reset" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
+    </div>
+
+    <div class="filter-row">
+      <select id="statusFilter" onchange="renderFilteredTable()">
+        <option value="Alle">Alle</option>
+        <option value="Lager">Lager</option>
+        <option value="In Gebrauch">In Gebrauch</option>
+      </select>
+    </div>
+
+    <div style="margin-top:15px;">
+      <button onclick="openAdd()"><i class="fa-solid fa-plus"></i> Neue Bobine hinzufügen</button>
+    </div>
   </div>
 
-  <div style="margin-top:15px;">
-    <button onclick="openAdd()"><i class="fa-solid fa-plus"></i> Neue Bobine hinzufügen</button>
+  <div class="info-box" id="resultInfo"></div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Nummer</th>
+        <th>Kabeltyp</th>
+        <th>Länge</th>
+        <th>Baustelle</th>
+        <th>Aktionen</th>
+      </tr>
+    </thead>
+    <tbody id="table"></tbody>
+  </table>
+
+  <div id="noResults" class="no-results" style="display:none;">
+    Keine passenden Bobinen gefunden.
   </div>
-</div>
 
-<div class="info-box" id="resultInfo"></div>
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <h3 id="modalTitle">Neue Bobine</h3>
 
-<table>
-  <thead>
-    <tr>
-      <th>Nummer</th>
-      <th>Kabeltyp</th>
-      <th>Länge</th>
-      <th>Baustelle</th>
-      <th>Hersteller</th>
-      <th>Hinzugefügt am</th>
-      <th>Status</th>
-      <th>Aktionen</th>
-    </tr>
-  </thead>
-  <tbody id="table"></tbody>
-</table>
+      <input id="nummer" placeholder="Nummer" maxlength="60">
+      <input id="typ" placeholder="Kabeltyp" maxlength="120">
+      <input id="laenge" placeholder="Länge (m)" maxlength="40">
+      <input id="baustelle" placeholder="Baustelle" maxlength="120">
+      <input id="hersteller" placeholder="Hersteller" maxlength="120">
 
-<div id="noResults" class="no-results" style="display:none;">
-  Keine passenden Bobinen gefunden.
-</div>
-
-<div id="modal" class="modal">
-  <div class="modal-content">
-    <h3 id="modalTitle">Neue Bobine</h3>
-
-    <input id="nummer" placeholder="Nummer" maxlength="60">
-    <input id="typ" placeholder="Kabeltyp" maxlength="120">
-    <input id="laenge" placeholder="Länge (m)" maxlength="40">
-    <input id="baustelle" placeholder="Baustelle" maxlength="120">
-    <input id="hersteller" placeholder="Hersteller" maxlength="120">
-
-    <button onclick="saveBobine()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
-    <button class="back" onclick="closeModal()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
+      <button onclick="saveBobine()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
+      <button class="back" onclick="closeModal()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
+    </div>
   </div>
-</div>
 
-<div id="returnModal" class="modal">
-  <div class="modal-content">
-    <h3>Bobine zurück ins Lager</h3>
+  <div id="returnModal" class="modal">
+    <div class="modal-content">
+      <h3>Bobine zurück ins Lager</h3>
 
-    <p>Länge aktualisieren</p>
-    <input id="returnLaenge" placeholder="Länge (m)" maxlength="40">
+      <p>Länge aktualisieren</p>
+      <input id="returnLaenge" placeholder="Länge (m)" maxlength="40">
 
-    <p>Baustelle</p>
-    <input id="returnBaustelle" placeholder="Baustelle" maxlength="120">
+      <p>Baustelle</p>
+      <input id="returnBaustelle" placeholder="Baustelle" maxlength="120">
 
-    <button onclick="confirmReturn()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
-    <button class="back" onclick="closeModal()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
+      <button onclick="confirmReturn()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
+      <button class="back" onclick="closeModal()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
+    </div>
   </div>
-</div>
 
 </div>
 
@@ -574,6 +693,7 @@ let editId = null;
 let selectedId = null;
 let alleBobinen = [];
 let unsubscribeBobinen = null;
+let openDetailsRows = new Set();
 
 function writeLog(bereich, aktion, objektTyp, objektId, details){
   const user = auth.currentUser;
@@ -654,7 +774,7 @@ function goToBaustellenmaterial(){
   closeMenu();
   window.location.href = "baustellen.html";
 }
-  
+
 function goToArchiv(){
   closeMenu();
   window.location.href = "archiv.html";
@@ -665,16 +785,63 @@ function goToLogs(){
   window.location.href = "logs.html";
 }
 
+function closeAllRowMenus(){
+  document.querySelectorAll(".row-dropdown").forEach(menu => {
+    menu.classList.remove("open");
+  });
+}
+
+function toggleRowMenu(event, id){
+  event.stopPropagation();
+
+  const currentMenu = document.getElementById("rowMenu-" + id);
+  if(!currentMenu){
+    return;
+  }
+
+  const isOpen = currentMenu.classList.contains("open");
+  closeAllRowMenus();
+
+  if(!isOpen){
+    currentMenu.classList.add("open");
+  }
+}
+
+function toggleDetails(id){
+  const detailRow = document.getElementById("details-" + id);
+  const icon = document.getElementById("detailsIcon-" + id);
+
+  if(!detailRow){
+    return;
+  }
+
+  const isOpen = detailRow.classList.contains("open");
+
+  if(isOpen){
+    detailRow.classList.remove("open");
+    openDetailsRows.delete(id);
+    if(icon){
+      icon.className = "fa-solid fa-chevron-down";
+    }
+  }else{
+    detailRow.classList.add("open");
+    openDetailsRows.add(id);
+    if(icon){
+      icon.className = "fa-solid fa-chevron-up";
+    }
+  }
+}
+
 document.addEventListener("click", function(event){
   const menu = document.getElementById("dropdownMenu");
   const menuWrap = document.querySelector(".menu-wrap");
 
-  if(!menu || !menuWrap){
-    return;
+  if(menu && menuWrap && !menuWrap.contains(event.target)){
+    closeMenu();
   }
 
-  if(!menuWrap.contains(event.target)){
-    closeMenu();
+  if(!event.target.closest(".row-menu-wrap")){
+    closeAllRowMenus();
   }
 });
 
@@ -695,6 +862,7 @@ function login(){
 
 function logout(){
   closeMenu();
+  closeAllRowMenus();
 
   if(!confirm("Wirklich ausloggen?")){
     return;
@@ -723,12 +891,14 @@ auth.onAuthStateChanged((user) => {
   }else{
     stopListeners();
     closeMenu();
+    closeAllRowMenus();
     document.getElementById("loginScreen").style.display = "flex";
     document.getElementById("appContent").style.display = "none";
     document.getElementById("table").innerHTML = "";
     document.getElementById("resultInfo").innerText = "";
     document.getElementById("noResults").style.display = "none";
     alleBobinen = [];
+    openDetailsRows.clear();
   }
 });
 
@@ -745,38 +915,73 @@ function renderTable(data){
 
   data.forEach(docItem => {
     const b = docItem.data();
-    const tr = document.createElement("tr");
     const hinzugefuegtAm = formatDatum(b.hinzugefuegtAm);
-
-    tr.className = b.status === "Lager" ? "instock" : "inuse";
+    const isDetailOpen = openDetailsRows.has(docItem.id);
 
     const statusButtonText = b.status === "Lager" ? "In Gebrauch" : "Zurück ins Lager";
     const statusButtonIcon = b.status === "Lager" ? "fa-arrow-right" : "fa-rotate-left";
 
-    tr.innerHTML = `
+    const mainRow = document.createElement("tr");
+    mainRow.className = "main-row " + (b.status === "Lager" ? "instock" : "inuse");
+
+    mainRow.innerHTML = `
       <td>${escapeHtml(b.nummer || "")}</td>
       <td>${escapeHtml(b.typ || "")}</td>
       <td>${escapeHtml(b.laenge || "")}</td>
       <td>${escapeHtml(b.baustelle || "")}</td>
-      <td>${escapeHtml(b.hersteller || "")}</td>
-      <td>${escapeHtml(hinzugefuegtAm || "")}</td>
-      <td>${escapeHtml(b.status || "")}</td>
       <td>
         <div class="table-actions">
           <button class="status-btn" onclick="toggleStatus('${docItem.id}')">
             <i class="fa-solid ${statusButtonIcon}"></i> ${statusButtonText}
           </button>
-          <button class="edit-btn" onclick="editBobine('${docItem.id}')">
-            <i class="fa-solid fa-pen"></i> Bearbeiten
+
+          <button class="details-toggle-btn" onclick="toggleDetails('${docItem.id}')" title="Details einblenden">
+            <i id="detailsIcon-${docItem.id}" class="fa-solid ${isDetailOpen ? "fa-chevron-up" : "fa-chevron-down"}"></i> Details
           </button>
-          <button class="delete" onclick="deleteBobine('${docItem.id}')">
-            <i class="fa-solid fa-trash"></i> Löschen
-          </button>
+
+          <div class="row-menu-wrap">
+            <button class="row-menu-button" onclick="toggleRowMenu(event, '${docItem.id}')" title="Weitere Aktionen">
+              <i class="fa-solid fa-ellipsis-vertical"></i>
+            </button>
+
+            <div id="rowMenu-${docItem.id}" class="row-dropdown">
+              <button class="edit-btn" onclick="editBobine('${docItem.id}'); closeAllRowMenus();">
+                <i class="fa-solid fa-pen"></i> Bearbeiten
+              </button>
+              <button class="delete" onclick="deleteBobine('${docItem.id}'); closeAllRowMenus();">
+                <i class="fa-solid fa-trash"></i> Löschen
+              </button>
+            </div>
+          </div>
         </div>
       </td>
     `;
 
-    table.appendChild(tr);
+    const detailsRow = document.createElement("tr");
+    detailsRow.className = "details-row" + (isDetailOpen ? " open" : "");
+    detailsRow.id = "details-" + docItem.id;
+
+    detailsRow.innerHTML = `
+      <td colspan="5" class="details-cell">
+        <div class="details-grid">
+          <div class="details-item">
+            <div class="details-label">Hersteller</div>
+            <div class="details-value">${escapeHtml(b.hersteller || "")}</div>
+          </div>
+          <div class="details-item">
+            <div class="details-label">Hinzugefügt am</div>
+            <div class="details-value">${escapeHtml(hinzugefuegtAm || "")}</div>
+          </div>
+          <div class="details-item">
+            <div class="details-label">Status</div>
+            <div class="details-value">${escapeHtml(b.status || "")}</div>
+          </div>
+        </div>
+      </td>
+    `;
+
+    table.appendChild(mainRow);
+    table.appendChild(detailsRow);
   });
 
   document.getElementById("resultInfo").innerText = "Angezeigte Bobinen: " + data.length;
@@ -792,6 +997,7 @@ function renderFilteredTable(){
     const nummer = String(b.nummer || "").toLowerCase();
     const typ = String(b.typ || "").toLowerCase();
     const baustelle = String(b.baustelle || "").toLowerCase();
+    const hersteller = String(b.hersteller || "").toLowerCase();
     const status = String(b.status || "");
 
     const suchbegriffLeer = suchbegriff === "";
@@ -799,7 +1005,8 @@ function renderFilteredTable(){
       suchbegriffLeer ||
       nummer.includes(suchbegriff) ||
       typ.includes(suchbegriff) ||
-      baustelle.includes(suchbegriff);
+      baustelle.includes(suchbegriff) ||
+      hersteller.includes(suchbegriff);
 
     const statusPasst =
       statusFilter === "Alle" || status === statusFilter;
@@ -885,7 +1092,7 @@ function nummerSchonVorhanden(nummer, aktuelleId = null){
     return vorhanden;
   });
 }
-  
+
 function markActiveMenu(){
   const path = window.location.pathname.toLowerCase();
   let currentPage = "";
@@ -911,6 +1118,7 @@ function markActiveMenu(){
 }
 
 document.addEventListener("DOMContentLoaded", markActiveMenu);
+
 function saveBobine(){
   const nummerWert = nummerBereinigen(document.getElementById("nummer").value);
   const typ = sanitizeInput(document.getElementById("typ").value, 120);
@@ -1010,23 +1218,23 @@ function toggleStatus(id){
 
     const b = doc.data();
 
-if(b.status === "Lager"){
-  return bobinenCollection.doc(id).update({
-    status: "In Gebrauch"
-  }).then(() => {
-    writeLog(
-      "Kabellager",
-      "Bobine auf In Gebrauch gesetzt",
-      "bobine",
-      id,
-      "Nummer: " + (b.nummer || "") +
-      " | Typ: " + (b.typ || "") +
-      " | Länge: " + (b.laenge || "") +
-      " | Baustelle: " + (b.baustelle || "") +
-      " | Hersteller: " + (b.hersteller || "")
-    );
-  });
-}else{
+    if(b.status === "Lager"){
+      return bobinenCollection.doc(id).update({
+        status: "In Gebrauch"
+      }).then(() => {
+        writeLog(
+          "Kabellager",
+          "Bobine auf In Gebrauch gesetzt",
+          "bobine",
+          id,
+          "Nummer: " + (b.nummer || "") +
+          " | Typ: " + (b.typ || "") +
+          " | Länge: " + (b.laenge || "") +
+          " | Baustelle: " + (b.baustelle || "") +
+          " | Hersteller: " + (b.hersteller || "")
+        );
+      });
+    }else{
       selectedId = id;
       document.getElementById("returnLaenge").value = sanitizeInput(b.laenge || "", 40);
       document.getElementById("returnBaustelle").value = sanitizeInput(b.baustelle || "", 120);
@@ -1100,6 +1308,7 @@ function deleteBobine(id){
 
     if(confirm(text)){
       bobinenCollection.doc(id).delete().then(() => {
+        openDetailsRows.delete(id);
         writeLog(
           "Kabellager",
           "Bobine gelöscht",
