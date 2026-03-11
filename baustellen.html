@@ -66,13 +66,13 @@ h3{
   transform:translateY(-1px);
   box-shadow:0 4px 10px rgba(0,0,0,0.14);
 }
-  
+
 .active-page{
   background:#e0e0e0 !important;
   color:#333 !important;
   cursor:default;
 }
-  
+
 .dropdown-menu{
   display:none;
   position:absolute;
@@ -300,6 +300,56 @@ label{
   flex-wrap:wrap;
   gap:8px;
   margin-top:12px;
+  align-items:center;
+}
+
+.card-menu-wrap{
+  position:relative;
+  display:inline-block;
+}
+
+.card-menu-button{
+  background:#555;
+  color:white;
+  border:none;
+  border-radius:8px;
+  padding:10px 12px;
+  min-width:42px;
+  min-height:40px;
+  font-size:16px;
+  line-height:1;
+}
+
+.card-menu-button:hover{
+  background:#333;
+}
+
+.card-dropdown{
+  display:none;
+  position:absolute;
+  top:46px;
+  right:0;
+  min-width:180px;
+  background:white;
+  border:1px solid #ccc;
+  border-radius:10px;
+  box-shadow:0 8px 18px rgba(0,0,0,0.12);
+  padding:8px;
+  z-index:2500;
+}
+
+.card-dropdown.open{
+  display:block;
+}
+
+.card-dropdown button{
+  width:100%;
+  text-align:left;
+  margin:0 0 6px 0;
+}
+
+.card-dropdown button:last-child{
+  margin-bottom:0;
 }
 
 .material-box{
@@ -862,16 +912,40 @@ function goToLogs(){
   window.location.href = "logs.html";
 }
 
+function closeAllCardMenus(){
+  document.querySelectorAll(".card-dropdown").forEach(menu => {
+    menu.classList.remove("open");
+  });
+}
+
+function toggleCardMenu(event, id){
+  if(event){
+    event.stopPropagation();
+  }
+
+  const currentMenu = document.getElementById("cardMenu-" + id);
+  if(!currentMenu){
+    return;
+  }
+
+  const isOpen = currentMenu.classList.contains("open");
+  closeAllCardMenus();
+
+  if(!isOpen){
+    currentMenu.classList.add("open");
+  }
+}
+
 document.addEventListener("click", function(event){
   const menu = document.getElementById("dropdownMenu");
   const menuWrap = document.querySelector(".menu-wrap");
 
-  if(!menu || !menuWrap){
-    return;
+  if(menu && menuWrap && !menuWrap.contains(event.target)){
+    closeMenu();
   }
 
-  if(!menuWrap.contains(event.target)){
-    closeMenu();
+  if(!event.target.closest(".card-menu-wrap")){
+    closeAllCardMenus();
   }
 });
 
@@ -892,6 +966,7 @@ function login(){
 
 function logout(){
   closeMenu();
+  closeAllCardMenus();
 
   if(!confirm("Wirklich ausloggen?")){
     return;
@@ -932,6 +1007,7 @@ auth.onAuthStateChanged((user) => {
     isAdminUser = false;
     stopListeners();
     closeMenu();
+    closeAllCardMenus();
     document.getElementById("loginScreen").style.display = "flex";
     document.getElementById("appContent").style.display = "none";
     document.getElementById("aktiveBaustellen").innerHTML = "";
@@ -1269,10 +1345,23 @@ function createBaustelleCard(baustelle){
   if(baustelle.status === "aktiv"){
     actionsHtml = `
       <div class="card-actions">
-        <button class="edit" onclick="editBaustelle('${baustelle.id}')"><i class="fa-solid fa-pen"></i> Bearbeiten</button>
         <button onclick="openMaterialModal('${baustelle.id}')"><i class="fa-solid fa-plus"></i> Material hinzufügen</button>
         <button class="finish" onclick="finishBaustelle('${baustelle.id}')"><i class="fa-solid fa-check"></i> Baustelle beenden</button>
-        <button class="delete" onclick="deleteBaustelle('${baustelle.id}')"><i class="fa-solid fa-trash"></i> Löschen</button>
+
+        <div class="card-menu-wrap">
+          <button class="card-menu-button" onclick="toggleCardMenu(event, '${baustelle.id}')" title="Weitere Aktionen">
+            <i class="fa-solid fa-ellipsis-vertical"></i>
+          </button>
+
+          <div id="cardMenu-${baustelle.id}" class="card-dropdown">
+            <button class="edit" onclick="editBaustelle('${baustelle.id}'); closeAllCardMenus();">
+              <i class="fa-solid fa-pen"></i> Bearbeiten
+            </button>
+            <button class="delete" onclick="deleteBaustelle('${baustelle.id}'); closeAllCardMenus();">
+              <i class="fa-solid fa-trash"></i> Löschen
+            </button>
+          </div>
+        </div>
       </div>
     `;
   }else if(baustelle.status === "rausschreiben"){
@@ -1280,7 +1369,20 @@ function createBaustelleCard(baustelle){
       <div class="card-actions">
         <button class="print-btn" onclick="printBaustelle('${baustelle.id}')"><i class="fa-solid fa-print"></i> Drucken</button>
         ${isAdminUser ? `<button class="archive" onclick="archiveBaustelle('${baustelle.id}')"><i class="fa-solid fa-box-archive"></i> Archivieren</button>` : ""}
-        ${isAdminUser ? `<button class="delete" onclick="deleteBaustelle('${baustelle.id}')"><i class="fa-solid fa-trash"></i> Löschen</button>` : ""}
+
+        <div class="card-menu-wrap">
+          <button class="card-menu-button" onclick="toggleCardMenu(event, '${baustelle.id}')" title="Weitere Aktionen">
+            <i class="fa-solid fa-ellipsis-vertical"></i>
+          </button>
+
+          <div id="cardMenu-${baustelle.id}" class="card-dropdown">
+            ${isAdminUser ? `
+            <button class="delete" onclick="deleteBaustelle('${baustelle.id}'); closeAllCardMenus();">
+              <i class="fa-solid fa-trash"></i> Löschen
+            </button>
+            ` : ""}
+          </div>
+        </div>
       </div>
     `;
   }
@@ -1544,32 +1646,32 @@ function saveMaterial(){
       alert("Fehler beim Speichern.");
     });
   }else{
-materialCollection.add({
-  baustelleId: currentBaustelleId,
-  material: material,
-  anzahl: anzahl,
-  spontis: spontis,
-  createdAt: firebase.firestore.FieldValue.serverTimestamp()
-}).then((docRef) => {
-  const baustelle = alleBaustellen.find(b => b.id === currentBaustelleId);
+    materialCollection.add({
+      baustelleId: currentBaustelleId,
+      material: material,
+      anzahl: anzahl,
+      spontis: spontis,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then((docRef) => {
+      const baustelle = alleBaustellen.find(b => b.id === currentBaustelleId);
 
-  writeLog(
-    "Baustellenmaterial",
-    "Material hinzugefügt",
-    "material",
-    docRef.id,
-    "Baustelle: " + (baustelle ? (baustelle.name || "") : "") +
-    " | Baustellen Nummer: " + (baustelle ? (baustelle.nummer || "") : "") +
-    " | Material: " + material +
-    " | Anzahl: " + anzahl +
-    " | Spontis Nummer: " + spontis
-  );
+      writeLog(
+        "Baustellenmaterial",
+        "Material hinzugefügt",
+        "material",
+        docRef.id,
+        "Baustelle: " + (baustelle ? (baustelle.name || "") : "") +
+        " | Baustellen Nummer: " + (baustelle ? (baustelle.nummer || "") : "") +
+        " | Material: " + material +
+        " | Anzahl: " + anzahl +
+        " | Spontis Nummer: " + spontis
+      );
 
-  closeModals();
-}).catch(error => {
-  console.error("Fehler beim Hinzufügen des Materials:", error);
-  alert("Fehler beim Speichern.");
-});
+      closeModals();
+    }).catch(error => {
+      console.error("Fehler beim Hinzufügen des Materials:", error);
+      alert("Fehler beim Speichern.");
+    });
   }
 }
 
@@ -2002,8 +2104,8 @@ function deleteVorlage(id){
     });
   }
 }
-function markActiveMenu(){
 
+function markActiveMenu(){
   const path = window.location.pathname;
 
   let currentPage = "";
@@ -2024,18 +2126,16 @@ function markActiveMenu(){
   const buttons = document.querySelectorAll("#dropdownMenu button");
 
   buttons.forEach(btn => {
-
     const page = btn.getAttribute("data-page");
 
     if(page === currentPage){
       btn.classList.add("active-page");
     }
-
   });
-
 }
 
 document.addEventListener("DOMContentLoaded", markActiveMenu);
+
 function closeModals(){
   document.getElementById("baustelleModal").style.display = "none";
   document.getElementById("materialModal").style.display = "none";
