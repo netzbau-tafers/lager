@@ -278,7 +278,7 @@ th{
 
 .details-grid{
   display:grid;
-  grid-template-columns:repeat(3, minmax(0, 1fr));
+  grid-template-columns:repeat(4, minmax(0, 1fr));
   gap:12px;
 }
 
@@ -686,6 +686,10 @@ input{
     margin:20px auto;
     max-height:calc(100vh - 20px);
   }
+
+  .details-grid{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 560px){
@@ -707,6 +711,10 @@ input{
 
   .mobile-info-value{
     font-size:18px;
+  }
+
+  .details-grid{
+    grid-template-columns:1fr;
   }
 }
 </style>
@@ -812,6 +820,7 @@ input{
       <input id="laenge" placeholder="Länge (m)" maxlength="40">
       <input id="baustelle" placeholder="Baustelle" maxlength="120">
       <input id="hersteller" placeholder="Hersteller" maxlength="120">
+      <input id="infos" placeholder="Infos" maxlength="250">
 
       <button onclick="saveBobine()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
       <button class="back" onclick="closeModal()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
@@ -1179,6 +1188,10 @@ function renderDesktopTable(data){
             <div class="details-label">Status</div>
             <div class="details-value">${escapeHtml(b.status || "")}</div>
           </div>
+          <div class="details-item">
+            <div class="details-label">Infos</div>
+            <div class="details-value">${escapeHtml(b.infos || "")}</div>
+          </div>
         </div>
       </td>
     `;
@@ -1269,6 +1282,11 @@ function renderMobileCards(data){
             <div class="mobile-details-label">Status</div>
             <div class="mobile-details-value">${escapeHtml(b.status || "")}</div>
           </div>
+
+          <div class="mobile-details-item">
+            <div class="mobile-details-label">Infos</div>
+            <div class="mobile-details-value">${escapeHtml(b.infos || "")}</div>
+          </div>
         </div>
       </div>
     `;
@@ -1288,6 +1306,7 @@ function renderFilteredTable(){
     const typ = String(b.typ || "").toLowerCase();
     const baustelle = String(b.baustelle || "").toLowerCase();
     const hersteller = String(b.hersteller || "").toLowerCase();
+    const infos = String(b.infos || "").toLowerCase();
     const status = String(b.status || "");
 
     const suchbegriffLeer = suchbegriff === "";
@@ -1296,7 +1315,8 @@ function renderFilteredTable(){
       nummer.includes(suchbegriff) ||
       typ.includes(suchbegriff) ||
       baustelle.includes(suchbegriff) ||
-      hersteller.includes(suchbegriff);
+      hersteller.includes(suchbegriff) ||
+      infos.includes(suchbegriff);
 
     const statusPasst =
       statusFilter === "Alle" || status === statusFilter;
@@ -1346,6 +1366,7 @@ function openAdd(){
   document.getElementById("laenge").value = "";
   document.getElementById("baustelle").value = "";
   document.getElementById("hersteller").value = "";
+  document.getElementById("infos").value = "";
 
   document.getElementById("modal").style.display = "block";
   focusFirstInput("modal");
@@ -1368,6 +1389,7 @@ function editBobine(id){
     document.getElementById("laenge").value = sanitizeInput(b.laenge || "", 40);
     document.getElementById("baustelle").value = sanitizeInput(b.baustelle || "", 120);
     document.getElementById("hersteller").value = sanitizeInput(b.hersteller || "", 120);
+    document.getElementById("infos").value = sanitizeInput(b.infos || "", 250);
 
     document.getElementById("modal").style.display = "block";
     focusFirstInput("modal");
@@ -1427,12 +1449,14 @@ function saveBobine(){
   const laenge = sanitizeInput(document.getElementById("laenge").value, 40);
   const baustelle = sanitizeInput(document.getElementById("baustelle").value, 120);
   const hersteller = sanitizeInput(document.getElementById("hersteller").value, 120);
+  const infos = sanitizeInput(document.getElementById("infos").value, 250);
 
   document.getElementById("nummer").value = nummerWert;
   document.getElementById("typ").value = typ;
   document.getElementById("laenge").value = laenge;
   document.getElementById("baustelle").value = baustelle;
   document.getElementById("hersteller").value = hersteller;
+  document.getElementById("infos").value = infos;
 
   if(nummerWert === ""){
     alert("Bitte eine Nummer eingeben.");
@@ -1444,7 +1468,8 @@ function saveBobine(){
     typ: typ,
     laenge: laenge,
     baustelle: baustelle,
-    hersteller: hersteller
+    hersteller: hersteller,
+    infos: infos
   };
 
   nummerSchonVorhanden(nummerWert, editId).then(vorhanden => {
@@ -1474,6 +1499,7 @@ function saveBobine(){
             " | Länge: " + laenge +
             " | Baustelle: " + baustelle +
             " | Hersteller: " + hersteller +
+            " | Infos: " + infos +
             " | Status: " + alterStatus
           );
         });
@@ -1497,7 +1523,8 @@ function saveBobine(){
           " | Typ: " + typ +
           " | Länge: " + laenge +
           " | Baustelle: " + baustelle +
-          " | Hersteller: " + hersteller
+          " | Hersteller: " + hersteller +
+          " | Infos: " + infos
         );
         closeModal();
       }).catch(error => {
@@ -1533,7 +1560,8 @@ function toggleStatus(id){
           " | Typ: " + (b.typ || "") +
           " | Länge: " + (b.laenge || "") +
           " | Baustelle: " + (b.baustelle || "") +
-          " | Hersteller: " + (b.hersteller || "")
+          " | Hersteller: " + (b.hersteller || "") +
+          " | Infos: " + (b.infos || "")
         );
       });
     }else{
@@ -1581,7 +1609,8 @@ function confirmReturn(){
         "Nummer: " + (b.nummer || "") +
         " | Typ: " + (b.typ || "") +
         " | Neue Länge: " + returnLaenge +
-        " | Baustelle: " + returnBaustelle
+        " | Baustelle: " + returnBaustelle +
+        " | Infos: " + (b.infos || "")
       );
       selectedId = null;
       closeModal();
@@ -1606,7 +1635,8 @@ function deleteBobine(id){
       "Nummer: " + sanitizeInput(b.nummer || "", 60) + "\n" +
       "Kabeltyp: " + sanitizeInput(b.typ || "", 120) + "\n" +
       "Länge: " + sanitizeInput(b.laenge || "", 40) + "\n" +
-      "Baustelle: " + sanitizeInput(b.baustelle || "", 120) + "\n\n" +
+      "Baustelle: " + sanitizeInput(b.baustelle || "", 120) + "\n" +
+      "Infos: " + sanitizeInput(b.infos || "", 250) + "\n\n" +
       "Diese Bobine wird endgültig aus dem Kabellager entfernt.";
 
     if(confirm(text)){
@@ -1621,7 +1651,8 @@ function deleteBobine(id){
           " | Typ: " + (b.typ || "") +
           " | Länge: " + (b.laenge || "") +
           " | Baustelle: " + (b.baustelle || "") +
-          " | Hersteller: " + (b.hersteller || "")
+          " | Hersteller: " + (b.hersteller || "") +
+          " | Infos: " + (b.infos || "")
         );
       }).catch(error => {
         console.error("Fehler beim Löschen:", error);
@@ -1650,7 +1681,9 @@ function focusFirstInput(modalId){
     const firstInput = modal.querySelector("input, textarea, select");
     if(firstInput){
       firstInput.focus();
-      firstInput.select?.();
+      if(typeof firstInput.select === "function"){
+        firstInput.select();
+      }
     }
   }, 50);
 }
