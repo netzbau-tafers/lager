@@ -77,7 +77,7 @@ body{
   border-radius:12px;
   box-shadow:0 8px 20px rgba(0,0,0,0.12);
   padding:8px;
-  z-index:2000;
+  z-index:3000;
 }
 
 .dropdown-menu.open{
@@ -167,6 +167,14 @@ button i{
 
 .back:hover{
   background:#333;
+}
+
+.details-toggle-btn{
+  background:#5c6f82;
+}
+
+.details-toggle-btn:hover{
+  background:#495968;
 }
 
 .search-box{
@@ -305,14 +313,6 @@ th{
   align-items:center;
 }
 
-.details-toggle-btn{
-  background:#5c6f82;
-}
-
-.details-toggle-btn:hover{
-  background:#495968;
-}
-
 .row-menu-wrap{
   position:relative;
   display:inline-block;
@@ -345,7 +345,7 @@ th{
   border-radius:10px;
   box-shadow:0 8px 18px rgba(0,0,0,0.12);
   padding:8px;
-  z-index:1500;
+  z-index:2500;
 }
 
 .row-dropdown.open{
@@ -362,6 +362,194 @@ th{
   margin-bottom:0;
 }
 
+.mobile-cards{
+  display:none;
+}
+
+.mobile-card{
+  border-radius:16px;
+  padding:16px;
+  margin-top:14px;
+  border:1px solid #cfd8cf;
+  box-shadow:0 2px 8px rgba(0,0,0,0.05);
+}
+
+.mobile-card.instock{
+  background:#d9ffd9;
+}
+
+.mobile-card.inuse{
+  background:#ffd9d9;
+}
+
+.mobile-card-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:10px;
+}
+
+.mobile-card-title-wrap{
+  flex:1;
+  min-width:0;
+}
+
+.mobile-card-number-label{
+  font-size:12px;
+  font-weight:bold;
+  text-transform:uppercase;
+  letter-spacing:0.4px;
+  color:#4a4a4a;
+  margin-bottom:4px;
+}
+
+.mobile-card-number{
+  font-size:28px;
+  font-weight:bold;
+  line-height:1.1;
+  word-break:break-word;
+}
+
+.mobile-card-type{
+  font-size:22px;
+  font-weight:bold;
+  margin-bottom:14px;
+  word-break:break-word;
+}
+
+.mobile-main-info{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-bottom:14px;
+}
+
+.mobile-info-box{
+  background:rgba(255,255,255,0.60);
+  border:1px solid rgba(0,0,0,0.06);
+  border-radius:12px;
+  padding:12px;
+}
+
+.mobile-info-label{
+  font-size:12px;
+  font-weight:bold;
+  text-transform:uppercase;
+  letter-spacing:0.4px;
+  color:#5a5a5a;
+  margin-bottom:5px;
+}
+
+.mobile-info-value{
+  font-size:20px;
+  font-weight:bold;
+  word-break:break-word;
+}
+
+.mobile-actions{
+  display:grid;
+  grid-template-columns:1fr auto auto;
+  gap:10px;
+  align-items:center;
+}
+
+.mobile-actions .status-btn{
+  min-height:48px;
+  justify-content:center;
+}
+
+.mobile-actions .details-toggle-btn{
+  min-height:48px;
+  justify-content:center;
+}
+
+.mobile-row-menu-wrap{
+  position:relative;
+}
+
+.mobile-row-menu-button{
+  background:#555;
+  color:white;
+  border:none;
+  border-radius:10px;
+  min-width:50px;
+  min-height:48px;
+  padding:0 14px;
+  font-size:18px;
+}
+
+.mobile-row-menu-button:hover{
+  background:#333;
+}
+
+.mobile-row-dropdown{
+  display:none;
+  position:absolute;
+  top:56px;
+  right:0;
+  min-width:180px;
+  background:white;
+  border:1px solid #ccc;
+  border-radius:12px;
+  box-shadow:0 8px 18px rgba(0,0,0,0.12);
+  padding:8px;
+  z-index:2500;
+}
+
+.mobile-row-dropdown.open{
+  display:block;
+}
+
+.mobile-row-dropdown button{
+  width:100%;
+  text-align:left;
+  margin:0 0 6px 0;
+}
+
+.mobile-row-dropdown button:last-child{
+  margin-bottom:0;
+}
+
+.mobile-details{
+  display:none;
+  margin-top:14px;
+  padding-top:14px;
+  border-top:1px solid rgba(0,0,0,0.10);
+}
+
+.mobile-details.open{
+  display:block;
+}
+
+.mobile-details-grid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+}
+
+.mobile-details-item{
+  background:rgba(255,255,255,0.75);
+  border:1px solid rgba(0,0,0,0.06);
+  border-radius:12px;
+  padding:12px;
+}
+
+.mobile-details-label{
+  font-size:12px;
+  font-weight:bold;
+  text-transform:uppercase;
+  letter-spacing:0.4px;
+  color:#5a5a5a;
+  margin-bottom:5px;
+}
+
+.mobile-details-value{
+  font-size:16px;
+  color:#222;
+  word-break:break-word;
+}
+
 .modal{
   display:none;
   position:fixed;
@@ -370,7 +558,7 @@ th{
   width:100%;
   height:100%;
   background:rgba(0,0,0,0.45);
-  z-index:1000;
+  z-index:4000;
   overflow-y:auto;
 }
 
@@ -415,7 +603,7 @@ input{
   display:none;
   align-items:center;
   justify-content:center;
-  z-index:3000;
+  z-index:5000;
   padding:20px;
   box-sizing:border-box;
 }
@@ -480,74 +668,45 @@ input{
     grid-template-columns:1fr;
   }
 
-  table, thead, tbody, th, td, tr{
-    display:block;
-    width:100%;
-  }
-
-  thead{
+  .desktop-table-wrap{
     display:none;
   }
 
-  table{
-    background:transparent;
-    box-shadow:none;
+  .mobile-cards{
+    display:block;
   }
 
-  tr{
-    background:white;
-    margin-bottom:15px;
-    padding:12px;
-    border:1px solid #ccc;
+  .no-results{
+    border-top:1px solid #ccc;
     border-radius:10px;
-    box-shadow:0 2px 6px rgba(0,0,0,0.05);
-  }
-
-  td{
-    border:none;
-    text-align:left;
-    padding:6px 0;
-  }
-
-  .main-row td:before{
-    font-weight:bold;
-    display:block;
-    margin-bottom:2px;
-    color:#333;
-  }
-
-  .main-row td:nth-child(1):before{content:"Nummer";}
-  .main-row td:nth-child(2):before{content:"Kabeltyp";}
-  .main-row td:nth-child(3):before{content:"Länge";}
-  .main-row td:nth-child(4):before{content:"Baustelle";}
-  .main-row td:nth-child(5):before{content:"Aktionen";}
-
-  .table-actions{
-    justify-content:flex-start;
-  }
-
-  .details-row{
-    margin-top:-10px;
-    border-top:none;
-  }
-
-  .details-row.open{
-    display:block;
-  }
-
-  .details-cell{
-    padding:10px 0 0 0;
-    background:transparent;
-  }
-
-  .details-grid{
-    grid-template-columns:1fr;
   }
 
   .modal-content{
     width:95%;
     margin:20px auto;
     max-height:calc(100vh - 20px);
+  }
+}
+
+@media (max-width: 560px){
+  .mobile-main-info{
+    grid-template-columns:1fr;
+  }
+
+  .mobile-actions{
+    grid-template-columns:1fr 1fr auto;
+  }
+
+  .mobile-card-number{
+    font-size:24px;
+  }
+
+  .mobile-card-type{
+    font-size:18px;
+  }
+
+  .mobile-info-value{
+    font-size:18px;
   }
 }
 </style>
@@ -623,18 +782,22 @@ input{
 
   <div class="info-box" id="resultInfo"></div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Nummer</th>
-        <th>Kabeltyp</th>
-        <th>Länge</th>
-        <th>Baustelle</th>
-        <th>Aktionen</th>
-      </tr>
-    </thead>
-    <tbody id="table"></tbody>
-  </table>
+  <div class="desktop-table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Nummer</th>
+          <th>Kabeltyp</th>
+          <th>Länge</th>
+          <th>Baustelle</th>
+          <th>Aktionen</th>
+        </tr>
+      </thead>
+      <tbody id="table"></tbody>
+    </table>
+  </div>
+
+  <div id="mobileCards" class="mobile-cards"></div>
 
   <div id="noResults" class="no-results" style="display:none;">
     Keine passenden Bobinen gefunden.
@@ -789,12 +952,32 @@ function closeAllRowMenus(){
   document.querySelectorAll(".row-dropdown").forEach(menu => {
     menu.classList.remove("open");
   });
+
+  document.querySelectorAll(".mobile-row-dropdown").forEach(menu => {
+    menu.classList.remove("open");
+  });
 }
 
 function toggleRowMenu(event, id){
   event.stopPropagation();
 
   const currentMenu = document.getElementById("rowMenu-" + id);
+  if(!currentMenu){
+    return;
+  }
+
+  const isOpen = currentMenu.classList.contains("open");
+  closeAllRowMenus();
+
+  if(!isOpen){
+    currentMenu.classList.add("open");
+  }
+}
+
+function toggleMobileRowMenu(event, id){
+  event.stopPropagation();
+
+  const currentMenu = document.getElementById("mobileRowMenu-" + id);
   if(!currentMenu){
     return;
   }
@@ -832,6 +1015,31 @@ function toggleDetails(id){
   }
 }
 
+function toggleMobileDetails(id){
+  const details = document.getElementById("mobileDetails-" + id);
+  const icon = document.getElementById("mobileDetailsIcon-" + id);
+
+  if(!details){
+    return;
+  }
+
+  const isOpen = details.classList.contains("open");
+
+  if(isOpen){
+    details.classList.remove("open");
+    openDetailsRows.delete(id);
+    if(icon){
+      icon.className = "fa-solid fa-chevron-down";
+    }
+  }else{
+    details.classList.add("open");
+    openDetailsRows.add(id);
+    if(icon){
+      icon.className = "fa-solid fa-chevron-up";
+    }
+  }
+}
+
 document.addEventListener("click", function(event){
   const menu = document.getElementById("dropdownMenu");
   const menuWrap = document.querySelector(".menu-wrap");
@@ -840,7 +1048,7 @@ document.addEventListener("click", function(event){
     closeMenu();
   }
 
-  if(!event.target.closest(".row-menu-wrap")){
+  if(!event.target.closest(".row-menu-wrap") && !event.target.closest(".mobile-row-menu-wrap")){
     closeAllRowMenus();
   }
 });
@@ -895,6 +1103,7 @@ auth.onAuthStateChanged((user) => {
     document.getElementById("loginScreen").style.display = "flex";
     document.getElementById("appContent").style.display = "none";
     document.getElementById("table").innerHTML = "";
+    document.getElementById("mobileCards").innerHTML = "";
     document.getElementById("resultInfo").innerText = "";
     document.getElementById("noResults").style.display = "none";
     alleBobinen = [];
@@ -902,16 +1111,9 @@ auth.onAuthStateChanged((user) => {
   }
 });
 
-function renderTable(data){
+function renderDesktopTable(data){
   const table = document.getElementById("table");
-  const noResults = document.getElementById("noResults");
   table.innerHTML = "";
-
-  if(data.length === 0){
-    noResults.style.display = "block";
-  }else{
-    noResults.style.display = "none";
-  }
 
   data.forEach(docItem => {
     const b = docItem.data();
@@ -983,8 +1185,95 @@ function renderTable(data){
     table.appendChild(mainRow);
     table.appendChild(detailsRow);
   });
+}
 
-  document.getElementById("resultInfo").innerText = "Angezeigte Bobinen: " + data.length;
+function renderMobileCards(data){
+  const mobileCards = document.getElementById("mobileCards");
+  mobileCards.innerHTML = "";
+
+  data.forEach(docItem => {
+    const b = docItem.data();
+    const hinzugefuegtAm = formatDatum(b.hinzugefuegtAm);
+    const isDetailOpen = openDetailsRows.has(docItem.id);
+
+    const statusButtonText = b.status === "Lager" ? "In Gebrauch" : "Zurück ins Lager";
+    const statusButtonIcon = b.status === "Lager" ? "fa-arrow-right" : "fa-rotate-left";
+    const statusClass = b.status === "Lager" ? "instock" : "inuse";
+
+    const card = document.createElement("div");
+    card.className = "mobile-card " + statusClass;
+
+    card.innerHTML = `
+      <div class="mobile-card-header">
+        <div class="mobile-card-title-wrap">
+          <div class="mobile-card-number-label">Nummer</div>
+          <div class="mobile-card-number">${escapeHtml(b.nummer || "")}</div>
+        </div>
+
+        <div class="mobile-row-menu-wrap">
+          <button class="mobile-row-menu-button" onclick="toggleMobileRowMenu(event, '${docItem.id}')" title="Weitere Aktionen">
+            <i class="fa-solid fa-ellipsis-vertical"></i>
+          </button>
+
+          <div id="mobileRowMenu-${docItem.id}" class="mobile-row-dropdown">
+            <button class="edit-btn" onclick="editBobine('${docItem.id}'); closeAllRowMenus();">
+              <i class="fa-solid fa-pen"></i> Bearbeiten
+            </button>
+            <button class="delete" onclick="deleteBobine('${docItem.id}'); closeAllRowMenus();">
+              <i class="fa-solid fa-trash"></i> Löschen
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mobile-card-type">${escapeHtml(b.typ || "")}</div>
+
+      <div class="mobile-main-info">
+        <div class="mobile-info-box">
+          <div class="mobile-info-label">Länge</div>
+          <div class="mobile-info-value">${escapeHtml(b.laenge || "")}</div>
+        </div>
+
+        <div class="mobile-info-box">
+          <div class="mobile-info-label">Baustelle</div>
+          <div class="mobile-info-value">${escapeHtml(b.baustelle || "")}</div>
+        </div>
+      </div>
+
+      <div class="mobile-actions">
+        <button class="status-btn" onclick="toggleStatus('${docItem.id}')">
+          <i class="fa-solid ${statusButtonIcon}"></i> ${statusButtonText}
+        </button>
+
+        <button class="details-toggle-btn" onclick="toggleMobileDetails('${docItem.id}')">
+          <i id="mobileDetailsIcon-${docItem.id}" class="fa-solid ${isDetailOpen ? "fa-chevron-up" : "fa-chevron-down"}"></i> Details
+        </button>
+
+        <div></div>
+      </div>
+
+      <div id="mobileDetails-${docItem.id}" class="mobile-details${isDetailOpen ? " open" : ""}">
+        <div class="mobile-details-grid">
+          <div class="mobile-details-item">
+            <div class="mobile-details-label">Hersteller</div>
+            <div class="mobile-details-value">${escapeHtml(b.hersteller || "")}</div>
+          </div>
+
+          <div class="mobile-details-item">
+            <div class="mobile-details-label">Hinzugefügt am</div>
+            <div class="mobile-details-value">${escapeHtml(hinzugefuegtAm || "")}</div>
+          </div>
+
+          <div class="mobile-details-item">
+            <div class="mobile-details-label">Status</div>
+            <div class="mobile-details-value">${escapeHtml(b.status || "")}</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    mobileCards.appendChild(card);
+  });
 }
 
 function renderFilteredTable(){
@@ -1014,7 +1303,17 @@ function renderFilteredTable(){
     return textPasst && statusPasst;
   });
 
-  renderTable(gefiltert);
+  const noResults = document.getElementById("noResults");
+  if(gefiltert.length === 0){
+    noResults.style.display = "block";
+  }else{
+    noResults.style.display = "none";
+  }
+
+  renderDesktopTable(gefiltert);
+  renderMobileCards(gefiltert);
+
+  document.getElementById("resultInfo").innerText = "Angezeigte Bobinen: " + gefiltert.length;
 }
 
 function resetSearch(){
