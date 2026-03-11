@@ -1100,6 +1100,7 @@ auth.onAuthStateChanged((user) => {
     stopListeners();
     closeMenu();
     closeAllRowMenus();
+    closeModal();
     document.getElementById("loginScreen").style.display = "flex";
     document.getElementById("appContent").style.display = "none";
     document.getElementById("table").innerHTML = "";
@@ -1347,6 +1348,7 @@ function openAdd(){
   document.getElementById("hersteller").value = "";
 
   document.getElementById("modal").style.display = "block";
+  focusFirstInput("modal");
 }
 
 function editBobine(id){
@@ -1368,6 +1370,7 @@ function editBobine(id){
     document.getElementById("hersteller").value = sanitizeInput(b.hersteller || "", 120);
 
     document.getElementById("modal").style.display = "block";
+    focusFirstInput("modal");
   }).catch(error => {
     console.error("Fehler beim Laden:", error);
     alert("Fehler beim Laden der Bobine.");
@@ -1538,6 +1541,7 @@ function toggleStatus(id){
       document.getElementById("returnLaenge").value = sanitizeInput(b.laenge || "", 40);
       document.getElementById("returnBaustelle").value = sanitizeInput(b.baustelle || "", 120);
       document.getElementById("returnModal").style.display = "block";
+      focusFirstInput("returnModal");
     }
   }).catch(error => {
     console.error("Fehler beim Status ändern:", error);
@@ -1633,20 +1637,49 @@ function deleteBobine(id){
 function closeModal(){
   document.getElementById("modal").style.display = "none";
   document.getElementById("returnModal").style.display = "none";
+  selectedId = null;
 }
 
-window.onclick = function(event){
-  const modal = document.getElementById("modal");
-  const returnModal = document.getElementById("returnModal");
+function focusFirstInput(modalId){
+  setTimeout(() => {
+    const modal = document.getElementById(modalId);
+    if(!modal){
+      return;
+    }
 
-  if(event.target === modal){
-    closeModal();
-  }
-
-  if(event.target === returnModal){
-    closeModal();
-  }
+    const firstInput = modal.querySelector("input, textarea, select");
+    if(firstInput){
+      firstInput.focus();
+      firstInput.select?.();
+    }
+  }, 50);
 }
+
+function bindEnterSubmit(containerId, callback){
+  const container = document.getElementById(containerId);
+  if(!container){
+    return;
+  }
+
+  container.addEventListener("keydown", function(event){
+    if(event.key !== "Enter"){
+      return;
+    }
+
+    if(event.target.tagName === "TEXTAREA"){
+      return;
+    }
+
+    event.preventDefault();
+    callback();
+  });
+}
+
+document.addEventListener("DOMContentLoaded", function(){
+  bindEnterSubmit("loginScreen", login);
+  bindEnterSubmit("modal", saveBobine);
+  bindEnterSubmit("returnModal", confirmReturn);
+});
 </script>
 
 </body>
