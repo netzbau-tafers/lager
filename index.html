@@ -585,6 +585,49 @@ input{
   font-size:15px;
 }
 
+.checkbox-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:6px 0 12px 0;
+  padding:10px 12px;
+  border:1px solid #d7d7d7;
+  border-radius:8px;
+  background:#f8f9fb;
+  font-size:15px;
+  color:#222;
+}
+
+.checkbox-row input[type="checkbox"]{
+  width:auto;
+  margin:0;
+  transform:scale(1.2);
+  cursor:pointer;
+}
+
+.checkbox-label-text{
+  font-weight:bold;
+}
+
+.bobinen-badge{
+  display:inline-block;
+  margin-left:8px;
+  padding:4px 10px;
+  border-radius:999px;
+  background:#eef3f8;
+  color:#334155;
+  font-size:12px;
+  font-weight:bold;
+  vertical-align:middle;
+  white-space:nowrap;
+}
+
+.mobile-card-number .bobinen-badge{
+  font-size:11px;
+  padding:4px 8px;
+  margin-left:6px;
+}
+
 .no-results{
   text-align:center;
   background:white;
@@ -821,42 +864,47 @@ input{
 
       <input id="nummer" placeholder="Nummer" maxlength="60">
 
-<select id="typSelect" onchange="handleTypChange()">
-  <option value="">Kabeltyp auswählen</option>
+      <select id="typSelect" onchange="handleTypChange()">
+        <option value="">Kabeltyp auswählen</option>
 
-  <option value="GKN 3x6/6mm² Cu">GKN 3x6/6mm² Cu</option>
-  <option value="GKN 3x10/10mm² Cu">GKN 3x10/10mm² Cu</option>
-  <option value="GKN 3x16/16mm² Cu">GKN 3x16/16mm² Cu</option>
-  <option value="GKN 3x25/25mm² Cu">GKN 3x25/25mm² Cu</option>
-  <option value="GKN 3x50/50mm² Cu">GKN 3x50/50mm² Cu</option>
-  <option value="GKN 3x95/95mm² Cu">GKN 3x95/95mm² Cu</option>
-  <option value="GKN 3x95/95mm² Cu Flex">GKN 3x95/95mm² Cu Flex</option>
-  <option value="GKN 3x150/150mm² Cu">GKN 3x150/150mm² Cu</option>
-  <option value="GKN 3x1x150/50mm² Cu">GKN 3x1x150/50mm² Cu</option>
-  <option value="GKN 3x1x240/80mm² Cu">GKN 3x1x240/80mm² Cu</option>
+        <option value="GKN 3x6/6mm² Cu">GKN 3x6/6mm² Cu</option>
+        <option value="GKN 3x10/10mm² Cu">GKN 3x10/10mm² Cu</option>
+        <option value="GKN 3x16/16mm² Cu">GKN 3x16/16mm² Cu</option>
+        <option value="GKN 3x25/25mm² Cu">GKN 3x25/25mm² Cu</option>
+        <option value="GKN 3x50/50mm² Cu">GKN 3x50/50mm² Cu</option>
+        <option value="GKN 3x95/95mm² Cu">GKN 3x95/95mm² Cu</option>
+        <option value="GKN 3x95/95mm² Cu Flex">GKN 3x95/95mm² Cu Flex</option>
+        <option value="GKN 3x150/150mm² Cu">GKN 3x150/150mm² Cu</option>
+        <option value="GKN 3x1x150/50mm² Cu">GKN 3x1x150/50mm² Cu</option>
+        <option value="GKN 3x1x240/80mm² Cu">GKN 3x1x240/80mm² Cu</option>
 
-  <option value="XKDT 3x1x50mm² Cu">XKDT 3x1x50mm² Cu</option>
-  <option value="XKDT 3x1x95mm² Cu">XKDT 3x1x95mm² Cu</option>
-  <option value="XKDT 3x1x150mm² Cu">XKDT 3x1x150mm² Cu</option>
-  <option value="XKDT 3x1x240mm² Cu">XKDT 3x1x240mm² Cu</option>
+        <option value="XKDT 3x1x50mm² Cu">XKDT 3x1x50mm² Cu</option>
+        <option value="XKDT 3x1x95mm² Cu">XKDT 3x1x95mm² Cu</option>
+        <option value="XKDT 3x1x150mm² Cu">XKDT 3x1x150mm² Cu</option>
+        <option value="XKDT 3x1x240mm² Cu">XKDT 3x1x240mm² Cu</option>
 
-  <option value="GKN 3x95/50mm² AL">GKN 3x95/50mm² AL</option>
-  <option value="GKN 3x150/95mm² AL">GKN 3x150/95mm² AL</option>
-  <option value="GKN 3x1x240/150mm² AL">GKN 3x1x240/150mm² AL</option>
+        <option value="GKN 3x95/50mm² AL">GKN 3x95/50mm² AL</option>
+        <option value="GKN 3x150/95mm² AL">GKN 3x150/95mm² AL</option>
+        <option value="GKN 3x1x240/150mm² AL">GKN 3x1x240/150mm² AL</option>
 
-  <option value="XKDT 3x1x95mm² AL">XKDT 3x1x95mm² AL</option>
-  <option value="XKDT 3x1x150mm² AL">XKDT 3x1x150mm² AL</option>
-  <option value="XKDT 3x1x240mm² AL">XKDT 3x1x240mm² AL</option>
+        <option value="XKDT 3x1x95mm² AL">XKDT 3x1x95mm² AL</option>
+        <option value="XKDT 3x1x150mm² AL">XKDT 3x1x150mm² AL</option>
+        <option value="XKDT 3x1x240mm² AL">XKDT 3x1x240mm² AL</option>
 
-  <option value="TT 150mm² Cu Flex">TT 150mm² Cu Flex</option>
-  <option value="TT 185mm² Cu Flex">TT 185mm² Cu Flex</option>
-  <option value="TT 240mm² Cu Flex">TT 240mm² Cu Flex</option>
-  <option value="TT 5x50mm² Cu">TT 5x50mm² Cu</option>
+        <option value="TT 150mm² Cu Flex">TT 150mm² Cu Flex</option>
+        <option value="TT 185mm² Cu Flex">TT 185mm² Cu Flex</option>
+        <option value="TT 240mm² Cu Flex">TT 240mm² Cu Flex</option>
+        <option value="TT 5x50mm² Cu">TT 5x50mm² Cu</option>
 
-  <option value="__ANDERER__">Anderer Kabeltyp</option>
-</select>
+        <option value="__ANDERER__">Anderer Kabeltyp</option>
+      </select>
 
       <input id="typCustom" class="hidden" placeholder="Anderen Kabeltyp eingeben" maxlength="120">
+
+      <label class="checkbox-row">
+        <input type="checkbox" id="istDreiBobinen">
+        <span class="checkbox-label-text">Kabel ist auf 3 Bobinen</span>
+      </label>
 
       <input id="laenge" placeholder="Länge (m)" maxlength="40">
       <input id="baustelle" placeholder="Baustelle" maxlength="120">
@@ -988,6 +1036,13 @@ function formatDatum(value){
   }catch(error){
     return "";
   }
+}
+
+function getBobinenBadgeHtml(istDreiBobinen){
+  if(istDreiBobinen){
+    return ' <span class="bobinen-badge">3 Bobinen</span>';
+  }
+  return "";
 }
 
 function handleTypChange(){
@@ -1253,6 +1308,7 @@ function renderDesktopTable(data){
     const b = docItem.data();
     const hinzugefuegtAm = formatDatum(b.hinzugefuegtAm);
     const isDetailOpen = openDetailsRows.has(docItem.id);
+    const bobinenBadge = getBobinenBadgeHtml(!!b.istDreiBobinen);
 
     const statusButtonText = b.status === "Lager" ? "In Gebrauch" : "Zurück ins Lager";
     const statusButtonIcon = b.status === "Lager" ? "fa-arrow-right" : "fa-rotate-left";
@@ -1261,7 +1317,7 @@ function renderDesktopTable(data){
     mainRow.className = "main-row " + (b.status === "Lager" ? "instock" : "inuse");
 
     mainRow.innerHTML = `
-      <td>${escapeHtml(b.nummer || "")}</td>
+      <td>${escapeHtml(b.nummer || "")}${bobinenBadge}</td>
       <td>${escapeHtml(b.typ || "")}</td>
       <td>${escapeHtml(b.laenge || "")}</td>
       <td>${escapeHtml(b.baustelle || "")}</td>
@@ -1337,6 +1393,7 @@ function renderMobileCards(data){
     const statusButtonText = b.status === "Lager" ? "In Gebrauch" : "Zurück ins Lager";
     const statusButtonIcon = b.status === "Lager" ? "fa-arrow-right" : "fa-rotate-left";
     const statusClass = b.status === "Lager" ? "instock" : "inuse";
+    const bobinenBadge = getBobinenBadgeHtml(!!b.istDreiBobinen);
 
     const card = document.createElement("div");
     card.className = "mobile-card " + statusClass;
@@ -1345,7 +1402,7 @@ function renderMobileCards(data){
       <div class="mobile-card-header">
         <div class="mobile-card-title-wrap">
           <div class="mobile-card-number-label">Nummer</div>
-          <div class="mobile-card-number">${escapeHtml(b.nummer || "")}</div>
+          <div class="mobile-card-number">${escapeHtml(b.nummer || "")}${bobinenBadge}</div>
         </div>
 
         <div class="mobile-row-menu-wrap">
@@ -1489,6 +1546,7 @@ function openAdd(){
   document.getElementById("typSelect").value = "";
   document.getElementById("typCustom").value = "";
   document.getElementById("typCustom").classList.add("hidden");
+  document.getElementById("istDreiBobinen").checked = false;
   document.getElementById("laenge").value = "";
   document.getElementById("baustelle").value = "";
   document.getElementById("hersteller").value = "";
@@ -1512,6 +1570,7 @@ function editBobine(id){
     document.getElementById("modalTitle").innerText = "Bobine bearbeiten";
     document.getElementById("nummer").value = sanitizeInput(b.nummer || "", 60);
     setTypFields(b.typ || "");
+    document.getElementById("istDreiBobinen").checked = !!b.istDreiBobinen;
     document.getElementById("laenge").value = sanitizeInput(b.laenge || "", 40);
     document.getElementById("baustelle").value = sanitizeInput(b.baustelle || "", 120);
     document.getElementById("hersteller").value = sanitizeInput(b.hersteller || "", 120);
@@ -1572,6 +1631,7 @@ document.addEventListener("DOMContentLoaded", markActiveMenu);
 function saveBobine(){
   const nummerWert = nummerBereinigen(document.getElementById("nummer").value);
   const typ = getSelectedTyp();
+  const istDreiBobinen = document.getElementById("istDreiBobinen").checked;
   const laenge = sanitizeInput(document.getElementById("laenge").value, 40);
   const baustelle = sanitizeInput(document.getElementById("baustelle").value, 120);
   const hersteller = sanitizeInput(document.getElementById("hersteller").value, 120);
@@ -1599,6 +1659,7 @@ function saveBobine(){
   const data = {
     nummer: nummerWert,
     typ: typ,
+    istDreiBobinen: istDreiBobinen,
     laenge: laenge,
     baustelle: baustelle,
     hersteller: hersteller,
@@ -1629,6 +1690,7 @@ function saveBobine(){
             editId,
             "Nummer: " + nummerWert +
             " | Typ: " + typ +
+            " | 3 Bobinen: " + (istDreiBobinen ? "Ja" : "Nein") +
             " | Länge: " + laenge +
             " | Baustelle: " + baustelle +
             " | Hersteller: " + hersteller +
@@ -1654,6 +1716,7 @@ function saveBobine(){
           docRef.id,
           "Nummer: " + nummerWert +
           " | Typ: " + typ +
+          " | 3 Bobinen: " + (istDreiBobinen ? "Ja" : "Nein") +
           " | Länge: " + laenge +
           " | Baustelle: " + baustelle +
           " | Hersteller: " + hersteller +
@@ -1691,6 +1754,7 @@ function toggleStatus(id){
           id,
           "Nummer: " + (b.nummer || "") +
           " | Typ: " + (b.typ || "") +
+          " | 3 Bobinen: " + (b.istDreiBobinen ? "Ja" : "Nein") +
           " | Länge: " + (b.laenge || "") +
           " | Baustelle: " + (b.baustelle || "") +
           " | Hersteller: " + (b.hersteller || "") +
@@ -1741,6 +1805,7 @@ function confirmReturn(){
         selectedId,
         "Nummer: " + (b.nummer || "") +
         " | Typ: " + (b.typ || "") +
+        " | 3 Bobinen: " + (b.istDreiBobinen ? "Ja" : "Nein") +
         " | Neue Länge: " + returnLaenge +
         " | Baustelle: " + returnBaustelle +
         " | Infos: " + (b.infos || "")
@@ -1767,6 +1832,7 @@ function deleteBobine(id){
       "Bobine wirklich löschen?\n\n" +
       "Nummer: " + sanitizeInput(b.nummer || "", 60) + "\n" +
       "Kabeltyp: " + sanitizeInput(b.typ || "", 120) + "\n" +
+      "3 Bobinen: " + (b.istDreiBobinen ? "Ja" : "Nein") + "\n" +
       "Länge: " + sanitizeInput(b.laenge || "", 40) + "\n" +
       "Baustelle: " + sanitizeInput(b.baustelle || "", 120) + "\n" +
       "Infos: " + sanitizeInput(b.infos || "", 250) + "\n\n" +
@@ -1782,6 +1848,7 @@ function deleteBobine(id){
           id,
           "Nummer: " + (b.nummer || "") +
           " | Typ: " + (b.typ || "") +
+          " | 3 Bobinen: " + (b.istDreiBobinen ? "Ja" : "Nein") +
           " | Länge: " + (b.laenge || "") +
           " | Baustelle: " + (b.baustelle || "") +
           " | Hersteller: " + (b.hersteller || "") +
