@@ -313,6 +313,11 @@ label{
   left:0;
 }
 
+ .card-menu-wrap.right-open .card-dropdown{
+  left:0;
+  right:auto;
+} 
+
 .card-menu-button{
   background:#555;
   color:white;
@@ -969,6 +974,7 @@ function closeAllCardMenus(){
 
   document.querySelectorAll(".card-menu-wrap").forEach(wrap => {
     wrap.classList.remove("left-open");
+    wrap.classList.remove("right-open");
   });
 }
 
@@ -978,12 +984,14 @@ function toggleCardMenu(event, id){
   }
 
   const currentMenu = document.getElementById("cardMenu-" + id);
+
   if(!currentMenu){
     return;
   }
 
   const wrap = currentMenu.closest(".card-menu-wrap");
   const isOpen = currentMenu.classList.contains("open");
+
   closeAllCardMenus();
 
   if(isOpen){
@@ -993,8 +1001,13 @@ function toggleCardMenu(event, id){
   currentMenu.classList.add("open");
 
   const rect = currentMenu.getBoundingClientRect();
-  if(rect.right > window.innerWidth - 10 && wrap){
-    wrap.classList.add("left-open");
+
+  if(wrap){
+    if(rect.right > window.innerWidth - 10){
+      wrap.classList.add("left-open");
+    }else if(rect.left < 10){
+      wrap.classList.add("right-open");
+    }
   }
 }
 
