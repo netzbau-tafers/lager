@@ -712,7 +712,7 @@ label{
         <button class="back" onclick="resetVorlagenSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
       </div>
 
-      <div style="margin-top:15px;">
+      <div id="neueVorlageWrap" style="margin-top:15px; display:none;">
         <button onclick="openVorlageModal()"><i class="fa-solid fa-plus"></i> Neue Vorlage</button>
       </div>
     </div>
@@ -804,6 +804,50 @@ let openMaterialLists = {};
 let vorlagenBereichOffen = false;
 let selectedVorlageId = null;
 let isAdminUser = false;
+
+function getBaustelleById(id){
+  return alleBaustellen.find(b => b.id === id) || null;
+}
+
+function getBaustelleVonMaterial(materialId){
+  const material = alleMaterialien.find(m => m.id === materialId);
+  if(!material){
+    return null;
+  }
+
+  return getBaustelleById(material.baustelleId);
+}
+
+function canEditBaustelle(baustelle){
+  if(!baustelle){
+    return false;
+  }
+
+  if(baustelle.status === "aktiv"){
+    return true;
+  }
+
+  return isAdminUser;
+}
+
+function canManageMaterial(baustelle){
+  if(!baustelle){
+    return false;
+  }
+
+  if(baustelle.status === "aktiv"){
+    return true;
+  }
+
+  return isAdminUser;
+}
+
+function updateAdminVisibility(){
+  const neueVorlageWrap = document.getElementById("neueVorlageWrap");
+  if(neueVorlageWrap){
+    neueVorlageWrap.style.display = isAdminUser ? "block" : "none";
+  }
+}
 
 function writeLog(bereich, aktion, objektTyp, objektId, details){
   const user = auth.currentUser;
@@ -1002,6 +1046,7 @@ auth.onAuthStateChanged((user) => {
     isAdminUser = user.uid === ADMIN_UID;
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
+    updateAdminVisibility();
     startListeners();
   }else{
     isAdminUser = false;
@@ -1010,6 +1055,7 @@ auth.onAuthStateChanged((user) => {
     closeAllCardMenus();
     document.getElementById("loginScreen").style.display = "flex";
     document.getElementById("appContent").style.display = "none";
+    updateAdminVisibility();
     document.getElementById("aktiveBaustellen").innerHTML = "";
     document.getElementById("beendeteBaustellen").innerHTML = "";
     document.getElementById("vorlagenListe").innerHTML = "";
@@ -1211,6 +1257,7 @@ function renderVorlagen(){
   }
 
   container.innerHTML = "";
+  updateAdminVisibility();
 
   const gefilterteVorlagen = [...alleVorlagen]
     .filter(v => vorlagePasstZurSuche(v))
@@ -1226,10 +1273,24 @@ function renderVorlagen(){
       card.innerHTML = `
         <h3>${escapeHtml(v.material || "")}</h3>
         <div class="baustelle-meta"><strong>Spontis Nummer:</strong> ${escapeHtml(v.spontis || "")}</div>
+        ${isAdminUser ? `
         <div class="card-actions">
-          ${isAdminUser ? `<button class="edit" onclick="openVorlageModal('${v.id}')"><i class="fa-solid fa-pen"></i> Bearbeiten</button>` : ""}
-          ${isAdminUser ? `<button class="delete" onclick="deleteVorlage('${v.id}')"><i class="fa-solid fa-trash"></i> Löschen</button>` : ""}
+          <div class="card-menu-wrap">
+            <button class="card-menu-button" onclick="toggleCardMenu(event, 'vorlage-${v.id}')" title="Weitere Aktionen">
+              <i class="fa-solid fa-ellipsis-vertical"></i>
+            </button>
+
+            <div id="cardMenu-vorlage-${v.id}" class="card-dropdown">
+              <button class="edit" onclick="openVorlageModal('${v.id}'); closeAllCardMenus();">
+                <i class="fa-solid fa-pen"></i> Bearbeiten
+              </button>
+              <button class="delete" onclick="deleteVorlage('${v.id}'); closeAllCardMenus();">
+                <i class="fa-solid fa-trash"></i> Löschen
+              </button>
+            </div>
+          </div>
         </div>
+        ` : ""}
       `;
 
       container.appendChild(card);
@@ -1324,15 +1385,30 @@ function createBaustelleCard(baustelle){
     materialHtml = '<div class="empty-box">Noch kein Material erfasst.</div>';
   }else{
     materialien.forEach(m => {
+      const darfMaterialBearbeiten = canManageMaterial(baustelle);
+
       materialHtml += `
         <div class="material-item">
           <div class="material-row"><strong>Material:</strong> ${escapeHtml(m.material || "")}</div>
           <div class="material-row"><strong>Anzahl:</strong> ${escapeHtml(m.anzahl || "")}</div>
           <div class="material-row"><strong>Spontis Nummer:</strong> ${escapeHtml(m.spontis || "")}</div>
-          ${baustelle.status === "aktiv" ? `
+
+          ${darfMaterialBearbeiten ? `
           <div class="material-actions">
-            <button class="edit" onclick="openMaterialModal('${baustelle.id}','${m.id}')"><i class="fa-solid fa-pen"></i> Bearbeiten</button>
-            <button class="delete" onclick="deleteMaterial('${m.id}')"><i class="fa-solid fa-trash"></i> Löschen</button>
+            <div class="card-menu-wrap">
+              <button class="card-menu-button" onclick="toggleCardMenu(event, 'material-${m.id}')" title="Weitere Aktionen">
+                <i class="fa-solid fa-ellipsis-vertical"></i>
+              </button>
+
+              <div id="cardMenu-material-${m.id}" class="card-dropdown">
+                <button class="edit" onclick="openMaterialModal('${baustelle.id}','${m.id}'); closeAllCardMenus();">
+                  <i class="fa-solid fa-pen"></i> Bearbeiten
+                </button>
+                <button class="delete" onclick="deleteMaterial('${m.id}'); closeAllCardMenus();">
+                  <i class="fa-solid fa-trash"></i> Löschen
+                </button>
+              </div>
+            </div>
           </div>
           ` : ""}
         </div>
@@ -1370,19 +1446,22 @@ function createBaustelleCard(baustelle){
         <button class="print-btn" onclick="printBaustelle('${baustelle.id}')"><i class="fa-solid fa-print"></i> Drucken</button>
         ${isAdminUser ? `<button class="archive" onclick="archiveBaustelle('${baustelle.id}')"><i class="fa-solid fa-box-archive"></i> Archivieren</button>` : ""}
 
+        ${isAdminUser ? `
         <div class="card-menu-wrap">
           <button class="card-menu-button" onclick="toggleCardMenu(event, '${baustelle.id}')" title="Weitere Aktionen">
             <i class="fa-solid fa-ellipsis-vertical"></i>
           </button>
 
           <div id="cardMenu-${baustelle.id}" class="card-dropdown">
-            ${isAdminUser ? `
+            <button class="edit" onclick="editBaustelle('${baustelle.id}'); closeAllCardMenus();">
+              <i class="fa-solid fa-pen"></i> Bearbeiten
+            </button>
             <button class="delete" onclick="deleteBaustelle('${baustelle.id}'); closeAllCardMenus();">
               <i class="fa-solid fa-trash"></i> Löschen
             </button>
-            ` : ""}
           </div>
         </div>
+        ` : ""}
       </div>
     `;
   }
@@ -1469,6 +1548,11 @@ function editBaustelle(id){
     return;
   }
 
+  if(!canEditBaustelle(b)){
+    alert("Nur Admins dürfen beendete Baustellen bearbeiten.");
+    return;
+  }
+
   editBaustelleId = id;
   document.getElementById("baustelleModalTitle").innerText = "Baustelle bearbeiten";
   document.getElementById("baustelleName").value = sanitizeInput(b.name || "", 120);
@@ -1492,6 +1576,13 @@ function saveBaustelle(){
   }
 
   if(editBaustelleId){
+    const alteBaustelle = alleBaustellen.find(b => b.id === editBaustelleId);
+
+    if(!canEditBaustelle(alteBaustelle)){
+      alert("Nur Admins dürfen beendete Baustellen bearbeiten.");
+      return;
+    }
+
     const vorhandeneAktive = alleBaustellen.find(b =>
       String(b.nummer || "").trim().toLowerCase() === nummer.toLowerCase() &&
       b.status === "aktiv" &&
@@ -1503,7 +1594,6 @@ function saveBaustelle(){
       return;
     }
 
-    const alteBaustelle = alleBaustellen.find(b => b.id === editBaustelleId);
     const status = alteBaustelle ? alteBaustelle.status : "aktiv";
     const abgeschlossenAm = alteBaustelle && alteBaustelle.abgeschlossenAm ? alteBaustelle.abgeschlossenAm : null;
     const archiviertAm = alteBaustelle && alteBaustelle.archiviertAm ? alteBaustelle.archiviertAm : null;
@@ -1575,6 +1665,17 @@ function saveBaustelle(){
 }
 
 function openMaterialModal(baustelleId, materialId = null){
+  const baustelle = getBaustelleById(baustelleId);
+  if(!baustelle){
+    alert("Baustelle nicht gefunden.");
+    return;
+  }
+
+  if(!canManageMaterial(baustelle)){
+    alert("Nur Admins dürfen Material bei beendeten Baustellen bearbeiten.");
+    return;
+  }
+
   currentBaustelleId = baustelleId;
   editMaterialId = materialId;
   selectedVorlageId = null;
@@ -1620,6 +1721,12 @@ function saveMaterial(){
 
   if(!currentBaustelleId){
     alert("Keine Baustelle ausgewählt.");
+    return;
+  }
+
+  const aktuelleBaustelle = getBaustelleById(currentBaustelleId);
+  if(!canManageMaterial(aktuelleBaustelle)){
+    alert("Nur Admins dürfen Material bei beendeten Baustellen bearbeiten.");
     return;
   }
 
@@ -1676,8 +1783,8 @@ function saveMaterial(){
 }
 
 function openVorlageModal(id = null){
-  if(id && !isAdminUser){
-    alert("Nur Admins dürfen Vorlagen bearbeiten.");
+  if(!isAdminUser){
+    alert("Nur Admins dürfen Materialvorlagen verwalten.");
     return;
   }
 
@@ -1703,6 +1810,11 @@ function openVorlageModal(id = null){
 }
 
 function saveVorlage(){
+  if(!isAdminUser){
+    alert("Nur Admins dürfen Materialvorlagen speichern.");
+    return;
+  }
+
   const material = sanitizeInput(document.getElementById("vorlageMaterial").value, 120);
   const spontis = sanitizeInput(document.getElementById("vorlageSpontis").value, 60);
 
@@ -2052,6 +2164,12 @@ function deleteMaterial(id){
     return;
   }
 
+  const baustelle = getBaustelleVonMaterial(id);
+  if(!canManageMaterial(baustelle)){
+    alert("Nur Admins dürfen Material bei beendeten Baustellen löschen.");
+    return;
+  }
+
   const text =
     "Material wirklich löschen?\n\n" +
     "Material: " + sanitizeInput(m.material || "", 120) + "\n" +
@@ -2077,6 +2195,11 @@ function deleteMaterial(id){
 }
 
 function deleteVorlage(id){
+  if(!isAdminUser){
+    alert("Nur Admins dürfen Materialvorlagen löschen.");
+    return;
+  }
+
   const v = alleVorlagen.find(x => x.id === id);
   if(!v){
     alert("Vorlage nicht gefunden.");
@@ -2134,7 +2257,10 @@ function markActiveMenu(){
   });
 }
 
-document.addEventListener("DOMContentLoaded", markActiveMenu);
+document.addEventListener("DOMContentLoaded", function(){
+  markActiveMenu();
+  updateAdminVisibility();
+});
 
 function closeModals(){
   document.getElementById("baustelleModal").style.display = "none";
