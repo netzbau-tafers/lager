@@ -623,10 +623,23 @@ input{
 }
 
 .desktop-nummer-cell .bobinen-badge{
-  display:block;
-  width:max-content;
-  margin-top:6px;
-  margin-left:0;
+  position:absolute;
+  left:calc(100% + 10px);
+  top:50%;
+  transform:translateY(-50%);
+  margin:0;
+}
+
+@media (min-width: 901px){
+  .desktop-nummer-cell{
+    position:relative;
+    display:inline-block;
+  }
+
+  table th:first-child,
+  table td:first-child{
+    min-width:170px;
+  }
 }
 
 .mobile-card-number .bobinen-badge{
