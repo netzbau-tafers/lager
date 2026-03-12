@@ -434,6 +434,43 @@ let unsubscribeLogs = null;
 let alleLogs = [];
 let isAdminUser = false;
 
+const LOGS_CACHE_KEY = "logs_snapshot_v1";
+const LOGS_RETENTION_DAYS = 14;
+const MILLIS_PER_DAY = 24 * 60 * 60 * 1000;
+
+function saveLogsCache(){
+  try{
+    const cachePayload = {
+      savedAt: Date.now(),
+      logs: alleLogs
+    };
+
+    localStorage.setItem(LOGS_CACHE_KEY, JSON.stringify(cachePayload));
+  }catch(error){
+    console.warn("Logs-Cache konnte nicht gespeichert werden:", error);
+  }
+}
+
+function loadLogsCache(){
+  try{
+    const raw = localStorage.getItem(LOGS_CACHE_KEY);
+    if(!raw){
+      return;
+    }
+
+    const parsed = JSON.parse(raw);
+    if(!parsed || !Array.isArray(parsed.logs)){
+      return;
+    }
+
+    alleLogs = parsed.logs;
+    renderBenutzerFilter();
+    renderLogs();
+  }catch(error){
+    console.warn("Logs-Cache konnte nicht geladen werden:", error);
+  }
+}
+
 function escapeHtml(value){
   return String(value || "")
     .replace(/&/g, "&amp;")
@@ -594,6 +631,7 @@ auth.onAuthStateChanged((user) => {
     isAdminUser = user.uid === ADMIN_UID;
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
+    loadLogsCache();
     cleanupOldLogs();
     startLogsListener();
   }else{
@@ -614,18 +652,22 @@ function cleanupOldLogs(){
     return;
   }
 
-  const limitDate = new Date();
-  limitDate.setDate(limitDate.getDate() - 14);
+  const cutoffMs = Date.now() - (LOGS_RETENTION_DAYS * MILLIS_PER_DAY);
 
   logsCollection
-    .where("createdAt", "<", limitDate)
+    .where("createdAt", "<", new Date(cutoffMs))
     .get()
     .then(snapshot => {
-      const promises = [];
+      if(snapshot.empty){
+        return;
+      }
+
+      const deletions = [];
       snapshot.forEach(doc => {
-        promises.push(logsCollection.doc(doc.id).delete());
+        deletions.push(logsCollection.doc(doc.id).delete());
       });
-      return Promise.all(promises);
+
+      return Promise.all(deletions);
     })
     .catch(error => {
       console.error("Fehler beim Löschen alter Logs:", error);
@@ -639,6 +681,7 @@ function startLogsListener(){
 
   unsubscribeLogs = logsCollection.onSnapshot(snapshot => {
     alleLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    saveLogsCache();
     renderBenutzerFilter();
     renderLogs();
   }, error => {
