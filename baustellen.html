@@ -226,6 +226,30 @@ label{
   color:#333;
 }
 
+.input-with-action{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.input-with-action input{
+  margin-bottom:12px;
+}
+
+.inline-icon-btn{
+  margin:0 0 12px 0;
+  width:40px;
+  height:40px;
+  min-width:40px;
+  padding:0;
+  border-radius:8px;
+  background:#7f8c8d;
+}
+
+.inline-icon-btn:hover{
+  background:#636e72;
+}
+
 #searchInput,
 #vorlagenSearchInput{
   margin:0;
@@ -783,7 +807,12 @@ label{
     <h3 id="vorlageModalTitle">Neue Materialvorlage</h3>
     <input id="vorlageMaterial" placeholder="Material" maxlength="120">
     <input id="vorlageSpontis" placeholder="Spontis Nummer" maxlength="60">
-    <input id="vorlageLink" placeholder="URL Link (optional)" maxlength="600">
+    <div class="input-with-action">
+      <input id="vorlageLink" placeholder="URL Link (optional)" maxlength="600">
+      <button type="button" class="inline-icon-btn" onclick="clearVorlageLinkInput()" title="URL-Link löschen" aria-label="URL-Link löschen">
+        <i class="fa-solid fa-trash"></i>
+      </button>
+    </div>
     <button onclick="saveVorlage()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
     <button class="back" onclick="closeModals()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
   </div>
@@ -2465,6 +2494,16 @@ function closeModals(){
   editMaterialId = null;
   editVorlageId = null;
   selectedVorlageId = null;
+}
+
+function clearVorlageLinkInput(){
+  const vorlageLinkInput = document.getElementById("vorlageLink");
+  if(!vorlageLinkInput){
+    return;
+  }
+
+  vorlageLinkInput.value = "";
+  vorlageLinkInput.focus();
 }
 
 // Modals werden absichtlich nicht mehr durch Klick ausserhalb geschlossen.
