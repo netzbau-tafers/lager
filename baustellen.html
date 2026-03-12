@@ -421,6 +421,41 @@ label{
   margin-bottom:4px;
 }
 
+.spontis-link{
+  color:#1b66d1;
+  text-decoration:underline;
+  cursor:pointer;
+  font-weight:600;
+}
+
+.spontis-link:hover{
+  color:#0e4aa5;
+}
+
+
+.vorlage-link-row{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  margin:6px 0 12px 0;
+}
+
+#vorlageLink{
+  margin:0;
+}
+
+.clear-link-btn{
+  background:#e74c3c;
+  min-width:44px;
+  min-height:42px;
+  padding:10px 12px;
+  margin:0;
+}
+
+.clear-link-btn:hover{
+  background:#c0392b;
+}
+
 .material-actions{
   display:flex;
   flex-wrap:wrap;
@@ -772,6 +807,12 @@ label{
     <h3 id="vorlageModalTitle">Neue Materialvorlage</h3>
     <input id="vorlageMaterial" placeholder="Material" maxlength="120">
     <input id="vorlageSpontis" placeholder="Spontis Nummer" maxlength="60">
+    <div class="vorlage-link-row">
+      <input id="vorlageLink" placeholder="URL Link (optional)" maxlength="600">
+      <button id="clearVorlageLinkBtn" class="clear-link-btn" onclick="clearVorlageLink()" title="Link löschen" style="display:none;">
+        <i class="fa-solid fa-trash"></i>
+      </button>
+    </div>
     <button onclick="saveVorlage()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
     <button class="back" onclick="closeModals()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
   </div>
@@ -803,7 +844,6 @@ const ADMIN_UID = "smnnQd4RhEQZR3uuNN0otNALUqi1";
 
 let unsubscribeBaustellen = null;
 let unsubscribeMaterial = null;
-let unsubscribeVorlagen = null;
 
 let alleBaustellen = [];
 let alleMaterialien = [];
@@ -817,6 +857,9 @@ let openMaterialLists = {};
 let vorlagenBereichOffen = false;
 let selectedVorlageId = null;
 let isAdminUser = false;
+
+const VORLAGEN_CACHE_KEY = "material_vorlagen_cache_v1";
+const VORLAGEN_CACHE_MAX_AGE_MS = 1000 * 60 * 60 * 6;
 
 function getBaustelleById(id){
   return alleBaustellen.find(b => b.id === id) || null;
@@ -860,6 +903,79 @@ function updateAdminVisibility(){
   if(neueVorlageWrap){
     neueVorlageWrap.style.display = isAdminUser ? "block" : "none";
   }
+}
+
+function parseAndNormalizeUrl(rawValue){
+  const cleaned = sanitizeInput(rawValue || "", 600);
+  if(cleaned === ""){
+    return "";
+  }
+
+  let value = cleaned;
+  if(!/^https?:\/\//i.test(value)){
+    value = "https://" + value;
+  }
+
+  try{
+    const url = new URL(value);
+    if(url.protocol !== "http:" && url.protocol !== "https:"){
+      return null;
+    }
+    return url.toString();
+  }catch(error){
+    return null;
+  }
+}
+
+function getVorlagenFromCache(){
+  try{
+    const raw = localStorage.getItem(VORLAGEN_CACHE_KEY);
+    if(!raw){
+      return null;
+    }
+
+    const parsed = JSON.parse(raw);
+    if(!parsed || !Array.isArray(parsed.vorlagen)){
+      return null;
+    }
+
+    const age = Date.now() - Number(parsed.savedAt || 0);
+    if(age > VORLAGEN_CACHE_MAX_AGE_MS){
+      return null;
+    }
+
+    return parsed.vorlagen.map(v => ({
+      id: sanitizeInput(v.id || "", 160),
+      material: sanitizeInput(v.material || "", 120),
+      spontis: sanitizeInput(v.spontis || "", 60),
+      link: parseAndNormalizeUrl(v.link || "") || ""
+    })).filter(v => v.id);
+  }catch(error){
+    return null;
+  }
+}
+
+function saveVorlagenToCache(vorlagen){
+  try{
+    localStorage.setItem(VORLAGEN_CACHE_KEY, JSON.stringify({
+      savedAt: Date.now(),
+      vorlagen: vorlagen.map(v => ({
+        id: v.id || "",
+        material: sanitizeInput(v.material || "", 120),
+        spontis: sanitizeInput(v.spontis || "", 60),
+        link: parseAndNormalizeUrl(v.link || "") || ""
+      }))
+    }));
+  }catch(error){
+    console.warn("Vorlagen Cache konnte nicht gespeichert werden:", error);
+  }
+}
+
+function setVorlagen(vorlagen){
+  alleVorlagen = vorlagen;
+  renderVorlagen();
+  renderMaterialVorlagenTreffer();
+  updateAusgewaehlteVorlageInfo();
 }
 
 function writeLog(bereich, aktion, objektTyp, objektId, details){
@@ -1068,10 +1184,6 @@ function stopListeners(){
     unsubscribeMaterial = null;
   }
 
-  if(unsubscribeVorlagen){
-    unsubscribeVorlagen();
-    unsubscribeVorlagen = null;
-  }
 }
 
 auth.onAuthStateChanged((user) => {
@@ -1126,17 +1238,35 @@ function startListeners(){
     });
   }
 
-  if(!unsubscribeVorlagen){
-    unsubscribeVorlagen = vorlagenCollection.onSnapshot(snapshot => {
-      alleVorlagen = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      renderVorlagen();
-      renderMaterialVorlagenTreffer();
-      updateAusgewaehlteVorlageInfo();
-    }, error => {
-      console.error("Fehler Materialvorlagen:", error);
-      alert("Fehler beim Laden der Materialvorlagen.");
-    });
+  loadVorlagen();
+}
+
+function loadVorlagen(forceRefresh = false){
+  if(!forceRefresh){
+    const cachedVorlagen = getVorlagenFromCache();
+    if(cachedVorlagen && cachedVorlagen.length > 0){
+      setVorlagen(cachedVorlagen);
+    }
   }
+
+  vorlagenCollection.get().then(snapshot => {
+    const loadedVorlagen = snapshot.docs.map(doc => {
+      const data = doc.data() || {};
+      return {
+        id: doc.id,
+        ...data,
+        link: parseAndNormalizeUrl(data.link || "") || ""
+      };
+    });
+
+    setVorlagen(loadedVorlagen);
+    saveVorlagenToCache(loadedVorlagen);
+  }).catch(error => {
+    console.error("Fehler Materialvorlagen:", error);
+    if(alleVorlagen.length === 0){
+      alert("Fehler beim Laden der Materialvorlagen.");
+    }
+  });
 }
 
 function resetSearch(){
@@ -1305,7 +1435,7 @@ function renderVorlagen(){
 
       card.innerHTML = `
         <h3>${escapeHtml(v.material || "")}</h3>
-        <div class="baustelle-meta"><strong>Spontis Nummer:</strong> ${escapeHtml(v.spontis || "")}</div>
+        <div class="baustelle-meta"><strong>Spontis Nummer:</strong> ${renderSpontisFeld(v.spontis || "", v.link || "", isAdminUser, isAdminUser)}</div>
         ${isAdminUser ? `
         <div class="card-actions">
           <div class="card-menu-wrap">
@@ -1403,6 +1533,42 @@ function updateAusgewaehlteVorlageInfo(){
     escapeHtml(vorlage.spontis || "");
 }
 
+function getVorlageLinkBySpontis(spontisNummer){
+  const normalizedSpontis = sanitizeInput(spontisNummer || "", 60).toLowerCase();
+  if(normalizedSpontis === ""){
+    return "";
+  }
+
+  const vorlage = alleVorlagen.find(v => sanitizeInput(v.spontis || "", 60).toLowerCase() === normalizedSpontis);
+  return vorlage ? (parseAndNormalizeUrl(vorlage.link || "") || "") : "";
+}
+
+function renderSpontisFeld(spontisNummer, link, darfKlicken, userIstAdmin){
+  const spontis = escapeHtml(spontisNummer || "");
+  const normalizedLink = parseAndNormalizeUrl(link || "");
+
+  if(!darfKlicken || !userIstAdmin || !normalizedLink){
+    return spontis;
+  }
+
+  const encodedUrl = encodeURIComponent(normalizedLink);
+  return `<span class="spontis-link" onclick="openSpontisLink('${encodedUrl}')">${spontis}</span>`;
+}
+
+function openSpontisLink(encodedUrl){
+  if(!isAdminUser){
+    return;
+  }
+
+  const url = decodeURIComponent(encodedUrl || "");
+  const normalizedUrl = parseAndNormalizeUrl(url);
+  if(!normalizedUrl){
+    return;
+  }
+
+  window.open(normalizedUrl, "_blank", "noopener,noreferrer");
+}
+
 function createBaustelleCard(baustelle){
   const card = document.createElement("div");
   card.className = "baustelle-card";
@@ -1424,7 +1590,7 @@ function createBaustelleCard(baustelle){
         <div class="material-item">
           <div class="material-row"><strong>Material:</strong> ${escapeHtml(m.material || "")}</div>
           <div class="material-row"><strong>Anzahl:</strong> ${escapeHtml(m.anzahl || "")}</div>
-          <div class="material-row"><strong>Spontis Nummer:</strong> ${escapeHtml(m.spontis || "")}</div>
+          <div class="material-row"><strong>Spontis Nummer:</strong> ${renderSpontisFeld(m.spontis || "", getVorlageLinkBySpontis(m.spontis || ""), baustelle.status === "rausschreiben", isAdminUser)}</div>
 
           ${darfMaterialBearbeiten ? `
           <div class="material-actions">
@@ -1833,13 +1999,29 @@ function openVorlageModal(id = null){
     document.getElementById("vorlageModalTitle").innerText = "Materialvorlage bearbeiten";
     document.getElementById("vorlageMaterial").value = sanitizeInput(v.material || "", 120);
     document.getElementById("vorlageSpontis").value = sanitizeInput(v.spontis || "", 60);
+    document.getElementById("vorlageLink").value = sanitizeInput(v.link || "", 600);
+    document.getElementById("clearVorlageLinkBtn").style.display = "inline-flex";
   }else{
     document.getElementById("vorlageModalTitle").innerText = "Neue Materialvorlage";
     document.getElementById("vorlageMaterial").value = "";
     document.getElementById("vorlageSpontis").value = "";
+    document.getElementById("vorlageLink").value = "";
+    document.getElementById("clearVorlageLinkBtn").style.display = "none";
   }
 
   document.getElementById("vorlageModal").style.display = "block";
+}
+
+
+function clearVorlageLink(){
+  if(!isAdminUser){
+    return;
+  }
+
+  const input = document.getElementById("vorlageLink");
+  if(input){
+    input.value = "";
+  }
 }
 
 function saveVorlage(){
@@ -1850,9 +2032,17 @@ function saveVorlage(){
 
   const material = sanitizeInput(document.getElementById("vorlageMaterial").value, 120);
   const spontis = sanitizeInput(document.getElementById("vorlageSpontis").value, 60);
+  const linkInput = document.getElementById("vorlageLink").value;
+  const normalizedLink = parseAndNormalizeUrl(linkInput);
 
   document.getElementById("vorlageMaterial").value = material;
   document.getElementById("vorlageSpontis").value = spontis;
+  document.getElementById("vorlageLink").value = sanitizeInput(linkInput, 600);
+
+  if(normalizedLink === null){
+    alert("Bitte einen gültigen Link eingeben (http oder https).");
+    return;
+  }
 
   if(material === "" || spontis === ""){
     alert("Bitte Material und Spontis Nummer eingeben.");
@@ -1872,7 +2062,8 @@ function saveVorlage(){
   if(editVorlageId){
     vorlagenCollection.doc(editVorlageId).update({
       material: material,
-      spontis: spontis
+      spontis: spontis,
+      link: normalizedLink || ""
     }).then(() => {
       writeLog(
         "Baustellenmaterial",
@@ -1880,8 +2071,10 @@ function saveVorlage(){
         "vorlage",
         editVorlageId,
         "Material: " + material +
-        " | Spontis Nummer: " + spontis
+        " | Spontis Nummer: " + spontis +
+        " | Link: " + (normalizedLink || "-")
       );
+      loadVorlagen(true);
       closeModals();
     }).catch(error => {
       console.error("Fehler beim Bearbeiten der Vorlage:", error);
@@ -1891,6 +2084,7 @@ function saveVorlage(){
     vorlagenCollection.add({
       material: material,
       spontis: spontis,
+      link: normalizedLink || "",
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then((docRef) => {
       writeLog(
@@ -1899,8 +2093,10 @@ function saveVorlage(){
         "vorlage",
         docRef.id,
         "Material: " + material +
-        " | Spontis Nummer: " + spontis
+        " | Spontis Nummer: " + spontis +
+        " | Link: " + (normalizedLink || "-")
       );
+      loadVorlagen(true);
       closeModals();
     }).catch(error => {
       console.error("Fehler beim Erstellen der Vorlage:", error);
@@ -2254,6 +2450,7 @@ function deleteVorlage(id){
         "Material: " + (v.material || "") +
         " | Spontis Nummer: " + (v.spontis || "")
       );
+      loadVorlagen(true);
     }).catch(error => {
       console.error("Fehler beim Löschen der Vorlage:", error);
       alert("Fehler beim Löschen.");
@@ -2301,6 +2498,14 @@ function closeModals(){
   document.getElementById("vorlageModal").style.display = "none";
   document.getElementById("materialVorlageSuche").value = "";
   document.getElementById("materialVorlagenTreffer").innerHTML = "";
+  const vorlageLinkInput = document.getElementById("vorlageLink");
+  if(vorlageLinkInput){
+    vorlageLinkInput.value = "";
+  }
+  const clearVorlageLinkBtn = document.getElementById("clearVorlageLinkBtn");
+  if(clearVorlageLinkBtn){
+    clearVorlageLinkBtn.style.display = "none";
+  }
   document.getElementById("ausgewaehlteVorlageInfo").style.display = "none";
   document.getElementById("ausgewaehlteVorlageInfo").innerHTML = "";
   currentBaustelleId = null;
