@@ -1,1 +1,251 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Startseite | Lagermanager</title>
 
+<link rel="icon" type="image/png" sizes="48x48" href="favicon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+body{
+  font-family:Arial, sans-serif;
+  background:#e6eaef;
+  margin:40px;
+  color:#222;
+}
+
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:25px;
+  gap:15px;
+}
+
+.header h1{
+  margin:0;
+}
+
+.menu-wrap{
+  position:relative;
+}
+
+.menu-button{
+  background:#555;
+  color:white;
+  border:none;
+  border-radius:10px;
+  padding:11px 15px;
+  font-size:20px;
+  line-height:1;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:48px;
+  min-height:44px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.10);
+}
+
+.menu-button:hover{
+  background:#333;
+}
+
+.dropdown-menu{
+  display:none;
+  position:absolute;
+  top:52px;
+  right:0;
+  min-width:220px;
+  background:white;
+  border:1px solid #ccc;
+  border-radius:12px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.12);
+  padding:8px;
+  z-index:3000;
+}
+
+.dropdown-menu.open{
+  display:block;
+}
+
+.active-page{
+  background:#e0e0e0 !important;
+  color:#333 !important;
+  cursor:default;
+}
+
+button{
+  padding:10px 14px;
+  cursor:pointer;
+  border:none;
+  border-radius:8px;
+  background:#3498db;
+  color:white;
+  margin:2px;
+  font-size:14px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+}
+
+button:hover{
+  background:#2980b9;
+}
+
+.dropdown-menu button{
+  width:100%;
+  text-align:left;
+  margin:0 0 8px 0;
+}
+
+.dropdown-menu button:last-child{
+  margin-bottom:0;
+}
+
+.hero{
+  max-width:1100px;
+  margin:0 auto;
+  background:white;
+  border:1px solid #d5dbe3;
+  border-radius:14px;
+  box-shadow:0 8px 22px rgba(0,0,0,0.08);
+  overflow:hidden;
+}
+
+.hero-actions{
+  display:flex;
+  gap:12px;
+  padding:16px;
+  justify-content:center;
+  background:#f5f7fa;
+  border-bottom:1px solid #e1e6ed;
+  flex-wrap:wrap;
+}
+
+.hero-link{
+  text-decoration:none;
+}
+
+.hero-image{
+  width:100%;
+  height:auto;
+  display:block;
+}
+
+@media (max-width: 680px){
+  body{
+    margin:18px;
+  }
+
+  .hero-actions{
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .hero-actions button{
+    width:100%;
+  }
+}
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>Startseite</h1>
+
+    <div class="menu-wrap">
+      <button class="menu-button" onclick="toggleMenu(event)" title="Menü öffnen">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+
+      <div id="dropdownMenu" class="dropdown-menu">
+        <button onclick="closeMenu()" data-page="home">
+          <i class="fa-solid fa-house"></i> Startseite
+        </button>
+
+        <button onclick="goToKabellager()" data-page="index">
+          <i class="fa-solid fa-warehouse"></i> Kabellager
+        </button>
+
+        <button onclick="goToBaustellen()" data-page="baustellen">
+          <i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial
+        </button>
+
+        <button onclick="goToArchiv()" data-page="archiv">
+          <i class="fa-solid fa-box-archive"></i> Archiv
+        </button>
+
+        <button onclick="goToLogs()" data-page="logs">
+          <i class="fa-solid fa-clipboard-list"></i> Logs
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <section class="hero">
+    <div class="hero-actions">
+      <a href="index.html" class="hero-link">
+        <button><i class="fa-solid fa-warehouse"></i> Zum Kabellager</button>
+      </a>
+      <a href="baustellen.html" class="hero-link">
+        <button><i class="fa-solid fa-screwdriver-wrench"></i> Zu Baustellenmaterial</button>
+      </a>
+    </div>
+
+    <img src="ChatGPT Image 10. März 2026, 21_46_18.png" alt="Startseitenbild" class="hero-image">
+  </section>
+
+<script>
+function toggleMenu(event){
+  event.stopPropagation();
+  const menu = document.getElementById("dropdownMenu");
+  menu.classList.toggle("open");
+}
+
+function closeMenu(){
+  const menu = document.getElementById("dropdownMenu");
+  menu.classList.remove("open");
+}
+
+function goToKabellager(){
+  window.location.href = "index.html";
+}
+
+function goToBaustellen(){
+  window.location.href = "baustellen.html";
+}
+
+function goToArchiv(){
+  window.location.href = "archiv.html";
+}
+
+function goToLogs(){
+  window.location.href = "logs.html";
+}
+
+function markActiveMenu(){
+  const buttons = document.querySelectorAll("#dropdownMenu button");
+  buttons.forEach(btn => {
+    const page = btn.getAttribute("data-page");
+    if(page === "home"){
+      btn.classList.add("active-page");
+    }
+  });
+}
+
+document.addEventListener("click", (event) => {
+  const menu = document.getElementById("dropdownMenu");
+  const wrap = document.querySelector(".menu-wrap");
+
+  if(menu.classList.contains("open") && !wrap.contains(event.target)){
+    closeMenu();
+  }
+});
+
+document.addEventListener("DOMContentLoaded", markActiveMenu);
+</script>
+</body>
+</html>
