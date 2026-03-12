@@ -383,6 +383,10 @@ input{
         <i class="fa-solid fa-bars"></i>
       </button>
 <div id="dropdownMenu" class="dropdown-menu">
+  <button onclick="goToHome()" data-page="home">
+    <i class="fa-solid fa-house"></i> Startseite
+  </button>
+
   <button onclick="goToKabellager()" data-page="index">
     <i class="fa-solid fa-warehouse"></i> Kabellager
   </button>
@@ -571,6 +575,11 @@ document.addEventListener("click", function(event){
     closeMenu();
   }
 });
+
+function goToHome(){
+  closeMenu();
+  window.location.href = "home.html";
+}
 
 function goToKabellager(){
   closeMenu();
@@ -963,6 +972,8 @@ function markActiveMenu(){
 
   if(path.includes("index")){
     currentPage = "index";
+  }else if(path.includes("home")){
+    currentPage = "home";
   }else if(path.includes("baustellen")){
     currentPage = "baustellen";
   }else if(path.includes("archiv")){

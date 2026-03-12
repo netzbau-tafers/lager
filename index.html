@@ -811,6 +811,10 @@ input{
       </button>
 
       <div id="dropdownMenu" class="dropdown-menu">
+        <button onclick="goToHome()" data-page="home">
+          <i class="fa-solid fa-house"></i> Startseite
+        </button>
+
         <button onclick="closeMenu()" data-page="index">
           <i class="fa-solid fa-warehouse"></i> Kabellager
         </button>
@@ -1144,6 +1148,11 @@ function closeMenu(){
 function goToBaustellenmaterial(){
   closeMenu();
   window.location.href = "baustellen.html";
+}
+
+function goToHome(){
+  closeMenu();
+  window.location.href = "home.html";
 }
 
 function goToArchiv(){
@@ -1628,6 +1637,8 @@ function markActiveMenu(){
 
   if(path.includes("index")){
     currentPage = "index";
+  }else if(path.includes("home")){
+    currentPage = "home";
   }else if(path.includes("baustellen")){
     currentPage = "baustellen";
   }else if(path.includes("archiv")){
