@@ -230,6 +230,31 @@ select{
   color:#444;
 }
 
+.help-accordion{
+  margin-bottom:20px;
+}
+
+.help-accordion summary{
+  cursor:pointer;
+  font-weight:bold;
+  background:white;
+  border:1px solid #ccc;
+  border-radius:10px;
+  padding:12px 15px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.05);
+}
+
+.help-accordion[open] summary{
+  border-bottom-left-radius:0;
+  border-bottom-right-radius:0;
+}
+
+.help-accordion .info-box{
+  margin-top:0;
+  border-top-left-radius:0 !important;
+  border-top-right-radius:0 !important;
+}
+
 table{
   width:100%;
   border-collapse:collapse;
@@ -858,6 +883,17 @@ input{
       <button onclick="openAdd()"><i class="fa-solid fa-plus"></i> Neue Bobine hinzufügen</button>
     </div>
   </div>
+
+  <details class="help-accordion">
+    <summary>Hilfe anzeigen</summary>
+    <div class="info-box" style="background:white; border:1px solid #ccc; border-radius:10px; padding:15px; margin-bottom:20px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
+      <h3 style="margin-top:0;">Kabellager ganz einfach</h3>
+      <p><b>Bobine hinzufügen:</b> Neue Bobine ins Lager eintragen und speichern.</p>
+      <p><b>In Gebrauch:</b> Die Bobine wird gerade auf einer Baustelle benutzt.</p>
+      <p><b>Bearbeiten:</b> Angaben ändern, wenn etwas falsch ist oder sich geändert hat.</p>
+      <p><b>Zurück ins Lager:</b> Bobine kommt zurück und wird wieder ins Lager gespeichert.</p>
+    </div>
+  </details>
 
   <div class="info-box" id="resultInfo"></div>
 
