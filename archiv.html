@@ -449,6 +449,43 @@ let alleMaterialien = [];
 let openMaterialLists = {};
 let isAdminUser = false;
 
+const ARCHIV_CACHE_KEY = "archiv_snapshot_v1";
+
+function saveArchivCache(){
+  try{
+    const cachePayload = {
+      savedAt: Date.now(),
+      baustellen: alleBaustellen,
+      materialien: alleMaterialien
+    };
+
+    localStorage.setItem(ARCHIV_CACHE_KEY, JSON.stringify(cachePayload));
+  }catch(error){
+    console.warn("Archiv-Cache konnte nicht gespeichert werden:", error);
+  }
+}
+
+function loadArchivCache(){
+  try{
+    const raw = localStorage.getItem(ARCHIV_CACHE_KEY);
+    if(!raw){
+      return;
+    }
+
+    const parsed = JSON.parse(raw);
+
+    if(!parsed || !Array.isArray(parsed.baustellen) || !Array.isArray(parsed.materialien)){
+      return;
+    }
+
+    alleBaustellen = parsed.baustellen;
+    alleMaterialien = parsed.materialien;
+    renderArchiv();
+  }catch(error){
+    console.warn("Archiv-Cache konnte nicht geladen werden:", error);
+  }
+}
+
 function sanitizeInput(value, maxLength = 200){
   return String(value || "")
     .replace(/[<>]/g, "")
@@ -612,9 +649,12 @@ auth.onAuthStateChanged((user) => {
 });
 
 function startListeners(){
+  loadArchivCache();
+
   if(!unsubscribeBaustellen){
     unsubscribeBaustellen = baustellenCollection.onSnapshot(snapshot => {
       alleBaustellen = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      saveArchivCache();
       renderArchiv();
     }, error => {
       console.error("Fehler Baustellen:", error);
@@ -625,6 +665,7 @@ function startListeners(){
   if(!unsubscribeMaterial){
     unsubscribeMaterial = materialCollection.onSnapshot(snapshot => {
       alleMaterialien = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      saveArchivCache();
       renderArchiv();
     }, error => {
       console.error("Fehler Material:", error);
