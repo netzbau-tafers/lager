@@ -6,6 +6,8 @@
 <title>Startseite | Lagermanager</title>
 
 <link rel="icon" type="image/png" sizes="48x48" href="favicon.png">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
@@ -106,6 +108,60 @@ button:hover{
   margin-bottom:0;
 }
 
+.logout-safe{
+  background:#777;
+}
+
+.logout-safe:hover{
+  background:#555;
+}
+
+.login-screen{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:80vh;
+}
+
+.login-card{
+  background:white;
+  border:1px solid #d7dce2;
+  border-radius:14px;
+  width:360px;
+  max-width:92%;
+  padding:22px;
+  box-shadow:0 8px 22px rgba(0,0,0,0.08);
+}
+
+.login-card h2{
+  margin-top:0;
+  text-align:center;
+}
+
+.login-card input{
+  width:100%;
+  padding:10px;
+  margin:6px 0 10px 0;
+  box-sizing:border-box;
+  border:1px solid #ccc;
+  border-radius:6px;
+  font-size:15px;
+}
+
+.login-error{
+  color:#c0392b;
+  display:none;
+  margin-top:10px;
+  text-align:center;
+}
+
+.login-info{
+  color:#555;
+  font-size:14px;
+  text-align:center;
+  margin-bottom:15px;
+}
+
 .hero{
   max-width:1100px;
   margin:0 auto;
@@ -153,6 +209,18 @@ button:hover{
 </style>
 </head>
 <body>
+  <div id="loginScreen" class="login-screen" style="display:none;">
+    <div class="login-card">
+      <h2>Login Startseite</h2>
+      <div class="login-info">Bitte mit E-Mail und Passwort anmelden</div>
+      <input id="loginEmail" type="email" placeholder="E-Mail" maxlength="120" autocomplete="username">
+      <input id="loginPassword" type="password" placeholder="Passwort" maxlength="120" autocomplete="current-password">
+      <button onclick="login()"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
+      <p id="loginError" class="login-error">Login fehlgeschlagen. Bitte Daten prüfen.</p>
+    </div>
+  </div>
+
+  <div id="appContent" style="display:none;">
   <div class="header">
     <h1>Startseite</h1>
 
@@ -181,6 +249,10 @@ button:hover{
         <button onclick="goToLogs()" data-page="logs">
           <i class="fa-solid fa-clipboard-list"></i> Logs
         </button>
+
+        <button class="logout-safe" onclick="logout()">
+          <i class="fa-solid fa-right-from-bracket"></i> Logout
+        </button>
       </div>
     </div>
   </div>
@@ -197,8 +269,22 @@ button:hover{
 
     <img src="ChatGPT Image 10. März 2026, 21_46_18.png" alt="Startseitenbild" class="hero-image">
   </section>
+  </div>
 
 <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",
+  authDomain: "netzbau-tafers.firebaseapp.com",
+  projectId: "netzbau-tafers",
+  storageBucket: "netzbau-tafers.appspot.com",
+  messagingSenderId: "389541837675",
+  appId: "1:389541837675:web:db580ce67c57a9a16dea2e",
+  measurementId: "G-B5MJGD3108"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
 function toggleMenu(event){
   event.stopPropagation();
   const menu = document.getElementById("dropdownMenu");
@@ -211,19 +297,51 @@ function closeMenu(){
 }
 
 function goToKabellager(){
+  closeMenu();
   window.location.href = "index.html";
 }
 
 function goToBaustellen(){
+  closeMenu();
   window.location.href = "baustellen.html";
 }
 
 function goToArchiv(){
+  closeMenu();
   window.location.href = "archiv.html";
 }
 
 function goToLogs(){
+  closeMenu();
   window.location.href = "logs.html";
+}
+
+function login(){
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+
+  auth.signInWithEmailAndPassword(email, password)
+    .then(() => {
+      document.getElementById("loginError").style.display = "none";
+      document.getElementById("loginPassword").value = "";
+    })
+    .catch((error) => {
+      console.error("Login Fehler:", error);
+      document.getElementById("loginError").style.display = "block";
+    });
+}
+
+function logout(){
+  closeMenu();
+
+  if(!confirm("Wirklich ausloggen?")){
+    return;
+  }
+
+  auth.signOut().catch((error) => {
+    console.error("Logout Fehler:", error);
+    alert("Fehler beim Logout.");
+  });
 }
 
 function markActiveMenu(){
@@ -246,6 +364,17 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("DOMContentLoaded", markActiveMenu);
+
+auth.onAuthStateChanged((user) => {
+  if(user){
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("appContent").style.display = "block";
+  }else{
+    closeMenu();
+    document.getElementById("loginScreen").style.display = "flex";
+    document.getElementById("appContent").style.display = "none";
+  }
+});
 </script>
 </body>
 </html>
