@@ -622,6 +622,13 @@ input{
   white-space:nowrap;
 }
 
+.desktop-nummer-cell .bobinen-badge{
+  display:block;
+  width:max-content;
+  margin-top:6px;
+  margin-left:0;
+}
+
 .mobile-card-number .bobinen-badge{
   font-size:11px;
   padding:4px 8px;
@@ -1317,7 +1324,7 @@ function renderDesktopTable(data){
     mainRow.className = "main-row " + (b.status === "Lager" ? "instock" : "inuse");
 
     mainRow.innerHTML = `
-      <td>${escapeHtml(b.nummer || "")}${bobinenBadge}</td>
+      <td><div class="desktop-nummer-cell">${escapeHtml(b.nummer || "")}${bobinenBadge}</div></td>
       <td>${escapeHtml(b.typ || "")}</td>
       <td>${escapeHtml(b.laenge || "")}</td>
       <td>${escapeHtml(b.baustelle || "")}</td>
