@@ -348,11 +348,12 @@ input, select{
     <h2>Login Logs</h2>
     <div class="login-info">Bitte mit E-Mail und Passwort anmelden</div>
     <input id="loginEmail" type="email" placeholder="E-Mail" maxlength="120" autocomplete="username">
-    <input id="loginPassword" type="password" placeholder="Passwort" maxlength="120" autocomplete="current-password">
-    <label style="display:flex; align-items:center; gap:8px; margin:4px 0 8px 0; font-size:14px; color:#444;">
-      <input id="showLoginPassword" type="checkbox" onchange="toggleLoginPasswordVisibility()" style="width:auto; margin:0;">
-      Passwort anzeigen
-    </label>
+    <div style="position:relative; margin-top:10px;">
+      <input id="loginPassword" type="password" placeholder="Passwort" maxlength="120" autocomplete="current-password" style="margin:0; padding-right:44px;">
+      <button type="button" onclick="toggleLoginPasswordVisibility()" aria-label="Passwort anzeigen oder ausblenden" title="Passwort anzeigen oder ausblenden" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:transparent; color:#666; box-shadow:none; padding:6px; margin:0; min-width:auto;">
+        <i id="loginPasswordToggleIcon" class="fa-regular fa-eye"></i>
+      </button>
+    </div>
     <button onclick="login()"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
     <p id="loginError" class="login-error">Login fehlgeschlagen. Bitte Daten prüfen.</p>
   </div>
@@ -581,13 +582,15 @@ function goToArchiv(){
 
 function toggleLoginPasswordVisibility(){
   const passwordField = document.getElementById("loginPassword");
-  const showPassword = document.getElementById("showLoginPassword");
+  const toggleIcon = document.getElementById("loginPasswordToggleIcon");
 
-  if(!passwordField || !showPassword){
+  if(!passwordField || !toggleIcon){
     return;
   }
 
-  passwordField.type = showPassword.checked ? "text" : "password";
+  const shouldShowPassword = passwordField.type === "password";
+  passwordField.type = shouldShowPassword ? "text" : "password";
+  toggleIcon.className = shouldShowPassword ? "fa-regular fa-eye-slash" : "fa-regular fa-eye";
 }
 
 function login(){
@@ -634,10 +637,14 @@ function logout(){
 
   stopListeners();
 
-  auth.signOut().catch((error) => {
-    console.error("Logout Fehler:", error);
-    alert("Fehler beim Logout.");
-  });
+  auth.signOut()
+    .then(() => {
+      window.location.href = "home.html";
+    })
+    .catch((error) => {
+      console.error("Logout Fehler:", error);
+      alert("Fehler beim Logout.");
+    });
 }
 
 function markActiveMenu(){
@@ -687,12 +694,7 @@ auth.onAuthStateChanged((user) => {
     isAdminUser = false;
     stopListeners();
     closeMenu();
-    document.getElementById("loginScreen").style.display = "flex";
-    document.getElementById("appContent").style.display = "none";
-    document.getElementById("logsListe").innerHTML = "";
-    document.getElementById("resultInfo").innerText = "";
-    alleLogs = [];
-    renderBenutzerFilter();
+    window.location.href = "home.html";
   }
 });
 
