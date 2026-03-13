@@ -1644,9 +1644,8 @@ function renderDesktopTable(data){
   data.forEach(docItem => {
     const b = docItem.data();
     const hinzugefuegtAm = formatDatum(b.hinzugefuegtAm);
-    const inGebrauchVon = b.status === "In Gebrauch"
-      ? (b.inGebrauchVonEmail || "Unbekannt")
-      : "-";
+    const isInUse = b.status === "In Gebrauch";
+    const inGebrauchVon = b.inGebrauchVonEmail || "Unbekannt";
     const isDetailOpen = openDetailsRows.has(docItem.id);
     const bobinenBadge = getBobinenBadgeHtml(!!b.istDreiBobinen);
 
@@ -1698,6 +1697,21 @@ function renderDesktopTable(data){
     detailsRow.className = "details-row" + (isDetailOpen ? " open" : "");
     detailsRow.id = "details-" + docItem.id;
 
+    const statusDetailsHtml = `
+      <div class="details-item">
+        <div class="details-label">Status</div>
+        <div class="details-value">${escapeHtml(b.status || "")}</div>
+      </div>
+    `;
+    const inUseDetailsHtml = isInUse
+      ? `
+      <div class="details-item">
+        <div class="details-label">In Gebrauch von</div>
+        <div class="details-value">${escapeHtml(inGebrauchVon)}</div>
+      </div>
+    `
+      : "";
+
     detailsRow.innerHTML = `
       <td colspan="5" class="details-cell">
         <div class="details-grid">
@@ -1710,17 +1724,11 @@ function renderDesktopTable(data){
             <div class="details-value">${escapeHtml(hinzugefuegtAm || "")}</div>
           </div>
           <div class="details-item">
-            <div class="details-label">Status</div>
-            <div class="details-value">${escapeHtml(b.status || "")}</div>
-          </div>
-          <div class="details-item">
             <div class="details-label">Infos</div>
             <div class="details-value">${escapeHtml(b.infos || "")}</div>
           </div>
-          <div class="details-item">
-            <div class="details-label">In Gebrauch von</div>
-            <div class="details-value">${escapeHtml(inGebrauchVon)}</div>
-          </div>
+          ${statusDetailsHtml}
+          ${inUseDetailsHtml}
         </div>
       </td>
     `;
@@ -1737,9 +1745,8 @@ function renderMobileCards(data){
   data.forEach(docItem => {
     const b = docItem.data();
     const hinzugefuegtAm = formatDatum(b.hinzugefuegtAm);
-    const inGebrauchVon = b.status === "In Gebrauch"
-      ? (b.inGebrauchVonEmail || "Unbekannt")
-      : "-";
+    const isInUse = b.status === "In Gebrauch";
+    const inGebrauchVon = b.inGebrauchVonEmail || "Unbekannt";
     const isDetailOpen = openDetailsRows.has(docItem.id);
 
     const statusButtonText = b.status === "Lager" ? "In Gebrauch" : "Zurück ins Lager";
@@ -1752,6 +1759,21 @@ function renderMobileCards(data){
 
     const card = document.createElement("div");
     card.className = "mobile-card " + statusClass;
+
+    const mobileStatusDetailsHtml = `
+      <div class="mobile-details-item">
+        <div class="mobile-details-label">Status</div>
+        <div class="mobile-details-value">${escapeHtml(b.status || "")}</div>
+      </div>
+    `;
+    const mobileInUseDetailsHtml = isInUse
+      ? `
+      <div class="mobile-details-item">
+        <div class="mobile-details-label">In Gebrauch von</div>
+        <div class="mobile-details-value">${escapeHtml(inGebrauchVon)}</div>
+      </div>
+    `
+      : "";
 
     card.innerHTML = `
       <div class="mobile-card-header">
@@ -1815,19 +1837,11 @@ function renderMobileCards(data){
           </div>
 
           <div class="mobile-details-item">
-            <div class="mobile-details-label">Status</div>
-            <div class="mobile-details-value">${escapeHtml(b.status || "")}</div>
-          </div>
-
-          <div class="mobile-details-item">
             <div class="mobile-details-label">Infos</div>
             <div class="mobile-details-value">${escapeHtml(b.infos || "")}</div>
           </div>
-
-          <div class="mobile-details-item">
-            <div class="mobile-details-label">In Gebrauch von</div>
-            <div class="mobile-details-value">${escapeHtml(inGebrauchVon)}</div>
-          </div>
+          ${mobileStatusDetailsHtml}
+          ${mobileInUseDetailsHtml}
         </div>
       </div>
     `;
