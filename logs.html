@@ -403,18 +403,18 @@ input, select{
     <div class="search-title">Logs durchsuchen</div>
 
     <div class="search-row">
-      <input id="searchInput" type="text" placeholder="Nach Aktion, Benutzer, Bereich oder Details suchen" oninput="renderLogs()" maxlength="120">
+      <input id="searchInput" type="text" placeholder="Nach Aktion, Benutzer, Bereich oder Details suchen" oninput="handleLogsFilterChange()" maxlength="120">
       <button class="back" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
     </div>
 
     <div class="filter-row">
-      <select id="bereichFilter" onchange="renderLogs()">
+      <select id="bereichFilter" onchange="handleLogsFilterChange()">
         <option value="Alle">Alle Bereiche</option>
         <option value="Kabellager">Kabellager</option>
         <option value="Baustellenmaterial">Baustellenmaterial</option>
       </select>
 
-      <select id="benutzerFilter" onchange="renderLogs()">
+      <select id="benutzerFilter" onchange="handleLogsFilterChange()">
         <option value="Alle">Alle Benutzer</option>
       </select>
     </div>
@@ -422,6 +422,11 @@ input, select{
 
   <div id="resultInfo" class="info-box"></div>
   <div id="logsListe" class="logs-grid"></div>
+  <div style="text-align:center; margin-top:12px;">
+    <button id="logsLoadMoreButton" class="back" onclick="loadMoreLogs()" style="display:none;">
+      <i class="fa-solid fa-chevron-down"></i> Mehr anzeigen
+    </button>
+  </div>
 </div>
 
 <script>
@@ -445,6 +450,8 @@ const ADMIN_UID = "smnnQd4RhEQZR3uuNN0otNALUqi1";
 let unsubscribeLogs = null;
 let alleLogs = [];
 let isAdminUser = false;
+let logsVisibleCount = 30;
+const LOGS_PAGE_SIZE = 30;
 
 const LOGS_CACHE_KEY = "logs_snapshot_v1";
 const LOGS_RETENTION_DAYS = 14;
@@ -776,10 +783,21 @@ function renderBenutzerFilter(){
   select.value = exists ? currentValue : "Alle";
 }
 
+function handleLogsFilterChange(){
+  logsVisibleCount = LOGS_PAGE_SIZE;
+  renderLogs();
+}
+
+function loadMoreLogs(){
+  logsVisibleCount += LOGS_PAGE_SIZE;
+  renderLogs();
+}
+
 function resetSearch(){
   document.getElementById("searchInput").value = "";
   document.getElementById("bereichFilter").value = "Alle";
   document.getElementById("benutzerFilter").value = "Alle";
+  logsVisibleCount = LOGS_PAGE_SIZE;
   renderLogs();
 }
 
@@ -820,10 +838,12 @@ function renderLogs(){
     .filter(passtZurSuche)
     .sort((a, b) => getMillis(b.createdAt) - getMillis(a.createdAt));
 
+  const sichtbareLogs = logs.slice(0, logsVisibleCount);
+
   if(logs.length === 0){
     container.innerHTML = '<div class="empty-box">Keine passenden Logs gefunden.</div>';
   }else{
-    logs.forEach(log => {
+    sichtbareLogs.forEach(log => {
       const card = document.createElement("div");
       card.className = "log-card";
 
@@ -852,7 +872,12 @@ function renderLogs(){
     });
   }
 
-  document.getElementById("resultInfo").innerText = "Angezeigte Logs: " + logs.length;
+  const loadMoreButton = document.getElementById("logsLoadMoreButton");
+  if(loadMoreButton){
+    loadMoreButton.style.display = logs.length > sichtbareLogs.length ? "inline-flex" : "none";
+  }
+
+  document.getElementById("resultInfo").innerText = "Angezeigte Logs: " + sichtbareLogs.length + " von " + logs.length;
 }
 </script>
 

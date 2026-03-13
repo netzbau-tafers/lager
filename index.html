@@ -896,7 +896,7 @@ input{
           <i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial
         </button>
 
-        <button onclick="goToArchiv()" data-page="archiv">
+        <button id="archivMenuButton" onclick="goToArchiv()" data-page="archiv" style="display:none;">
           <i class="fa-solid fa-box-archive"></i> Archiv
         </button>
 
@@ -1136,8 +1136,14 @@ let alleBobinen = [];
 let unsubscribeBobinen = null;
 let openDetailsRows = new Set();
 
-function setLogsMenuVisibility(isAdminUser){
+function setAdminMenuVisibility(isAdminUser){
+  const archivButton = document.getElementById("archivMenuButton");
   const logsButton = document.getElementById("logsMenuButton");
+
+  if(archivButton){
+    archivButton.style.display = isAdminUser ? "inline-flex" : "none";
+  }
+
   if(logsButton){
     logsButton.style.display = isAdminUser ? "inline-flex" : "none";
   }
@@ -1442,6 +1448,13 @@ function goToHome(){
 }
 
 function goToArchiv(){
+  const user = auth.currentUser;
+  if(!user || user.uid !== ADMIN_UID){
+    closeMenu();
+    alert("Archiv ist nur für Administratoren sichtbar.");
+    return;
+  }
+
   closeMenu();
   window.location.href = "archiv.html";
 }
@@ -1640,12 +1653,12 @@ function stopListeners(){
 
 auth.onAuthStateChanged((user) => {
   if(user){
-    setLogsMenuVisibility(user.uid === ADMIN_UID);
+    setAdminMenuVisibility(user.uid === ADMIN_UID);
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
     startDatabaseListener();
   }else{
-    setLogsMenuVisibility(false);
+    setAdminMenuVisibility(false);
     stopListeners();
     closeMenu();
     closeAllRowMenus();
