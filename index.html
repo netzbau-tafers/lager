@@ -828,7 +828,12 @@ input{
   }
 
   .mobile-actions{
-    grid-template-columns:1fr 1fr auto;
+    grid-template-columns:1fr 1fr;
+  }
+
+  .mobile-actions .capture-btn{
+    grid-column:1 / -1;
+    width:100%;
   }
 
   .mobile-card-number{
