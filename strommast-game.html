@@ -6,6 +6,8 @@
 <title>Strommast-Spiel</title>
 
 <link rel="icon" type="image/png" sizes="48x48" href="favicon.png">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
 body{
@@ -20,7 +22,7 @@ body{
 }
 
 .game-wrap{
-  width:min(1000px, 95vw);
+  width:min(1100px, 98vw);
   background:white;
   border:1px solid #d5dbe3;
   border-radius:16px;
@@ -210,6 +212,27 @@ canvas{
 }
 
 @media (max-width: 700px){
+  body{
+    align-items:flex-start;
+  }
+
+  .game-wrap{
+    width:100vw;
+    border-radius:0;
+    border-left:none;
+    border-right:none;
+    box-shadow:none;
+  }
+
+  .canvas-wrap{
+    min-height:56vh;
+  }
+
+  canvas{
+    min-height:56vh;
+    object-fit:cover;
+  }
+
   h1{
     font-size:18px;
   }
@@ -274,6 +297,7 @@ canvas{
           <div class="overlay-actions">
             <button type="button" onclick="saveScore()">Punkte speichern</button>
             <button type="button" onclick="startGame()">Nochmal spielen</button>
+            <button type="button" onclick="goBackToWork()">Ich geh wider arbeiten</button>
           </div>
 
           <div class="ranking" id="gameOverRankingBox">
@@ -319,8 +343,25 @@ let frameCount = 0;
 let bestScore = Number(localStorage.getItem("strommastBestScore") || 0);
 bestScoreEl.textContent = bestScore;
 
+const firebaseConfig = {
+  apiKey: "AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",
+  authDomain: "netzbau-tafers.firebaseapp.com",
+  projectId: "netzbau-tafers",
+  storageBucket: "netzbau-tafers.appspot.com",
+  messagingSenderId: "389541837675",
+  appId: "1:389541837675:web:db580ce67c57a9a16dea2e",
+  measurementId: "G-B5MJGD3108"
+};
+
+const firebaseApp = firebase.apps.length
+  ? firebase.app()
+  : firebase.initializeApp(firebaseConfig);
+const db = firebaseApp.firestore();
+
 const RANKING_KEY = "strommastRanking";
+const SCORE_COLLECTION = "strommastRanking";
 const groundY = 250;
+let cloudRanking = [];
 
 const player = {
   x: 90,
@@ -352,7 +393,7 @@ function loadRanking(){
 }
 
 function renderRanking(){
-  const ranking = loadRanking();
+  const ranking = cloudRanking.length ? cloudRanking : loadRanking();
 
   const html = ranking.length
     ? ranking.map(entry => `<li><strong>${escapeHtml(entry.name)}</strong> - ${entry.score} Punkte</li>`).join("")
@@ -362,7 +403,7 @@ function renderRanking(){
   gameOverRankingList.innerHTML = html;
 }
 
-function saveScore(){
+async function saveScore(){
   if(gameOverSaved){
     return;
   }
@@ -370,16 +411,27 @@ function saveScore(){
   const rawName = playerNameInput.value.trim();
   const name = rawName || "Unbekannt";
 
-  const ranking = loadRanking();
-  ranking.push({
+  const newEntry = {
     name: name.slice(0, 20),
     score: Math.floor(score)
-  });
+  };
+
+  const ranking = loadRanking();
+  ranking.push(newEntry);
 
   ranking.sort((a, b) => b.score - a.score);
   const top10 = ranking.slice(0, 10);
 
   localStorage.setItem(RANKING_KEY, JSON.stringify(top10));
+
+  try{
+    await db.collection(SCORE_COLLECTION).add({
+      ...newEntry,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }catch(error){
+    console.error("Firestore speichern fehlgeschlagen:", error);
+  }
 
   if(score > bestScore){
     bestScore = Math.floor(score);
@@ -389,6 +441,35 @@ function saveScore(){
 
   gameOverSaved = true;
   renderRanking();
+}
+
+function subscribeRanking(){
+  db.collection(SCORE_COLLECTION)
+    .orderBy("score", "desc")
+    .orderBy("createdAt", "asc")
+    .limit(10)
+    .onSnapshot((snapshot) => {
+      cloudRanking = snapshot.docs.map((doc) => {
+        const data = doc.data() || {};
+        return {
+          name: typeof data.name === "string" ? data.name : "Unbekannt",
+          score: Number(data.score) || 0
+        };
+      });
+
+      if(cloudRanking.length){
+        localStorage.setItem(RANKING_KEY, JSON.stringify(cloudRanking));
+      }
+
+      renderRanking();
+    }, (error) => {
+      console.error("Firestore Ranking-Update fehlgeschlagen:", error);
+      renderRanking();
+    });
+}
+
+function goBackToWork(){
+  window.location.href = "home.html";
 }
 
 function escapeHtml(text){
@@ -861,6 +942,7 @@ canvas.addEventListener("touchend", (e) => {
   releaseJump();
 }, { passive:false });
 
+subscribeRanking();
 renderRanking();
 draw();
 
