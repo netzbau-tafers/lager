@@ -11,7 +11,7 @@
 body{
   margin:0;
   font-family:Arial, sans-serif;
-  background:#e6eaef;
+  background:radial-gradient(circle at 20% 10%, #f8fbff 0%, #e6edf6 45%, #dfe7f1 100%);
   color:#222;
   display:flex;
   justify-content:center;
@@ -24,7 +24,7 @@ body{
   background:white;
   border:1px solid #d5dbe3;
   border-radius:16px;
-  box-shadow:0 8px 22px rgba(0,0,0,0.08);
+  box-shadow:0 12px 30px rgba(33,50,74,0.15);
   overflow:hidden;
 }
 
@@ -56,13 +56,13 @@ button{
   cursor:pointer;
   border:none;
   border-radius:8px;
-  background:#3498db;
+  background:linear-gradient(180deg, #44a7ea, #2689cc);
   color:white;
   font-size:14px;
 }
 
 button:hover{
-  background:#2980b9;
+  background:linear-gradient(180deg, #2f9de7, #1f77b5);
 }
 
 .score{
@@ -72,7 +72,7 @@ button:hover{
 
 .canvas-wrap{
   position:relative;
-  background:linear-gradient(to bottom, #f9fbfd 0%, #eef3f7 100%);
+  background:linear-gradient(to bottom, #edf6ff 0%, #dbe9f7 65%, #d2e2f3 100%);
 }
 
 canvas{
@@ -118,8 +118,21 @@ canvas{
 
 .info{
   padding:12px 16px 18px 16px;
-  color:#555;
+  color:#35506b;
   font-size:14px;
+}
+
+.pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid #c8d9eb;
+  background:#eef6ff;
+  color:#27517a;
+  font-size:13px;
+  font-weight:bold;
 }
 
 .name-input{
@@ -196,7 +209,8 @@ canvas{
         <button type="button" onclick="startGame()">Neu starten</button>
       </div>
       <div class="score">
-        Punkte: <span id="score">0</span> | Rekord: <span id="bestScore">0</span>
+        <span class="pill">Punkte: <span id="score">0</span></span>
+        <span class="pill">Rekord: <span id="bestScore">0</span></span>
       </div>
     </div>
 
@@ -208,7 +222,7 @@ canvas{
           <h2>Start</h2>
           <p>Drücke Leertaste, Pfeil hoch, Mausklick oder tippe aufs Feld.</p>
           <p>Der Mann springt über Strommasten.</p>
-          <p class="small-note">Länger drücken = etwas höher springen</p>
+          <p class="small-note">Steuerung wie beim T-Rex: Tippen/Leertaste/Pfeil hoch. + Doppelsprung für mehr Kontrolle.</p>
           <button type="button" onclick="startGame()">Spiel starten</button>
 
           <div class="ranking" id="startRankingBox">
@@ -247,6 +261,7 @@ canvas{
 
     <div class="info">
       Bedienung wie beim T-Rex-Spiel: Springen mit Leertaste, Pfeil hoch, Klick oder Touch.
+      Ein zusätzlicher Doppelsprung hilft bei engen Mast-Kombinationen.
     </div>
   </div>
 
@@ -265,8 +280,8 @@ const gameOverRankingList = document.getElementById("gameOverRankingList");
 
 let animationId = null;
 let gameRunning = false;
-let gameSpeed = 4.2;
-let gravity = 0.62;
+let gameSpeed = 3.35;
+let gravity = 0.54;
 let score = 0;
 let frameCount = 0;
 let bestScore = Number(localStorage.getItem("strommastBestScore") || 0);
@@ -281,11 +296,14 @@ const player = {
   width: 36,
   height: 56,
   vy: 0,
-  jumpPower: -11.5,
+  jumpPower: -10.2,
+  doubleJumpPower: -9.2,
   grounded: true,
   jumpHoldTime: 0,
   jumpHolding: false,
-  maxJumpHoldTime: 10
+  maxJumpHoldTime: 12,
+  jumpsUsed: 0,
+  coyoteTime: 0
 };
 
 let obstacles = [];
@@ -351,8 +369,8 @@ function escapeHtml(text){
 
 function resetGameState(){
   gameRunning = true;
-  gameSpeed = 4.2;
-  gravity = 0.62;
+  gameSpeed = 3.35;
+  gravity = 0.54;
   score = 0;
   frameCount = 0;
   spawnTimer = 0;
@@ -364,6 +382,8 @@ function resetGameState(){
   player.grounded = true;
   player.jumpHoldTime = 0;
   player.jumpHolding = false;
+  player.jumpsUsed = 0;
+  player.coyoteTime = 0;
 
   scoreEl.textContent = "0";
   finalScoreEl.textContent = "0";
@@ -381,9 +401,21 @@ function startGame(){
 function beginJump(){
   if(!gameRunning) return;
 
-  if(player.grounded){
+  const canGroundJump = player.grounded || player.coyoteTime > 0;
+
+  if(canGroundJump){
     player.vy = player.jumpPower;
     player.grounded = false;
+    player.coyoteTime = 0;
+    player.jumpsUsed = 1;
+    player.jumpHolding = true;
+    player.jumpHoldTime = 0;
+    return;
+  }
+
+  if(player.jumpsUsed < 2){
+    player.vy = player.doubleJumpPower;
+    player.jumpsUsed = 2;
     player.jumpHolding = true;
     player.jumpHoldTime = 0;
   }
@@ -408,8 +440,8 @@ function endGame(){
 }
 
 function createObstacle(){
-  const width = 26 + Math.random() * 10;
-  const height = 74 + Math.random() * 38;
+  const width = 24 + Math.random() * 8;
+  const height = 64 + Math.random() * 30;
 
   obstacles.push({
     x: canvas.width + 20,
@@ -422,18 +454,18 @@ function createObstacle(){
 function updateDifficulty(){
   frameCount++;
 
-  if(frameCount % 300 === 0){
-    gameSpeed += 0.18;
+  if(frameCount % 420 === 0){
+    gameSpeed += 0.12;
   }
 
-  if(frameCount % 600 === 0){
-    gravity += 0.01;
+  if(frameCount % 720 === 0){
+    gravity += 0.006;
   }
 }
 
 function updateJumpHold(){
   if(player.jumpHolding && player.jumpHoldTime < player.maxJumpHoldTime && player.vy < 0){
-    player.vy -= 0.33;
+    player.vy -= 0.24;
     player.jumpHoldTime++;
   }
 }
@@ -441,6 +473,10 @@ function updateJumpHold(){
 function update(){
   updateDifficulty();
   updateJumpHold();
+
+  if(!player.grounded && player.coyoteTime > 0){
+    player.coyoteTime--;
+  }
 
   player.vy += gravity;
   player.y += player.vy;
@@ -451,12 +487,16 @@ function update(){
     player.grounded = true;
     player.jumpHolding = false;
     player.jumpHoldTime = 0;
+    player.jumpsUsed = 0;
+    player.coyoteTime = 7;
+  }else{
+    player.grounded = false;
   }
 
   spawnTimer++;
 
-  const minSpawn = Math.max(62, 100 - Math.floor(frameCount / 220));
-  const randomExtra = Math.max(18, 42 - Math.floor(frameCount / 500));
+  const minSpawn = Math.max(80, 132 - Math.floor(frameCount / 260));
+  const randomExtra = Math.max(30, 62 - Math.floor(frameCount / 520));
 
   if(spawnTimer > minSpawn + Math.random() * randomExtra){
     createObstacle();
@@ -474,10 +514,10 @@ function update(){
   }
 
   const playerHitbox = {
-    x: player.x + 6,
-    y: player.y + 6,
-    width: player.width - 12,
-    height: player.height - 6
+    x: player.x + 8,
+    y: player.y + 8,
+    width: player.width - 14,
+    height: player.height - 10
   };
 
   for(const ob of obstacles){
@@ -576,12 +616,15 @@ function drawObstacle(ob){
   const w = ob.width;
 
   ctx.fillStyle = "#7f8c8d";
+  ctx.shadowColor = "rgba(0,0,0,0.12)";
+  ctx.shadowBlur = 5;
   ctx.fillRect(x + w / 2 - 4, y, 8, h);
 
   ctx.fillStyle = "#95a5a6";
   ctx.fillRect(x - 8, y + 12, w + 16, 5);
   ctx.fillRect(x - 6, y + 28, w + 12, 4);
 
+  ctx.shadowBlur = 0;
   ctx.strokeStyle = "#6c7a7b";
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -593,7 +636,7 @@ function drawObstacle(ob){
 }
 
 function drawBackground(){
-  ctx.fillStyle = "#dfe8f0";
+  ctx.fillStyle = "#ffffffb8";
   for(let i = 0; i < 5; i++){
     const cx = (i * 220 + 80 - (score * 1.2) % 220);
     const cy = 55 + (i % 2) * 20;
