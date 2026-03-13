@@ -155,6 +155,7 @@ button:hover{
   text-align:center;
 }
 
+
 .login-info{
   color:#555;
   font-size:14px;
@@ -250,6 +251,10 @@ button:hover{
           <i class="fa-solid fa-clipboard-list"></i> Logs
         </button>
 
+        <button onclick="resetPassword()">
+          <i class="fa-solid fa-key"></i> Passwort zurücksetzen
+        </button>
+
         <button class="logout-safe" onclick="logout()">
           <i class="fa-solid fa-right-from-bracket"></i> Logout
         </button>
@@ -328,6 +333,26 @@ function login(){
     .catch((error) => {
       console.error("Login Fehler:", error);
       document.getElementById("loginError").style.display = "block";
+    });
+}
+
+function resetPassword(){
+  const currentUser = auth.currentUser;
+  const loginEmailInput = document.getElementById("loginEmail");
+  const email = (currentUser && currentUser.email ? currentUser.email : (loginEmailInput ? loginEmailInput.value.trim() : ""));
+
+  if(!email){
+    alert("Keine E-Mail gefunden. Bitte erneut einloggen.");
+    return;
+  }
+
+  auth.sendPasswordResetEmail(email)
+    .then(() => {
+      alert("E-Mail zum Zurücksetzen wurde an " + email + " gesendet.");
+    })
+    .catch((error) => {
+      console.error("Passwort zurücksetzen Fehler:", error);
+      alert("Zurücksetzen fehlgeschlagen. Bitte später erneut versuchen.");
     });
 }
 
