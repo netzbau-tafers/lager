@@ -122,6 +122,31 @@ canvas{
   font-size:14px;
 }
 
+.character-select{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  padding:0 16px 16px;
+}
+
+.character-label{
+  font-weight:bold;
+  color:#1f476f;
+}
+
+.character-button{
+  border:1px solid #bfd4ea;
+  background:#eff6ff;
+  color:#1f476f;
+}
+
+.character-button.active{
+  border-color:#2c8fd2;
+  background:linear-gradient(180deg, #44a7ea, #2689cc);
+  color:white;
+}
+
 .pill{
   display:inline-flex;
   align-items:center;
@@ -221,7 +246,7 @@ canvas{
         <div class="overlay-box">
           <h2>Start</h2>
           <p>Drücke Leertaste, Pfeil hoch, Mausklick oder tippe aufs Feld.</p>
-          <p>Der Mann springt über Strommasten.</p>
+          <p>Dein Charakter springt über Strommasten.</p>
           <p class="small-note">Steuerung wie beim T-Rex: Tippen/Leertaste/Pfeil hoch. + Doppelsprung für mehr Kontrolle.</p>
           <button type="button" onclick="startGame()">Spiel starten</button>
 
@@ -263,6 +288,12 @@ canvas{
       Bedienung wie beim T-Rex-Spiel: Springen mit Leertaste, Pfeil hoch, Klick oder Touch.
       Ein zusätzlicher Doppelsprung hilft bei engen Mast-Kombinationen.
     </div>
+
+    <div class="character-select">
+      <span class="character-label">Charakter:</span>
+      <button type="button" class="character-button active" data-character="frog">🐸 St.Silvester</button>
+      <button type="button" class="character-button" data-character="donkey">🫏 Düdinger</button>
+    </div>
   </div>
 
 <script>
@@ -277,6 +308,7 @@ const gameOverOverlay = document.getElementById("gameOverOverlay");
 const playerNameInput = document.getElementById("playerName");
 const startRankingList = document.getElementById("startRankingList");
 const gameOverRankingList = document.getElementById("gameOverRankingList");
+const characterButtons = document.querySelectorAll(".character-button");
 
 let animationId = null;
 let gameRunning = false;
@@ -309,6 +341,7 @@ const player = {
 let obstacles = [];
 let spawnTimer = 0;
 let gameOverSaved = false;
+let selectedCharacter = "frog";
 
 function loadRanking(){
   try{
@@ -564,7 +597,7 @@ function drawLimb(x, y, length, angle, width = 4){
   ctx.stroke();
 }
 
-function drawPlayer(){
+function drawSideViewRunner(){
   const x = player.x;
   const y = player.y;
 
@@ -582,17 +615,29 @@ function drawPlayer(){
 
   ctx.fillStyle = "#1f2d3a";
 
+  ctx.fillRect(x + 7, y + 14, 7, 2);
+
   ctx.beginPath();
-  ctx.arc(x + 18, y + 12, 8, 0, Math.PI * 2);
+  ctx.arc(x + 20, y + 12, 8, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillRect(x + 13, y + 20, 10, 18);
+  ctx.fillRect(x + 15, y + 20, 8, 18);
 
   ctx.fillStyle = "#f1c40f";
   ctx.beginPath();
-  ctx.arc(x + 18, y + 10, 10, Math.PI, 0);
+  ctx.arc(x + 20, y + 10, 10, Math.PI, 0);
   ctx.fill();
-  ctx.fillRect(x + 10, y + 10, 16, 4);
+  ctx.fillRect(x + 12, y + 10, 16, 4);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(x + 22, y + 10, 2.2, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#1f2d3a";
+  ctx.beginPath();
+  ctx.arc(x + 22.3, y + 10, 0.9, 0, Math.PI * 2);
+  ctx.fill();
 
   if(player.grounded){
     drawLimb(shoulderX1, shoulderY, 11, Math.PI * 0.9 + armSwing, 4);
@@ -607,6 +652,93 @@ function drawPlayer(){
     drawLimb(hipX1, hipY, 18, Math.PI / 2 + 0.55, 4);
     drawLimb(hipX2, hipY, 18, Math.PI / 2 - 0.35, 4);
   }
+}
+
+function drawFrog(){
+  const x = player.x;
+  const y = player.y;
+
+  const running = gameRunning && player.grounded;
+  const legSwing = running ? Math.sin(frameCount * 0.35) * 2.6 : 0;
+
+  ctx.fillStyle = "#2fb15f";
+  ctx.beginPath();
+  ctx.ellipse(x + 18, y + 34, 16, 11, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.ellipse(x + 22, y + 22, 11, 9, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(x + 26, y + 16, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.arc(x + 27, y + 15.5, 1.6, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#163722";
+  ctx.beginPath();
+  ctx.arc(x + 27.3, y + 15.7, 0.8, 0, Math.PI * 2);
+  ctx.fill();
+
+  drawLimb(x + 12, y + 37, 11, Math.PI * 0.95 - legSwing * 0.07, 5);
+  drawLimb(x + 22, y + 38, 12, Math.PI * 0.75 + legSwing * 0.06, 5);
+}
+
+function drawDonkey(){
+  const x = player.x;
+  const y = player.y;
+
+  const running = gameRunning && player.grounded;
+  const legSwing = running ? Math.sin(frameCount * 0.35) * 0.3 : 0;
+
+  ctx.fillStyle = "#8a7560";
+  ctx.fillRect(x + 8, y + 22, 22, 15);
+
+  ctx.beginPath();
+  ctx.ellipse(x + 32, y + 21, 8, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillRect(x + 36, y + 15, 3, 8);
+  ctx.fillRect(x + 32, y + 14, 3, 8);
+
+  ctx.fillStyle = "#f2f2f2";
+  ctx.beginPath();
+  ctx.arc(x + 35, y + 20, 1.6, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#1f2d3a";
+  ctx.beginPath();
+  ctx.arc(x + 35.3, y + 20, 0.7, 0, Math.PI * 2);
+  ctx.fill();
+
+  drawLimb(x + 11, y + 37, 13, Math.PI / 2 + legSwing, 4);
+  drawLimb(x + 20, y + 37, 13, Math.PI / 2 - legSwing, 4);
+  drawLimb(x + 27, y + 37, 13, Math.PI / 2 + legSwing, 4);
+
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "#6f5c48";
+  ctx.beginPath();
+  ctx.moveTo(x + 7, y + 23);
+  ctx.lineTo(x + 3, y + 28);
+  ctx.stroke();
+}
+
+function drawPlayer(){
+  if(selectedCharacter === "frog"){
+    drawFrog();
+    return;
+  }
+
+  if(selectedCharacter === "donkey"){
+    drawDonkey();
+    return;
+  }
+
+  drawSideViewRunner();
 }
 
 function drawObstacle(ob){
@@ -731,6 +863,18 @@ canvas.addEventListener("touchend", (e) => {
 
 renderRanking();
 draw();
+
+characterButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    selectedCharacter = button.dataset.character;
+
+    characterButtons.forEach((btn) => {
+      btn.classList.toggle("active", btn === button);
+    });
+
+    draw();
+  });
+});
 </script>
 </body>
 </html>
