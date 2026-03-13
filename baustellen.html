@@ -756,6 +756,9 @@ label{
     </button>
   </div>
   <div id="beendeteBaustellen" class="baustellen-grid" style="display:none;"></div>
+  <div style="margin-top:14px;">
+    <button id="beendeteMehrBtn" class="back" onclick="loadMoreBeendete()" style="display:none;"><i class="fa-solid fa-plus"></i> Mehr anzeigen</button>
+  </div>
 </div>
 
 <div class="section">
@@ -862,6 +865,8 @@ let unsubscribeBaustellen = null;
 let unsubscribeMaterial = null;
 
 let alleBaustellen = [];
+let aktiveBaustellen = [];
+let beendeteBaustellen = [];
 let alleMaterialien = [];
 let alleVorlagen = [];
 
@@ -877,6 +882,17 @@ let isAdminUser = false;
 
 const VORLAGEN_CACHE_KEY = "material_vorlagen_cache_v1";
 const VORLAGEN_CACHE_MAX_AGE_MS = 1000 * 60 * 60 * 6;
+const BEENDETE_PAGE_SIZE = 20;
+
+let beendeteLastDoc = null;
+let beendeteHasMore = true;
+
+function syncAlleBaustellen(){
+  const byId = new Map();
+  aktiveBaustellen.forEach(b => byId.set(b.id, b));
+  beendeteBaustellen.forEach(b => byId.set(b.id, b));
+  alleBaustellen = Array.from(byId.values());
+}
 
 function getBaustelleById(id){
   return alleBaustellen.find(b => b.id === id) || null;
@@ -1263,8 +1279,9 @@ auth.onAuthStateChanged((user) => {
 
 function startListeners(){
   if(!unsubscribeBaustellen){
-    unsubscribeBaustellen = baustellenCollection.onSnapshot(snapshot => {
-      alleBaustellen = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    unsubscribeBaustellen = baustellenCollection.where("status", "==", "aktiv").onSnapshot(snapshot => {
+      aktiveBaustellen = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      syncAlleBaustellen();
       renderAll();
     }, error => {
       console.error("Fehler Baustellen:", error);
@@ -1282,15 +1299,15 @@ function startListeners(){
     });
   }
 
+  loadBeendete(true);
   loadVorlagen();
 }
 
 function loadVorlagen(forceRefresh = false){
-  if(!forceRefresh){
-    const cachedVorlagen = getVorlagenFromCache();
-    if(cachedVorlagen && cachedVorlagen.length > 0){
-      setVorlagen(cachedVorlagen);
-    }
+  const cachedVorlagen = getVorlagenFromCache();
+  if(!forceRefresh && cachedVorlagen && cachedVorlagen.length > 0){
+    setVorlagen(cachedVorlagen);
+    return;
   }
 
   vorlagenCollection.get().then(snapshot => {
@@ -1311,6 +1328,65 @@ function loadVorlagen(forceRefresh = false){
       alert("Fehler beim Laden der Materialvorlagen.");
     }
   });
+}
+
+function updateBeendeteMehrButton(){
+  const btn = document.getElementById("beendeteMehrBtn");
+  if(!btn){
+    return;
+  }
+  btn.style.display = beendeteHasMore && beendeteBereichOffen ? "inline-flex" : "none";
+}
+
+function loadBeendete(reset = false){
+  let query = baustellenCollection
+    .where("status", "==", "rausschreiben")
+    .orderBy("abgeschlossenAm", "desc")
+    .limit(BEENDETE_PAGE_SIZE);
+
+  if(reset){
+    beendeteLastDoc = null;
+    beendeteHasMore = true;
+    beendeteBaustellen = [];
+  }
+
+  if(!beendeteHasMore){
+    updateBeendeteMehrButton();
+    return;
+  }
+
+  if(beendeteLastDoc){
+    query = query.startAfter(beendeteLastDoc);
+  }
+
+  query.get().then(snapshot => {
+    if(snapshot.empty){
+      beendeteHasMore = false;
+      syncAlleBaustellen();
+      renderAll();
+      updateBeendeteMehrButton();
+      return;
+    }
+
+    beendeteLastDoc = snapshot.docs[snapshot.docs.length - 1];
+    beendeteHasMore = snapshot.docs.length === BEENDETE_PAGE_SIZE;
+
+    const loaded = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const byId = new Map(beendeteBaustellen.map(b => [b.id, b]));
+    loaded.forEach(b => byId.set(b.id, b));
+    beendeteBaustellen = Array.from(byId.values())
+      .sort((a, b) => getFirestoreTime(b.abgeschlossenAm) - getFirestoreTime(a.abgeschlossenAm));
+
+    syncAlleBaustellen();
+    renderAll();
+    updateBeendeteMehrButton();
+  }).catch(error => {
+    console.error("Fehler beim Laden beendeter Baustellen:", error);
+  });
+}
+
+function loadMoreBeendete(){
+  loadBeendete(false);
 }
 
 function resetSearch(){
@@ -1435,11 +1511,11 @@ function renderAll(){
   aktiveContainer.innerHTML = "";
   beendeteContainer.innerHTML = "";
 
-  const aktive = [...alleBaustellen]
-    .filter(b => b.status === "aktiv" && baustellePasstZurSuche(b));
+  const aktive = [...aktiveBaustellen]
+    .filter(b => baustellePasstZurSuche(b));
 
-  const beendete = [...alleBaustellen]
-    .filter(b => b.status === "rausschreiben" && baustellePasstZurSuche(b))
+  const beendete = [...beendeteBaustellen]
+    .filter(b => baustellePasstZurSuche(b))
     .sort((a, b) => getFirestoreTime(b.abgeschlossenAm) - getFirestoreTime(a.abgeschlossenAm));
 
   if(aktive.length === 0){
@@ -1459,6 +1535,7 @@ function renderAll(){
   }
 
   beendeteContainer.style.display = beendeteBereichOffen ? "grid" : "none";
+  updateBeendeteMehrButton();
 
   document.getElementById("resultInfo").innerText =
     "Aktive Baustellen: " + aktive.length + " | Beendete Baustellen: " + beendete.length;
@@ -1780,6 +1857,8 @@ function toggleBeendeteBereich(){
     content.style.display = "grid";
     arrow.innerText = "▲";
   }
+
+  updateBeendeteMehrButton();
 }
 
 function toggleVorlagenBereich(){
@@ -2180,6 +2259,7 @@ function finishBaustelle(id){
       status: "rausschreiben",
       abgeschlossenAm: firebase.firestore.FieldValue.serverTimestamp()
     }).then(() => {
+      loadBeendete(true);
       writeLog(
         "Baustellenmaterial",
         "Baustelle beendet",
@@ -2220,6 +2300,7 @@ function archiveBaustelle(id){
       status: "archiviert",
       archiviertAm: firebase.firestore.FieldValue.serverTimestamp()
     }).then(() => {
+      loadBeendete(true);
       writeLog(
         "Baustellenmaterial",
         "Baustelle archiviert",
@@ -2434,6 +2515,7 @@ function deleteBaustelle(id){
 
     batch.commit()
       .then(() => {
+        loadBeendete(true);
         writeLog(
           "Baustellenmaterial",
           "Baustelle gelöscht",

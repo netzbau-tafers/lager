@@ -422,6 +422,9 @@ input, select{
 
   <div id="resultInfo" class="info-box"></div>
   <div id="logsListe" class="logs-grid"></div>
+  <div style="margin-top:14px;">
+    <button id="logsMehrBtn" class="back" onclick="loadMoreLogs()" style="display:none;"><i class="fa-solid fa-plus"></i> Mehr anzeigen</button>
+  </div>
 </div>
 
 <script>
@@ -442,9 +445,12 @@ const logsCollection = db.collection("logs");
 
 const ADMIN_UID = "smnnQd4RhEQZR3uuNN0otNALUqi1";
 
-let unsubscribeLogs = null;
 let alleLogs = [];
 let isAdminUser = false;
+let logsLastDoc = null;
+let logsHasMore = true;
+
+const LOGS_PAGE_SIZE = 20;
 
 const LOGS_CACHE_KEY = "logs_snapshot_v1";
 const LOGS_RETENTION_DAYS = 14;
@@ -675,12 +681,7 @@ function markActiveMenu(){
 
 document.addEventListener("DOMContentLoaded", markActiveMenu);
   
-function stopListeners(){
-  if(unsubscribeLogs){
-    unsubscribeLogs();
-    unsubscribeLogs = null;
-  }
-}
+function stopListeners(){}
 
 auth.onAuthStateChanged((user) => {
   if(user){
@@ -689,7 +690,7 @@ auth.onAuthStateChanged((user) => {
     document.getElementById("appContent").style.display = "block";
     loadLogsCache();
     cleanupOldLogs();
-    startLogsListener();
+    loadLogsPage(true);
   }else{
     isAdminUser = false;
     stopListeners();
@@ -725,20 +726,62 @@ function cleanupOldLogs(){
     });
 }
 
-function startLogsListener(){
-  if(unsubscribeLogs){
+function updateLogsMehrButton(){
+  const btn = document.getElementById("logsMehrBtn");
+  if(!btn){
     return;
   }
 
-  unsubscribeLogs = logsCollection.onSnapshot(snapshot => {
-    alleLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  btn.style.display = logsHasMore ? "inline-flex" : "none";
+}
+
+function loadLogsPage(reset = false){
+  let query = logsCollection.orderBy("createdAt", "desc").limit(LOGS_PAGE_SIZE);
+
+  if(reset){
+    logsLastDoc = null;
+    logsHasMore = true;
+    alleLogs = [];
+  }
+
+  if(!logsHasMore){
+    updateLogsMehrButton();
+    return;
+  }
+
+  if(logsLastDoc){
+    query = query.startAfter(logsLastDoc);
+  }
+
+  query.get().then(snapshot => {
+    if(snapshot.empty){
+      logsHasMore = false;
+      updateLogsMehrButton();
+      renderBenutzerFilter();
+      renderLogs();
+      return;
+    }
+
+    logsLastDoc = snapshot.docs[snapshot.docs.length - 1];
+    logsHasMore = snapshot.docs.length === LOGS_PAGE_SIZE;
+
+    const loaded = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const byId = new Map(alleLogs.map(log => [log.id, log]));
+    loaded.forEach(log => byId.set(log.id, log));
+    alleLogs = Array.from(byId.values());
+
     saveLogsCache();
     renderBenutzerFilter();
     renderLogs();
-  }, error => {
+    updateLogsMehrButton();
+  }).catch(error => {
     console.error("Fehler Logs:", error);
     alert("Fehler beim Laden der Logs.");
   });
+}
+
+function loadMoreLogs(){
+  loadLogsPage(false);
 }
 
 function renderBenutzerFilter(){
