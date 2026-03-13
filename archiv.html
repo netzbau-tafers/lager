@@ -430,9 +430,6 @@ input{
 
   <div class="section">
     <div id="archivListe" class="baustellen-grid"></div>
-    <div style="margin-top:14px;">
-      <button id="archivMehrBtn" class="back" onclick="loadMoreArchiv()" style="display:none;"><i class="fa-solid fa-plus"></i> Mehr anzeigen</button>
-    </div>
   </div>
 </div>
 
@@ -456,14 +453,13 @@ const materialCollection = db.collection("baustellen_material");
 
 const ADMIN_UID = "smnnQd4RhEQZR3uuNN0otNALUqi1";
 
+let unsubscribeBaustellen = null;
+let unsubscribeMaterial = null;
+
 let alleBaustellen = [];
 let alleMaterialien = [];
 let openMaterialLists = {};
 let isAdminUser = false;
-let archivLastDoc = null;
-let archivHasMore = true;
-
-const ARCHIV_PAGE_SIZE = 20;
 
 const ARCHIV_CACHE_KEY = "archiv_snapshot_v1";
 
@@ -675,7 +671,17 @@ function logout(){
     });
 }
 
-function stopListeners(){}
+function stopListeners(){
+  if(unsubscribeBaustellen){
+    unsubscribeBaustellen();
+    unsubscribeBaustellen = null;
+  }
+
+  if(unsubscribeMaterial){
+    unsubscribeMaterial();
+    unsubscribeMaterial = null;
+  }
+}
 
 auth.onAuthStateChanged((user) => {
   if(user){
@@ -692,98 +698,28 @@ auth.onAuthStateChanged((user) => {
 
 function startListeners(){
   loadArchivCache();
-  loadArchivPage(true);
-}
 
-function updateArchivMehrButton(){
-  const btn = document.getElementById("archivMehrBtn");
-  if(!btn){
-    return;
-  }
-
-  btn.style.display = archivHasMore ? "inline-flex" : "none";
-}
-
-function loadArchivMaterialsForBaustellen(baustellenIds){
-  if(!Array.isArray(baustellenIds) || baustellenIds.length === 0){
-    return Promise.resolve([]);
-  }
-
-  const uniqueIds = [...new Set(baustellenIds)];
-  const chunkSize = 10;
-  const tasks = [];
-
-  for(let i = 0; i < uniqueIds.length; i += chunkSize){
-    const chunk = uniqueIds.slice(i, i + chunkSize);
-    tasks.push(
-      materialCollection.where("baustelleId", "in", chunk).get()
-    );
-  }
-
-  return Promise.all(tasks).then(snaps => {
-    const result = [];
-    snaps.forEach(snapshot => {
-      snapshot.docs.forEach(doc => result.push({ id: doc.id, ...doc.data() }));
-    });
-    return result;
-  });
-}
-
-function loadArchivPage(reset = false){
-  let query = baustellenCollection
-    .where("status", "==", "archiviert")
-    .orderBy("archiviertAm", "desc")
-    .limit(ARCHIV_PAGE_SIZE);
-
-  if(reset){
-    archivLastDoc = null;
-    archivHasMore = true;
-    alleBaustellen = [];
-    alleMaterialien = [];
-  }
-
-  if(!archivHasMore){
-    updateArchivMehrButton();
-    return;
-  }
-
-  if(archivLastDoc){
-    query = query.startAfter(archivLastDoc);
-  }
-
-  query.get().then(snapshot => {
-    if(snapshot.empty){
-      archivHasMore = false;
-      updateArchivMehrButton();
-      renderArchiv();
-      return;
-    }
-
-    archivLastDoc = snapshot.docs[snapshot.docs.length - 1];
-    archivHasMore = snapshot.docs.length === ARCHIV_PAGE_SIZE;
-
-    const loadedBaustellen = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    return loadArchivMaterialsForBaustellen(loadedBaustellen.map(b => b.id)).then(loadedMaterial => {
-      const baustellenById = new Map(alleBaustellen.map(b => [b.id, b]));
-      loadedBaustellen.forEach(b => baustellenById.set(b.id, b));
-      alleBaustellen = Array.from(baustellenById.values());
-
-      const materialById = new Map(alleMaterialien.map(m => [m.id, m]));
-      loadedMaterial.forEach(m => materialById.set(m.id, m));
-      alleMaterialien = Array.from(materialById.values());
-
+  if(!unsubscribeBaustellen){
+    unsubscribeBaustellen = baustellenCollection.onSnapshot(snapshot => {
+      alleBaustellen = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       saveArchivCache();
       renderArchiv();
-      updateArchivMehrButton();
+    }, error => {
+      console.error("Fehler Baustellen:", error);
+      alert("Fehler beim Laden der Baustellen.");
     });
-  }).catch(error => {
-    console.error("Fehler beim Laden des Archivs:", error);
-    alert("Fehler beim Laden des Archivs.");
-  });
-}
+  }
 
-function loadMoreArchiv(){
-  loadArchivPage(false);
+  if(!unsubscribeMaterial){
+    unsubscribeMaterial = materialCollection.onSnapshot(snapshot => {
+      alleMaterialien = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      saveArchivCache();
+      renderArchiv();
+    }, error => {
+      console.error("Fehler Material:", error);
+      alert("Fehler beim Laden der Materialien.");
+    });
+  }
 }
 
 function resetSearch(){
