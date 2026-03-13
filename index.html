@@ -759,6 +759,14 @@ input{
   color:#8b1a1a;
 }
 
+.capture-btn{
+  background:#6d4c9b;
+}
+
+.capture-btn:hover{
+  background:#563a7a;
+}
+
 @media (max-width: 900px){
   body{
     margin:15px;
@@ -1023,25 +1031,7 @@ Danach erscheint die Bobine wieder im Lager.</p>
   <div id="returnModal" class="modal">
     <div class="modal-content">
       <h3>Bobine zurück ins Lager</h3>
-
-      <button id="toggleCalcBtn" type="button" class="details-toggle-btn" onclick="toggleOptionalDifference()">
-        <i class="fa-solid fa-ruler"></i> Anfangs-/Endnummer erfassen (optional)
-      </button>
-
       <div id="differenceResult" class="calc-result hidden"></div>
-
-      <div id="optionalCalcBox" class="optional-calc-box hidden">
-        <div class="optional-calc-row">
-          <div>
-            <p>Anfangsnummer</p>
-            <input id="startNummer" placeholder="z. B. 1000" maxlength="40">
-          </div>
-          <div>
-            <p>Endnummer</p>
-            <input id="endNummer" placeholder="z. B. 1075" maxlength="40">
-          </div>
-        </div>
-      </div>
 
       <p>Länge aktualisieren</p>
       <input id="returnLaenge" placeholder="Länge (m)" maxlength="40">
@@ -1050,6 +1040,30 @@ Danach erscheint die Bobine wieder im Lager.</p>
       <input id="returnBaustelle" placeholder="Baustelle" maxlength="120">
 
       <button onclick="confirmReturn()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
+      <button class="back" onclick="closeModal()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
+    </div>
+  </div>
+
+  <div id="usageNumbersModal" class="modal">
+    <div class="modal-content">
+      <h3>Anfangs-/Endnummer erfassen</h3>
+
+      <div class="optional-calc-box">
+        <div class="optional-calc-row">
+          <div>
+            <p>Anfangsnummer</p>
+            <input id="usageStartNummer" placeholder="z. B. 1000" maxlength="40">
+          </div>
+          <div>
+            <p>Endnummer</p>
+            <input id="usageEndNummer" placeholder="z. B. 1075" maxlength="40">
+          </div>
+        </div>
+      </div>
+
+      <p class="info-box" style="margin-top:0;">Nur wenn beide Werte gesetzt sind, wird beim Zurückbuchen automatisch die Differenz berücksichtigt.</p>
+
+      <button onclick="saveUsageNumbers()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
       <button class="back" onclick="closeModal()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
     </div>
   </div>
@@ -1103,6 +1117,7 @@ const PREDEFINED_KABELTYPEN = [
 let editId = null;
 let selectedId = null;
 let selectedOriginalLaenge = null;
+let selectedUsageId = null;
 let alleBobinen = [];
 let unsubscribeBobinen = null;
 let openDetailsRows = new Set();
@@ -1184,86 +1199,132 @@ function formatNumberForDisplay(value){
   });
 }
 
-function toggleOptionalDifference(){
-  const box = document.getElementById("optionalCalcBox");
-  const result = document.getElementById("differenceResult");
-  const startInput = document.getElementById("startNummer");
-  const endInput = document.getElementById("endNummer");
+function getDifferenceCalculation(startValue, endValue, originalLaenge){
+  const startClean = String(startValue || "").trim();
+  const endClean = String(endValue || "").trim();
 
-  if(!box || !result || !startInput || !endInput){
-    return;
+  if(startClean === "" || endClean === ""){
+    return { isComplete: false };
   }
 
-  const willOpen = box.classList.contains("hidden");
-  box.classList.toggle("hidden", !willOpen);
-
-  if(!willOpen){
-    startInput.value = "";
-    endInput.value = "";
-    result.textContent = "";
-    result.classList.add("hidden");
-    result.classList.remove("error");
-    return;
-  }
-
-  startInput.focus();
-}
-
-function updateOptionalDifference(){
-  const box = document.getElementById("optionalCalcBox");
-  const result = document.getElementById("differenceResult");
-  const startInput = document.getElementById("startNummer");
-  const endInput = document.getElementById("endNummer");
-  const returnLaengeInput = document.getElementById("returnLaenge");
-
-  if(!box || box.classList.contains("hidden") || !result || !startInput || !endInput || !returnLaengeInput){
-    return;
-  }
-
-  const startNum = parsePositiveNumber(startInput.value);
-  const endNum = parsePositiveNumber(endInput.value);
-
-  result.classList.remove("hidden");
-  result.classList.remove("error");
-
-  if(startInput.value.trim() === "" || endInput.value.trim() === ""){
-    result.textContent = "Optional: Gib Anfangs- und Endnummer ein, dann wird die Differenz automatisch berechnet.";
-    return;
-  }
+  const startNum = parsePositiveNumber(startClean);
+  const endNum = parsePositiveNumber(endClean);
 
   if(startNum === null || endNum === null){
-    result.textContent = "Bitte nur gültige positive Zahlen eingeben.";
-    result.classList.add("error");
-    return;
+    return { isComplete: true, hasError: true, message: "Bitte nur gültige positive Zahlen für Anfangs- und Endnummer eingeben." };
   }
 
-  if(endNum < startNum){
-    result.textContent = "Die Endnummer muss grösser oder gleich der Anfangsnummer sein.";
-    result.classList.add("error");
-    return;
+  if(originalLaenge === null){
+    return { isComplete: true, hasError: true, message: "Die vorherige Kabellänge konnte nicht als Zahl erkannt werden." };
   }
 
-  if(selectedOriginalLaenge === null){
-    result.textContent = "Die vorherige Kabellänge konnte nicht als Zahl erkannt werden.";
-    result.classList.add("error");
-    return;
-  }
-
-  const differenz = endNum - startNum;
-  const neueLaenge = selectedOriginalLaenge - differenz;
+  const differenz = Math.abs(endNum - startNum);
+  const neueLaenge = originalLaenge - differenz;
 
   if(neueLaenge < 0){
-    result.textContent = "Die berechnete Länge wäre kleiner als 0 m. Bitte Eingaben prüfen.";
-    result.classList.add("error");
+    return { isComplete: true, hasError: true, message: "Die berechnete Länge wäre kleiner als 0 m. Bitte Eingaben prüfen." };
+  }
+
+  return {
+    isComplete: true,
+    hasError: false,
+    startNum: startNum,
+    endNum: endNum,
+    differenz: differenz,
+    neueLaenge: neueLaenge,
+    message:
+      "Rechnungsweg: " + formatNumberForDisplay(originalLaenge) +
+      " m - |" + formatNumberForDisplay(endNum) + " - " + formatNumberForDisplay(startNum) +
+      "| = " + formatNumberForDisplay(differenz) + " m = " + formatNumberForDisplay(neueLaenge) + " m"
+  };
+}
+
+function updateReturnDifference(startValue, endValue){
+  const result = document.getElementById("differenceResult");
+  const returnLaengeInput = document.getElementById("returnLaenge");
+
+  if(!result || !returnLaengeInput){
     return;
   }
 
-  result.textContent =
-    "Rechnungsweg: " + formatNumberForDisplay(selectedOriginalLaenge) +
-    " m - (" + formatNumberForDisplay(endNum) + " - " + formatNumberForDisplay(startNum) +
-    " = " + formatNumberForDisplay(differenz) + " m) = " + formatNumberForDisplay(neueLaenge) + " m";
+  const calc = getDifferenceCalculation(startValue, endValue, selectedOriginalLaenge);
 
-  returnLaengeInput.value = formatNumberForDisplay(neueLaenge);
+  if(!calc.isComplete){
+    result.textContent = "Keine automatische Berechnung: Anfangs- und Endnummer müssen beide gesetzt sein.";
+    result.classList.remove("error");
+    result.classList.remove("hidden");
+    return;
+  }
+
+  result.textContent = calc.message;
+  result.classList.toggle("error", !!calc.hasError);
+  result.classList.remove("hidden");
+
+  if(!calc.hasError){
+    returnLaengeInput.value = formatNumberForDisplay(calc.neueLaenge);
+  }
+}
+
+function openUsageNumbersModal(id){
+  selectedUsageId = id;
+
+  bobinenCollection.doc(id).get().then(doc => {
+    if(!doc.exists){
+      alert("Bobine nicht gefunden.");
+      return;
+    }
+
+    const b = doc.data();
+    document.getElementById("usageStartNummer").value = sanitizeInput(b.startNummer || "", 40);
+    document.getElementById("usageEndNummer").value = sanitizeInput(b.endNummer || "", 40);
+    document.getElementById("usageNumbersModal").style.display = "block";
+    focusFirstInput("usageNumbersModal");
+  }).catch(error => {
+    console.error("Fehler beim Laden der Nummern:", error);
+    alert("Fehler beim Laden der Anfangs-/Endnummer.");
+  });
+}
+
+function saveUsageNumbers(){
+  if(!selectedUsageId){
+    return;
+  }
+
+  const startNummer = sanitizeInput(document.getElementById("usageStartNummer").value, 40);
+  const endNummer = sanitizeInput(document.getElementById("usageEndNummer").value, 40);
+
+  document.getElementById("usageStartNummer").value = startNummer;
+  document.getElementById("usageEndNummer").value = endNummer;
+
+  bobinenCollection.doc(selectedUsageId).get().then(doc => {
+    if(!doc.exists){
+      alert("Bobine nicht gefunden.");
+      return;
+    }
+
+    const b = doc.data();
+
+    return bobinenCollection.doc(selectedUsageId).update({
+      startNummer: startNummer,
+      endNummer: endNummer
+    }).then(() => {
+      writeLog(
+        "Kabellager",
+        "Anfangs-/Endnummer erfasst",
+        "bobine",
+        selectedUsageId,
+        "Nummer: " + (b.nummer || "") +
+        " | Anfangsnummer: " + startNummer +
+        " | Endnummer: " + endNummer
+      );
+
+      selectedUsageId = null;
+      closeModal();
+    });
+  }).catch(error => {
+    console.error("Fehler beim Speichern der Anfangs-/Endnummer:", error);
+    alert("Fehler beim Speichern der Anfangs-/Endnummer.");
+  });
 }
 
 function getBobinenBadgeHtml(istDreiBobinen){
@@ -1545,6 +1606,9 @@ function renderDesktopTable(data){
 
     const statusButtonText = b.status === "Lager" ? "In Gebrauch" : "Zurück ins Lager";
     const statusButtonIcon = b.status === "Lager" ? "fa-arrow-right" : "fa-rotate-left";
+    const inUseCaptureButton = b.status === "In Gebrauch"
+      ? `<button class="capture-btn" onclick="openUsageNumbersModal('${docItem.id}')"><i class="fa-solid fa-ruler"></i> Nummern erfassen</button>`
+      : "";
 
     const mainRow = document.createElement("tr");
     mainRow.className = "main-row " + (b.status === "Lager" ? "instock" : "inuse");
@@ -1563,6 +1627,8 @@ function renderDesktopTable(data){
           <button class="details-toggle-btn" onclick="toggleDetails('${docItem.id}')" title="Details einblenden">
             <i id="detailsIcon-${docItem.id}" class="fa-solid ${isDetailOpen ? "fa-chevron-up" : "fa-chevron-down"}"></i> Details
           </button>
+
+          ${inUseCaptureButton}
 
           <div class="row-menu-wrap">
             <button class="row-menu-button" onclick="toggleRowMenu(event, '${docItem.id}')" title="Weitere Aktionen">
@@ -1627,6 +1693,9 @@ function renderMobileCards(data){
     const statusButtonIcon = b.status === "Lager" ? "fa-arrow-right" : "fa-rotate-left";
     const statusClass = b.status === "Lager" ? "instock" : "inuse";
     const bobinenBadge = getBobinenBadgeHtml(!!b.istDreiBobinen);
+    const inUseCaptureButton = b.status === "In Gebrauch"
+      ? `<button class="capture-btn" onclick="openUsageNumbersModal('${docItem.id}')"><i class="fa-solid fa-ruler"></i> Nummern</button>`
+      : "";
 
     const card = document.createElement("div");
     card.className = "mobile-card " + statusClass;
@@ -1677,7 +1746,7 @@ function renderMobileCards(data){
           <i id="mobileDetailsIcon-${docItem.id}" class="fa-solid ${isDetailOpen ? "fa-chevron-up" : "fa-chevron-down"}"></i> Details
         </button>
 
-        <div></div>
+        ${inUseCaptureButton || "<div></div>"}
       </div>
 
       <div id="mobileDetails-${docItem.id}" class="mobile-details${isDetailOpen ? " open" : ""}">
@@ -1980,7 +2049,9 @@ function toggleStatus(id){
 
     if(b.status === "Lager"){
       return bobinenCollection.doc(id).update({
-        status: "In Gebrauch"
+        status: "In Gebrauch",
+        startNummer: "",
+        endNummer: ""
       }).then(() => {
         writeLog(
           "Kabellager",
@@ -2001,12 +2072,10 @@ function toggleStatus(id){
       selectedOriginalLaenge = parsePositiveNumber(b.laenge);
       document.getElementById("returnLaenge").value = sanitizeInput(b.laenge || "", 40);
       document.getElementById("returnBaustelle").value = sanitizeInput(b.baustelle || "", 120);
-      document.getElementById("startNummer").value = "";
-      document.getElementById("endNummer").value = "";
-      document.getElementById("optionalCalcBox").classList.add("hidden");
       document.getElementById("differenceResult").textContent = "";
       document.getElementById("differenceResult").classList.add("hidden");
       document.getElementById("differenceResult").classList.remove("error");
+      updateReturnDifference(b.startNummer || "", b.endNummer || "");
       document.getElementById("returnModal").style.display = "block";
       focusFirstInput("returnModal");
     }
@@ -2035,10 +2104,17 @@ function confirmReturn(){
 
     const b = doc.data();
 
+    const calc = getDifferenceCalculation(b.startNummer || "", b.endNummer || "", parsePositiveNumber(b.laenge));
+    const berechneteLaenge = (!calc.hasError && calc.isComplete)
+      ? formatNumberForDisplay(calc.neueLaenge)
+      : returnLaenge;
+
     return bobinenCollection.doc(selectedId).update({
-      laenge: returnLaenge,
+      laenge: berechneteLaenge,
       baustelle: returnBaustelle,
-      status: "Lager"
+      status: "Lager",
+      startNummer: "",
+      endNummer: ""
     }).then(() => {
       writeLog(
         "Kabellager",
@@ -2048,8 +2124,9 @@ function confirmReturn(){
         "Nummer: " + (b.nummer || "") +
         " | Typ: " + (b.typ || "") +
         " | 3 Bobinen: " + (b.istDreiBobinen ? "Ja" : "Nein") +
-        " | Neue Länge: " + returnLaenge +
+        " | Neue Länge: " + berechneteLaenge +
         " | Baustelle: " + returnBaustelle +
+        " | Rechnung: " + (!calc.isComplete ? "Keine (nur ein Wert oder leer)" : calc.message) +
         " | Infos: " + (b.infos || "")
       );
       selectedId = null;
@@ -2110,8 +2187,10 @@ function deleteBobine(id){
 function closeModal(){
   document.getElementById("modal").style.display = "none";
   document.getElementById("returnModal").style.display = "none";
+  document.getElementById("usageNumbersModal").style.display = "none";
   selectedId = null;
   selectedOriginalLaenge = null;
+  selectedUsageId = null;
 }
 
 function focusFirstInput(modalId){
@@ -2159,17 +2238,7 @@ document.addEventListener("DOMContentLoaded", function(){
   bindEnterSubmit("loginScreen", login);
   bindEnterSubmit("modal", saveBobine);
   bindEnterSubmit("returnModal", confirmReturn);
-
-  const startInput = document.getElementById("startNummer");
-  const endInput = document.getElementById("endNummer");
-
-  if(startInput){
-    startInput.addEventListener("input", updateOptionalDifference);
-  }
-
-  if(endInput){
-    endInput.addEventListener("input", updateOptionalDifference);
-  }
+  bindEnterSubmit("usageNumbersModal", saveUsageNumbers);
 });
 </script>
 
