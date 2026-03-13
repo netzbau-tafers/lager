@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="screen-orientation" content="landscape">
 <title>Strommast-Spiel</title>
 
 <link rel="icon" type="image/png" sizes="48x48" href="favicon.png">
@@ -206,6 +207,31 @@ canvas{
   font-size:14px;
 }
 
+.live-ranking{
+  margin:0 16px 16px;
+  background:#f7f9fb;
+  border:1px solid #dbe3ec;
+  border-radius:10px;
+  padding:10px 12px;
+}
+
+.live-ranking h3{
+  margin:0 0 8px;
+  color:#1f476f;
+  font-size:16px;
+}
+
+.character-hint{
+  margin:0;
+  color:#8b2b2b;
+  font-size:13px;
+  font-weight:bold;
+}
+
+.hidden-message{
+  visibility:hidden;
+}
+
 .small-note{
   font-size:13px;
   color:#666;
@@ -270,7 +296,6 @@ canvas{
           <h2>Start</h2>
           <p>Drücke Leertaste, Pfeil hoch, Mausklick oder tippe aufs Feld.</p>
           <p>Dein Charakter springt über Strommasten, Windräder, Kühltürme, Solarpanels und Bäume.</p>
-          <p class="small-note">Steuerung wie beim Chrome-T-Rex: Tippen/Leertaste/Pfeil hoch für einen Sprung.</p>
           <button type="button" onclick="startGame()">Spiel starten</button>
 
           <div class="ranking" id="startRankingBox">
@@ -308,16 +333,17 @@ canvas{
       </div>
     </div>
 
-    <div class="info">
-      Bedienung wie beim T-Rex-Spiel: Springen mit Leertaste, Pfeil hoch, Klick oder Touch.
-      Das Spiel startet bewusst langsam und wird Schritt für Schritt anspruchsvoller.
-    </div>
-
     <div class="character-select">
       <span class="character-label">Charakter:</span>
-      <button type="button" class="character-button" data-character="worker">👷 Mann mit Helm</button>
-      <button type="button" class="character-button active" data-character="frog">🐸 St.Silvester</button>
+      <button type="button" class="character-button" data-character="worker">👷 Mann (Seitenansicht)</button>
+      <button type="button" class="character-button" data-character="frog">🐸 St.Silvester</button>
       <button type="button" class="character-button" data-character="donkey">🫏 Düdinger</button>
+      <p id="characterHint" class="character-hint hidden-message">Bitte zuerst einen Charakter auswählen.</p>
+    </div>
+
+    <div class="live-ranking">
+      <h3>Live-Bestenliste (Top 10)</h3>
+      <ol id="liveRankingList"></ol>
     </div>
   </div>
 
@@ -333,7 +359,9 @@ const gameOverOverlay = document.getElementById("gameOverOverlay");
 const playerNameInput = document.getElementById("playerName");
 const startRankingList = document.getElementById("startRankingList");
 const gameOverRankingList = document.getElementById("gameOverRankingList");
+const liveRankingList = document.getElementById("liveRankingList");
 const characterButtons = document.querySelectorAll(".character-button");
+const characterHint = document.getElementById("characterHint");
 
 let animationId = null;
 let gameRunning = false;
@@ -382,7 +410,7 @@ const player = {
 let obstacles = [];
 let spawnTimer = 0;
 let gameOverSaved = false;
-let selectedCharacter = "frog";
+let selectedCharacter = null;
 let signposts = [];
 let signTimer = 0;
 
@@ -406,6 +434,7 @@ function renderRanking(){
 
   startRankingList.innerHTML = html;
   gameOverRankingList.innerHTML = html;
+  liveRankingList.innerHTML = html;
 }
 
 async function saveScore(){
@@ -446,6 +475,23 @@ async function saveScore(){
 
   gameOverSaved = true;
   renderRanking();
+}
+
+async function lockLandscapeOnMobile(){
+  if(!window.matchMedia("(max-width: 700px)").matches){
+    return;
+  }
+
+  const orientation = screen.orientation;
+  if(!orientation || typeof orientation.lock !== "function"){
+    return;
+  }
+
+  try{
+    await orientation.lock("landscape");
+  }catch(error){
+    console.warn("Landscape-Lock nicht möglich:", error);
+  }
 }
 
 function subscribeRanking(){
@@ -514,6 +560,12 @@ function resetGameState(){
 }
 
 function startGame(){
+  if(!selectedCharacter){
+    characterHint.classList.remove("hidden-message");
+    return;
+  }
+
+  lockLandscapeOnMobile();
   cancelAnimationFrame(animationId);
   resetGameState();
   loop();
@@ -918,15 +970,15 @@ function drawWindTurbine(ob){
   const hubY = y + 22;
   const bladeLen = 16;
 
-  ctx.fillStyle = "#d9e3ea";
+  ctx.fillStyle = "#8798a8";
   ctx.fillRect(centerX - 3, y + 20, 6, ob.height - 20);
 
-  ctx.fillStyle = "#eef3f7";
+  ctx.fillStyle = "#6f7e8c";
   ctx.beginPath();
   ctx.arc(centerX, hubY, 4, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.strokeStyle = "#c4d0db";
+  ctx.strokeStyle = "#5f6f7d";
   ctx.lineWidth = 3;
   for(let i = 0; i < 3; i++){
     const angle = frameCount * 0.04 + (i * Math.PI * 2) / 3;
@@ -1118,6 +1170,7 @@ draw();
 characterButtons.forEach((button) => {
   button.addEventListener("click", () => {
     selectedCharacter = button.dataset.character;
+    characterHint.classList.add("hidden-message");
 
     characterButtons.forEach((btn) => {
       btn.classList.toggle("active", btn === button);
