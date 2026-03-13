@@ -729,6 +729,36 @@ input{
   display:none;
 }
 
+.optional-calc-box{
+  border:1px solid #d7d7d7;
+  border-radius:10px;
+  background:#f8f9fb;
+  padding:12px;
+  margin-bottom:12px;
+}
+
+.optional-calc-row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+.calc-result{
+  margin:0 0 10px 0;
+  font-size:14px;
+  color:#1f2937;
+  background:#eef6ff;
+  border:1px solid #c9ddf7;
+  border-radius:8px;
+  padding:10px;
+}
+
+.calc-result.error{
+  background:#fff2f2;
+  border-color:#f2c5c5;
+  color:#8b1a1a;
+}
+
 @media (max-width: 900px){
   body{
     margin:15px;
@@ -994,6 +1024,25 @@ Danach erscheint die Bobine wieder im Lager.</p>
     <div class="modal-content">
       <h3>Bobine zurück ins Lager</h3>
 
+      <button id="toggleCalcBtn" type="button" class="details-toggle-btn" onclick="toggleOptionalDifference()">
+        <i class="fa-solid fa-ruler"></i> Anfangs-/Endnummer erfassen (optional)
+      </button>
+
+      <div id="differenceResult" class="calc-result hidden"></div>
+
+      <div id="optionalCalcBox" class="optional-calc-box hidden">
+        <div class="optional-calc-row">
+          <div>
+            <p>Anfangsnummer</p>
+            <input id="startNummer" placeholder="z. B. 1000" maxlength="40">
+          </div>
+          <div>
+            <p>Endnummer</p>
+            <input id="endNummer" placeholder="z. B. 1075" maxlength="40">
+          </div>
+        </div>
+      </div>
+
       <p>Länge aktualisieren</p>
       <input id="returnLaenge" placeholder="Länge (m)" maxlength="40">
 
@@ -1053,6 +1102,7 @@ const PREDEFINED_KABELTYPEN = [
 
 let editId = null;
 let selectedId = null;
+let selectedOriginalLaenge = null;
 let alleBobinen = [];
 let unsubscribeBobinen = null;
 let openDetailsRows = new Set();
@@ -1110,6 +1160,110 @@ function formatDatum(value){
   }catch(error){
     return "";
   }
+}
+
+function parsePositiveNumber(value){
+  const cleaned = String(value || "").replace(/,/g, ".").trim();
+
+  if(cleaned === ""){
+    return null;
+  }
+
+  const parsed = Number(cleaned);
+  if(!Number.isFinite(parsed) || parsed < 0){
+    return null;
+  }
+
+  return parsed;
+}
+
+function formatNumberForDisplay(value){
+  return Number(value).toLocaleString("de-CH", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  });
+}
+
+function toggleOptionalDifference(){
+  const box = document.getElementById("optionalCalcBox");
+  const result = document.getElementById("differenceResult");
+  const startInput = document.getElementById("startNummer");
+  const endInput = document.getElementById("endNummer");
+
+  if(!box || !result || !startInput || !endInput){
+    return;
+  }
+
+  const willOpen = box.classList.contains("hidden");
+  box.classList.toggle("hidden", !willOpen);
+
+  if(!willOpen){
+    startInput.value = "";
+    endInput.value = "";
+    result.textContent = "";
+    result.classList.add("hidden");
+    result.classList.remove("error");
+    return;
+  }
+
+  startInput.focus();
+}
+
+function updateOptionalDifference(){
+  const box = document.getElementById("optionalCalcBox");
+  const result = document.getElementById("differenceResult");
+  const startInput = document.getElementById("startNummer");
+  const endInput = document.getElementById("endNummer");
+  const returnLaengeInput = document.getElementById("returnLaenge");
+
+  if(!box || box.classList.contains("hidden") || !result || !startInput || !endInput || !returnLaengeInput){
+    return;
+  }
+
+  const startNum = parsePositiveNumber(startInput.value);
+  const endNum = parsePositiveNumber(endInput.value);
+
+  result.classList.remove("hidden");
+  result.classList.remove("error");
+
+  if(startInput.value.trim() === "" || endInput.value.trim() === ""){
+    result.textContent = "Optional: Gib Anfangs- und Endnummer ein, dann wird die Differenz automatisch berechnet.";
+    return;
+  }
+
+  if(startNum === null || endNum === null){
+    result.textContent = "Bitte nur gültige positive Zahlen eingeben.";
+    result.classList.add("error");
+    return;
+  }
+
+  if(endNum < startNum){
+    result.textContent = "Die Endnummer muss grösser oder gleich der Anfangsnummer sein.";
+    result.classList.add("error");
+    return;
+  }
+
+  if(selectedOriginalLaenge === null){
+    result.textContent = "Die vorherige Kabellänge konnte nicht als Zahl erkannt werden.";
+    result.classList.add("error");
+    return;
+  }
+
+  const differenz = endNum - startNum;
+  const neueLaenge = selectedOriginalLaenge - differenz;
+
+  if(neueLaenge < 0){
+    result.textContent = "Die berechnete Länge wäre kleiner als 0 m. Bitte Eingaben prüfen.";
+    result.classList.add("error");
+    return;
+  }
+
+  result.textContent =
+    "Rechnungsweg: " + formatNumberForDisplay(selectedOriginalLaenge) +
+    " m - (" + formatNumberForDisplay(endNum) + " - " + formatNumberForDisplay(startNum) +
+    " = " + formatNumberForDisplay(differenz) + " m) = " + formatNumberForDisplay(neueLaenge) + " m";
+
+  returnLaengeInput.value = formatNumberForDisplay(neueLaenge);
 }
 
 function getBobinenBadgeHtml(istDreiBobinen){
@@ -1844,8 +1998,15 @@ function toggleStatus(id){
       });
     }else{
       selectedId = id;
+      selectedOriginalLaenge = parsePositiveNumber(b.laenge);
       document.getElementById("returnLaenge").value = sanitizeInput(b.laenge || "", 40);
       document.getElementById("returnBaustelle").value = sanitizeInput(b.baustelle || "", 120);
+      document.getElementById("startNummer").value = "";
+      document.getElementById("endNummer").value = "";
+      document.getElementById("optionalCalcBox").classList.add("hidden");
+      document.getElementById("differenceResult").textContent = "";
+      document.getElementById("differenceResult").classList.add("hidden");
+      document.getElementById("differenceResult").classList.remove("error");
       document.getElementById("returnModal").style.display = "block";
       focusFirstInput("returnModal");
     }
@@ -1950,6 +2111,7 @@ function closeModal(){
   document.getElementById("modal").style.display = "none";
   document.getElementById("returnModal").style.display = "none";
   selectedId = null;
+  selectedOriginalLaenge = null;
 }
 
 function focusFirstInput(modalId){
@@ -1997,6 +2159,17 @@ document.addEventListener("DOMContentLoaded", function(){
   bindEnterSubmit("loginScreen", login);
   bindEnterSubmit("modal", saveBobine);
   bindEnterSubmit("returnModal", confirmReturn);
+
+  const startInput = document.getElementById("startNummer");
+  const endInput = document.getElementById("endNummer");
+
+  if(startInput){
+    startInput.addEventListener("input", updateOptionalDifference);
+  }
+
+  if(endInput){
+    endInput.addEventListener("input", updateOptionalDifference);
+  }
 });
 </script>
 
