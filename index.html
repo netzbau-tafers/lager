@@ -863,6 +863,10 @@ input{
     <div class="login-info">Bitte mit E-Mail und Passwort anmelden</div>
     <input id="loginEmail" type="email" placeholder="E-Mail" maxlength="120" autocomplete="username">
     <input id="loginPassword" type="password" placeholder="Passwort" maxlength="120" autocomplete="current-password">
+    <label style="display:flex; align-items:center; gap:8px; margin:4px 0 8px 0; font-size:14px; color:#444;">
+      <input id="showLoginPassword" type="checkbox" onchange="toggleLoginPasswordVisibility()" style="width:auto; margin:0;">
+      Passwort anzeigen
+    </label>
     <button onclick="login()"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
     <p id="loginError" class="login-error">Login fehlgeschlagen. Bitte Daten prüfen.</p>
   </div>
@@ -899,6 +903,9 @@ input{
           <i class="fa-solid fa-clipboard-list"></i> Logs
         </button>
 
+        <button onclick="resetPassword()">
+          <i class="fa-solid fa-key"></i> Passwort zurücksetzen
+        </button>
         <button class="logout-safe" onclick="logout()">
           <i class="fa-solid fa-right-from-bracket"></i> Logout
         </button>
@@ -1540,6 +1547,17 @@ document.addEventListener("click", function(event){
   }
 });
 
+function toggleLoginPasswordVisibility(){
+  const passwordField = document.getElementById("loginPassword");
+  const showPassword = document.getElementById("showLoginPassword");
+
+  if(!passwordField || !showPassword){
+    return;
+  }
+
+  passwordField.type = showPassword.checked ? "text" : "password";
+}
+
 function login(){
   const email = document.getElementById("loginEmail").value.trim();
   const password = document.getElementById("loginPassword").value;
@@ -1552,6 +1570,26 @@ function login(){
     .catch((error) => {
       console.error("Login Fehler:", error);
       document.getElementById("loginError").style.display = "block";
+    });
+}
+
+function resetPassword(){
+  const currentUser = auth.currentUser;
+  const emailInput = document.getElementById("loginEmail");
+  const email = (currentUser && currentUser.email) || (emailInput ? emailInput.value.trim() : "");
+
+  if(!email){
+    alert("Keine E-Mail verfügbar. Bitte erneut einloggen und später versuchen.");
+    return;
+  }
+
+  auth.sendPasswordResetEmail(email)
+    .then(() => {
+      alert(`E-Mail zum Zurücksetzen wurde an ${email} gesendet.`);
+    })
+    .catch((error) => {
+      console.error("Passwort zurücksetzen Fehler:", error);
+      alert("Zurücksetzen fehlgeschlagen. Bitte später erneut versuchen.");
     });
 }
 
