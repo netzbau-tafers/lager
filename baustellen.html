@@ -711,7 +711,7 @@ label{
     <i class="fa-solid fa-box-archive"></i> Archiv
   </button>
 
-  <button onclick="goToLogs()" data-page="logs">
+  <button id="logsMenuButton" onclick="goToLogs()" data-page="logs" style="display:none;">
     <i class="fa-solid fa-clipboard-list"></i> Logs
   </button>
 
@@ -874,6 +874,13 @@ let vorlagenBereichOffen = false;
 let beendeteBereichOffen = false;
 let selectedVorlageId = null;
 let isAdminUser = false;
+
+function setLogsMenuVisibility(isAdmin){
+  const logsButton = document.getElementById("logsMenuButton");
+  if(logsButton){
+    logsButton.style.display = isAdmin ? "inline-flex" : "none";
+  }
+}
 
 const VORLAGEN_CACHE_KEY = "material_vorlagen_cache_v1";
 const VORLAGEN_CACHE_MAX_AGE_MS = 1000 * 60 * 60 * 6;
@@ -1103,6 +1110,12 @@ function goToArchiv(){
 }
 
 function goToLogs(){
+  if(!isAdminUser){
+    closeMenu();
+    alert("Logs sind nur für Administratoren sichtbar.");
+    return;
+  }
+
   closeMenu();
   window.location.href = "logs.html";
 }
@@ -1248,12 +1261,14 @@ function stopListeners(){
 auth.onAuthStateChanged((user) => {
   if(user){
     isAdminUser = user.uid === ADMIN_UID;
+    setLogsMenuVisibility(isAdminUser);
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
     updateAdminVisibility();
     startListeners();
   }else{
     isAdminUser = false;
+    setLogsMenuVisibility(false);
     stopListeners();
     closeMenu();
     closeAllCardMenus();

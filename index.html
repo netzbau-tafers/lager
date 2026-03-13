@@ -900,7 +900,7 @@ input{
           <i class="fa-solid fa-box-archive"></i> Archiv
         </button>
 
-        <button onclick="goToLogs()" data-page="logs">
+        <button id="logsMenuButton" onclick="goToLogs()" data-page="logs" style="display:none;">
           <i class="fa-solid fa-clipboard-list"></i> Logs
         </button>
 
@@ -1099,6 +1099,7 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 const bobinenCollection = db.collection("bobinen");
 const logsCollection = db.collection("logs");
+const ADMIN_UID = "smnnQd4RhEQZR3uuNN0otNALUqi1";
 
 const PREDEFINED_KABELTYPEN = [
   "GKN 3x6/6mm² Cu",
@@ -1134,6 +1135,13 @@ let selectedUsageId = null;
 let alleBobinen = [];
 let unsubscribeBobinen = null;
 let openDetailsRows = new Set();
+
+function setLogsMenuVisibility(isAdminUser){
+  const logsButton = document.getElementById("logsMenuButton");
+  if(logsButton){
+    logsButton.style.display = isAdminUser ? "inline-flex" : "none";
+  }
+}
 
 function writeLog(bereich, aktion, objektTyp, objektId, details){
   const user = auth.currentUser;
@@ -1439,6 +1447,13 @@ function goToArchiv(){
 }
 
 function goToLogs(){
+  const user = auth.currentUser;
+  if(!user || user.uid !== ADMIN_UID){
+    closeMenu();
+    alert("Logs sind nur für Administratoren sichtbar.");
+    return;
+  }
+
   closeMenu();
   window.location.href = "logs.html";
 }
@@ -1625,10 +1640,12 @@ function stopListeners(){
 
 auth.onAuthStateChanged((user) => {
   if(user){
+    setLogsMenuVisibility(user.uid === ADMIN_UID);
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
     startDatabaseListener();
   }else{
+    setLogsMenuVisibility(false);
     stopListeners();
     closeMenu();
     closeAllRowMenus();
