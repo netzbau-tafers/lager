@@ -741,9 +741,12 @@ label{
 
 <div class="section">
   <div class="section-header">
-    <h2>Beendete Baustellen</h2>
+    <button class="material-toggle" onclick="toggleBeendeteBereich()">
+      <span><i class="fa-solid fa-list-check"></i> Beendete Baustellen (<span id="beendeteCount">0</span>)</span>
+      <span class="arrow" id="beendeteArrow">▼</span>
+    </button>
   </div>
-  <div id="beendeteBaustellen" class="baustellen-grid"></div>
+  <div id="beendeteBaustellen" class="baustellen-grid" style="display:none;"></div>
 </div>
 
 <div class="section">
@@ -859,6 +862,7 @@ let editMaterialId = null;
 let editVorlageId = null;
 let openMaterialLists = {};
 let vorlagenBereichOffen = false;
+let beendeteBereichOffen = false;
 let selectedVorlageId = null;
 let isAdminUser = false;
 
@@ -1217,11 +1221,15 @@ auth.onAuthStateChanged((user) => {
     document.getElementById("vorlagenInfo").innerText = "";
     document.getElementById("vorlagenContent").style.display = "none";
     document.getElementById("vorlagenArrow").innerText = "▼";
+    document.getElementById("beendeteBaustellen").style.display = "none";
+    document.getElementById("beendeteArrow").innerText = "▼";
+    document.getElementById("beendeteCount").innerText = "0";
     alleBaustellen = [];
     alleMaterialien = [];
     alleVorlagen = [];
     openMaterialLists = {};
     vorlagenBereichOffen = false;
+    beendeteBereichOffen = false;
     selectedVorlageId = null;
   }
 });
@@ -1395,6 +1403,7 @@ function getStatusBadgeClass(status){
 function renderAll(){
   const aktiveContainer = document.getElementById("aktiveBaustellen");
   const beendeteContainer = document.getElementById("beendeteBaustellen");
+  const beendeteCount = document.getElementById("beendeteCount");
 
   aktiveContainer.innerHTML = "";
   beendeteContainer.innerHTML = "";
@@ -1417,6 +1426,12 @@ function renderAll(){
   }else{
     beendete.forEach(b => beendeteContainer.appendChild(createBaustelleCard(b)));
   }
+
+  if(beendeteCount){
+    beendeteCount.innerText = String(beendete.length);
+  }
+
+  beendeteContainer.style.display = beendeteBereichOffen ? "grid" : "none";
 
   document.getElementById("resultInfo").innerText =
     "Aktive Baustellen: " + aktive.length + " | Beendete Baustellen: " + beendete.length;
@@ -1717,6 +1732,25 @@ function toggleMaterialList(baustelleId){
   }else{
     openMaterialLists[baustelleId] = true;
     content.style.display = "block";
+    arrow.innerText = "▲";
+  }
+}
+
+function toggleBeendeteBereich(){
+  const content = document.getElementById("beendeteBaustellen");
+  const arrow = document.getElementById("beendeteArrow");
+
+  if(!content || !arrow){
+    return;
+  }
+
+  if(beendeteBereichOffen){
+    beendeteBereichOffen = false;
+    content.style.display = "none";
+    arrow.innerText = "▼";
+  }else{
+    beendeteBereichOffen = true;
+    content.style.display = "grid";
     arrow.innerText = "▲";
   }
 }
