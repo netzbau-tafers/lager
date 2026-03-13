@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="screen-orientation" content="landscape">
 <title>Strommast-Spiel</title>
 
@@ -11,64 +11,118 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
+:root{
+  --bg-1:#f8fbff;
+  --bg-2:#e6edf6;
+  --bg-3:#dfe7f1;
+  --card:#ffffff;
+  --card-soft:#f7f9fb;
+  --border:#d5dbe3;
+  --border-soft:#e1e6ed;
+  --text:#222;
+  --text-soft:#35506b;
+  --primary-1:#44a7ea;
+  --primary-2:#2689cc;
+  --primary-3:#1f77b5;
+  --pill-bg:#eef6ff;
+  --pill-border:#c8d9eb;
+  --pill-text:#27517a;
+  --shadow:0 12px 30px rgba(33,50,74,0.15);
+  --radius:18px;
+  --radius-small:12px;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+html, body{
+  width:100%;
+  overflow-x:hidden;
+}
+
 body{
   margin:0;
   font-family:Arial, sans-serif;
-  background:radial-gradient(circle at 20% 10%, #f8fbff 0%, #e6edf6 45%, #dfe7f1 100%);
-  color:#222;
+  background:radial-gradient(circle at 20% 10%, var(--bg-1) 0%, var(--bg-2) 45%, var(--bg-3) 100%);
+  color:var(--text);
   display:flex;
   justify-content:center;
   align-items:center;
   min-height:100vh;
+  padding:18px;
 }
 
 .game-wrap{
   width:min(1100px, 98vw);
-  background:white;
-  border:1px solid #d5dbe3;
-  border-radius:16px;
-  box-shadow:0 12px 30px rgba(33,50,74,0.15);
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
   overflow:hidden;
 }
 
 .topbar{
   display:flex;
   justify-content:space-between;
-  align-items:center;
-  gap:12px;
-  padding:14px 16px;
+  align-items:flex-start;
+  gap:14px;
+  padding:16px 18px;
   background:#f5f7fa;
-  border-bottom:1px solid #e1e6ed;
+  border-bottom:1px solid var(--border-soft);
   flex-wrap:wrap;
 }
 
 .topbar-left{
   display:flex;
-  gap:10px;
   align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  min-width:0;
+}
+
+.topbar-right{
+  display:flex;
+  align-items:center;
+  gap:8px;
   flex-wrap:wrap;
 }
 
 h1{
   margin:0;
-  font-size:22px;
+  font-size:28px;
+  line-height:1.1;
+  color:#1e2d3d;
 }
 
 button{
-  padding:10px 14px;
+  padding:11px 16px;
   cursor:pointer;
   border:none;
-  border-radius:8px;
-  background:linear-gradient(180deg, #44a7ea, #2689cc);
+  border-radius:12px;
+  background:linear-gradient(180deg, var(--primary-1), var(--primary-2));
   color:white;
   font-size:14px;
+  font-weight:bold;
+  box-shadow:0 4px 10px rgba(38,137,204,0.18);
+  transition:transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
 button:hover{
-  background:linear-gradient(180deg, #2f9de7, #1f77b5);
+  background:linear-gradient(180deg, #2f9de7, var(--primary-3));
+  transform:translateY(-1px);
+  box-shadow:0 6px 12px rgba(38,137,204,0.24);
+}
+
+button:active{
+  transform:translateY(0);
 }
 
 .score{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
   font-weight:bold;
   font-size:16px;
 }
@@ -76,6 +130,7 @@ button:hover{
 .canvas-wrap{
   position:relative;
   background:linear-gradient(to bottom, #edf6ff 0%, #dbe9f7 65%, #d2e2f3 100%);
+  overflow:hidden;
 }
 
 canvas{
@@ -84,6 +139,7 @@ canvas{
   height:auto;
   background:transparent;
   touch-action:manipulation;
+  aspect-ratio:1000 / 320;
 }
 
 .overlay{
@@ -92,27 +148,32 @@ canvas{
   display:flex;
   align-items:center;
   justify-content:center;
-  background:rgba(255,255,255,0.0);
+  padding:16px;
+  background:rgba(255,255,255,0.08);
   z-index:10;
 }
 
 .overlay-box{
-  background:rgba(255,255,255,0.94);
+  background:rgba(255,255,255,0.96);
   border:1px solid #d7dce2;
-  border-radius:14px;
-  padding:18px 22px;
+  border-radius:18px;
+  padding:22px 24px;
   text-align:center;
-  box-shadow:0 8px 22px rgba(0,0,0,0.08);
-  width:min(420px, 88vw);
+  box-shadow:0 10px 28px rgba(0,0,0,0.09);
+  width:min(460px, calc(100vw - 32px));
+  max-height:min(86vh, 700px);
+  overflow:auto;
 }
 
 .overlay-box h2{
-  margin-top:0;
-  margin-bottom:10px;
+  margin:0 0 10px 0;
+  font-size:24px;
+  color:#1f2d3a;
 }
 
 .overlay-box p{
-  margin:6px 0;
+  margin:8px 0;
+  line-height:1.4;
 }
 
 .hidden{
@@ -121,56 +182,73 @@ canvas{
 
 .info{
   padding:12px 16px 18px 16px;
-  color:#35506b;
+  color:var(--text-soft);
   font-size:14px;
 }
 
 .character-select{
   display:flex;
-  align-items:center;
-  gap:10px;
+  align-items:flex-start;
+  gap:12px;
   flex-wrap:wrap;
-  padding:0 16px 16px;
+  padding:18px 16px 6px 16px;
 }
 
 .character-label{
   font-weight:bold;
   color:#1f476f;
+  min-width:92px;
+  padding-top:10px;
+}
+
+.character-buttons{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  flex:1;
 }
 
 .character-button{
   border:1px solid #bfd4ea;
   background:#eff6ff;
   color:#1f476f;
+  box-shadow:none;
 }
 
 .character-button.active{
   border-color:#2c8fd2;
   background:linear-gradient(180deg, #44a7ea, #2689cc);
   color:white;
+  box-shadow:0 4px 10px rgba(38,137,204,0.18);
 }
 
 .pill{
   display:inline-flex;
   align-items:center;
   gap:6px;
-  padding:6px 10px;
+  padding:8px 12px;
   border-radius:999px;
-  border:1px solid #c8d9eb;
-  background:#eef6ff;
-  color:#27517a;
-  font-size:13px;
+  border:1px solid var(--pill-border);
+  background:var(--pill-bg);
+  color:var(--pill-text);
+  font-size:14px;
   font-weight:bold;
 }
 
 .name-input{
   width:100%;
   box-sizing:border-box;
-  padding:10px 12px;
+  padding:13px 14px;
   border:1px solid #cfd6df;
-  border-radius:8px;
-  margin:12px 0 10px 0;
-  font-size:15px;
+  border-radius:12px;
+  margin:14px 0 10px 0;
+  font-size:16px;
+  outline:none;
+}
+
+.name-input:focus{
+  border-color:#67aee2;
+  box-shadow:0 0 0 3px rgba(68,167,234,0.12);
 }
 
 .overlay-actions{
@@ -178,54 +256,69 @@ canvas{
   justify-content:center;
   gap:10px;
   flex-wrap:wrap;
-  margin-top:10px;
+  margin-top:12px;
 }
 
 .ranking{
-  margin-top:14px;
+  margin-top:16px;
   text-align:left;
-  background:#f7f9fb;
-  border:1px solid #e1e6ed;
-  border-radius:10px;
-  padding:10px 12px;
-  max-height:180px;
+  background:var(--card-soft);
+  border:1px solid var(--border-soft);
+  border-radius:14px;
+  padding:12px 14px;
+  max-height:220px;
   overflow:auto;
 }
 
 .ranking h3{
-  margin:0 0 8px 0;
-  font-size:16px;
+  margin:0 0 10px 0;
+  font-size:18px;
+  color:#21364a;
 }
 
 .ranking ol{
   margin:0;
-  padding-left:20px;
+  padding-left:24px;
 }
 
 .ranking li{
-  margin:4px 0;
-  font-size:14px;
+  margin:6px 0;
+  font-size:15px;
+  line-height:1.4;
+  word-break:break-word;
 }
 
 .live-ranking{
-  margin:0 16px 16px;
-  background:#f7f9fb;
+  margin:12px 16px 18px;
+  background:var(--card-soft);
   border:1px solid #dbe3ec;
-  border-radius:10px;
-  padding:10px 12px;
+  border-radius:14px;
+  padding:14px 16px;
 }
 
 .live-ranking h3{
-  margin:0 0 8px;
+  margin:0 0 10px 0;
   color:#1f476f;
-  font-size:16px;
+  font-size:20px;
+}
+
+.live-ranking ol{
+  margin:0;
+  padding-left:26px;
+}
+
+.live-ranking li{
+  margin:6px 0;
+  line-height:1.45;
+  word-break:break-word;
 }
 
 .character-hint{
-  margin:0;
+  margin:2px 16px 14px 16px;
   color:#8b2b2b;
-  font-size:13px;
+  font-size:14px;
   font-weight:bold;
+  width:100%;
 }
 
 .hidden-message{
@@ -237,39 +330,226 @@ canvas{
   color:#666;
 }
 
-@media (max-width: 700px){
+@media (max-width: 900px){
   body{
+    padding:10px;
     align-items:flex-start;
   }
 
   .game-wrap{
-    width:100vw;
-    border-radius:0;
-    border-left:none;
-    border-right:none;
-    box-shadow:none;
-  }
-
-  .canvas-wrap{
-    min-height:56vh;
-  }
-
-  canvas{
-    min-height:56vh;
-    object-fit:cover;
+    width:100%;
   }
 
   h1{
-    font-size:18px;
+    font-size:24px;
+  }
+
+  .overlay-box{
+    width:min(500px, calc(100vw - 24px));
+  }
+}
+
+@media (max-width: 700px){
+  body{
+    padding:0;
+    align-items:flex-start;
+    background:#eef3f8;
+  }
+
+  .game-wrap{
+    width:100vw;
+    min-height:100vh;
+    border-radius:0;
+    border:none;
+    box-shadow:none;
   }
 
   .topbar{
-    flex-direction:column;
+    padding:14px 14px 12px 14px;
+    gap:12px;
     align-items:stretch;
   }
 
   .topbar-left{
-    justify-content:space-between;
+    width:100%;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+
+  .topbar-left h1{
+    grid-column:1 / -1;
+    font-size:18px;
+    line-height:1.2;
+    margin-bottom:2px;
+  }
+
+  .topbar-left button{
+    width:100%;
+    min-height:48px;
+    font-size:15px;
+    border-radius:14px;
+  }
+
+  .topbar-right,
+  .score{
+    width:100%;
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+
+  .pill{
+    flex:1 1 calc(50% - 8px);
+    justify-content:center;
+    min-height:42px;
+    font-size:15px;
+  }
+
+  .canvas-wrap{
+    min-height:auto;
+  }
+
+  canvas{
+    width:100%;
+    height:auto;
+    aspect-ratio:1000 / 320;
+    min-height:200px;
+  }
+
+  .overlay{
+    align-items:flex-start;
+    padding:14px;
+    overflow:auto;
+  }
+
+  .overlay-box{
+    width:100%;
+    max-width:none;
+    padding:20px 16px;
+    border-radius:20px;
+    margin-top:10px;
+    max-height:none;
+  }
+
+  .overlay-box h2{
+    font-size:30px;
+    margin-bottom:12px;
+  }
+
+  .overlay-box p{
+    font-size:18px;
+  }
+
+  .name-input{
+    font-size:18px;
+    padding:14px 14px;
+    border-radius:14px;
+  }
+
+  .overlay-actions{
+    flex-direction:column;
+    gap:12px;
+  }
+
+  .overlay-actions button{
+    width:100%;
+    min-height:52px;
+    font-size:16px;
+    border-radius:14px;
+  }
+
+  .ranking{
+    border-radius:16px;
+    padding:14px;
+    max-height:none;
+  }
+
+  .ranking h3{
+    font-size:18px;
+  }
+
+  .ranking li{
+    font-size:16px;
+  }
+
+  .character-select{
+    padding:16px 14px 6px 14px;
+    gap:8px;
+  }
+
+  .character-label{
+    min-width:100%;
+    padding-top:0;
+    font-size:18px;
+  }
+
+  .character-buttons{
+    width:100%;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+
+  .character-button{
+    width:100%;
+    min-height:54px;
+    font-size:15px;
+    border-radius:14px;
+  }
+
+  .character-buttons .character-button:first-child{
+    grid-column:1 / -1;
+  }
+
+  .character-hint{
+    margin:4px 14px 10px 14px;
+    font-size:14px;
+  }
+
+  .live-ranking{
+    margin:12px 14px 18px 14px;
+    padding:14px;
+    border-radius:16px;
+  }
+
+  .live-ranking h3{
+    font-size:18px;
+    line-height:1.25;
+  }
+
+  .live-ranking li{
+    font-size:16px;
+  }
+}
+
+@media (max-width: 430px){
+  .topbar-left{
+    grid-template-columns:1fr 1fr;
+  }
+
+  h1{
+    letter-spacing:-0.2px;
+  }
+
+  .overlay-box h2{
+    font-size:28px;
+  }
+
+  .overlay-box p{
+    font-size:17px;
+  }
+
+  .character-buttons{
+    grid-template-columns:1fr;
+  }
+
+  .character-buttons .character-button:first-child{
+    grid-column:auto;
+  }
+
+  .pill{
+    flex:1 1 100%;
   }
 }
 </style>
@@ -282,7 +562,8 @@ canvas{
         <button type="button" onclick="window.location.href='home.html'">Zurück</button>
         <button type="button" onclick="startGame()">Neu starten</button>
       </div>
-      <div class="score">
+
+      <div class="topbar-right score">
         <span class="pill">Punkte: <span id="score">0</span></span>
         <span class="pill">Rekord: <span id="bestScore">0</span></span>
       </div>
@@ -335,9 +616,13 @@ canvas{
 
     <div class="character-select">
       <span class="character-label">Charakter:</span>
-      <button type="button" class="character-button" data-character="worker">👷 Mann (Seitenansicht)</button>
-      <button type="button" class="character-button" data-character="frog">🐸 St.Silvester</button>
-      <button type="button" class="character-button" data-character="donkey">🫏 Düdinger</button>
+
+      <div class="character-buttons">
+        <button type="button" class="character-button" data-character="worker">👷 Mann (Seitenansicht)</button>
+        <button type="button" class="character-button" data-character="frog">🐸 St.Silvester</button>
+        <button type="button" class="character-button" data-character="donkey">🫏 Düdinger</button>
+      </div>
+
       <p id="characterHint" class="character-hint hidden-message">Bitte zuerst einen Charakter auswählen.</p>
     </div>
 
@@ -524,7 +809,7 @@ function goBackToWork(){
 }
 
 function escapeHtml(text){
-  return text
+  return String(text)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
