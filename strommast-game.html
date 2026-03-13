@@ -90,7 +90,7 @@ canvas{
   align-items:center;
   justify-content:center;
   background:rgba(255,255,255,0.0);
-  pointer-events:none;
+  z-index:10;
 }
 
 .overlay-box{
@@ -100,7 +100,6 @@ canvas{
   padding:18px 22px;
   text-align:center;
   box-shadow:0 8px 22px rgba(0,0,0,0.08);
-  pointer-events:auto;
   width:min(420px, 88vw);
 }
 
@@ -193,8 +192,8 @@ canvas{
     <div class="topbar">
       <div class="topbar-left">
         <h1>Strommast-Spiel</h1>
-        <button onclick="window.location.href='home.html'">Zurück</button>
-        <button onclick="startGame()">Neu starten</button>
+        <button type="button" onclick="window.location.href='home.html'">Zurück</button>
+        <button type="button" onclick="startGame()">Neu starten</button>
       </div>
       <div class="score">
         Punkte: <span id="score">0</span> | Rekord: <span id="bestScore">0</span>
@@ -210,7 +209,7 @@ canvas{
           <p>Drücke Leertaste, Pfeil hoch, Mausklick oder tippe aufs Feld.</p>
           <p>Der Mann springt über Strommasten.</p>
           <p class="small-note">Länger drücken = etwas höher springen</p>
-          <button onclick="startGame()">Spiel starten</button>
+          <button type="button" onclick="startGame()">Spiel starten</button>
 
           <div class="ranking" id="startRankingBox">
             <h3>Bestenliste</h3>
@@ -234,8 +233,8 @@ canvas{
           >
 
           <div class="overlay-actions">
-            <button onclick="saveScore()">Punkte speichern</button>
-            <button onclick="startGame()">Nochmal spielen</button>
+            <button type="button" onclick="saveScore()">Punkte speichern</button>
+            <button type="button" onclick="startGame()">Nochmal spielen</button>
           </div>
 
           <div class="ranking" id="gameOverRankingBox">
@@ -433,4 +432,262 @@ function updateDifficulty(){
 }
 
 function updateJumpHold(){
-  if
+  if(player.jumpHolding && player.jumpHoldTime < player.maxJumpHoldTime && player.vy < 0){
+    player.vy -= 0.33;
+    player.jumpHoldTime++;
+  }
+}
+
+function update(){
+  updateDifficulty();
+  updateJumpHold();
+
+  player.vy += gravity;
+  player.y += player.vy;
+
+  if(player.y >= groundY){
+    player.y = groundY;
+    player.vy = 0;
+    player.grounded = true;
+    player.jumpHolding = false;
+    player.jumpHoldTime = 0;
+  }
+
+  spawnTimer++;
+
+  const minSpawn = Math.max(62, 100 - Math.floor(frameCount / 220));
+  const randomExtra = Math.max(18, 42 - Math.floor(frameCount / 500));
+
+  if(spawnTimer > minSpawn + Math.random() * randomExtra){
+    createObstacle();
+    spawnTimer = 0;
+  }
+
+  for(let i = obstacles.length - 1; i >= 0; i--){
+    obstacles[i].x -= gameSpeed;
+
+    if(obstacles[i].x + obstacles[i].width < 0){
+      obstacles.splice(i, 1);
+      score += 1;
+      scoreEl.textContent = Math.floor(score);
+    }
+  }
+
+  const playerHitbox = {
+    x: player.x + 6,
+    y: player.y + 6,
+    width: player.width - 12,
+    height: player.height - 6
+  };
+
+  for(const ob of obstacles){
+    const hit =
+      playerHitbox.x < ob.x + ob.width &&
+      playerHitbox.x + playerHitbox.width > ob.x &&
+      playerHitbox.y < ob.y + ob.height &&
+      playerHitbox.y + playerHitbox.height > ob.y;
+
+    if(hit){
+      endGame();
+      return;
+    }
+  }
+}
+
+function drawGround(){
+  ctx.strokeStyle = "#9aa7b5";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, groundY + player.height);
+  ctx.lineTo(canvas.width, groundY + player.height);
+  ctx.stroke();
+
+  for(let i = 0; i < canvas.width; i += 40){
+    ctx.beginPath();
+    ctx.moveTo(i, groundY + player.height + 8);
+    ctx.lineTo(i + 20, groundY + player.height + 8);
+    ctx.strokeStyle = "#c8d0d8";
+    ctx.stroke();
+  }
+}
+
+function drawLimb(x, y, length, angle, width = 4){
+  const endX = x + Math.cos(angle) * length;
+  const endY = y + Math.sin(angle) * length;
+
+  ctx.lineWidth = width;
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "#1f2d3a";
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(endX, endY);
+  ctx.stroke();
+}
+
+function drawPlayer(){
+  const x = player.x;
+  const y = player.y;
+
+  const running = gameRunning && player.grounded;
+  const legSwing = running ? Math.sin(frameCount * 0.35) * 0.9 : 0;
+  const armSwing = running ? Math.sin(frameCount * 0.35) * 0.7 : 0;
+
+  const hipX1 = x + 15;
+  const hipX2 = x + 21;
+  const hipY = y + 38;
+
+  const shoulderX1 = x + 11;
+  const shoulderX2 = x + 25;
+  const shoulderY = y + 24;
+
+  ctx.fillStyle = "#1f2d3a";
+
+  ctx.beginPath();
+  ctx.arc(x + 18, y + 12, 8, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillRect(x + 13, y + 20, 10, 18);
+
+  ctx.fillStyle = "#f1c40f";
+  ctx.beginPath();
+  ctx.arc(x + 18, y + 10, 10, Math.PI, 0);
+  ctx.fill();
+  ctx.fillRect(x + 10, y + 10, 16, 4);
+
+  if(player.grounded){
+    drawLimb(shoulderX1, shoulderY, 11, Math.PI * 0.9 + armSwing, 4);
+    drawLimb(shoulderX2, shoulderY, 11, Math.PI * 0.1 - armSwing, 4);
+
+    drawLimb(hipX1, hipY, 18, Math.PI / 2 + legSwing, 4);
+    drawLimb(hipX2, hipY, 18, Math.PI / 2 - legSwing, 4);
+  }else{
+    drawLimb(shoulderX1, shoulderY, 11, Math.PI * 0.95, 4);
+    drawLimb(shoulderX2, shoulderY, 11, Math.PI * 0.05, 4);
+
+    drawLimb(hipX1, hipY, 18, Math.PI / 2 + 0.55, 4);
+    drawLimb(hipX2, hipY, 18, Math.PI / 2 - 0.35, 4);
+  }
+}
+
+function drawObstacle(ob){
+  const x = ob.x;
+  const y = ob.y;
+  const h = ob.height;
+  const w = ob.width;
+
+  ctx.fillStyle = "#7f8c8d";
+  ctx.fillRect(x + w / 2 - 4, y, 8, h);
+
+  ctx.fillStyle = "#95a5a6";
+  ctx.fillRect(x - 8, y + 12, w + 16, 5);
+  ctx.fillRect(x - 6, y + 28, w + 12, 4);
+
+  ctx.strokeStyle = "#6c7a7b";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x + w / 2, y + 17);
+  ctx.lineTo(x + w / 2 - 12, y + 34);
+  ctx.moveTo(x + w / 2, y + 17);
+  ctx.lineTo(x + w / 2 + 12, y + 34);
+  ctx.stroke();
+}
+
+function drawBackground(){
+  ctx.fillStyle = "#dfe8f0";
+  for(let i = 0; i < 5; i++){
+    const cx = (i * 220 + 80 - (score * 1.2) % 220);
+    const cy = 55 + (i % 2) * 20;
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, 18, Math.PI * 0.5, Math.PI * 1.5);
+    ctx.arc(cx + 20, cy - 10, 18, Math.PI, Math.PI * 1.85);
+    ctx.arc(cx + 42, cy, 18, Math.PI * 1.37, Math.PI * 0.37);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+function draw(){
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBackground();
+  drawGround();
+  drawPlayer();
+
+  for(const ob of obstacles){
+    drawObstacle(ob);
+  }
+}
+
+function loop(){
+  if(gameRunning){
+    update();
+    draw();
+    animationId = requestAnimationFrame(loop);
+  }else{
+    draw();
+  }
+}
+
+document.addEventListener("keydown", (e) => {
+  if(e.code === "Space" || e.code === "ArrowUp"){
+    e.preventDefault();
+
+    if(!gameRunning && startOverlay.classList.contains("hidden") && !gameOverOverlay.classList.contains("hidden")){
+      startGame();
+      return;
+    }
+
+    if(!startOverlay.classList.contains("hidden")){
+      startGame();
+      return;
+    }
+
+    if(!e.repeat){
+      beginJump();
+    }
+  }
+});
+
+document.addEventListener("keyup", (e) => {
+  if(e.code === "Space" || e.code === "ArrowUp"){
+    releaseJump();
+  }
+});
+
+canvas.addEventListener("mousedown", () => {
+  if(!startOverlay.classList.contains("hidden")){
+    startGame();
+    return;
+  }
+
+  if(gameRunning){
+    beginJump();
+  }
+});
+
+canvas.addEventListener("mouseup", releaseJump);
+canvas.addEventListener("mouseleave", releaseJump);
+
+canvas.addEventListener("touchstart", (e) => {
+  e.preventDefault();
+
+  if(!startOverlay.classList.contains("hidden")){
+    startGame();
+    return;
+  }
+
+  if(gameRunning){
+    beginJump();
+  }
+}, { passive:false });
+
+canvas.addEventListener("touchend", (e) => {
+  e.preventDefault();
+  releaseJump();
+}, { passive:false });
+
+renderRanking();
+draw();
+</script>
+</body>
+</html>
