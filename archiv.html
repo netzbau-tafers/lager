@@ -1013,10 +1013,19 @@ function deleteBaustelle(id){
 
   if(confirm(text)){
     const materialien = materialVonBaustelle(id);
-    const promises = materialien.map(m => materialCollection.doc(m.id).delete());
 
-    Promise.all(promises)
-      .then(() => baustellenCollection.doc(id).delete())
+    if(materialien.length > 499){
+      alert("Zu viele Materialeinträge für einen sicheren Sammel-Löschvorgang. Bitte zuerst Material reduzieren.");
+      return;
+    }
+
+    const batch = db.batch();
+    batch.delete(baustellenCollection.doc(id));
+    materialien.forEach(m => {
+      batch.delete(materialCollection.doc(m.id));
+    });
+
+    batch.commit()
       .catch(error => {
         console.error("Fehler beim Löschen der Baustelle:", error);
         alert("Fehler beim Löschen.");
