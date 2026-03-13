@@ -404,7 +404,7 @@ input{
     <i class="fa-solid fa-box-archive"></i> Archiv
   </button>
 
-  <button onclick="goToLogs()" data-page="logs">
+  <button id="logsMenuButton" onclick="goToLogs()" data-page="logs" style="display:none;">
     <i class="fa-solid fa-clipboard-list"></i> Logs
   </button>
 
@@ -460,6 +460,13 @@ let alleBaustellen = [];
 let alleMaterialien = [];
 let openMaterialLists = {};
 let isAdminUser = false;
+
+function setLogsMenuVisibility(isAdmin){
+  const logsButton = document.getElementById("logsMenuButton");
+  if(logsButton){
+    logsButton.style.display = isAdmin ? "inline-flex" : "none";
+  }
+}
 
 const ARCHIV_CACHE_KEY = "archiv_snapshot_v1";
 
@@ -600,6 +607,12 @@ function goToBaustellen(){
 }
 
 function goToLogs(){
+  if(!isAdminUser){
+    closeMenu();
+    alert("Logs sind nur für Administratoren sichtbar.");
+    return;
+  }
+
   closeMenu();
   window.location.href = "logs.html";
 }
@@ -686,11 +699,13 @@ function stopListeners(){
 auth.onAuthStateChanged((user) => {
   if(user){
     isAdminUser = user.uid === ADMIN_UID;
+    setLogsMenuVisibility(isAdminUser);
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
     startListeners();
   }else{
     isAdminUser = false;
+    setLogsMenuVisibility(false);
     stopListeners();
     window.location.href = "home.html";
   }
