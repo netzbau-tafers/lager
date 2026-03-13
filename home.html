@@ -155,6 +155,13 @@ button:hover{
   text-align:center;
 }
 
+.login-success{
+  color:#1e824c;
+  display:none;
+  margin-top:10px;
+  text-align:center;
+}
+
 .login-info{
   color:#555;
   font-size:14px;
@@ -216,7 +223,9 @@ button:hover{
       <input id="loginEmail" type="email" placeholder="E-Mail" maxlength="120" autocomplete="username">
       <input id="loginPassword" type="password" placeholder="Passwort" maxlength="120" autocomplete="current-password">
       <button onclick="login()"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
+      <button class="logout-safe" onclick="resetPassword()"><i class="fa-solid fa-key"></i> Passwort zurücksetzen</button>
       <p id="loginError" class="login-error">Login fehlgeschlagen. Bitte Daten prüfen.</p>
+      <p id="loginSuccess" class="login-success"></p>
     </div>
   </div>
 
@@ -319,6 +328,7 @@ function goToLogs(){
 function login(){
   const email = document.getElementById("loginEmail").value.trim();
   const password = document.getElementById("loginPassword").value;
+  document.getElementById("loginSuccess").style.display = "none";
 
   auth.signInWithEmailAndPassword(email, password)
     .then(() => {
@@ -328,6 +338,32 @@ function login(){
     .catch((error) => {
       console.error("Login Fehler:", error);
       document.getElementById("loginError").style.display = "block";
+    });
+}
+
+function resetPassword(){
+  const email = document.getElementById("loginEmail").value.trim();
+  const errorBox = document.getElementById("loginError");
+  const successBox = document.getElementById("loginSuccess");
+
+  errorBox.style.display = "none";
+  successBox.style.display = "none";
+
+  if(!email){
+    errorBox.textContent = "Bitte zuerst eine E-Mail eingeben.";
+    errorBox.style.display = "block";
+    return;
+  }
+
+  auth.sendPasswordResetEmail(email)
+    .then(() => {
+      successBox.textContent = "E-Mail zum Zurücksetzen wurde gesendet.";
+      successBox.style.display = "block";
+    })
+    .catch((error) => {
+      console.error("Passwort zurücksetzen Fehler:", error);
+      errorBox.textContent = "Zurücksetzen fehlgeschlagen. Bitte E-Mail prüfen.";
+      errorBox.style.display = "block";
     });
 }
 
