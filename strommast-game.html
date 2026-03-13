@@ -29,7 +29,6 @@
   --pill-text:#27517a;
   --shadow:0 12px 30px rgba(33,50,74,0.15);
   --radius:18px;
-  --radius-small:12px;
 }
 
 *{
@@ -180,12 +179,6 @@ canvas{
   display:none;
 }
 
-.info{
-  padding:12px 16px 18px 16px;
-  color:var(--text-soft);
-  font-size:14px;
-}
-
 .character-select{
   display:flex;
   align-items:flex-start;
@@ -325,11 +318,6 @@ canvas{
   visibility:hidden;
 }
 
-.small-note{
-  font-size:13px;
-  color:#666;
-}
-
 @media (max-width: 900px){
   body{
     padding:10px;
@@ -404,10 +392,6 @@ canvas{
     justify-content:center;
     min-height:42px;
     font-size:15px;
-  }
-
-  .canvas-wrap{
-    min-height:auto;
   }
 
   canvas{
@@ -524,22 +508,6 @@ canvas{
 }
 
 @media (max-width: 430px){
-  .topbar-left{
-    grid-template-columns:1fr 1fr;
-  }
-
-  h1{
-    letter-spacing:-0.2px;
-  }
-
-  .overlay-box h2{
-    font-size:28px;
-  }
-
-  .overlay-box p{
-    font-size:17px;
-  }
-
   .character-buttons{
     grid-template-columns:1fr;
   }
@@ -576,7 +544,7 @@ canvas{
         <div class="overlay-box">
           <h2>Start</h2>
           <p>Drücke Leertaste, Pfeil hoch, Mausklick oder tippe aufs Feld.</p>
-          <p>Dein Charakter springt über Strommasten, Windräder, Kühltürme, Solarpanels und Bäume.</p>
+          <p>Dein Charakter springt über Strommasten, Windräder, Solarpanels und Bäume.</p>
           <button type="button" onclick="startGame()">Spiel starten</button>
 
           <div class="ranking" id="startRankingBox">
@@ -700,7 +668,7 @@ let signposts = [];
 let signTimer = 0;
 
 const signNames = ["Tafers", "Düdingen", "Schwarzsee", "Alterswil", "Plexus"];
-const obstacleTypes = ["mast", "wind", "cooling", "solar", "tree"];
+const obstacleTypes = ["mast", "wind", "solar", "tree"];
 
 function loadRanking(){
   try{
@@ -899,9 +867,6 @@ function createObstacle(){
   if(type === "wind"){
     width = 34;
     height = 104;
-  }else if(type === "cooling"){
-    width = 42;
-    height = 76;
   }else if(type === "solar"){
     width = 44;
     height = 38;
@@ -986,7 +951,7 @@ function update(){
     signposts.push({
       text: signNames[Math.floor(Math.random() * signNames.length)],
       x: canvas.width + 30,
-      y: 132 + Math.random() * 26
+      y: groundY - 62
     });
     signTimer = 0;
   }
@@ -1204,11 +1169,6 @@ function drawObstacle(ob){
     return;
   }
 
-  if(ob.type === "cooling"){
-    drawCoolingTower(ob);
-    return;
-  }
-
   if(ob.type === "solar"){
     drawSolarPanel(ob);
     return;
@@ -1274,25 +1234,6 @@ function drawWindTurbine(ob){
   }
 }
 
-function drawCoolingTower(ob){
-  const x = ob.x;
-  const y = ob.y;
-  const w = ob.width;
-  const h = ob.height;
-
-  ctx.fillStyle = "#aeb8c2";
-  ctx.beginPath();
-  ctx.moveTo(x + 4, y + h);
-  ctx.quadraticCurveTo(x + w / 2, y + h - 8, x + w - 4, y + h);
-  ctx.lineTo(x + w - 10, y + 10);
-  ctx.quadraticCurveTo(x + w / 2, y - 6, x + 10, y + 10);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.fillStyle = "rgba(255,255,255,0.45)";
-  ctx.fillRect(x + 11, y + 20, w - 22, 6);
-}
-
 function drawSolarPanel(ob){
   const x = ob.x;
   const y = ob.y;
@@ -1337,19 +1278,36 @@ function drawTree(ob){
 
 function drawSignposts(){
   for(const sign of signposts){
-    ctx.fillStyle = "#7c8c6f";
-    ctx.fillRect(sign.x + 20, sign.y + 18, 5, 40);
+    ctx.save();
+    ctx.globalAlpha = 0.72;
 
-    ctx.fillStyle = "#f6e7b5";
-    ctx.fillRect(sign.x, sign.y, 80, 20);
+    ctx.fillStyle = "#7a866f";
+    ctx.fillRect(sign.x + 22, sign.y + 18, 4, 34);
 
-    ctx.strokeStyle = "#a7945f";
-    ctx.strokeRect(sign.x, sign.y, 80, 20);
+    ctx.fillStyle = "#efe2b2";
+    ctx.strokeStyle = "#a6925b";
+    ctx.lineWidth = 1.5;
 
-    ctx.fillStyle = "#5f4f2b";
+    if(typeof ctx.roundRect === "function"){
+      ctx.beginPath();
+      ctx.roundRect(sign.x, sign.y, 86, 22, 4);
+      ctx.fill();
+      ctx.stroke();
+    }else{
+      ctx.fillRect(sign.x, sign.y, 86, 22);
+      ctx.strokeRect(sign.x, sign.y, 86, 22);
+    }
+
+    ctx.fillStyle = "rgba(0,0,0,0.06)";
+    ctx.fillRect(sign.x + 2, sign.y + 18, 82, 2);
+
+    ctx.fillStyle = "#5e4e28";
     ctx.font = "12px Arial";
     ctx.textAlign = "center";
-    ctx.fillText(sign.text, sign.x + 40, sign.y + 14);
+    ctx.textBaseline = "middle";
+    ctx.fillText(sign.text, sign.x + 43, sign.y + 11);
+
+    ctx.restore();
   }
 }
 
@@ -1368,9 +1326,57 @@ function drawBackground(){
   }
 }
 
+function drawLandscape(){
+  ctx.fillStyle = "#c7d7c3";
+  ctx.beginPath();
+  ctx.moveTo(0, groundY + 10);
+  ctx.quadraticCurveTo(140, 190, 280, groundY + 12);
+  ctx.quadraticCurveTo(430, 205, 580, groundY + 8);
+  ctx.quadraticCurveTo(740, 188, 880, groundY + 14);
+  ctx.quadraticCurveTo(940, 200, 1000, groundY + 10);
+  ctx.lineTo(1000, groundY + 56);
+  ctx.lineTo(0, groundY + 56);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#90a98d";
+  for(let i = 0; i < canvas.width; i += 42){
+    const h = 18 + ((i / 42) % 3) * 8;
+    ctx.beginPath();
+    ctx.moveTo(i, groundY + 10);
+    ctx.lineTo(i + 12, groundY - h);
+    ctx.lineTo(i + 24, groundY + 10);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  ctx.fillStyle = "rgba(120,130,145,0.35)";
+  for(let i = 0; i < 4; i++){
+    const baseX = 120 + i * 210 - (score * 0.15 % 210);
+    const baseY = groundY - 12;
+
+    ctx.fillRect(baseX, baseY - 18, 24, 18);
+    ctx.beginPath();
+    ctx.moveTo(baseX - 3, baseY - 18);
+    ctx.lineTo(baseX + 12, baseY - 30);
+    ctx.lineTo(baseX + 27, baseY - 18);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillRect(baseX + 34, baseY - 14, 18, 14);
+    ctx.beginPath();
+    ctx.moveTo(baseX + 31, baseY - 14);
+    ctx.lineTo(baseX + 43, baseY - 24);
+    ctx.lineTo(baseX + 55, baseY - 14);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
 function draw(){
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawBackground();
+  drawLandscape();
   drawSignposts();
   drawGround();
   drawPlayer();
