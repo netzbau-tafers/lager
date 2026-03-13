@@ -94,13 +94,14 @@ canvas{
 }
 
 .overlay-box{
-  background:rgba(255,255,255,0.92);
+  background:rgba(255,255,255,0.94);
   border:1px solid #d7dce2;
   border-radius:14px;
   padding:18px 22px;
   text-align:center;
   box-shadow:0 8px 22px rgba(0,0,0,0.08);
   pointer-events:auto;
+  width:min(420px, 88vw);
 }
 
 .overlay-box h2{
@@ -120,6 +121,55 @@ canvas{
   padding:12px 16px 18px 16px;
   color:#555;
   font-size:14px;
+}
+
+.name-input{
+  width:100%;
+  box-sizing:border-box;
+  padding:10px 12px;
+  border:1px solid #cfd6df;
+  border-radius:8px;
+  margin:12px 0 10px 0;
+  font-size:15px;
+}
+
+.overlay-actions{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+
+.ranking{
+  margin-top:14px;
+  text-align:left;
+  background:#f7f9fb;
+  border:1px solid #e1e6ed;
+  border-radius:10px;
+  padding:10px 12px;
+  max-height:180px;
+  overflow:auto;
+}
+
+.ranking h3{
+  margin:0 0 8px 0;
+  font-size:16px;
+}
+
+.ranking ol{
+  margin:0;
+  padding-left:20px;
+}
+
+.ranking li{
+  margin:4px 0;
+  font-size:14px;
+}
+
+.small-note{
+  font-size:13px;
+  color:#666;
 }
 
 @media (max-width: 700px){
@@ -159,7 +209,13 @@ canvas{
           <h2>Start</h2>
           <p>Drücke Leertaste, Pfeil hoch, Mausklick oder tippe aufs Feld.</p>
           <p>Der Mann springt über Strommasten.</p>
+          <p class="small-note">Länger drücken = etwas höher springen</p>
           <button onclick="startGame()">Spiel starten</button>
+
+          <div class="ranking" id="startRankingBox">
+            <h3>Bestenliste</h3>
+            <ol id="startRankingList"></ol>
+          </div>
         </div>
       </div>
 
@@ -168,7 +224,24 @@ canvas{
           <h2>Game Over</h2>
           <p>Du bist in einen Strommast gelaufen.</p>
           <p>Punkte: <span id="finalScore">0</span></p>
-          <button onclick="startGame()">Nochmal spielen</button>
+
+          <input
+            id="playerName"
+            class="name-input"
+            type="text"
+            maxlength="20"
+            placeholder="Dein Name"
+          >
+
+          <div class="overlay-actions">
+            <button onclick="saveScore()">Punkte speichern</button>
+            <button onclick="startGame()">Nochmal spielen</button>
+          </div>
+
+          <div class="ranking" id="gameOverRankingBox">
+            <h3>Bestenliste</h3>
+            <ol id="gameOverRankingList"></ol>
+          </div>
         </div>
       </div>
     </div>
@@ -187,43 +260,115 @@ const bestScoreEl = document.getElementById("bestScore");
 const finalScoreEl = document.getElementById("finalScore");
 const startOverlay = document.getElementById("startOverlay");
 const gameOverOverlay = document.getElementById("gameOverOverlay");
+const playerNameInput = document.getElementById("playerName");
+const startRankingList = document.getElementById("startRankingList");
+const gameOverRankingList = document.getElementById("gameOverRankingList");
 
 let animationId = null;
 let gameRunning = false;
-let gameSpeed = 6;
-let gravity = 0.75;
+let gameSpeed = 4.2;
+let gravity = 0.62;
 let score = 0;
+let frameCount = 0;
 let bestScore = Number(localStorage.getItem("strommastBestScore") || 0);
 bestScoreEl.textContent = bestScore;
 
+const RANKING_KEY = "strommastRanking";
 const groundY = 250;
 
 const player = {
   x: 90,
   y: groundY,
-  width: 34,
-  height: 54,
+  width: 36,
+  height: 56,
   vy: 0,
-  jumpPower: -13.5,
-  grounded: true
+  jumpPower: -11.5,
+  grounded: true,
+  jumpHoldTime: 0,
+  jumpHolding: false,
+  maxJumpHoldTime: 10
 };
 
 let obstacles = [];
-let particles = [];
 let spawnTimer = 0;
+let gameOverSaved = false;
+
+function loadRanking(){
+  try{
+    return JSON.parse(localStorage.getItem(RANKING_KEY) || "[]");
+  }catch(error){
+    return [];
+  }
+}
+
+function renderRanking(){
+  const ranking = loadRanking();
+
+  const html = ranking.length
+    ? ranking.map(entry => `<li><strong>${escapeHtml(entry.name)}</strong> - ${entry.score} Punkte</li>`).join("")
+    : "<li>Noch keine Einträge</li>";
+
+  startRankingList.innerHTML = html;
+  gameOverRankingList.innerHTML = html;
+}
+
+function saveScore(){
+  if(gameOverSaved){
+    return;
+  }
+
+  const rawName = playerNameInput.value.trim();
+  const name = rawName || "Unbekannt";
+
+  const ranking = loadRanking();
+  ranking.push({
+    name: name.slice(0, 20),
+    score: Math.floor(score)
+  });
+
+  ranking.sort((a, b) => b.score - a.score);
+  const top10 = ranking.slice(0, 10);
+
+  localStorage.setItem(RANKING_KEY, JSON.stringify(top10));
+
+  if(score > bestScore){
+    bestScore = Math.floor(score);
+    localStorage.setItem("strommastBestScore", bestScore);
+    bestScoreEl.textContent = bestScore;
+  }
+
+  gameOverSaved = true;
+  renderRanking();
+}
+
+function escapeHtml(text){
+  return text
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
 
 function resetGameState(){
   gameRunning = true;
-  gameSpeed = 6;
-  gravity = 0.75;
+  gameSpeed = 4.2;
+  gravity = 0.62;
   score = 0;
+  frameCount = 0;
   spawnTimer = 0;
   obstacles = [];
-  particles = [];
+  gameOverSaved = false;
+
   player.y = groundY;
   player.vy = 0;
   player.grounded = true;
+  player.jumpHoldTime = 0;
+  player.jumpHolding = false;
+
   scoreEl.textContent = "0";
+  finalScoreEl.textContent = "0";
+  playerNameInput.value = "";
   startOverlay.classList.add("hidden");
   gameOverOverlay.classList.add("hidden");
 }
@@ -234,13 +379,19 @@ function startGame(){
   loop();
 }
 
-function jump(){
+function beginJump(){
   if(!gameRunning) return;
 
   if(player.grounded){
     player.vy = player.jumpPower;
     player.grounded = false;
+    player.jumpHolding = true;
+    player.jumpHoldTime = 0;
   }
+}
+
+function releaseJump(){
+  player.jumpHolding = false;
 }
 
 function endGame(){
@@ -253,217 +404,33 @@ function endGame(){
     bestScoreEl.textContent = bestScore;
   }
 
+  renderRanking();
   gameOverOverlay.classList.remove("hidden");
 }
 
 function createObstacle(){
-  const width = 28 + Math.random() * 12;
-  const height = 75 + Math.random() * 45;
+  const width = 26 + Math.random() * 10;
+  const height = 74 + Math.random() * 38;
 
   obstacles.push({
     x: canvas.width + 20,
-    y: groundY + 54 - height,
+    y: groundY + player.height - height,
     width,
     height
   });
 }
 
-function update(){
-  player.vy += gravity;
-  player.y += player.vy;
+function updateDifficulty(){
+  frameCount++;
 
-  if(player.y >= groundY){
-    player.y = groundY;
-    player.vy = 0;
-    player.grounded = true;
+  if(frameCount % 300 === 0){
+    gameSpeed += 0.18;
   }
 
-  spawnTimer++;
-  if(spawnTimer > 85 + Math.random() * 40){
-    createObstacle();
-    spawnTimer = 0;
-  }
-
-  for(let i = obstacles.length - 1; i >= 0; i--){
-    obstacles[i].x -= gameSpeed;
-
-    if(obstacles[i].x + obstacles[i].width < 0){
-      obstacles.splice(i, 1);
-      score += 1;
-      scoreEl.textContent = Math.floor(score);
-
-      if(score % 10 === 0){
-        gameSpeed += 0.4;
-      }
-    }
-  }
-
-  const playerHitbox = {
-    x: player.x + 5,
-    y: player.y + 4,
-    width: player.width - 10,
-    height: player.height - 4
-  };
-
-  for(const ob of obstacles){
-    const hit =
-      playerHitbox.x < ob.x + ob.width &&
-      playerHitbox.x + playerHitbox.width > ob.x &&
-      playerHitbox.y < ob.y + ob.height &&
-      playerHitbox.y + playerHitbox.height > ob.y;
-
-    if(hit){
-      endGame();
-      return;
-    }
+  if(frameCount % 600 === 0){
+    gravity += 0.01;
   }
 }
 
-function drawGround(){
-  ctx.strokeStyle = "#9aa7b5";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(0, groundY + player.height);
-  ctx.lineTo(canvas.width, groundY + player.height);
-  ctx.stroke();
-
-  for(let i = 0; i < canvas.width; i += 40){
-    ctx.beginPath();
-    ctx.moveTo(i, groundY + player.height + 8);
-    ctx.lineTo(i + 20, groundY + player.height + 8);
-    ctx.strokeStyle = "#c8d0d8";
-    ctx.stroke();
-  }
-}
-
-function drawPlayer(){
-  const x = player.x;
-  const y = player.y;
-
-  ctx.fillStyle = "#1f2d3a";
-
-  ctx.beginPath();
-  ctx.arc(x + 17, y + 10, 9, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillRect(x + 12, y + 20, 10, 18);
-  ctx.fillRect(x + 6, y + 22, 7, 6);
-  ctx.fillRect(x + 21, y + 22, 7, 6);
-
-  ctx.fillRect(x + 11, y + 38, 6, 16);
-  ctx.fillRect(x + 19, y + 38, 6, 16);
-
-  if(!player.grounded){
-    ctx.fillRect(x + 3, y + 24, 9, 4);
-    ctx.fillRect(x + 22, y + 18, 9, 4);
-  }
-}
-
-function drawObstacle(ob){
-  const x = ob.x;
-  const y = ob.y;
-  const h = ob.height;
-  const w = ob.width;
-
-  ctx.fillStyle = "#7f8c8d";
-  ctx.fillRect(x + w/2 - 4, y, 8, h);
-
-  ctx.fillStyle = "#95a5a6";
-  ctx.fillRect(x - 8, y + 12, w + 16, 5);
-  ctx.fillRect(x - 6, y + 28, w + 12, 4);
-
-  ctx.strokeStyle = "#6c7a7b";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(x + w/2, y + 17);
-  ctx.lineTo(x + w/2 - 12, y + 34);
-  ctx.moveTo(x + w/2, y + 17);
-  ctx.lineTo(x + w/2 + 12, y + 34);
-  ctx.stroke();
-}
-
-function drawBackground(){
-  ctx.fillStyle = "#dfe8f0";
-  for(let i = 0; i < 5; i++){
-    const cx = (i * 220 + 80 - (score * 1.2) % 220);
-    const cy = 55 + (i % 2) * 20;
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, 18, Math.PI * 0.5, Math.PI * 1.5);
-    ctx.arc(cx + 20, cy - 10, 18, Math.PI, Math.PI * 1.85);
-    ctx.arc(cx + 42, cy, 18, Math.PI * 1.37, Math.PI * 0.37);
-    ctx.closePath();
-    ctx.fill();
-  }
-}
-
-function draw(){
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawBackground();
-  drawGround();
-  drawPlayer();
-
-  for(const ob of obstacles){
-    drawObstacle(ob);
-  }
-}
-
-function loop(){
-  if(gameRunning){
-    update();
-    draw();
-    animationId = requestAnimationFrame(loop);
-  }else{
-    draw();
-  }
-}
-
-document.addEventListener("keydown", (e) => {
-  if(
-    e.code === "Space" ||
-    e.code === "ArrowUp"
-  ){
-    e.preventDefault();
-
-    if(!gameRunning && startOverlay.classList.contains("hidden") && !gameOverOverlay.classList.contains("hidden")){
-      startGame();
-      return;
-    }
-
-    if(!startOverlay.classList.contains("hidden")){
-      startGame();
-      return;
-    }
-
-    jump();
-  }
-});
-
-canvas.addEventListener("click", () => {
-  if(!startOverlay.classList.contains("hidden")){
-    startGame();
-    return;
-  }
-
-  if(gameRunning){
-    jump();
-  }
-});
-
-canvas.addEventListener("touchstart", (e) => {
-  e.preventDefault();
-
-  if(!startOverlay.classList.contains("hidden")){
-    startGame();
-    return;
-  }
-
-  if(gameRunning){
-    jump();
-  }
-}, { passive:false });
-
-draw();
-</script>
-</body>
-</html>
+function updateJumpHold(){
+  if
