@@ -1720,12 +1720,12 @@ function renderDesktopTable(data){
             <div class="details-value">${escapeHtml(b.hersteller || "")}</div>
           </div>
           <div class="details-item">
-            <div class="details-label">Hinzugefügt am</div>
-            <div class="details-value">${escapeHtml(hinzugefuegtAm || "")}</div>
-          </div>
-          <div class="details-item">
             <div class="details-label">Infos</div>
             <div class="details-value">${escapeHtml(b.infos || "")}</div>
+          </div>
+          <div class="details-item">
+            <div class="details-label">Hinzugefügt am</div>
+            <div class="details-value">${escapeHtml(hinzugefuegtAm || "")}</div>
           </div>
           ${statusDetailsHtml}
           ${inUseDetailsHtml}
@@ -1832,13 +1832,12 @@ function renderMobileCards(data){
           </div>
 
           <div class="mobile-details-item">
-            <div class="mobile-details-label">Hinzugefügt am</div>
-            <div class="mobile-details-value">${escapeHtml(hinzugefuegtAm || "")}</div>
-          </div>
-
-          <div class="mobile-details-item">
             <div class="mobile-details-label">Infos</div>
             <div class="mobile-details-value">${escapeHtml(b.infos || "")}</div>
+          </div>
+          <div class="mobile-details-item">
+            <div class="mobile-details-label">Hinzugefügt am</div>
+            <div class="mobile-details-value">${escapeHtml(hinzugefuegtAm || "")}</div>
           </div>
           ${mobileStatusDetailsHtml}
           ${mobileInUseDetailsHtml}
