@@ -246,8 +246,8 @@ canvas{
         <div class="overlay-box">
           <h2>Start</h2>
           <p>Drücke Leertaste, Pfeil hoch, Mausklick oder tippe aufs Feld.</p>
-          <p>Dein Charakter springt über Strommasten.</p>
-          <p class="small-note">Steuerung wie beim T-Rex: Tippen/Leertaste/Pfeil hoch. + Doppelsprung für mehr Kontrolle.</p>
+          <p>Dein Charakter springt über Strommasten, Windräder, Kühltürme, Solarpanels und Bäume.</p>
+          <p class="small-note">Steuerung wie beim Chrome-T-Rex: Tippen/Leertaste/Pfeil hoch für einen Sprung.</p>
           <button type="button" onclick="startGame()">Spiel starten</button>
 
           <div class="ranking" id="startRankingBox">
@@ -286,11 +286,12 @@ canvas{
 
     <div class="info">
       Bedienung wie beim T-Rex-Spiel: Springen mit Leertaste, Pfeil hoch, Klick oder Touch.
-      Ein zusätzlicher Doppelsprung hilft bei engen Mast-Kombinationen.
+      Das Spiel startet bewusst langsam und wird Schritt für Schritt anspruchsvoller.
     </div>
 
     <div class="character-select">
       <span class="character-label">Charakter:</span>
+      <button type="button" class="character-button" data-character="worker">👷 Mann mit Helm</button>
       <button type="button" class="character-button active" data-character="frog">🐸 St.Silvester</button>
       <button type="button" class="character-button" data-character="donkey">🫏 Düdinger</button>
     </div>
@@ -312,8 +313,8 @@ const characterButtons = document.querySelectorAll(".character-button");
 
 let animationId = null;
 let gameRunning = false;
-let gameSpeed = 3.35;
-let gravity = 0.54;
+let gameSpeed = 2.35;
+let gravity = 0.47;
 let score = 0;
 let frameCount = 0;
 let bestScore = Number(localStorage.getItem("strommastBestScore") || 0);
@@ -328,12 +329,11 @@ const player = {
   width: 36,
   height: 56,
   vy: 0,
-  jumpPower: -10.2,
-  doubleJumpPower: -9.2,
+  jumpPower: -11.1,
   grounded: true,
   jumpHoldTime: 0,
   jumpHolding: false,
-  maxJumpHoldTime: 12,
+  maxJumpHoldTime: 15,
   jumpsUsed: 0,
   coyoteTime: 0
 };
@@ -342,6 +342,11 @@ let obstacles = [];
 let spawnTimer = 0;
 let gameOverSaved = false;
 let selectedCharacter = "frog";
+let signposts = [];
+let signTimer = 0;
+
+const signNames = ["Tafers", "Düdingen", "Schwarzsee", "Alterswil", "Plexus"];
+const obstacleTypes = ["mast", "wind", "cooling", "solar", "tree"];
 
 function loadRanking(){
   try{
@@ -402,12 +407,14 @@ function escapeHtml(text){
 
 function resetGameState(){
   gameRunning = true;
-  gameSpeed = 3.35;
-  gravity = 0.54;
+  gameSpeed = 2.35;
+  gravity = 0.47;
   score = 0;
   frameCount = 0;
   spawnTimer = 0;
+  signTimer = 0;
   obstacles = [];
+  signposts = [];
   gameOverSaved = false;
 
   player.y = groundY;
@@ -443,14 +450,6 @@ function beginJump(){
     player.jumpsUsed = 1;
     player.jumpHolding = true;
     player.jumpHoldTime = 0;
-    return;
-  }
-
-  if(player.jumpsUsed < 2){
-    player.vy = player.doubleJumpPower;
-    player.jumpsUsed = 2;
-    player.jumpHolding = true;
-    player.jumpHoldTime = 0;
   }
 }
 
@@ -473,10 +472,28 @@ function endGame(){
 }
 
 function createObstacle(){
-  const width = 24 + Math.random() * 8;
-  const height = 64 + Math.random() * 30;
+  const unlockedTypes = Math.min(obstacleTypes.length, 1 + Math.floor(frameCount / 1000));
+  const type = obstacleTypes[Math.floor(Math.random() * unlockedTypes)];
+
+  let width = 26;
+  let height = 78;
+
+  if(type === "wind"){
+    width = 34;
+    height = 104;
+  }else if(type === "cooling"){
+    width = 42;
+    height = 76;
+  }else if(type === "solar"){
+    width = 44;
+    height = 38;
+  }else if(type === "tree"){
+    width = 34;
+    height = 58;
+  }
 
   obstacles.push({
+    type,
     x: canvas.width + 20,
     y: groundY + player.height - height,
     width,
@@ -487,12 +504,12 @@ function createObstacle(){
 function updateDifficulty(){
   frameCount++;
 
-  if(frameCount % 420 === 0){
-    gameSpeed += 0.12;
+  if(frameCount % 520 === 0){
+    gameSpeed += 0.07;
   }
 
-  if(frameCount % 720 === 0){
-    gravity += 0.006;
+  if(frameCount % 1400 === 0){
+    gravity += 0.004;
   }
 }
 
@@ -528,8 +545,8 @@ function update(){
 
   spawnTimer++;
 
-  const minSpawn = Math.max(80, 132 - Math.floor(frameCount / 260));
-  const randomExtra = Math.max(30, 62 - Math.floor(frameCount / 520));
+  const minSpawn = Math.max(102, 164 - Math.floor(frameCount / 450));
+  const randomExtra = Math.max(40, 84 - Math.floor(frameCount / 800));
 
   if(spawnTimer > minSpawn + Math.random() * randomExtra){
     createObstacle();
@@ -543,6 +560,23 @@ function update(){
       obstacles.splice(i, 1);
       score += 1;
       scoreEl.textContent = Math.floor(score);
+    }
+  }
+
+  signTimer++;
+  if(signTimer > 420 + Math.random() * 420){
+    signposts.push({
+      text: signNames[Math.floor(Math.random() * signNames.length)],
+      x: canvas.width + 30,
+      y: 132 + Math.random() * 26
+    });
+    signTimer = 0;
+  }
+
+  for(let i = signposts.length - 1; i >= 0; i--){
+    signposts[i].x -= gameSpeed * 0.55;
+    if(signposts[i].x < -140){
+      signposts.splice(i, 1);
     }
   }
 
@@ -728,6 +762,11 @@ function drawDonkey(){
 }
 
 function drawPlayer(){
+  if(selectedCharacter === "worker"){
+    drawSideViewRunner();
+    return;
+  }
+
   if(selectedCharacter === "frog"){
     drawFrog();
     return;
@@ -742,6 +781,30 @@ function drawPlayer(){
 }
 
 function drawObstacle(ob){
+  if(ob.type === "wind"){
+    drawWindTurbine(ob);
+    return;
+  }
+
+  if(ob.type === "cooling"){
+    drawCoolingTower(ob);
+    return;
+  }
+
+  if(ob.type === "solar"){
+    drawSolarPanel(ob);
+    return;
+  }
+
+  if(ob.type === "tree"){
+    drawTree(ob);
+    return;
+  }
+
+  drawMast(ob);
+}
+
+function drawMast(ob){
   const x = ob.x;
   const y = ob.y;
   const h = ob.height;
@@ -767,6 +830,111 @@ function drawObstacle(ob){
   ctx.stroke();
 }
 
+function drawWindTurbine(ob){
+  const x = ob.x;
+  const y = ob.y;
+  const centerX = x + ob.width / 2;
+  const hubY = y + 22;
+  const bladeLen = 16;
+
+  ctx.fillStyle = "#d9e3ea";
+  ctx.fillRect(centerX - 3, y + 20, 6, ob.height - 20);
+
+  ctx.fillStyle = "#eef3f7";
+  ctx.beginPath();
+  ctx.arc(centerX, hubY, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = "#c4d0db";
+  ctx.lineWidth = 3;
+  for(let i = 0; i < 3; i++){
+    const angle = frameCount * 0.04 + (i * Math.PI * 2) / 3;
+    ctx.beginPath();
+    ctx.moveTo(centerX, hubY);
+    ctx.lineTo(centerX + Math.cos(angle) * bladeLen, hubY + Math.sin(angle) * bladeLen);
+    ctx.stroke();
+  }
+}
+
+function drawCoolingTower(ob){
+  const x = ob.x;
+  const y = ob.y;
+  const w = ob.width;
+  const h = ob.height;
+
+  ctx.fillStyle = "#aeb8c2";
+  ctx.beginPath();
+  ctx.moveTo(x + 4, y + h);
+  ctx.quadraticCurveTo(x + w / 2, y + h - 8, x + w - 4, y + h);
+  ctx.lineTo(x + w - 10, y + 10);
+  ctx.quadraticCurveTo(x + w / 2, y - 6, x + 10, y + 10);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "rgba(255,255,255,0.45)";
+  ctx.fillRect(x + 11, y + 20, w - 22, 6);
+}
+
+function drawSolarPanel(ob){
+  const x = ob.x;
+  const y = ob.y;
+  const w = ob.width;
+
+  ctx.fillStyle = "#64717d";
+  ctx.fillRect(x + 5, y + 18, 5, ob.height - 18);
+  ctx.fillRect(x + w - 10, y + 18, 5, ob.height - 18);
+
+  ctx.fillStyle = "#2f5472";
+  ctx.fillRect(x, y + 2, w, 18);
+
+  ctx.strokeStyle = "#88a8c2";
+  ctx.lineWidth = 1;
+  for(let i = 1; i < 4; i++){
+    ctx.beginPath();
+    ctx.moveTo(x + (w / 4) * i, y + 2);
+    ctx.lineTo(x + (w / 4) * i, y + 20);
+    ctx.stroke();
+  }
+}
+
+function drawTree(ob){
+  const x = ob.x;
+  const y = ob.y;
+  const w = ob.width;
+
+  ctx.fillStyle = "#6f4d2e";
+  ctx.fillRect(x + w / 2 - 4, y + 24, 8, ob.height - 24);
+
+  ctx.fillStyle = "#3d8f43";
+  ctx.beginPath();
+  ctx.arc(x + w / 2, y + 20, 14, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x + w / 2 - 11, y + 26, 10, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x + w / 2 + 11, y + 26, 10, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawSignposts(){
+  for(const sign of signposts){
+    ctx.fillStyle = "#7c8c6f";
+    ctx.fillRect(sign.x + 20, sign.y + 18, 5, 40);
+
+    ctx.fillStyle = "#f6e7b5";
+    ctx.fillRect(sign.x, sign.y, 80, 20);
+
+    ctx.strokeStyle = "#a7945f";
+    ctx.strokeRect(sign.x, sign.y, 80, 20);
+
+    ctx.fillStyle = "#5f4f2b";
+    ctx.font = "12px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(sign.text, sign.x + 40, sign.y + 14);
+  }
+}
+
 function drawBackground(){
   ctx.fillStyle = "#ffffffb8";
   for(let i = 0; i < 5; i++){
@@ -785,6 +953,7 @@ function drawBackground(){
 function draw(){
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawBackground();
+  drawSignposts();
   drawGround();
   drawPlayer();
 
