@@ -421,7 +421,7 @@ input{
   <div class="search-box">
     <div class="search-title">Archiv durchsuchen</div>
     <div class="search-row">
-      <input id="searchInput" type="text" placeholder="Nach Baustellenname, Nummer, Verantwortlicher oder Material suchen" oninput="renderArchiv()" maxlength="120">
+      <input id="searchInput" type="text" placeholder="Nach Baustellenname, Nummer, Verantwortlicher oder Material suchen" oninput="handleArchivSearchInput()" maxlength="120">
       <button class="back" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
     </div>
   </div>
@@ -430,6 +430,11 @@ input{
 
   <div class="section">
     <div id="archivListe" class="baustellen-grid"></div>
+    <div style="text-align:center; margin-top:12px;">
+      <button id="archivLoadMoreButton" class="back" onclick="loadMoreArchiv()" style="display:none;">
+        <i class="fa-solid fa-chevron-down"></i> Mehr anzeigen
+      </button>
+    </div>
   </div>
 </div>
 
@@ -460,6 +465,8 @@ let alleBaustellen = [];
 let alleMaterialien = [];
 let openMaterialLists = {};
 let isAdminUser = false;
+let archivVisibleCount = 30;
+const ARCHIV_PAGE_SIZE = 30;
 
 function setLogsMenuVisibility(isAdmin){
   const logsButton = document.getElementById("logsMenuButton");
@@ -700,6 +707,14 @@ auth.onAuthStateChanged((user) => {
   if(user){
     isAdminUser = user.uid === ADMIN_UID;
     setLogsMenuVisibility(isAdminUser);
+
+    if(!isAdminUser){
+      closeMenu();
+      alert("Archiv ist nur für Administratoren sichtbar.");
+      window.location.href = "home.html";
+      return;
+    }
+
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
     startListeners();
@@ -737,8 +752,19 @@ function startListeners(){
   }
 }
 
+function handleArchivSearchInput(){
+  archivVisibleCount = ARCHIV_PAGE_SIZE;
+  renderArchiv();
+}
+
 function resetSearch(){
   document.getElementById("searchInput").value = "";
+  archivVisibleCount = ARCHIV_PAGE_SIZE;
+  renderArchiv();
+}
+
+function loadMoreArchiv(){
+  archivVisibleCount += ARCHIV_PAGE_SIZE;
   renderArchiv();
 }
 
@@ -787,13 +813,20 @@ function renderArchiv(){
     .filter(b => b.status === "archiviert" && baustellePasstZurSuche(b))
     .sort((a, b) => getFirestoreTime(b.archiviertAm || b.abgeschlossenAm) - getFirestoreTime(a.archiviertAm || a.abgeschlossenAm));
 
+  const sichtbareArchivierte = archivierte.slice(0, archivVisibleCount);
+
   if(archivierte.length === 0){
     container.innerHTML = '<div class="empty-box">Keine archivierten Baustellen gefunden.</div>';
   }else{
-    archivierte.forEach(b => container.appendChild(createBaustelleCard(b)));
+    sichtbareArchivierte.forEach(b => container.appendChild(createBaustelleCard(b)));
   }
 
-  document.getElementById("resultInfo").innerText = "Archivierte Baustellen: " + archivierte.length;
+  const loadMoreButton = document.getElementById("archivLoadMoreButton");
+  if(loadMoreButton){
+    loadMoreButton.style.display = archivierte.length > sichtbareArchivierte.length ? "inline-flex" : "none";
+  }
+
+  document.getElementById("resultInfo").innerText = "Archivierte Baustellen: " + sichtbareArchivierte.length + " von " + archivierte.length;
 }
 
 function createBaustelleCard(baustelle){
