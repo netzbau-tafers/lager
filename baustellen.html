@@ -1774,6 +1774,7 @@ function createBaustelleCard(baustelle){
   const materialien = materialVonBaustelle(baustelle.id);
   const isOpen = openMaterialLists[baustelle.id] === true;
   const abgeschlossenText = formatFirestoreDate(baustelle.abgeschlossenAm);
+  const erstellungsText = formatFirestoreDate(baustelle.createdAt);
 
   let materialHtml = "";
   if(materialien.length === 0){
@@ -1866,6 +1867,7 @@ function createBaustelleCard(baustelle){
     <h3>${escapeHtml(baustelle.name || "")}</h3>
     <div class="baustelle-meta"><strong>Baustellen Nummer:</strong> ${escapeHtml(baustelle.nummer || "")}</div>
     <div class="baustelle-meta"><strong>Verantwortlicher:</strong> ${escapeHtml(baustelle.verantwortlicher || "")}</div>
+    ${baustelle.status === "aktiv" && erstellungsText ? `<div class="baustelle-meta"><strong>Erstellt am:</strong> ${escapeHtml(erstellungsText)}</div>` : ""}
     ${abgeschlossenText ? `<div class="baustelle-meta"><strong>Abgeschlossen am:</strong> ${escapeHtml(abgeschlossenText)}</div>` : ""}
 
     ${actionsHtml}
