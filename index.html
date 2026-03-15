@@ -1175,6 +1175,11 @@ wie <b>Bearbeiten</b> oder <b>Löschen</b>.
       <p>Baustelle</p>
       <input id="returnBaustelle" placeholder="Baustelle" maxlength="120">
 
+      <label class="checkbox-row">
+        <input type="checkbox" id="returnReserviert">
+        <span class="checkbox-label-text">Nach Rückgabe als reserviert anzeigen</span>
+      </label>
+
       <button onclick="confirmReturn()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
       <button class="back" onclick="closeModal()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
     </div>
@@ -2697,6 +2702,7 @@ function toggleStatus(id){
         ? formatNumberForDisplay(calc.neueLaenge)
         : sanitizeInput(b.laenge || "", 40);
       document.getElementById("returnBaustelle").value = sanitizeInput(b.baustelle || "", 120);
+      document.getElementById("returnReserviert").checked = !!b.reserviert;
       const differenceResult = document.getElementById("differenceResult");
       differenceResult.textContent = calc.isComplete
         ? calc.message
@@ -2720,6 +2726,7 @@ function confirmReturn(){
 
   const returnLaenge = sanitizeInput(document.getElementById("returnLaenge").value, 40);
   const returnBaustelle = sanitizeInput(document.getElementById("returnBaustelle").value, 120);
+  const returnReserviert = !!document.getElementById("returnReserviert").checked;
 
   document.getElementById("returnLaenge").value = returnLaenge;
   document.getElementById("returnBaustelle").value = returnBaustelle;
@@ -2742,6 +2749,7 @@ function confirmReturn(){
     return bobinenCollection.doc(selectedId).update({
       laenge: berechneteLaenge,
       baustelle: returnBaustelle,
+      reserviert: returnReserviert,
       status: "Lager",
       inGebrauchVonName: "",
       inGebrauchVonEmail: "",
@@ -2760,6 +2768,7 @@ function confirmReturn(){
         " | 3 Bobinen: " + (b.istDreiBobinen ? "Ja" : "Nein") +
         " | Neue Länge: " + berechneteLaenge +
         " | Baustelle: " + returnBaustelle +
+        " | Reserviert: " + (returnReserviert ? "Ja" : "Nein") +
         " | Rechnung: " + (!calc.isComplete ? "Keine (nur ein Wert oder leer)" : calc.message) +
         " | Infos: " + (b.infos || "")
       );
