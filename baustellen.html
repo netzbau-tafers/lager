@@ -767,9 +767,7 @@ label{
     <select id="creatorFilterMode" onchange="onCreatorFilterChanged()">
       <option value="all">Alle Ersteller anzeigen</option>
       <option value="mine">Nur von mir erstellt</option>
-      <option value="person">Nach Benutzername / E-Mail filtern</option>
     </select>
-    <input id="creatorFilterInput" type="text" placeholder="Benutzername oder E-Mail eingeben" oninput="renderAll()" maxlength="120" style="display:none;">
   </div>
 
   <div style="margin-top:15px;">
@@ -1508,30 +1506,13 @@ function loadVorlagen(forceRefresh = false){
 function resetSearch(){
   document.getElementById("searchInput").value = "";
   const creatorMode = document.getElementById("creatorFilterMode");
-  const creatorInput = document.getElementById("creatorFilterInput");
   if(creatorMode){
     creatorMode.value = "all";
-  }
-  if(creatorInput){
-    creatorInput.value = "";
-    creatorInput.style.display = "none";
   }
   renderAll();
 }
 
 function onCreatorFilterChanged(){
-  const modeField = document.getElementById("creatorFilterMode");
-  const valueField = document.getElementById("creatorFilterInput");
-  const mode = modeField ? modeField.value : "all";
-
-  if(valueField){
-    const showValueField = mode === "person";
-    valueField.style.display = showValueField ? "block" : "none";
-    if(!showValueField){
-      valueField.value = "";
-    }
-  }
-
   renderAll();
 }
 
@@ -1547,11 +1528,6 @@ function getSuchbegriff(){
 function getErstellerFilterModus(){
   const field = document.getElementById("creatorFilterMode");
   return field ? String(field.value || "all") : "all";
-}
-
-function getErstellerFilterSuchwert(){
-  const field = document.getElementById("creatorFilterInput");
-  return field ? field.value.trim().toLowerCase() : "";
 }
 
 function getVorlagenSuchbegriff(){
@@ -1625,15 +1601,6 @@ function baustellePasstZumErstellerFilter(baustelle){
     return (myEmail !== "" && baustelleEmail === myEmail)
       || (myName !== "" && baustelleName === myName)
       || (myUid !== "" && baustelleUid === myUid);
-  }
-
-  if(modus === "person"){
-    const filterWert = getErstellerFilterSuchwert();
-    if(filterWert === ""){
-      return true;
-    }
-
-    return baustelleEmail.includes(filterWert) || baustelleName.includes(filterWert);
   }
 
   return true;
@@ -2070,10 +2037,12 @@ function toggleVorlagenBereich(){
 
 function openBaustelleModal(){
   editBaustelleId = null;
+  const user = auth.currentUser;
+  const defaultVerantwortlicher = sanitizeInput(getCurrentUserDisplayName(user), 120);
   document.getElementById("baustelleModalTitle").innerText = "Neue Baustelle";
   document.getElementById("baustelleName").value = "";
   document.getElementById("baustelleNummer").value = "";
-  document.getElementById("baustelleVerantwortlicher").value = "";
+  document.getElementById("baustelleVerantwortlicher").value = defaultVerantwortlicher;
   document.getElementById("baustelleModal").style.display = "block";
 }
 
