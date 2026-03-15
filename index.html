@@ -1479,6 +1479,31 @@ function getSegmentDifference(segment){
   return calc.differenz;
 }
 
+function getReturnCalculationFromSegments(originalLaenge, segments){
+  const originalLaengeNum = parsePositiveNumber(originalLaenge);
+  const usableSegments = Array.isArray(segments)
+    ? segments.filter(segment => sanitizeInput(segment.startNummer || "", 40) !== "" || sanitizeInput(segment.endNummer || "", 40) !== "")
+    : [];
+
+  const segmentDifferenz = usableSegments.reduce((sum, segment) => {
+    const differenz = getSegmentDifference(segment);
+    return sum + (differenz === null ? 0 : differenz);
+  }, 0);
+
+  const calc = {
+    isComplete: segmentDifferenz > 0,
+    hasError: originalLaengeNum === null || originalLaengeNum - segmentDifferenz < 0,
+    neueLaenge: (originalLaengeNum || 0) - segmentDifferenz,
+    message: "Abschnittssumme: " + formatNumberForDisplay(originalLaengeNum || 0) + " m - " + formatNumberForDisplay(segmentDifferenz) + " m = " + formatNumberForDisplay((originalLaengeNum || 0) - segmentDifferenz) + " m"
+  };
+
+  if(calc.hasError){
+    calc.message = "Die berechnete Länge wäre kleiner als 0 m oder die Länge ist ungültig. Bitte Eingaben prüfen.";
+  }
+
+  return calc;
+}
+
 function renderReturnUsageSummary(segments){
   const details = document.getElementById("returnUsageSummary");
   const list = document.getElementById("returnUsageSummaryList");
@@ -2605,13 +2630,20 @@ function toggleStatus(id){
     }else{
       selectedId = id;
       selectedOriginalLaenge = parsePositiveNumber(b.laenge);
-      document.getElementById("returnLaenge").value = sanitizeInput(b.laenge || "", 40);
+      const usageForReturn = buildUsageSegmentsFromBobine(b);
+      const calc = getReturnCalculationFromSegments(b.laenge, usageForReturn);
+      const returnLaengeInput = document.getElementById("returnLaenge");
+      returnLaengeInput.value = (!calc.hasError && calc.isComplete)
+        ? formatNumberForDisplay(calc.neueLaenge)
+        : sanitizeInput(b.laenge || "", 40);
       document.getElementById("returnBaustelle").value = sanitizeInput(b.baustelle || "", 120);
-      document.getElementById("differenceResult").textContent = "";
-      document.getElementById("differenceResult").classList.add("hidden");
-      document.getElementById("differenceResult").classList.remove("error");
-      updateReturnDifference(b.startNummer || "", b.endNummer || "");
-      renderReturnUsageSummary(buildUsageSegmentsFromBobine(b));
+      const differenceResult = document.getElementById("differenceResult");
+      differenceResult.textContent = calc.isComplete
+        ? calc.message
+        : "Keine automatische Berechnung: Anfangs- und Endnummer müssen beide gesetzt sein.";
+      differenceResult.classList.toggle("error", !!calc.hasError);
+      differenceResult.classList.remove("hidden");
+      renderReturnUsageSummary(usageForReturn);
       document.getElementById("returnModal").style.display = "block";
       focusFirstInput("returnModal");
     }
@@ -2641,20 +2673,7 @@ function confirmReturn(){
     const b = doc.data();
 
     const usageForReturn = buildUsageSegmentsFromBobine(b);
-    const segmentDifferenz = usageForReturn.reduce((sum, segment) => {
-      const differenz = getSegmentDifference(segment);
-      return sum + (differenz === null ? 0 : differenz);
-    }, 0);
-    const calc = {
-      isComplete: segmentDifferenz > 0,
-      hasError: parsePositiveNumber(b.laenge) === null || parsePositiveNumber(b.laenge) - segmentDifferenz < 0,
-      neueLaenge: (parsePositiveNumber(b.laenge) || 0) - segmentDifferenz,
-      message: "Abschnittssumme: " + formatNumberForDisplay(parsePositiveNumber(b.laenge) || 0) + " m - " + formatNumberForDisplay(segmentDifferenz) + " m = " + formatNumberForDisplay((parsePositiveNumber(b.laenge) || 0) - segmentDifferenz) + " m"
-    };
-
-    if(calc.hasError){
-      calc.message = "Die berechnete Länge wäre kleiner als 0 m oder die Länge ist ungültig. Bitte Eingaben prüfen.";
-    }
+    const calc = getReturnCalculationFromSegments(b.laenge, usageForReturn);
 
     const berechneteLaenge = (!calc.hasError && calc.isComplete)
       ? formatNumberForDisplay(calc.neueLaenge)
