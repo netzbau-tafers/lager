@@ -105,7 +105,7 @@ button{
   font-size:14px;
   font-weight:bold;
   box-shadow:0 4px 10px rgba(38,137,204,0.18);
-  transition:transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  transition:transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, opacity 0.15s ease;
 }
 
 button:hover{
@@ -129,7 +129,7 @@ button:active{
 
 .canvas-wrap{
   position:relative;
-  background:linear-gradient(to bottom, #edf6ff 0%, #dbe9f7 65%, #d2e2f3 100%);
+  background:linear-gradient(to bottom, #edf6ff 0%, #dbe9f7 55%, #d6e6f5 78%, #d4e3f2 100%);
   overflow:hidden;
 }
 
@@ -177,7 +177,7 @@ canvas{
 }
 
 .hidden{
-  display:none;
+  display:none !important;
 }
 
 .character-select{
@@ -319,27 +319,41 @@ canvas{
   visibility:hidden;
 }
 
-.fullscreen-btn{
+.fs-btn{
   position:absolute;
-  right:12px;
-  bottom:12px;
+  z-index:22;
   width:52px;
   height:52px;
   border-radius:14px;
   display:none;
   align-items:center;
   justify-content:center;
-  z-index:20;
   font-size:22px;
   padding:0;
   background:linear-gradient(180deg, rgba(68,167,234,0.96), rgba(38,137,204,0.96));
   box-shadow:0 8px 18px rgba(33,50,74,0.25);
 }
 
-.fullscreen-btn svg{
+.fs-btn svg{
   width:24px;
   height:24px;
   fill:white;
+}
+
+.fullscreen-btn{
+  right:12px;
+  bottom:12px;
+}
+
+.exit-fullscreen-btn{
+  right:12px;
+  top:50%;
+  transform:translateY(-50%);
+  background:linear-gradient(180deg, rgba(64,108,148,0.96), rgba(44,85,122,0.96));
+}
+
+.exit-fullscreen-btn:hover{
+  transform:translateY(calc(-50% - 1px));
 }
 
 @media (max-width: 900px){
@@ -506,10 +520,6 @@ canvas{
     border-radius:14px;
   }
 
-  .character-buttons .character-button:first-child{
-    grid-column:1 / -1;
-  }
-
   .character-hint{
     margin:4px 14px 10px 14px;
     font-size:14px;
@@ -530,7 +540,7 @@ canvas{
     font-size:16px;
   }
 
-  .fullscreen-btn{
+  .fs-btn{
     display:flex;
   }
 }
@@ -538,10 +548,6 @@ canvas{
 @media (max-width: 430px){
   .character-buttons{
     grid-template-columns:1fr;
-  }
-
-  .character-buttons .character-button:first-child{
-    grid-column:auto;
   }
 
   .pill{
@@ -605,9 +611,10 @@ canvas{
       <span class="character-label">Charakter:</span>
 
       <div class="character-buttons">
-        <button type="button" class="character-button" data-character="worker">👷 Mann (Seitenansicht)</button>
-        <button type="button" class="character-button" data-character="frog">🐸 St.Silvester</button>
+        <button type="button" class="character-button" data-character="worker">👷 Schnuperstüft</button>
+        <button type="button" class="character-button" data-character="frog">🐸 Santivastler</button>
         <button type="button" class="character-button" data-character="donkey">🫏 Düdinger</button>
+        <button type="button" class="character-button" data-character="unimog">🚛 Mercedes Unimog</button>
       </div>
 
       <p id="characterHint" class="character-hint hidden-message">Bitte zuerst einen Charakter auswählen.</p>
@@ -618,9 +625,15 @@ canvas{
       <ol id="liveRankingList"></ol>
     </div>
 
-    <button id="fullscreenBtn" class="fullscreen-btn" type="button" aria-label="Vollbild">
+    <button id="fullscreenBtn" class="fs-btn fullscreen-btn" type="button" aria-label="Vollbild">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M7 3H3v4h2V5h2V3zm14 0h-4v2h2v2h2V3zM5 17H3v4h4v-2H5v-2zm16 0h-2v2h-2v2h4v-4z"/>
+      </svg>
+    </button>
+
+    <button id="exitFullscreenBtn" class="fs-btn exit-fullscreen-btn hidden" type="button" aria-label="Normalansicht">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M9 9H3V7h4V3h2v6zm12 0h-6V3h2v4h4v2zM9 21H7v-4H3v-2h6v6zm12-2v2h-6v-6h2v4h4z"/>
       </svg>
     </button>
   </div>
@@ -630,6 +643,7 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 const gameWrap = document.getElementById("gameWrap");
 const fullscreenBtn = document.getElementById("fullscreenBtn");
+const exitFullscreenBtn = document.getElementById("exitFullscreenBtn");
 
 const scoreEl = document.getElementById("score");
 const bestScoreEl = document.getElementById("bestScore");
@@ -693,7 +707,26 @@ let selectedCharacter = null;
 let signposts = [];
 let signTimer = 0;
 
-const signNames = ["Tafers", "Düdingen", "Schwarzsee", "Alterswil", "Plexus"];
+const signNames = [
+  "Tafers",
+  "Düdingen",
+  "Schwarzsee",
+  "Alterswil",
+  "Plexus",
+  "Schmitten",
+  "Überstorf",
+  "Rechthalten",
+  "Giffers",
+  "Tentlingen",
+  "Plasselb",
+  "Plaffeien",
+  "Zum Holz",
+  "Bösingen",
+  "Schweni",
+  "Flamatt",
+  "St.Ursen"
+];
+
 const obstacleTypes = ["mast", "wind", "solar", "tree"];
 
 function loadRanking(){
@@ -775,11 +808,6 @@ async function lockLandscapeOnMobile(){
 
 async function enterFullscreen(){
   const element = gameWrap;
-
-  if(document.fullscreenElement){
-    return;
-  }
-
   const request =
     element.requestFullscreen ||
     element.webkitRequestFullscreen ||
@@ -788,9 +816,41 @@ async function enterFullscreen(){
   if(typeof request === "function"){
     try{
       await request.call(element);
+      await lockLandscapeOnMobile();
     }catch(error){
       console.warn("Fullscreen nicht möglich:", error);
     }
+  }
+}
+
+async function exitFullscreen(){
+  const exitFn =
+    document.exitFullscreen ||
+    document.webkitExitFullscreen ||
+    document.msExitFullscreen;
+
+  if(typeof exitFn === "function"){
+    try{
+      await exitFn.call(document);
+    }catch(error){
+      console.warn("Fullscreen beenden nicht möglich:", error);
+    }
+  }
+}
+
+function updateFullscreenButtons(){
+  const isFs = !!(
+    document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    document.msFullscreenElement
+  );
+
+  if(isFs){
+    fullscreenBtn.classList.add("hidden");
+    exitFullscreenBtn.classList.remove("hidden");
+  }else{
+    fullscreenBtn.classList.remove("hidden");
+    exitFullscreenBtn.classList.add("hidden");
   }
 }
 
@@ -817,10 +877,6 @@ function subscribeRanking(){
       console.error("Firestore Ranking-Update fehlgeschlagen:", error);
       renderRanking();
     });
-}
-
-function goBackToWork(){
-  window.location.href = "home.html";
 }
 
 function escapeHtml(text){
@@ -882,15 +938,13 @@ function showStartScreen(){
   draw();
 }
 
-async function startGame(){
+function startGame(){
   if(!selectedCharacter){
     characterHint.classList.remove("hidden-message");
     return;
   }
 
   characterHint.classList.add("hidden-message");
-  await lockLandscapeOnMobile();
-  await enterFullscreen();
   cancelAnimationFrame(animationId);
   resetGameState();
   loop();
@@ -1018,28 +1072,36 @@ function update(){
   }
 
   signTimer++;
-  if(signTimer > 420 + Math.random() * 420){
+  if(signTimer > 340 + Math.random() * 340){
     signposts.push({
       text: signNames[Math.floor(Math.random() * signNames.length)],
       x: canvas.width + 30,
-      y: groundY - 62
+      y: groundY - 82 - Math.random() * 18,
+      scale: 0.78 + Math.random() * 0.14
     });
     signTimer = 0;
   }
 
   for(let i = signposts.length - 1; i >= 0; i--){
-    signposts[i].x -= gameSpeed * 0.55;
-    if(signposts[i].x < -140){
+    signposts[i].x -= gameSpeed * 0.38;
+    if(signposts[i].x < -170){
       signposts.splice(i, 1);
     }
   }
 
-  const playerHitbox = {
-    x: player.x + 8,
-    y: player.y + 8,
-    width: player.width - 14,
-    height: player.height - 10
-  };
+  const playerHitbox = selectedCharacter === "unimog"
+    ? {
+        x: player.x + 5,
+        y: player.y + 14,
+        width: 42,
+        height: 30
+      }
+    : {
+        x: player.x + 8,
+        y: player.y + 8,
+        width: player.width - 14,
+        height: player.height - 10
+      };
 
   for(const ob of obstacles){
     const hit =
@@ -1056,7 +1118,7 @@ function update(){
 }
 
 function drawGround(){
-  ctx.strokeStyle = "#9aa7b5";
+  ctx.strokeStyle = "#a5b4c3";
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(0, groundY + player.height);
@@ -1067,7 +1129,7 @@ function drawGround(){
     ctx.beginPath();
     ctx.moveTo(i, groundY + player.height + 8);
     ctx.lineTo(i + 20, groundY + player.height + 8);
-    ctx.strokeStyle = "#c8d0d8";
+    ctx.strokeStyle = "#cfd7df";
     ctx.stroke();
   }
 }
@@ -1215,6 +1277,66 @@ function drawDonkey(){
   ctx.stroke();
 }
 
+function drawUnimog(){
+  const x = player.x;
+  const y = player.y + 7;
+  const running = gameRunning && player.grounded;
+  const wheelTurn = frameCount * 0.22;
+  const bodyBob = running ? Math.sin(frameCount * 0.35) * 1.1 : 0;
+  const cabBob = running ? Math.sin(frameCount * 0.35 + 0.5) * 0.7 : 0;
+
+  ctx.save();
+  ctx.translate(0, bodyBob);
+
+  ctx.fillStyle = "#2f78b7";
+  ctx.fillRect(x + 8, y + 18, 34, 15);
+  ctx.fillRect(x + 18, y + 8 + cabBob, 18, 13);
+
+  ctx.fillStyle = "#cfe8fb";
+  ctx.fillRect(x + 21, y + 10 + cabBob, 6, 6);
+  ctx.fillRect(x + 29, y + 10 + cabBob, 5, 6);
+
+  ctx.fillStyle = "#f0c420";
+  ctx.fillRect(x + 9, y + 24, 4, 4);
+
+  ctx.fillStyle = "#284c6e";
+  ctx.fillRect(x + 40, y + 20, 6, 4);
+
+  ctx.strokeStyle = "#1c405d";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x + 41, y + 18);
+  ctx.lineTo(x + 44, y + 9);
+  ctx.stroke();
+
+  drawWheel(x + 17, y + 36, 7, wheelTurn);
+  drawWheel(x + 38, y + 36, 7, wheelTurn);
+
+  ctx.restore();
+}
+
+function drawWheel(cx, cy, r, angle){
+  ctx.fillStyle = "#223243";
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#92bce2";
+  ctx.beginPath();
+  ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = "#b7d5ef";
+  ctx.lineWidth = 1.2;
+  for(let i = 0; i < 4; i++){
+    const a = angle + (Math.PI / 2) * i;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(a) * 5, cy + Math.sin(a) * 5);
+    ctx.stroke();
+  }
+}
+
 function drawPlayer(){
   if(selectedCharacter === "worker"){
     drawSideViewRunner();
@@ -1228,6 +1350,11 @@ function drawPlayer(){
 
   if(selectedCharacter === "donkey"){
     drawDonkey();
+    return;
+  }
+
+  if(selectedCharacter === "unimog"){
+    drawUnimog();
     return;
   }
 
@@ -1253,30 +1380,69 @@ function drawObstacle(ob){
   drawMast(ob);
 }
 
+function roundedRect(x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
 function drawMast(ob){
   const x = ob.x;
   const y = ob.y;
   const h = ob.height;
   const w = ob.width;
+  const cx = x + w / 2;
 
-  ctx.fillStyle = "#7f8c8d";
-  ctx.shadowColor = "rgba(0,0,0,0.12)";
-  ctx.shadowBlur = 5;
-  ctx.fillRect(x + w / 2 - 4, y, 8, h);
+  ctx.save();
+  ctx.shadowColor = "rgba(45,95,145,0.12)";
+  ctx.shadowBlur = 6;
 
-  ctx.fillStyle = "#95a5a6";
-  ctx.fillRect(x - 8, y + 12, w + 16, 5);
-  ctx.fillRect(x - 6, y + 28, w + 12, 4);
+  ctx.fillStyle = "#7fb7df";
+  ctx.fillRect(cx - 4, y, 8, h);
+
+  ctx.fillStyle = "#b9dbf2";
+  roundedRect(x - 8, y + 12, w + 16, 6, 4);
+  ctx.fill();
+  roundedRect(x - 6, y + 28, w + 12, 5, 4);
+  ctx.fill();
 
   ctx.shadowBlur = 0;
-  ctx.strokeStyle = "#6c7a7b";
+  ctx.strokeStyle = "#4e88b4";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(x + w / 2, y + 17);
-  ctx.lineTo(x + w / 2 - 12, y + 34);
-  ctx.moveTo(x + w / 2, y + 17);
-  ctx.lineTo(x + w / 2 + 12, y + 34);
+  ctx.moveTo(cx, y + 17);
+  ctx.lineTo(cx - 12, y + 34);
+  ctx.moveTo(cx, y + 17);
+  ctx.lineTo(cx + 12, y + 34);
   ctx.stroke();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(cx - 5, y + 43, 2, 0, Math.PI * 2);
+  ctx.arc(cx + 5, y + 43, 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#315b79";
+  ctx.beginPath();
+  ctx.arc(cx - 5, y + 43, 0.8, 0, Math.PI * 2);
+  ctx.arc(cx + 5, y + 43, 0.8, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = "#315b79";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, y + 47, 4, 0.2, Math.PI - 0.2);
+  ctx.stroke();
+
+  ctx.restore();
 }
 
 function drawWindTurbine(ob){
@@ -1286,15 +1452,15 @@ function drawWindTurbine(ob){
   const hubY = y + 22;
   const bladeLen = 16;
 
-  ctx.fillStyle = "#8798a8";
+  ctx.fillStyle = "#9aabba";
   ctx.fillRect(centerX - 3, y + 20, 6, ob.height - 20);
 
-  ctx.fillStyle = "#6f7e8c";
+  ctx.fillStyle = "#768796";
   ctx.beginPath();
   ctx.arc(centerX, hubY, 4, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.strokeStyle = "#5f6f7d";
+  ctx.strokeStyle = "#677786";
   ctx.lineWidth = 3;
   for(let i = 0; i < 3; i++){
     const angle = frameCount * 0.04 + (i * Math.PI * 2) / 3;
@@ -1350,44 +1516,52 @@ function drawTree(ob){
 function drawSignposts(){
   for(const sign of signposts){
     ctx.save();
-    ctx.globalAlpha = 0.72;
+    ctx.globalAlpha = 0.55;
+    ctx.translate(sign.x, sign.y);
+    ctx.scale(sign.scale, sign.scale);
 
-    ctx.fillStyle = "#7a866f";
-    ctx.fillRect(sign.x + 22, sign.y + 18, 4, 34);
+    ctx.fillStyle = "#7f896f";
+    ctx.fillRect(22, 19, 4, 34);
+
+    ctx.strokeStyle = "#738263";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(24, 53);
+    ctx.lineTo(20, 59);
+    ctx.moveTo(24, 53);
+    ctx.lineTo(28, 59);
+    ctx.stroke();
 
     ctx.fillStyle = "#efe2b2";
     ctx.strokeStyle = "#a6925b";
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1.4;
+    roundedRect(0, 0, 98, 22, 4);
+    ctx.fill();
+    ctx.stroke();
 
-    if(typeof ctx.roundRect === "function"){
-      ctx.beginPath();
-      ctx.roundRect(sign.x, sign.y, 86, 22, 4);
-      ctx.fill();
-      ctx.stroke();
-    }else{
-      ctx.fillRect(sign.x, sign.y, 86, 22);
-      ctx.strokeRect(sign.x, sign.y, 86, 22);
-    }
+    ctx.fillStyle = "rgba(255,255,255,0.28)";
+    ctx.fillRect(4, 3, 72, 3);
 
-    ctx.fillStyle = "rgba(0,0,0,0.06)";
-    ctx.fillRect(sign.x + 2, sign.y + 18, 82, 2);
+    ctx.fillStyle = "rgba(0,0,0,0.07)";
+    ctx.fillRect(2, 18, 94, 2);
 
     ctx.fillStyle = "#5e4e28";
     ctx.font = "12px Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(sign.text, sign.x + 43, sign.y + 11);
+    ctx.fillText(sign.text, 49, 11);
 
     ctx.restore();
   }
 }
 
-function drawBackground(){
-  ctx.fillStyle = "#ffffffb8";
-  for(let i = 0; i < 5; i++){
-    const cx = (i * 220 + 80 - (score * 1.2) % 220);
-    const cy = 55 + (i % 2) * 20;
+function drawAnimatedSky(){
+  for(let i = 0; i < 6; i++){
+    const offset = (frameCount * 0.12) % 1240;
+    const cx = i * 220 + 60 - offset;
+    const cy = 52 + (i % 2) * 18;
 
+    ctx.fillStyle = "rgba(255,255,255,0.74)";
     ctx.beginPath();
     ctx.arc(cx, cy, 18, Math.PI * 0.5, Math.PI * 1.5);
     ctx.arc(cx + 20, cy - 10, 18, Math.PI, Math.PI * 1.85);
@@ -1395,36 +1569,78 @@ function drawBackground(){
     ctx.closePath();
     ctx.fill();
   }
+
+  for(let i = 0; i < 4; i++){
+    const offset = (frameCount * 0.05) % 1500;
+    const cx = i * 340 + 130 - offset;
+    const cy = 86 + (i % 2) * 10;
+
+    ctx.fillStyle = "rgba(255,255,255,0.36)";
+    ctx.beginPath();
+    ctx.arc(cx, cy, 12, Math.PI * 0.5, Math.PI * 1.5);
+    ctx.arc(cx + 14, cy - 7, 12, Math.PI, Math.PI * 1.85);
+    ctx.arc(cx + 28, cy, 12, Math.PI * 1.37, Math.PI * 0.37);
+    ctx.closePath();
+    ctx.fill();
+  }
 }
 
 function drawLandscape(){
-  ctx.fillStyle = "#c7d7c3";
+  const farShift = (frameCount * 0.05) % 1600;
+  const midShift = (frameCount * 0.12) % 1500;
+  const nearShift = (frameCount * 0.22) % 1400;
+  const villageShift = (frameCount * 0.3) % 1300;
+
+  ctx.fillStyle = "#dce6d8";
   ctx.beginPath();
-  ctx.moveTo(0, groundY + 10);
-  ctx.quadraticCurveTo(140, 190, 280, groundY + 12);
-  ctx.quadraticCurveTo(430, 205, 580, groundY + 8);
-  ctx.quadraticCurveTo(740, 188, 880, groundY + 14);
-  ctx.quadraticCurveTo(940, 200, 1000, groundY + 10);
-  ctx.lineTo(1000, groundY + 56);
-  ctx.lineTo(0, groundY + 56);
+  ctx.moveTo(-500 - farShift, groundY + 6);
+  ctx.quadraticCurveTo(-250 - farShift, 168, 20 - farShift, groundY + 12);
+  ctx.quadraticCurveTo(260 - farShift, 182, 520 - farShift, groundY + 8);
+  ctx.quadraticCurveTo(750 - farShift, 168, 1040 - farShift, groundY + 12);
+  ctx.quadraticCurveTo(1280 - farShift, 184, 1600 - farShift, groundY + 8);
+  ctx.lineTo(1600 - farShift, groundY + 56);
+  ctx.lineTo(-500 - farShift, groundY + 56);
   ctx.closePath();
   ctx.fill();
 
-  ctx.fillStyle = "#90a98d";
-  for(let i = 0; i < canvas.width; i += 42){
-    const h = 18 + ((i / 42) % 3) * 8;
+  ctx.fillStyle = "#c7d7c3";
+  ctx.beginPath();
+  ctx.moveTo(-350 - midShift, groundY + 16);
+  ctx.quadraticCurveTo(-70 - midShift, 205, 180 - midShift, groundY + 18);
+  ctx.quadraticCurveTo(420 - midShift, 218, 670 - midShift, groundY + 14);
+  ctx.quadraticCurveTo(920 - midShift, 200, 1240 - midShift, groundY + 18);
+  ctx.lineTo(1240 - midShift, groundY + 56);
+  ctx.lineTo(-350 - midShift, groundY + 56);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#b0c4a7";
+  ctx.beginPath();
+  ctx.moveTo(-300 - nearShift, groundY + 28);
+  ctx.quadraticCurveTo(-20 - nearShift, 220, 220 - nearShift, groundY + 22);
+  ctx.quadraticCurveTo(460 - nearShift, 228, 700 - nearShift, groundY + 20);
+  ctx.quadraticCurveTo(930 - nearShift, 214, 1220 - nearShift, groundY + 24);
+  ctx.lineTo(1220 - nearShift, groundY + 56);
+  ctx.lineTo(-300 - nearShift, groundY + 56);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#91a98f";
+  for(let i = -2; i < 30; i++){
+    const baseX = i * 44 - nearShift;
+    const h = 16 + (i % 3) * 7;
     ctx.beginPath();
-    ctx.moveTo(i, groundY + 10);
-    ctx.lineTo(i + 12, groundY - h);
-    ctx.lineTo(i + 24, groundY + 10);
+    ctx.moveTo(baseX, groundY + 10);
+    ctx.lineTo(baseX + 12, groundY - h);
+    ctx.lineTo(baseX + 24, groundY + 10);
     ctx.closePath();
     ctx.fill();
   }
 
-  ctx.fillStyle = "rgba(120,130,145,0.35)";
-  for(let i = 0; i < 4; i++){
-    const baseX = 120 + i * 210 - (score * 0.15 % 210);
-    const baseY = groundY - 12;
+  ctx.fillStyle = "rgba(122,136,150,0.22)";
+  for(let i = 0; i < 7; i++){
+    const baseX = 20 + i * 165 - villageShift;
+    const baseY = groundY - 12 - (i % 2) * 4;
 
     ctx.fillRect(baseX, baseY - 18, 24, 18);
     ctx.beginPath();
@@ -1434,11 +1650,11 @@ function drawLandscape(){
     ctx.closePath();
     ctx.fill();
 
-    ctx.fillRect(baseX + 34, baseY - 14, 18, 14);
+    ctx.fillRect(baseX + 36, baseY - 14, 18, 14);
     ctx.beginPath();
-    ctx.moveTo(baseX + 31, baseY - 14);
-    ctx.lineTo(baseX + 43, baseY - 24);
-    ctx.lineTo(baseX + 55, baseY - 14);
+    ctx.moveTo(baseX + 33, baseY - 14);
+    ctx.lineTo(baseX + 45, baseY - 24);
+    ctx.lineTo(baseX + 57, baseY - 14);
     ctx.closePath();
     ctx.fill();
   }
@@ -1446,7 +1662,7 @@ function drawLandscape(){
 
 function draw(){
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawBackground();
+  drawAnimatedSky();
   drawLandscape();
   drawSignposts();
   drawGround();
@@ -1524,13 +1740,16 @@ canvas.addEventListener("touchend", (e) => {
   releaseJump();
 }, { passive:false });
 
-fullscreenBtn.addEventListener("click", async () => {
-  await enterFullscreen();
-  await lockLandscapeOnMobile();
-});
+fullscreenBtn.addEventListener("click", enterFullscreen);
+exitFullscreenBtn.addEventListener("click", exitFullscreen);
+
+document.addEventListener("fullscreenchange", updateFullscreenButtons);
+document.addEventListener("webkitfullscreenchange", updateFullscreenButtons);
+document.addEventListener("msfullscreenchange", updateFullscreenButtons);
 
 subscribeRanking();
 renderRanking();
+updateFullscreenButtons();
 draw();
 
 characterButtons.forEach((button) => {
