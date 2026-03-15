@@ -253,35 +253,6 @@ canvas{
   margin-top:12px;
 }
 
-.ranking{
-  margin-top:16px;
-  text-align:left;
-  background:var(--card-soft);
-  border:1px solid var(--border-soft);
-  border-radius:14px;
-  padding:12px 14px;
-  max-height:220px;
-  overflow:auto;
-}
-
-.ranking h3{
-  margin:0 0 10px 0;
-  font-size:18px;
-  color:#21364a;
-}
-
-.ranking ol{
-  margin:0;
-  padding-left:24px;
-}
-
-.ranking li{
-  margin:6px 0;
-  font-size:15px;
-  line-height:1.4;
-  word-break:break-word;
-}
-
 .live-ranking{
   margin:12px 16px 18px;
   background:var(--card-soft);
@@ -481,20 +452,6 @@ canvas{
     border-radius:14px;
   }
 
-  .ranking{
-    border-radius:16px;
-    padding:14px;
-    max-height:none;
-  }
-
-  .ranking h3{
-    font-size:18px;
-  }
-
-  .ranking li{
-    font-size:16px;
-  }
-
   .character-select{
     padding:16px 14px 6px 14px;
     gap:8px;
@@ -543,6 +500,11 @@ canvas{
   .fs-btn{
     display:flex;
   }
+
+  .fullscreen-btn{
+    right:14px;
+    bottom:14px;
+  }
 }
 
 @media (max-width: 430px){
@@ -579,11 +541,6 @@ canvas{
           <h2>Start</h2>
           <p>Wähle ein Charakter und drücke Start.</p>
           <button type="button" onclick="startGame()">Spiel starten</button>
-
-          <div class="ranking" id="startRankingBox">
-            <h3>Bestenliste</h3>
-            <ol id="startRankingList"></ol>
-          </div>
         </div>
       </div>
 
@@ -605,6 +562,18 @@ canvas{
           </div>
         </div>
       </div>
+
+      <button id="fullscreenBtn" class="fs-btn fullscreen-btn" type="button" aria-label="Vollbild">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M7 3H3v4h2V5h2V3zm14 0h-4v2h2v2h2V3zM5 17H3v4h4v-2H5v-2zm16 0h-2v2h-2v2h4v-4z"/>
+        </svg>
+      </button>
+
+      <button id="exitFullscreenBtn" class="fs-btn exit-fullscreen-btn hidden" type="button" aria-label="Normalansicht">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M9 9H3V7h4V3h2v6zm12 0h-6V3h2v4h4v2zM9 21H7v-4H3v-2h6v6zm12-2v2h-6v-6h2v4h4z"/>
+        </svg>
+      </button>
     </div>
 
     <div class="character-select">
@@ -624,18 +593,6 @@ canvas{
       <h3>Live-Bestenliste (Top 10)</h3>
       <ol id="liveRankingList"></ol>
     </div>
-
-    <button id="fullscreenBtn" class="fs-btn fullscreen-btn" type="button" aria-label="Vollbild">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M7 3H3v4h2V5h2V3zm14 0h-4v2h2v2h2V3zM5 17H3v4h4v-2H5v-2zm16 0h-2v2h-2v2h4v-4z"/>
-      </svg>
-    </button>
-
-    <button id="exitFullscreenBtn" class="fs-btn exit-fullscreen-btn hidden" type="button" aria-label="Normalansicht">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M9 9H3V7h4V3h2v6zm12 0h-6V3h2v4h4v2zM9 21H7v-4H3v-2h6v6zm12-2v2h-6v-6h2v4h4z"/>
-      </svg>
-    </button>
   </div>
 
 <script>
@@ -651,7 +608,6 @@ const finalScoreEl = document.getElementById("finalScore");
 const startOverlay = document.getElementById("startOverlay");
 const gameOverOverlay = document.getElementById("gameOverOverlay");
 const playerNameInput = document.getElementById("playerName");
-const startRankingList = document.getElementById("startRankingList");
 const liveRankingList = document.getElementById("liveRankingList");
 const characterButtons = document.querySelectorAll(".character-button");
 const characterHint = document.getElementById("characterHint");
@@ -704,28 +660,6 @@ let obstacles = [];
 let spawnTimer = 0;
 let gameOverSaved = false;
 let selectedCharacter = null;
-let signposts = [];
-let signTimer = 0;
-
-const signNames = [
-  "Tafers",
-  "Düdingen",
-  "Schwarzsee",
-  "Alterswil",
-  "Plexus",
-  "Schmitten",
-  "Überstorf",
-  "Rechthalten",
-  "Giffers",
-  "Tentlingen",
-  "Plasselb",
-  "Plaffeien",
-  "Zum Holz",
-  "Bösingen",
-  "Schweni",
-  "Flamatt",
-  "St.Ursen"
-];
 
 const obstacleTypes = ["mast", "wind", "solar", "tree"];
 
@@ -744,7 +678,6 @@ function renderRanking(){
     ? ranking.map(entry => `<li><strong>${escapeHtml(entry.name)}</strong> - ${entry.score} Punkte</li>`).join("")
     : "<li>Noch keine Einträge</li>";
 
-  startRankingList.innerHTML = html;
   liveRankingList.innerHTML = html;
 }
 
@@ -895,9 +828,7 @@ function resetGameState(){
   score = 0;
   frameCount = 0;
   spawnTimer = 0;
-  signTimer = 0;
   obstacles = [];
-  signposts = [];
   gameOverSaved = false;
 
   player.y = groundY;
@@ -919,9 +850,7 @@ function showStartScreen(){
   cancelAnimationFrame(animationId);
   gameRunning = false;
   obstacles = [];
-  signposts = [];
   spawnTimer = 0;
-  signTimer = 0;
   player.y = groundY;
   player.vy = 0;
   player.grounded = true;
@@ -1068,24 +997,6 @@ function update(){
       obstacles.splice(i, 1);
       score += 1;
       scoreEl.textContent = Math.floor(score);
-    }
-  }
-
-  signTimer++;
-  if(signTimer > 340 + Math.random() * 340){
-    signposts.push({
-      text: signNames[Math.floor(Math.random() * signNames.length)],
-      x: canvas.width + 30,
-      y: groundY - 82 - Math.random() * 18,
-      scale: 0.78 + Math.random() * 0.14
-    });
-    signTimer = 0;
-  }
-
-  for(let i = signposts.length - 1; i >= 0; i--){
-    signposts[i].x -= gameSpeed * 0.38;
-    if(signposts[i].x < -170){
-      signposts.splice(i, 1);
     }
   }
 
@@ -1361,25 +1272,6 @@ function drawPlayer(){
   drawSideViewRunner();
 }
 
-function drawObstacle(ob){
-  if(ob.type === "wind"){
-    drawWindTurbine(ob);
-    return;
-  }
-
-  if(ob.type === "solar"){
-    drawSolarPanel(ob);
-    return;
-  }
-
-  if(ob.type === "tree"){
-    drawTree(ob);
-    return;
-  }
-
-  drawMast(ob);
-}
-
 function roundedRect(x, y, w, h, r){
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -1402,44 +1294,26 @@ function drawMast(ob){
   const cx = x + w / 2;
 
   ctx.save();
-  ctx.shadowColor = "rgba(45,95,145,0.12)";
+  ctx.shadowColor = "rgba(90,58,28,0.15)";
   ctx.shadowBlur = 6;
 
-  ctx.fillStyle = "#7fb7df";
+  ctx.fillStyle = "#8a5a2b";
   ctx.fillRect(cx - 4, y, 8, h);
 
-  ctx.fillStyle = "#b9dbf2";
+  ctx.fillStyle = "#b57b43";
   roundedRect(x - 8, y + 12, w + 16, 6, 4);
   ctx.fill();
   roundedRect(x - 6, y + 28, w + 12, 5, 4);
   ctx.fill();
 
   ctx.shadowBlur = 0;
-  ctx.strokeStyle = "#4e88b4";
+  ctx.strokeStyle = "#6b431f";
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(cx, y + 17);
   ctx.lineTo(cx - 12, y + 34);
   ctx.moveTo(cx, y + 17);
   ctx.lineTo(cx + 12, y + 34);
-  ctx.stroke();
-
-  ctx.fillStyle = "#ffffff";
-  ctx.beginPath();
-  ctx.arc(cx - 5, y + 43, 2, 0, Math.PI * 2);
-  ctx.arc(cx + 5, y + 43, 2, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = "#315b79";
-  ctx.beginPath();
-  ctx.arc(cx - 5, y + 43, 0.8, 0, Math.PI * 2);
-  ctx.arc(cx + 5, y + 43, 0.8, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.strokeStyle = "#315b79";
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.arc(cx, y + 47, 4, 0.2, Math.PI - 0.2);
   ctx.stroke();
 
   ctx.restore();
@@ -1511,48 +1385,6 @@ function drawTree(ob){
   ctx.beginPath();
   ctx.arc(x + w / 2 + 11, y + 26, 10, 0, Math.PI * 2);
   ctx.fill();
-}
-
-function drawSignposts(){
-  for(const sign of signposts){
-    ctx.save();
-    ctx.globalAlpha = 0.55;
-    ctx.translate(sign.x, sign.y);
-    ctx.scale(sign.scale, sign.scale);
-
-    ctx.fillStyle = "#7f896f";
-    ctx.fillRect(22, 19, 4, 34);
-
-    ctx.strokeStyle = "#738263";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(24, 53);
-    ctx.lineTo(20, 59);
-    ctx.moveTo(24, 53);
-    ctx.lineTo(28, 59);
-    ctx.stroke();
-
-    ctx.fillStyle = "#efe2b2";
-    ctx.strokeStyle = "#a6925b";
-    ctx.lineWidth = 1.4;
-    roundedRect(0, 0, 98, 22, 4);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = "rgba(255,255,255,0.28)";
-    ctx.fillRect(4, 3, 72, 3);
-
-    ctx.fillStyle = "rgba(0,0,0,0.07)";
-    ctx.fillRect(2, 18, 94, 2);
-
-    ctx.fillStyle = "#5e4e28";
-    ctx.font = "12px Arial";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(sign.text, 49, 11);
-
-    ctx.restore();
-  }
 }
 
 function drawAnimatedSky(){
@@ -1660,11 +1492,29 @@ function drawLandscape(){
   }
 }
 
+function drawObstacle(ob){
+  if(ob.type === "wind"){
+    drawWindTurbine(ob);
+    return;
+  }
+
+  if(ob.type === "solar"){
+    drawSolarPanel(ob);
+    return;
+  }
+
+  if(ob.type === "tree"){
+    drawTree(ob);
+    return;
+  }
+
+  drawMast(ob);
+}
+
 function draw(){
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawAnimatedSky();
   drawLandscape();
-  drawSignposts();
   drawGround();
   drawPlayer();
 
