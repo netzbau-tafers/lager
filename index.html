@@ -1332,6 +1332,12 @@ function sanitizeInput(value, maxLength = 200){
     .slice(0, maxLength);
 }
 
+function sanitizeDigitsOnly(value, maxLength = 40){
+  return String(value || "")
+    .replace(/\D+/g, "")
+    .slice(0, maxLength);
+}
+
 function escapeHtml(value){
   return String(value || "")
     .replace(/&/g, "&amp;")
@@ -1457,15 +1463,15 @@ function buildUsageSegmentsFromBobine(b){
 
   if(hasSegmentsArray){
     return b.usageSegments.map(segment => ({
-      startNummer: sanitizeInput(segment && segment.startNummer ? segment.startNummer : "", 40),
-      endNummer: sanitizeInput(segment && segment.endNummer ? segment.endNummer : "", 40),
+      startNummer: sanitizeDigitsOnly(segment && segment.startNummer ? segment.startNummer : "", 40),
+      endNummer: sanitizeDigitsOnly(segment && segment.endNummer ? segment.endNummer : "", 40),
       hasInfo: !!(segment && segment.hasInfo),
       infoText: sanitizeInput(segment && segment.infoText ? segment.infoText : "", 200)
     }));
   }
 
   if(hasLegacyValues){
-    return [{ startNummer: legacyStart, endNummer: legacyEnd, hasInfo: false, infoText: "" }];
+    return [{ startNummer: sanitizeDigitsOnly(legacyStart, 40), endNummer: sanitizeDigitsOnly(legacyEnd, 40), hasInfo: false, infoText: "" }];
   }
 
   return [{ startNummer: "", endNummer: "", hasInfo: false, infoText: "" }];
@@ -1571,11 +1577,11 @@ function renderUsageSegments(){
         <div class="optional-calc-row" style="margin-bottom:8px;">
           <div>
             <p>${abschnittLabel}: Anfangsnummer</p>
-            <input data-usage-start="${index}" placeholder="z. B. 1000" maxlength="40" value="${escapeHtml(segment.startNummer || "")}">
+            <input data-usage-start="${index}" inputmode="numeric" pattern="[0-9]*" placeholder="z. B. 1000" maxlength="40" value="${escapeHtml(segment.startNummer || "")}">
           </div>
           <div>
             <p>${abschnittLabel}: Endnummer</p>
-            <input data-usage-end="${index}" placeholder="z. B. 1075" maxlength="40" value="${escapeHtml(segment.endNummer || "")}">
+            <input data-usage-end="${index}" inputmode="numeric" pattern="[0-9]*" placeholder="z. B. 1075" maxlength="40" value="${escapeHtml(segment.endNummer || "")}">
           </div>
         </div>
         <label class="checkbox-row" style="margin-bottom:8px;">
@@ -1618,6 +1624,13 @@ function renderUsageSegments(){
       renderUsageSegments();
     });
   });
+
+  container.querySelectorAll("[data-usage-start], [data-usage-end]").forEach(input => {
+    input.addEventListener("input", function(){
+      this.value = sanitizeDigitsOnly(this.value, 40);
+      syncUsageSegmentsFromInputs();
+    });
+  });
 }
 
 function syncUsageSegmentsFromInputs(){
@@ -1629,8 +1642,8 @@ function syncUsageSegmentsFromInputs(){
   usageSegments = usageSegments.map((segment, index) => {
     const startInput = startInputs[index];
     const endInput = endInputs[index];
-    const startNummer = sanitizeInput(startInput ? startInput.value : segment.startNummer, 40);
-    const endNummer = sanitizeInput(endInput ? endInput.value : segment.endNummer, 40);
+    const startNummer = sanitizeDigitsOnly(startInput ? startInput.value : segment.startNummer, 40);
+    const endNummer = sanitizeDigitsOnly(endInput ? endInput.value : segment.endNummer, 40);
     const infoToggle = infoToggles[index];
     const infoInput = infoInputs[index];
     const hasInfo = !!(infoToggle ? infoToggle.checked : segment.hasInfo);
