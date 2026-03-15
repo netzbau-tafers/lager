@@ -558,8 +558,8 @@ canvas{
           <p id="saveStatus"></p>
 
           <div class="overlay-actions">
-            <button type="button" onclick="saveScore()">Punkte speichern</button>
-            <button type="button" onclick="startGame()">Neu spielen</button>
+            <button id="saveScoreButton" type="button" onclick="saveScore()">Punkte speichern</button>
+            <button id="newGameButton" type="button" onclick="startGame()">Neues Spiel</button>
           </div>
         </div>
       </div>
@@ -610,6 +610,8 @@ const finalScoreEl = document.getElementById("finalScore");
 const startOverlay = document.getElementById("startOverlay");
 const gameOverOverlay = document.getElementById("gameOverOverlay");
 const saveStatusEl = document.getElementById("saveStatus");
+const saveScoreButton = document.getElementById("saveScoreButton");
+const newGameButton = document.getElementById("newGameButton");
 const liveRankingList = document.getElementById("liveRankingList");
 const characterButtons = document.querySelectorAll(".character-button");
 const characterHint = document.getElementById("characterHint");
@@ -860,6 +862,8 @@ async function saveScore(){
 
   gameOverSaved = true;
   saveStatusEl.textContent = `Punkte wurden für ${name} gespeichert.`;
+  saveScoreButton.classList.add("hidden");
+  newGameButton.classList.remove("hidden");
   renderRanking();
 }
 
@@ -1010,6 +1014,8 @@ function resetGameState(){
   scoreEl.textContent = "0";
   finalScoreEl.textContent = "0";
   saveStatusEl.textContent = "";
+  saveScoreButton.classList.remove("hidden");
+  newGameButton.classList.remove("hidden");
   startOverlay.classList.add("hidden");
   gameOverOverlay.classList.add("hidden");
   setCharacterSelectionLocked(true);
