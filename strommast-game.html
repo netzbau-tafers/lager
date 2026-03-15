@@ -586,6 +586,8 @@ canvas{
         <button type="button" class="character-button" data-character="donkey">🫏 Düdinger</button>
         <button type="button" class="character-button" data-character="unimog">🚛 Unimog</button>
         <button type="button" class="character-button" data-character="sprinter">🚐 Käta</button>
+        <button type="button" class="character-button" data-character="chef">👑 Chef</button>
+        <button type="button" class="character-button" data-character="buezer">💚 Büezer</button>
       </div>
 
       <p id="characterHint" class="character-hint hidden-message">Bitte zuerst einen Charakter auswählen.</p>
@@ -710,7 +712,9 @@ function getCharacterMeta(character){
     frog: { key: "frog", icon: "🐸" },
     donkey: { key: "donkey", icon: "🫏" },
     unimog: { key: "unimog", icon: "🚛" },
-    sprinter: { key: "sprinter", icon: "🚐" }
+    sprinter: { key: "sprinter", icon: "🚐" },
+    chef: { key: "chef", icon: "👑" },
+    buezer: { key: "buezer", icon: "💚" }
   };
 
   return characterMap[character] || fallback;
@@ -1450,6 +1454,80 @@ function drawSprinter(){
   ctx.restore();
 }
 
+function drawChef(){
+  const x = player.x;
+  const y = player.y;
+  const running = gameRunning && player.grounded;
+  const legSwing = running ? Math.sin(frameCount * 0.35) * 0.9 : 0;
+  const armSwing = running ? Math.sin(frameCount * 0.35) * 0.65 : 0;
+
+  ctx.fillStyle = "#e7edf7";
+  ctx.fillRect(x + 14, y + 20, 11, 20);
+
+  ctx.fillStyle = "#15263a";
+  ctx.fillRect(x + 17, y + 21, 3, 19);
+
+  ctx.fillStyle = "#f2d2ae";
+  ctx.beginPath();
+  ctx.arc(x + 20, y + 13, 8, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#ffe066";
+  ctx.beginPath();
+  ctx.moveTo(x + 10, y + 7);
+  ctx.lineTo(x + 14, y - 2);
+  ctx.lineTo(x + 20, y + 5);
+  ctx.lineTo(x + 26, y - 2);
+  ctx.lineTo(x + 30, y + 7);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#ffd43b";
+  ctx.fillRect(x + 10, y + 7, 20, 3);
+
+  drawLimb(x + 14, y + 26, 11, Math.PI * 0.92 + armSwing, 4);
+  drawLimb(x + 25, y + 26, 11, Math.PI * 0.08 - armSwing, 4);
+  drawLimb(x + 16, y + 40, 18, Math.PI / 2 + legSwing, 4);
+  drawLimb(x + 23, y + 40, 18, Math.PI / 2 - legSwing, 4);
+}
+
+function drawBuezer(){
+  const x = player.x;
+  const y = player.y;
+  const running = gameRunning && player.grounded;
+  const sway = running ? Math.sin(frameCount * 0.35) * 0.7 : 0;
+
+  ctx.fillStyle = "#36b24d";
+  roundedRect(x + 10, y + 18, 22, 24, 7);
+  ctx.fill();
+
+  ctx.fillStyle = "#4fd065";
+  roundedRect(x + 8, y + 20, 6, 18, 3);
+  ctx.fill();
+  roundedRect(x + 28, y + 20, 6, 18, 3);
+  ctx.fill();
+
+  ctx.fillStyle = "#46c65c";
+  ctx.beginPath();
+  ctx.arc(x + 20, y + 12, 9, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(x + 17, y + 11, 2.1, 0, Math.PI * 2);
+  ctx.arc(x + 23, y + 11, 2.1, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#122016";
+  ctx.beginPath();
+  ctx.arc(x + 17, y + 11, 0.9, 0, Math.PI * 2);
+  ctx.arc(x + 23, y + 11, 0.9, 0, Math.PI * 2);
+  ctx.fill();
+
+  drawLimb(x + 15, y + 42, 17, Math.PI / 2 + sway, 5);
+  drawLimb(x + 25, y + 42, 17, Math.PI / 2 - sway, 5);
+}
+
 function drawWheel(cx, cy, r, angle){
   ctx.fillStyle = "#223243";
   ctx.beginPath();
@@ -1495,6 +1573,16 @@ function drawPlayer(){
 
   if(selectedCharacter === "sprinter"){
     drawSprinter();
+    return;
+  }
+
+  if(selectedCharacter === "chef"){
+    drawChef();
+    return;
+  }
+
+  if(selectedCharacter === "buezer"){
+    drawBuezer();
     return;
   }
 
