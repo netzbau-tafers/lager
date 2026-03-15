@@ -1175,9 +1175,9 @@ wie <b>Bearbeiten</b> oder <b>Löschen</b>.
       <p>Baustelle</p>
       <input id="returnBaustelle" placeholder="Baustelle" maxlength="120">
 
-      <label class="checkbox-row">
+      <label id="returnReserviertRow" class="checkbox-row hidden">
         <input type="checkbox" id="returnReserviert">
-        <span class="checkbox-label-text">Nach Rückgabe als reserviert anzeigen</span>
+        <span class="checkbox-label-text">Im Lager immer noch als reserviert anzeigen</span>
       </label>
 
       <button onclick="confirmReturn()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
@@ -2702,7 +2702,11 @@ function toggleStatus(id){
         ? formatNumberForDisplay(calc.neueLaenge)
         : sanitizeInput(b.laenge || "", 40);
       document.getElementById("returnBaustelle").value = sanitizeInput(b.baustelle || "", 120);
-      document.getElementById("returnReserviert").checked = !!b.reserviert;
+      const returnReserviertRow = document.getElementById("returnReserviertRow");
+      const returnReserviertCheckbox = document.getElementById("returnReserviert");
+      const warReserviert = !!b.reserviert;
+      returnReserviertRow.classList.toggle("hidden", !warReserviert);
+      returnReserviertCheckbox.checked = warReserviert;
       const differenceResult = document.getElementById("differenceResult");
       differenceResult.textContent = calc.isComplete
         ? calc.message
@@ -2726,7 +2730,8 @@ function confirmReturn(){
 
   const returnLaenge = sanitizeInput(document.getElementById("returnLaenge").value, 40);
   const returnBaustelle = sanitizeInput(document.getElementById("returnBaustelle").value, 120);
-  const returnReserviert = !!document.getElementById("returnReserviert").checked;
+  const returnReserviertRow = document.getElementById("returnReserviertRow");
+  const returnReserviert = !returnReserviertRow.classList.contains("hidden") && !!document.getElementById("returnReserviert").checked;
 
   document.getElementById("returnLaenge").value = returnLaenge;
   document.getElementById("returnBaustelle").value = returnBaustelle;
