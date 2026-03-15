@@ -283,6 +283,10 @@ th{
   background:#d9ffd9;
 }
 
+.reserved{
+  background:#ffd39b;
+}
+
 .main-row td{
   vertical-align:middle;
 }
@@ -401,6 +405,10 @@ th{
 
 .mobile-card.instock{
   background:#d9ffd9;
+}
+
+.mobile-card.reserved{
+  background:#ffd39b;
 }
 
 .mobile-card.inuse{
@@ -1035,6 +1043,11 @@ Danach erscheint die Bobine wieder im Lager.</p>
       <input id="baustelle" placeholder="Baustelle" maxlength="120">
       <input id="hersteller" placeholder="Hersteller" maxlength="120">
       <input id="infos" placeholder="Infos" maxlength="250">
+
+      <label class="checkbox-row">
+        <input type="checkbox" id="reserviert">
+        <span class="checkbox-label-text">Reservieren</span>
+      </label>
 
       <button onclick="saveBobine()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
       <button class="back" onclick="closeModal()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
@@ -1728,7 +1741,9 @@ function renderDesktopTable(data){
       : "";
 
     const mainRow = document.createElement("tr");
-    mainRow.className = "main-row " + (b.status === "Lager" ? "instock" : "inuse");
+    const statusClass = b.status === "Lager" ? "instock" : "inuse";
+    const reserviertClass = b.status === "Lager" && b.reserviert ? " reserved" : "";
+    mainRow.className = "main-row " + statusClass + reserviertClass;
 
     mainRow.innerHTML = `
       <td><div class="desktop-nummer-cell">${escapeHtml(b.nummer || "")}${bobinenBadge}</div></td>
@@ -1824,13 +1839,14 @@ function renderMobileCards(data){
     const statusButtonText = b.status === "Lager" ? "In Gebrauch" : "Zurück ins Lager";
     const statusButtonIcon = b.status === "Lager" ? "fa-arrow-right" : "fa-rotate-left";
     const statusClass = b.status === "Lager" ? "instock" : "inuse";
+    const reserviertClass = b.status === "Lager" && b.reserviert ? " reserved" : "";
     const bobinenBadge = getBobinenBadgeHtml(!!b.istDreiBobinen);
     const inUseCaptureButton = b.status === "In Gebrauch"
       ? `<button class="capture-btn" onclick="openUsageNumbersModal('${docItem.id}')"><i class="fa-solid fa-ruler"></i> Nummern</button>`
       : "";
 
     const card = document.createElement("div");
-    card.className = "mobile-card " + statusClass;
+    card.className = "mobile-card " + statusClass + reserviertClass;
 
     const mobileStatusDetailsHtml = `
       <div class="mobile-details-item">
@@ -1996,6 +2012,7 @@ function openAdd(){
   document.getElementById("baustelle").value = "";
   document.getElementById("hersteller").value = "";
   document.getElementById("infos").value = "";
+  document.getElementById("reserviert").checked = false;
 
   document.getElementById("modal").style.display = "block";
   focusFirstInput("modal");
@@ -2020,6 +2037,7 @@ function editBobine(id){
     document.getElementById("baustelle").value = sanitizeInput(b.baustelle || "", 120);
     document.getElementById("hersteller").value = sanitizeInput(b.hersteller || "", 120);
     document.getElementById("infos").value = sanitizeInput(b.infos || "", 250);
+    document.getElementById("reserviert").checked = !!b.reserviert;
 
     document.getElementById("modal").style.display = "block";
     focusFirstInput("modal");
@@ -2083,6 +2101,7 @@ function saveBobine(){
   const baustelle = sanitizeInput(document.getElementById("baustelle").value, 120);
   const hersteller = sanitizeInput(document.getElementById("hersteller").value, 120);
   const infos = sanitizeInput(document.getElementById("infos").value, 250);
+  const reserviert = document.getElementById("reserviert").checked;
 
   document.getElementById("nummer").value = nummerWert;
   document.getElementById("laenge").value = laenge;
@@ -2110,7 +2129,8 @@ function saveBobine(){
     laenge: laenge,
     baustelle: baustelle,
     hersteller: hersteller,
-    infos: infos
+    infos: infos,
+    reserviert: reserviert
   };
 
   nummerSchonVorhanden(nummerWert, editId).then(vorhanden => {
@@ -2142,6 +2162,7 @@ function saveBobine(){
             " | Baustelle: " + baustelle +
             " | Hersteller: " + hersteller +
             " | Infos: " + infos +
+            " | Reserviert: " + (reserviert ? "Ja" : "Nein") +
             " | Status: " + alterStatus
           );
         });
@@ -2167,7 +2188,8 @@ function saveBobine(){
           " | Länge: " + laenge +
           " | Baustelle: " + baustelle +
           " | Hersteller: " + hersteller +
-          " | Infos: " + infos
+          " | Infos: " + infos +
+          " | Reserviert: " + (reserviert ? "Ja" : "Nein")
         );
         closeModal();
       }).catch(error => {
