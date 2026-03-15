@@ -627,6 +627,31 @@ label{
   font-size:14px;
 }
 
+.help-accordion{
+  margin-bottom:20px;
+}
+
+.help-accordion summary{
+  cursor:pointer;
+  font-weight:bold;
+  background:white;
+  border:1px solid #ccc;
+  border-radius:10px;
+  padding:12px 15px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.05);
+}
+
+.help-accordion[open] summary{
+  border-bottom-left-radius:0;
+  border-bottom-right-radius:0;
+}
+
+.help-accordion .info-box{
+  margin-top:0;
+  border-top-left-radius:0 !important;
+  border-top-right-radius:0 !important;
+}  
+
 @media (max-width: 900px){
   body{
     margin:15px;
@@ -739,6 +764,90 @@ label{
   </div>
 </div>
 
+  <details class="help-accordion">
+  <summary>Hilfe anzeigen</summary>
+  <div class="info-box" style="background:white; border:1px solid #ccc; border-radius:10px; padding:15px; margin-bottom:20px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
+    <h3 style="margin-top:0;">So benutzt du das Baustellenmaterial</h3>
+
+    <p>
+      <b><i class="fa-solid fa-plus"></i> Neue Baustelle erstellen</b><br>
+      Hier kannst du eine neue Baustelle anlegen.<br>
+      Baustellenname, Baustellen Nummer und Verantwortlicher eingeben und speichern.
+    </p>
+
+    <p>
+      <b><i class="fa-solid fa-magnifying-glass"></i> Suche</b><br>
+      Über die Suche kannst du nach Baustellenname, Baustellen Nummer,<br>
+      Verantwortlichem oder Material suchen.
+    </p>
+
+    <p>
+      <b><i class="fa-solid fa-plus"></i> Material hinzufügen</b><br>
+      Bei einer aktiven Baustelle kannst du Material zur Materialliste hinzufügen.<br>
+      Material, Anzahl und wenn vorhanden die Spontis Nummer eintragen.
+    </p>
+
+    <p>
+      <b><i class="fa-solid fa-layer-group"></i> Materialvorlage suchen</b><br>
+      Beim Erfassen von Material kannst du nach einer bestehenden Materialvorlage suchen.<br>
+      Wenn du eine Vorlage anklickst, werden Material und Spontis Nummer automatisch übernommen.
+    </p>
+
+    <p>
+      <b><i class="fa-solid fa-list-check"></i> Materialliste</b><br>
+      Über den Button <b>Materialliste</b> kannst du das erfasste Material einer Baustelle anzeigen oder wieder einklappen.
+    </p>
+
+    <p>
+      <b><i class="fa-solid fa-pen"></i> Bearbeiten</b><br>
+      Wenn etwas falsch eingetragen wurde oder sich etwas geändert hat,<br>
+      kannst du Baustellen oder Materialeinträge bearbeiten.
+    </p>
+
+    <p>
+      <b><i class="fa-solid fa-check"></i> Baustelle beenden</b><br>
+      Wenn eine Baustelle fertig ist, kannst du sie beenden.<br>
+      Sie wird dann zu den <b>beendeten Baustellen</b> verschoben und erhält zuerst den Status <b>Ausbuchen</b>.
+    </p>
+
+    <p>
+      <b><i class="fa-solid fa-print"></i> Drucken</b><br>
+      Beendete Baustellen können gedruckt werden.<br>
+      Dabei wird eine saubere Übersicht mit Baustellendaten und Materialliste erstellt.
+    </p>
+
+    <p>
+      <b><i class="fa-solid fa-box-archive"></i> Archivieren</b><br>
+      Beendete Baustellen können vom Administrator archiviert werden.<br>
+      Archivierte Baustellen bleiben erhalten, sind aber nicht mehr im normalen Bereich sichtbar.
+    </p>
+
+    <p>
+      <b><i class="fa-solid fa-layer-group"></i> Materialvorlagen verwalten</b><br>
+      Im Bereich <b>Materialvorlagen verwalten</b> können Vorlagen gesucht, angelegt,<br>
+      bearbeitet und gelöscht werden. Diese helfen beim schnelleren Erfassen von Material.
+    </p>
+
+    <p>
+      <b><i class="fa-solid fa-link"></i> Spontis Link</b><br>
+      Bei Materialvorlagen kann ein Link hinterlegt werden.<br>
+      Admins können den Spontis Eintrag anklicken und direkt öffnen.
+    </p>
+
+    <p>
+      <b><i class="fa-solid fa-ellipsis-vertical"></i> Weitere Aktionen</b><br>
+      Im 3-Punkte-Menü findest du zusätzliche Funktionen<br>
+      wie <b>Bearbeiten</b> oder <b>Löschen</b>.
+    </p>
+
+    <p>
+      <b><i class="fa-solid fa-user-shield"></i> Hinweis zu Admin-Rechten</b><br>
+      Gewisse Funktionen sind nur für Administratoren sichtbar oder erlaubt,<br>
+      zum Beispiel <b>Archiv</b>, <b>Logs</b> oder das Verwalten von Materialvorlagen.
+    </p>
+  </div>
+</details>
+  
 <div class="info-box" id="resultInfo"></div>
 
 <div class="section">
