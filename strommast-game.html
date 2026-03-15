@@ -311,6 +311,12 @@ canvas{
   fill:white;
 }
 
+.game-wrap:fullscreen .fs-btn,
+.game-wrap:-webkit-full-screen .fs-btn,
+.game-wrap:-ms-fullscreen .fs-btn{
+  display:flex;
+}
+
 .fullscreen-btn{
   right:12px;
   bottom:12px;
@@ -590,7 +596,7 @@ canvas{
     </div>
 
     <div class="live-ranking">
-      <h3>Live-Bestenliste (Top 10)</h3>
+      <h3>Live-Bestenliste (Top 20)</h3>
       <ol id="liveRankingList"></ol>
     </div>
   </div>
@@ -638,6 +644,7 @@ const db = firebaseApp.firestore();
 
 const RANKING_KEY = "strommastRanking";
 const SCORE_COLLECTION = "strommastRanking";
+const RANKING_LIMIT = 20;
 const groundY = 250;
 let cloudRanking = [];
 
@@ -694,22 +701,47 @@ async function saveScore(){
     score: Math.floor(score)
   };
 
-  const ranking = loadRanking();
-  ranking.push(newEntry);
-
-  ranking.sort((a, b) => b.score - a.score);
-  const top10 = ranking.slice(0, 10);
-
-  localStorage.setItem(RANKING_KEY, JSON.stringify(top10));
-
+  let rankingForCheck = cloudRanking.length ? [...cloudRanking] : loadRanking();
   try{
-    await db.collection(SCORE_COLLECTION).add({
-      ...newEntry,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    const snapshot = await db.collection(SCORE_COLLECTION)
+      .orderBy("score", "desc")
+      .orderBy("createdAt", "asc")
+      .limit(RANKING_LIMIT)
+      .get();
+
+    rankingForCheck = snapshot.docs.map((doc) => {
+      const data = doc.data() || {};
+      return {
+        name: typeof data.name === "string" ? data.name : "Unbekannt",
+        score: Number(data.score) || 0
+      };
     });
+
+    const lowestTopScore = rankingForCheck[rankingForCheck.length - 1]?.score ?? -Infinity;
+    const qualifiesForTop20 = rankingForCheck.length < RANKING_LIMIT || newEntry.score >= lowestTopScore;
+
+    if(qualifiesForTop20){
+      await db.collection(SCORE_COLLECTION).add({
+        ...newEntry,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      const cleanupSnapshot = await db.collection(SCORE_COLLECTION)
+        .orderBy("score", "desc")
+        .orderBy("createdAt", "asc")
+        .get();
+
+      const docsToDelete = cleanupSnapshot.docs.slice(RANKING_LIMIT);
+      await Promise.all(docsToDelete.map((doc) => doc.ref.delete()));
+    }
   }catch(error){
     console.error("Firestore speichern fehlgeschlagen:", error);
   }
+
+  rankingForCheck.push(newEntry);
+  rankingForCheck.sort((a, b) => b.score - a.score);
+  const localTop20 = rankingForCheck.slice(0, RANKING_LIMIT);
+  localStorage.setItem(RANKING_KEY, JSON.stringify(localTop20));
 
   if(score > bestScore){
     bestScore = Math.floor(score);
@@ -791,7 +823,7 @@ function subscribeRanking(){
   db.collection(SCORE_COLLECTION)
     .orderBy("score", "desc")
     .orderBy("createdAt", "asc")
-    .limit(10)
+    .limit(RANKING_LIMIT)
     .onSnapshot((snapshot) => {
       cloudRanking = snapshot.docs.map((doc) => {
         const data = doc.data() || {};
@@ -1389,7 +1421,7 @@ function drawTree(ob){
 
 function drawAnimatedSky(){
   for(let i = 0; i < 6; i++){
-    const offset = (frameCount * 0.12) % 1240;
+    const offset = 0;
     const cx = i * 220 + 60 - offset;
     const cy = 52 + (i % 2) * 18;
 
@@ -1403,7 +1435,7 @@ function drawAnimatedSky(){
   }
 
   for(let i = 0; i < 4; i++){
-    const offset = (frameCount * 0.05) % 1500;
+    const offset = 0;
     const cx = i * 340 + 130 - offset;
     const cy = 86 + (i % 2) * 10;
 
@@ -1418,10 +1450,10 @@ function drawAnimatedSky(){
 }
 
 function drawLandscape(){
-  const farShift = (frameCount * 0.05) % 1600;
-  const midShift = (frameCount * 0.12) % 1500;
-  const nearShift = (frameCount * 0.22) % 1400;
-  const villageShift = (frameCount * 0.3) % 1300;
+  const farShift = 0;
+  const midShift = 0;
+  const nearShift = 0;
+  const villageShift = 0;
 
   ctx.fillStyle = "#dce6d8";
   ctx.beginPath();
