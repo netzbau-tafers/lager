@@ -1472,17 +1472,20 @@ function buildUsageSegmentsFromBobine(b){
 }
 
 function getSegmentDifference(segment){
-  const calc = getDifferenceCalculation(segment.startNummer || "", segment.endNummer || "", 0);
-  if(!calc.isComplete || calc.hasError){
+  const startNum = parsePositiveNumber(segment.startNummer || "");
+  const endNum = parsePositiveNumber(segment.endNummer || "");
+
+  if(startNum === null || endNum === null){
     return null;
   }
-  return calc.differenz;
+
+  return Math.abs(endNum - startNum);
 }
 
 function getReturnCalculationFromSegments(originalLaenge, segments){
   const originalLaengeNum = parsePositiveNumber(originalLaenge);
   const usableSegments = Array.isArray(segments)
-    ? segments.filter(segment => sanitizeInput(segment.startNummer || "", 40) !== "" || sanitizeInput(segment.endNummer || "", 40) !== "")
+    ? segments.filter(segment => sanitizeInput(segment.startNummer || "", 40) !== "" && sanitizeInput(segment.endNummer || "", 40) !== "")
     : [];
 
   const segmentDifferenz = usableSegments.reduce((sum, segment) => {
@@ -1513,7 +1516,7 @@ function renderReturnUsageSummary(segments){
   }
 
   const usableSegments = Array.isArray(segments)
-    ? segments.filter(segment => sanitizeInput(segment.startNummer || "", 40) !== "" || sanitizeInput(segment.endNummer || "", 40) !== "")
+    ? segments.filter(segment => sanitizeInput(segment.startNummer || "", 40) !== "" && sanitizeInput(segment.endNummer || "", 40) !== "")
     : [];
 
   if(!usableSegments.length){
@@ -1558,6 +1561,13 @@ function renderUsageSegments(){
     const abschnittLabel = "Kabelabschnitt " + (index + 1);
     return `
       <div class="segment-info-box">
+        ${index > 0 ? `
+          <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
+            <button type="button" class="secondary-btn" data-usage-delete="${index}" title="Kabelabschnitt löschen" aria-label="Kabelabschnitt löschen">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        ` : ""}
         <div class="optional-calc-row" style="margin-bottom:8px;">
           <div>
             <p>${abschnittLabel}: Anfangsnummer</p>
@@ -1582,6 +1592,7 @@ function renderUsageSegments(){
 
   container.querySelectorAll("[data-usage-info-toggle]").forEach(toggle => {
     toggle.addEventListener("change", function(){
+      syncUsageSegmentsFromInputs();
       const idx = Number(this.getAttribute("data-usage-info-toggle"));
       if(!Number.isFinite(idx) || !usageSegments[idx]){
         return;
@@ -1591,6 +1602,19 @@ function renderUsageSegments(){
       if(!this.checked){
         usageSegments[idx].infoText = "";
       }
+      renderUsageSegments();
+    });
+  });
+
+  container.querySelectorAll("[data-usage-delete]").forEach(button => {
+    button.addEventListener("click", function(){
+      syncUsageSegmentsFromInputs();
+      const idx = Number(this.getAttribute("data-usage-delete"));
+      if(!Number.isFinite(idx) || idx <= 0 || idx >= usageSegments.length){
+        return;
+      }
+
+      usageSegments.splice(idx, 1);
       renderUsageSegments();
     });
   });
@@ -1685,7 +1709,7 @@ function saveUsageNumbers(){
       hasInfo: !!segment.hasInfo,
       infoText: segment.hasInfo ? sanitizeInput(segment.infoText || "", 200) : ""
     }))
-    .filter(segment => segment.startNummer !== "" || segment.endNummer !== "");
+    .filter(segment => segment.startNummer !== "" && segment.endNummer !== "");
 
   const ersterAbschnitt = gespeicherteSegmente[0] || { startNummer: "", endNummer: "" };
   const letzterAbschnitt = gespeicherteSegmente[gespeicherteSegmente.length - 1] || { startNummer: "", endNummer: "" };
