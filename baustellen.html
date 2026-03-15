@@ -763,6 +763,15 @@ label{
     <button class="back" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
   </div>
 
+  <div class="search-row" style="margin-top:10px;">
+    <select id="creatorFilterMode" onchange="onCreatorFilterChanged()">
+      <option value="all">Alle Ersteller anzeigen</option>
+      <option value="mine">Nur von mir erstellt</option>
+      <option value="person">Nach Benutzername / E-Mail filtern</option>
+    </select>
+    <input id="creatorFilterInput" type="text" placeholder="Benutzername oder E-Mail eingeben" oninput="renderAll()" maxlength="120" style="display:none;">
+  </div>
+
   <div style="margin-top:15px;">
     <button onclick="openBaustelleModal()"><i class="fa-solid fa-plus"></i> Neue Baustelle erstellen</button>
   </div>
@@ -968,6 +977,7 @@ const baustellenCollection = db.collection("baustellen");
 const materialCollection = db.collection("baustellen_material");
 const vorlagenCollection = db.collection("material_vorlagen");
 const logsCollection = db.collection("logs");
+const usersCollection = db.collection("users");
 
 const ADMIN_UID = "smnnQd4RhEQZR3uuNN0otNALUqi1";
 
@@ -987,6 +997,41 @@ let vorlagenBereichOffen = false;
 let beendeteBereichOffen = false;
 let selectedVorlageId = null;
 let isAdminUser = false;
+
+function getStoredUsername(){
+  return sanitizeInput(localStorage.getItem("lagerUsername") || "", 120);
+}
+
+function getCurrentUserDisplayName(user){
+  const username = getStoredUsername();
+  if(username){
+    return username;
+  }
+
+  return sanitizeInput(user && user.email ? user.email : "", 120);
+}
+
+function syncUsernameFromFirestore(user){
+  if(!user || !user.uid){
+    localStorage.removeItem("lagerUsername");
+    return Promise.resolve();
+  }
+
+  return usersCollection.doc(user.uid).get()
+    .then(doc => {
+      const data = doc.exists ? (doc.data() || {}) : {};
+      const username = sanitizeInput(data.username || "", 120);
+
+      if(username){
+        localStorage.setItem("lagerUsername", username);
+      }else{
+        localStorage.removeItem("lagerUsername");
+      }
+    })
+    .catch(error => {
+      console.error("Fehler beim Laden des Benutzernamens:", error);
+    });
+}
 
 function setAdminMenuVisibility(isAdmin){
   const archivButton = document.getElementById("archivMenuButton");
@@ -1395,7 +1440,9 @@ auth.onAuthStateChanged((user) => {
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
     updateAdminVisibility();
-    startListeners();
+    syncUsernameFromFirestore(user).finally(() => {
+      startListeners();
+    });
   }else{
     isAdminUser = false;
     setAdminMenuVisibility(false);
@@ -1460,6 +1507,31 @@ function loadVorlagen(forceRefresh = false){
 
 function resetSearch(){
   document.getElementById("searchInput").value = "";
+  const creatorMode = document.getElementById("creatorFilterMode");
+  const creatorInput = document.getElementById("creatorFilterInput");
+  if(creatorMode){
+    creatorMode.value = "all";
+  }
+  if(creatorInput){
+    creatorInput.value = "";
+    creatorInput.style.display = "none";
+  }
+  renderAll();
+}
+
+function onCreatorFilterChanged(){
+  const modeField = document.getElementById("creatorFilterMode");
+  const valueField = document.getElementById("creatorFilterInput");
+  const mode = modeField ? modeField.value : "all";
+
+  if(valueField){
+    const showValueField = mode === "person";
+    valueField.style.display = showValueField ? "block" : "none";
+    if(!showValueField){
+      valueField.value = "";
+    }
+  }
+
   renderAll();
 }
 
@@ -1470,6 +1542,16 @@ function resetVorlagenSearch(){
 
 function getSuchbegriff(){
   return document.getElementById("searchInput").value.trim().toLowerCase();
+}
+
+function getErstellerFilterModus(){
+  const field = document.getElementById("creatorFilterMode");
+  return field ? String(field.value || "all") : "all";
+}
+
+function getErstellerFilterSuchwert(){
+  const field = document.getElementById("creatorFilterInput");
+  return field ? field.value.trim().toLowerCase() : "";
 }
 
 function getVorlagenSuchbegriff(){
@@ -1499,6 +1581,8 @@ function baustellePasstZurSuche(baustelle){
   const name = String(baustelle.name || "").toLowerCase();
   const nummer = String(baustelle.nummer || "").toLowerCase();
   const verantwortlicher = String(baustelle.verantwortlicher || "").toLowerCase();
+  const erstelltVonName = String(baustelle.createdByUsername || "").toLowerCase();
+  const erstelltVonEmail = String(baustelle.createdByEmail || "").toLowerCase();
   const statusLabel = getStatusLabel(baustelle.status).toLowerCase();
 
   const materialien = materialVonBaustelle(baustelle.id);
@@ -1515,9 +1599,44 @@ function baustellePasstZurSuche(baustelle){
     name.includes(suchbegriff) ||
     nummer.includes(suchbegriff) ||
     verantwortlicher.includes(suchbegriff) ||
+    erstelltVonName.includes(suchbegriff) ||
+    erstelltVonEmail.includes(suchbegriff) ||
     statusLabel.includes(suchbegriff) ||
     materialPasst
   );
+}
+
+function baustellePasstZumErstellerFilter(baustelle){
+  const modus = getErstellerFilterModus();
+  if(modus === "all"){
+    return true;
+  }
+
+  const baustelleEmail = String(baustelle.createdByEmail || "").trim().toLowerCase();
+  const baustelleName = String(baustelle.createdByUsername || "").trim().toLowerCase();
+  const baustelleUid = String(baustelle.createdByUid || "").trim();
+
+  if(modus === "mine"){
+    const user = auth.currentUser;
+    const myEmail = sanitizeInput(user && user.email ? user.email : "", 120).toLowerCase();
+    const myName = getCurrentUserDisplayName(user).toLowerCase();
+    const myUid = user && user.uid ? String(user.uid) : "";
+
+    return (myEmail !== "" && baustelleEmail === myEmail)
+      || (myName !== "" && baustelleName === myName)
+      || (myUid !== "" && baustelleUid === myUid);
+  }
+
+  if(modus === "person"){
+    const filterWert = getErstellerFilterSuchwert();
+    if(filterWert === ""){
+      return true;
+    }
+
+    return baustelleEmail.includes(filterWert) || baustelleName.includes(filterWert);
+  }
+
+  return true;
 }
 
 function vorlagePasstZurSuche(vorlage){
@@ -1581,10 +1700,10 @@ function renderAll(){
   beendeteContainer.innerHTML = "";
 
   const aktive = [...alleBaustellen]
-    .filter(b => b.status === "aktiv" && baustellePasstZurSuche(b));
+    .filter(b => b.status === "aktiv" && baustellePasstZurSuche(b) && baustellePasstZumErstellerFilter(b));
 
   const beendete = [...alleBaustellen]
-    .filter(b => b.status === "rausschreiben" && baustellePasstZurSuche(b))
+    .filter(b => b.status === "rausschreiben" && baustellePasstZurSuche(b) && baustellePasstZumErstellerFilter(b))
     .sort((a, b) => getFirestoreTime(b.abgeschlossenAm) - getFirestoreTime(a.abgeschlossenAm));
 
   if(aktive.length === 0){
@@ -1867,6 +1986,7 @@ function createBaustelleCard(baustelle){
     <h3>${escapeHtml(baustelle.name || "")}</h3>
     <div class="baustelle-meta"><strong>Baustellen Nummer:</strong> ${escapeHtml(baustelle.nummer || "")}</div>
     <div class="baustelle-meta"><strong>Verantwortlicher:</strong> ${escapeHtml(baustelle.verantwortlicher || "")}</div>
+    ${baustelle.createdByUsername || baustelle.createdByEmail ? `<div class="baustelle-meta"><strong>Erstellt von:</strong> ${escapeHtml(baustelle.createdByUsername || baustelle.createdByEmail || "")}</div>` : ""}
     ${baustelle.status === "aktiv" && erstellungsText ? `<div class="baustelle-meta"><strong>Erstellt am:</strong> ${escapeHtml(erstellungsText)}</div>` : ""}
     ${abgeschlossenText ? `<div class="baustelle-meta"><strong>Abgeschlossen am:</strong> ${escapeHtml(abgeschlossenText)}</div>` : ""}
 
@@ -2060,6 +2180,9 @@ function saveBaustelle(){
       name: name,
       nummer: nummer,
       verantwortlicher: verantwortlicher,
+      createdByUid: auth.currentUser && auth.currentUser.uid ? auth.currentUser.uid : "",
+      createdByEmail: auth.currentUser && auth.currentUser.email ? sanitizeInput(auth.currentUser.email, 120) : "",
+      createdByUsername: getCurrentUserDisplayName(auth.currentUser),
       status: "aktiv",
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then((docRef) => {
