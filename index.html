@@ -934,6 +934,7 @@ input{
       <select id="statusFilter" onchange="renderFilteredTable()">
         <option value="Alle">Alle</option>
         <option value="Lager">Lager</option>
+        <option value="Reserviert">Reserviert</option>
         <option value="In Gebrauch">In Gebrauch</option>
       </select>
     </div>
@@ -1961,9 +1962,28 @@ function renderFilteredTable(){
       infos.includes(suchbegriff);
 
     const statusPasst =
-      statusFilter === "Alle" || status === statusFilter;
+      statusFilter === "Alle" ||
+      (statusFilter === "Reserviert" && status === "Lager" && !!b.reserviert) ||
+      status === statusFilter;
 
     return textPasst && statusPasst;
+  });
+
+  gefiltert.sort((a, b) => {
+    const aNummer = String(a.data().nummer || "").trim();
+    const bNummer = String(b.data().nummer || "").trim();
+
+    const aNummerWert = Number(aNummer);
+    const bNummerWert = Number(bNummer);
+
+    const aIstZahl = Number.isFinite(aNummerWert) && aNummer !== "";
+    const bIstZahl = Number.isFinite(bNummerWert) && bNummer !== "";
+
+    if(aIstZahl && bIstZahl){
+      return aNummerWert - bNummerWert;
+    }
+
+    return aNummer.localeCompare(bNummer, "de", { numeric: true, sensitivity: "base" });
   });
 
   const noResults = document.getElementById("noResults");
