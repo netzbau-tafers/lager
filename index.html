@@ -1145,7 +1145,7 @@ wie <b>Bearbeiten</b> oder <b>Löschen</b>.
         <span class="checkbox-label-text">Kabel ist auf 3 Bobinen</span>
       </label>
 
-      <input id="laenge" placeholder="Länge (m)" maxlength="40">
+      <input id="laenge" placeholder="Länge (m)" maxlength="40" inputmode="numeric" pattern="[0-9]*">
       <input id="baustelle" placeholder="Baustelle" maxlength="120">
       <input id="hersteller" placeholder="Hersteller" maxlength="120">
       <input id="infos" placeholder="Infos" maxlength="250">
@@ -2444,6 +2444,20 @@ function nummerBereinigen(wert){
   return sanitizeInput(wert, 60);
 }
 
+function enforceDigitsOnly(inputId){
+  const input = document.getElementById(inputId);
+  if(!input){
+    return;
+  }
+
+  input.addEventListener("input", event => {
+    const bereinigt = sanitizeDigitsOnly(event.target.value, 40);
+    if(event.target.value !== bereinigt){
+      event.target.value = bereinigt;
+    }
+  });
+}
+
 function buildBobineDocId(nummer){
   const normalisiert = String(nummer || "")
     .trim()
@@ -2494,7 +2508,10 @@ function markActiveMenu(){
   });
 }
 
-document.addEventListener("DOMContentLoaded", markActiveMenu);
+document.addEventListener("DOMContentLoaded", () => {
+  markActiveMenu();
+  enforceDigitsOnly("laenge");
+});
 
 function saveBobine(){
   if(isSavingBobine){
