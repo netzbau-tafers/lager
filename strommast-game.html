@@ -59,6 +59,7 @@ body{
   border-radius:var(--radius);
   box-shadow:var(--shadow);
   overflow:hidden;
+  position:relative;
 }
 
 .topbar{
@@ -318,6 +319,29 @@ canvas{
   visibility:hidden;
 }
 
+.fullscreen-btn{
+  position:absolute;
+  right:12px;
+  bottom:12px;
+  width:52px;
+  height:52px;
+  border-radius:14px;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:20;
+  font-size:22px;
+  padding:0;
+  background:linear-gradient(180deg, rgba(68,167,234,0.96), rgba(38,137,204,0.96));
+  box-shadow:0 8px 18px rgba(33,50,74,0.25);
+}
+
+.fullscreen-btn svg{
+  width:24px;
+  height:24px;
+  fill:white;
+}
+
 @media (max-width: 900px){
   body{
     padding:10px;
@@ -505,6 +529,10 @@ canvas{
   .live-ranking li{
     font-size:16px;
   }
+
+  .fullscreen-btn{
+    display:flex;
+  }
 }
 
 @media (max-width: 430px){
@@ -523,12 +551,12 @@ canvas{
 </style>
 </head>
 <body>
-  <div class="game-wrap">
+  <div class="game-wrap" id="gameWrap">
     <div class="topbar">
       <div class="topbar-left">
         <h1>Strommast-Spiel</h1>
         <button type="button" onclick="window.location.href='home.html'">Zurück</button>
-        <button type="button" onclick="startGame()">Neu starten</button>
+        <button type="button" onclick="startGame()">Start</button>
       </div>
 
       <div class="topbar-right score">
@@ -543,8 +571,7 @@ canvas{
       <div id="startOverlay" class="overlay">
         <div class="overlay-box">
           <h2>Start</h2>
-          <p>Drücke Leertaste, Pfeil hoch, Mausklick oder tippe aufs Feld.</p>
-          <p>Dein Charakter springt über Strommasten, Windräder, Solarpanels und Bäume.</p>
+          <p>Wähle ein Charakter und drücke Start.</p>
           <button type="button" onclick="startGame()">Spiel starten</button>
 
           <div class="ranking" id="startRankingBox">
@@ -557,7 +584,6 @@ canvas{
       <div id="gameOverOverlay" class="overlay hidden">
         <div class="overlay-box">
           <h2>Game Over</h2>
-          <p>Du bist in einen Strommast gelaufen.</p>
           <p>Punkte: <span id="finalScore">0</span></p>
 
           <input
@@ -570,13 +596,6 @@ canvas{
 
           <div class="overlay-actions">
             <button type="button" onclick="saveScore()">Punkte speichern</button>
-            <button type="button" onclick="startGame()">Nochmal spielen</button>
-            <button type="button" onclick="goBackToWork()">Ich geh wider arbeiten</button>
-          </div>
-
-          <div class="ranking" id="gameOverRankingBox">
-            <h3>Bestenliste</h3>
-            <ol id="gameOverRankingList"></ol>
           </div>
         </div>
       </div>
@@ -598,11 +617,19 @@ canvas{
       <h3>Live-Bestenliste (Top 10)</h3>
       <ol id="liveRankingList"></ol>
     </div>
+
+    <button id="fullscreenBtn" class="fullscreen-btn" type="button" aria-label="Vollbild">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M7 3H3v4h2V5h2V3zm14 0h-4v2h2v2h2V3zM5 17H3v4h4v-2H5v-2zm16 0h-2v2h-2v2h4v-4z"/>
+      </svg>
+    </button>
   </div>
 
 <script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+const gameWrap = document.getElementById("gameWrap");
+const fullscreenBtn = document.getElementById("fullscreenBtn");
 
 const scoreEl = document.getElementById("score");
 const bestScoreEl = document.getElementById("bestScore");
@@ -611,7 +638,6 @@ const startOverlay = document.getElementById("startOverlay");
 const gameOverOverlay = document.getElementById("gameOverOverlay");
 const playerNameInput = document.getElementById("playerName");
 const startRankingList = document.getElementById("startRankingList");
-const gameOverRankingList = document.getElementById("gameOverRankingList");
 const liveRankingList = document.getElementById("liveRankingList");
 const characterButtons = document.querySelectorAll(".character-button");
 const characterHint = document.getElementById("characterHint");
@@ -686,7 +712,6 @@ function renderRanking(){
     : "<li>Noch keine Einträge</li>";
 
   startRankingList.innerHTML = html;
-  gameOverRankingList.innerHTML = html;
   liveRankingList.innerHTML = html;
 }
 
@@ -728,6 +753,7 @@ async function saveScore(){
 
   gameOverSaved = true;
   renderRanking();
+  showStartScreen();
 }
 
 async function lockLandscapeOnMobile(){
@@ -744,6 +770,27 @@ async function lockLandscapeOnMobile(){
     await orientation.lock("landscape");
   }catch(error){
     console.warn("Landscape-Lock nicht möglich:", error);
+  }
+}
+
+async function enterFullscreen(){
+  const element = gameWrap;
+
+  if(document.fullscreenElement){
+    return;
+  }
+
+  const request =
+    element.requestFullscreen ||
+    element.webkitRequestFullscreen ||
+    element.msRequestFullscreen;
+
+  if(typeof request === "function"){
+    try{
+      await request.call(element);
+    }catch(error){
+      console.warn("Fullscreen nicht möglich:", error);
+    }
   }
 }
 
@@ -812,13 +859,38 @@ function resetGameState(){
   gameOverOverlay.classList.add("hidden");
 }
 
-function startGame(){
+function showStartScreen(){
+  cancelAnimationFrame(animationId);
+  gameRunning = false;
+  obstacles = [];
+  signposts = [];
+  spawnTimer = 0;
+  signTimer = 0;
+  player.y = groundY;
+  player.vy = 0;
+  player.grounded = true;
+  player.jumpHoldTime = 0;
+  player.jumpHolding = false;
+  player.jumpsUsed = 0;
+  player.coyoteTime = 0;
+  score = 0;
+  scoreEl.textContent = "0";
+  finalScoreEl.textContent = "0";
+  playerNameInput.value = "";
+  startOverlay.classList.remove("hidden");
+  gameOverOverlay.classList.add("hidden");
+  draw();
+}
+
+async function startGame(){
   if(!selectedCharacter){
     characterHint.classList.remove("hidden-message");
     return;
   }
 
-  lockLandscapeOnMobile();
+  characterHint.classList.add("hidden-message");
+  await lockLandscapeOnMobile();
+  await enterFullscreen();
   cancelAnimationFrame(animationId);
   resetGameState();
   loop();
@@ -853,7 +925,6 @@ function endGame(){
     bestScoreEl.textContent = bestScore;
   }
 
-  renderRanking();
   gameOverOverlay.classList.remove("hidden");
 }
 
@@ -1401,7 +1472,6 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
 
     if(!gameRunning && startOverlay.classList.contains("hidden") && !gameOverOverlay.classList.contains("hidden")){
-      startGame();
       return;
     }
 
@@ -1453,6 +1523,11 @@ canvas.addEventListener("touchend", (e) => {
   e.preventDefault();
   releaseJump();
 }, { passive:false });
+
+fullscreenBtn.addEventListener("click", async () => {
+  await enterFullscreen();
+  await lockLandscapeOnMobile();
+});
 
 subscribeRanking();
 renderRanking();
