@@ -669,7 +669,7 @@ let spawnTimer = 0;
 let gameOverSaved = false;
 let selectedCharacter = null;
 
-const obstacleTypes = ["mast", "wind", "solar", "tree"];
+const obstacleTypes = ["mast", "wind", "solar", "tree", "house"];
 
 function loadRanking(){
   try{
@@ -1115,6 +1115,9 @@ function createObstacle(){
   }else if(type === "tree"){
     width = 34;
     height = 58;
+  }else if(type === "house"){
+    width = 54;
+    height = 64;
   }
 
   obstacles.push({
@@ -1715,6 +1718,30 @@ function drawTree(ob){
   ctx.fill();
 }
 
+function drawHouse(ob){
+  const x = ob.x;
+  const y = ob.y;
+  const w = ob.width;
+
+  ctx.fillStyle = "#d9c3a8";
+  ctx.fillRect(x + 4, y + 24, w - 8, ob.height - 24);
+
+  ctx.fillStyle = "#b4614b";
+  ctx.beginPath();
+  ctx.moveTo(x, y + 24);
+  ctx.lineTo(x + w / 2, y + 4);
+  ctx.lineTo(x + w, y + 24);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#8b5a35";
+  ctx.fillRect(x + w / 2 - 6, y + ob.height - 20, 12, 20);
+
+  ctx.fillStyle = "#b7d9ef";
+  ctx.fillRect(x + 11, y + 31, 10, 9);
+  ctx.fillRect(x + w - 21, y + 31, 10, 9);
+}
+
 function drawAnimatedSky(){
   for(let i = 0; i < 6; i++){
     const offset = 0;
@@ -1835,6 +1862,12 @@ function drawObstacle(ob){
     drawTree(ob);
     return;
   }
+
+  if(ob.type === "house"){
+    drawHouse(ob);
+    return;
+  }
+
 
   drawMast(ob);
 }
