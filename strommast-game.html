@@ -721,13 +721,53 @@ function getCharacterMeta(character){
   return characterMap[character] || fallback;
 }
 
+function normalizeCreatedAt(value){
+  if(!value){
+    return null;
+  }
+
+  if(typeof value.toDate === "function"){
+    return value.toDate().getTime();
+  }
+
+  if(value instanceof Date){
+    return value.getTime();
+  }
+
+  if(typeof value === "number"){
+    return Number.isFinite(value) ? value : null;
+  }
+
+  if(typeof value === "string"){
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+
+  return null;
+}
+
+function formatDateOnly(value){
+  const timestamp = normalizeCreatedAt(value);
+  if(!timestamp){
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("de-CH", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  }).format(new Date(timestamp));
+}
+
 function renderRanking(){
   const ranking = cloudRanking.length ? cloudRanking : loadRanking();
 
   const html = ranking.length
     ? ranking.map((entry) => {
       const character = getCharacterMeta(entry.character);
-      return `<li><strong>${escapeHtml(entry.name)}</strong> - ${entry.score} Punkte ${character.icon}</li>`;
+      const dateLabel = formatDateOnly(entry.createdAt);
+      const rankingDate = dateLabel ? ` · ${dateLabel}` : "";
+      return `<li><strong>${escapeHtml(entry.name)}</strong> - ${entry.score} Punkte ${character.icon}${rankingDate}</li>`;
     }).join("")
     : "<li>Noch keine Einträge</li>";
 
@@ -748,7 +788,8 @@ async function fetchRankingFromFirestore(){
         id: doc.id,
         name: typeof data.name === "string" ? data.name : "Unbekannt",
         score: Number(data.score) || 0,
-        character: getCharacterMeta(data.character).key
+        character: getCharacterMeta(data.character).key,
+        createdAt: normalizeCreatedAt(data.createdAt)
       };
     });
 
@@ -771,7 +812,8 @@ async function fetchRankingFromFirestore(){
           id: doc.id,
           name: typeof data.name === "string" ? data.name : "Unbekannt",
           score: Number(data.score) || 0,
-          character: getCharacterMeta(data.character).key
+          character: getCharacterMeta(data.character).key,
+          createdAt: normalizeCreatedAt(data.createdAt)
         };
       });
 
@@ -846,7 +888,8 @@ async function saveScore(){
     rankingAfterSave.push({
       name: newEntry.name,
       score: newEntry.score,
-      character: newEntry.character
+      character: newEntry.character,
+      createdAt: Date.now()
     });
     rankingAfterSave.sort((a, b) => b.score - a.score);
     rankingAfterSave = rankingAfterSave.slice(0, RANKING_LIMIT);
@@ -862,7 +905,8 @@ async function saveScore(){
   cloudRanking = rankingAfterSave.map(entry => ({
     name: entry.name,
     score: entry.score,
-    character: getCharacterMeta(entry.character).key
+    character: getCharacterMeta(entry.character).key,
+    createdAt: normalizeCreatedAt(entry.createdAt)
   }));
 
   gameOverSaved = true;
