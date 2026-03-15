@@ -755,6 +755,72 @@ input{
   gap:10px;
 }
 
+.segment-info-box{
+  margin:0 0 8px 0;
+  padding:10px;
+  border:1px solid #d9dde3;
+  border-radius:8px;
+  background:#fdfefe;
+}
+
+.segment-info-box p{
+  margin:0 0 6px 0;
+}
+
+.segment-info-box p:last-child{
+  margin-bottom:0;
+}
+
+.return-summary-details{
+  margin:0 0 10px 0;
+}
+
+.return-summary-details summary{
+  cursor:pointer;
+  list-style:none;
+  font-weight:bold;
+  background:#f8f9fb;
+  border:1px solid #d7d7d7;
+  border-radius:8px;
+  padding:10px 12px;
+}
+
+.return-summary-details summary::-webkit-details-marker{
+  display:none;
+}
+
+.return-summary-list{
+  border:1px solid #d7d7d7;
+  border-top:none;
+  border-bottom-left-radius:8px;
+  border-bottom-right-radius:8px;
+  background:white;
+  padding:10px 12px;
+}
+
+.return-summary-item{
+  padding:8px 0;
+  border-bottom:1px dashed #e0e4ea;
+}
+
+.return-summary-item:last-child{
+  border-bottom:none;
+  padding-bottom:0;
+}
+
+.return-summary-item p{
+  margin:0 0 4px 0;
+}
+
+.return-summary-item p:last-child{
+  margin-bottom:0;
+}
+
+.return-summary-empty{
+  margin:0;
+  color:#6b7280;
+}
+
 .calc-result{
   margin:0 0 10px 0;
   font-size:14px;
@@ -1097,6 +1163,10 @@ wie <b>Bearbeiten</b> oder <b>Löschen</b>.
   <div id="returnModal" class="modal">
     <div class="modal-content">
       <h3>Bobine zurück ins Lager</h3>
+      <details id="returnUsageSummary" class="return-summary-details hidden">
+        <summary>Eingezogene Kabelabschnitte anzeigen</summary>
+        <div id="returnUsageSummaryList" class="return-summary-list"></div>
+      </details>
       <div id="differenceResult" class="calc-result hidden"></div>
 
       <p>Länge aktualisieren</p>
@@ -1388,15 +1458,69 @@ function buildUsageSegmentsFromBobine(b){
   if(hasSegmentsArray){
     return b.usageSegments.map(segment => ({
       startNummer: sanitizeInput(segment && segment.startNummer ? segment.startNummer : "", 40),
-      endNummer: sanitizeInput(segment && segment.endNummer ? segment.endNummer : "", 40)
+      endNummer: sanitizeInput(segment && segment.endNummer ? segment.endNummer : "", 40),
+      hasInfo: !!(segment && segment.hasInfo),
+      infoText: sanitizeInput(segment && segment.infoText ? segment.infoText : "", 200)
     }));
   }
 
   if(hasLegacyValues){
-    return [{ startNummer: legacyStart, endNummer: legacyEnd }];
+    return [{ startNummer: legacyStart, endNummer: legacyEnd, hasInfo: false, infoText: "" }];
   }
 
-  return [{ startNummer: "", endNummer: "" }];
+  return [{ startNummer: "", endNummer: "", hasInfo: false, infoText: "" }];
+}
+
+function getSegmentDifference(segment){
+  const calc = getDifferenceCalculation(segment.startNummer || "", segment.endNummer || "", 0);
+  if(!calc.isComplete || calc.hasError){
+    return null;
+  }
+  return calc.differenz;
+}
+
+function renderReturnUsageSummary(segments){
+  const details = document.getElementById("returnUsageSummary");
+  const list = document.getElementById("returnUsageSummaryList");
+
+  if(!details || !list){
+    return;
+  }
+
+  const usableSegments = Array.isArray(segments)
+    ? segments.filter(segment => sanitizeInput(segment.startNummer || "", 40) !== "" || sanitizeInput(segment.endNummer || "", 40) !== "")
+    : [];
+
+  if(!usableSegments.length){
+    details.classList.add("hidden");
+    details.open = false;
+    list.innerHTML = "";
+    return;
+  }
+
+  const totalDifferenz = usableSegments.reduce((sum, segment) => {
+    const differenz = getSegmentDifference(segment);
+    return sum + (differenz === null ? 0 : differenz);
+  }, 0);
+
+  list.innerHTML = usableSegments.map((segment, index) => {
+    const differenz = getSegmentDifference(segment);
+    const infoText = sanitizeInput(segment.infoText || "", 200);
+    return `
+      <div class="return-summary-item">
+        <p><strong>Kabelabschnitt ${index + 1}</strong></p>
+        <p>Anfang/Ende: ${escapeHtml(segment.startNummer || "–")} → ${escapeHtml(segment.endNummer || "–")}</p>
+        <p>Eingezogene Länge: ${differenz === null ? "Nicht berechenbar" : (escapeHtml(formatNumberForDisplay(differenz)) + " m")}</p>
+        ${infoText ? `<p>Info: ${escapeHtml(infoText)}</p>` : ""}
+      </div>
+    `;
+  }).join("") + `
+    <div class="return-summary-item">
+      <p><strong>Total berechnet:</strong> ${escapeHtml(formatNumberForDisplay(totalDifferenz))} m</p>
+    </div>
+  `;
+
+  details.classList.remove("hidden");
 }
 
 function renderUsageSegments(){
@@ -1408,29 +1532,60 @@ function renderUsageSegments(){
   container.innerHTML = usageSegments.map((segment, index) => {
     const abschnittLabel = "Kabelabschnitt " + (index + 1);
     return `
-      <div class="optional-calc-row" style="margin-bottom:8px;">
-        <div>
-          <p>${abschnittLabel}: Anfangsnummer</p>
-          <input data-usage-start="${index}" placeholder="z. B. 1000" maxlength="40" value="${escapeHtml(segment.startNummer || "")}">
+      <div class="segment-info-box">
+        <div class="optional-calc-row" style="margin-bottom:8px;">
+          <div>
+            <p>${abschnittLabel}: Anfangsnummer</p>
+            <input data-usage-start="${index}" placeholder="z. B. 1000" maxlength="40" value="${escapeHtml(segment.startNummer || "")}">
+          </div>
+          <div>
+            <p>${abschnittLabel}: Endnummer</p>
+            <input data-usage-end="${index}" placeholder="z. B. 1075" maxlength="40" value="${escapeHtml(segment.endNummer || "")}">
+          </div>
         </div>
-        <div>
-          <p>${abschnittLabel}: Endnummer</p>
-          <input data-usage-end="${index}" placeholder="z. B. 1075" maxlength="40" value="${escapeHtml(segment.endNummer || "")}">
+        <label class="checkbox-row" style="margin-bottom:8px;">
+          <input type="checkbox" data-usage-info-toggle="${index}" ${segment.hasInfo ? "checked" : ""}>
+          <span class="checkbox-label-text">Info zu diesem Kabelabschnitt erfassen</span>
+        </label>
+        <div data-usage-info-wrap="${index}" class="${segment.hasInfo ? "" : "hidden"}">
+          <p>${abschnittLabel}: Zusatzinfo</p>
+          <input data-usage-info-text="${index}" placeholder="z. B. CDBT 900120 → Haus Nr. 40" maxlength="200" value="${escapeHtml(segment.infoText || "")}">
         </div>
       </div>
     `;
   }).join("");
+
+  container.querySelectorAll("[data-usage-info-toggle]").forEach(toggle => {
+    toggle.addEventListener("change", function(){
+      const idx = Number(this.getAttribute("data-usage-info-toggle"));
+      if(!Number.isFinite(idx) || !usageSegments[idx]){
+        return;
+      }
+
+      usageSegments[idx].hasInfo = this.checked;
+      if(!this.checked){
+        usageSegments[idx].infoText = "";
+      }
+      renderUsageSegments();
+    });
+  });
 }
 
 function syncUsageSegmentsFromInputs(){
   const startInputs = document.querySelectorAll("#usageSegmentsContainer [data-usage-start]");
   const endInputs = document.querySelectorAll("#usageSegmentsContainer [data-usage-end]");
+  const infoToggles = document.querySelectorAll("#usageSegmentsContainer [data-usage-info-toggle]");
+  const infoInputs = document.querySelectorAll("#usageSegmentsContainer [data-usage-info-text]");
 
   usageSegments = usageSegments.map((segment, index) => {
     const startInput = startInputs[index];
     const endInput = endInputs[index];
     const startNummer = sanitizeInput(startInput ? startInput.value : segment.startNummer, 40);
     const endNummer = sanitizeInput(endInput ? endInput.value : segment.endNummer, 40);
+    const infoToggle = infoToggles[index];
+    const infoInput = infoInputs[index];
+    const hasInfo = !!(infoToggle ? infoToggle.checked : segment.hasInfo);
+    const infoText = hasInfo ? sanitizeInput(infoInput ? infoInput.value : segment.infoText, 200) : "";
 
     if(startInput){
       startInput.value = startNummer;
@@ -1440,9 +1595,15 @@ function syncUsageSegmentsFromInputs(){
       endInput.value = endNummer;
     }
 
+    if(infoInput){
+      infoInput.value = infoText;
+    }
+
     return {
       startNummer: startNummer,
-      endNummer: endNummer
+      endNummer: endNummer,
+      hasInfo: hasInfo,
+      infoText: infoText
     };
   });
 }
@@ -1451,13 +1612,15 @@ function addUsageSegmentFromLast(){
   syncUsageSegmentsFromInputs();
 
   if(!usageSegments.length){
-    usageSegments.push({ startNummer: "", endNummer: "" });
+    usageSegments.push({ startNummer: "", endNummer: "", hasInfo: false, infoText: "" });
   }
 
   const lastSegment = usageSegments[usageSegments.length - 1] || { endNummer: "" };
   usageSegments.push({
     startNummer: sanitizeInput(lastSegment.endNummer || "", 40),
-    endNummer: ""
+    endNummer: "",
+    hasInfo: false,
+    infoText: ""
   });
 
   renderUsageSegments();
@@ -1493,7 +1656,9 @@ function saveUsageNumbers(){
   const gespeicherteSegmente = usageSegments
     .map(segment => ({
       startNummer: sanitizeInput(segment.startNummer || "", 40),
-      endNummer: sanitizeInput(segment.endNummer || "", 40)
+      endNummer: sanitizeInput(segment.endNummer || "", 40),
+      hasInfo: !!segment.hasInfo,
+      infoText: segment.hasInfo ? sanitizeInput(segment.infoText || "", 200) : ""
     }))
     .filter(segment => segment.startNummer !== "" || segment.endNummer !== "");
 
@@ -1521,7 +1686,8 @@ function saveUsageNumbers(){
         "Nummer: " + (b.nummer || "") +
         " | Abschnitte: " + gespeicherteSegmente.length +
         " | Anfangsnummer: " + ersterAbschnitt.startNummer +
-        " | Endnummer: " + letzterAbschnitt.endNummer
+        " | Endnummer: " + letzterAbschnitt.endNummer +
+        " | Abschnitte mit Info: " + gespeicherteSegmente.filter(segment => segment.hasInfo && segment.infoText).length
       );
 
       selectedUsageId = null;
@@ -2418,7 +2584,8 @@ function toggleStatus(id){
         inGebrauchVonEmail: inGebrauchVonEmail,
         inGebrauchVonUid: inGebrauchVonUid,
         startNummer: "",
-        endNummer: ""
+        endNummer: "",
+        usageSegments: []
       }).then(() => {
         writeLog(
           "Kabellager",
@@ -2444,6 +2611,7 @@ function toggleStatus(id){
       document.getElementById("differenceResult").classList.add("hidden");
       document.getElementById("differenceResult").classList.remove("error");
       updateReturnDifference(b.startNummer || "", b.endNummer || "");
+      renderReturnUsageSummary(buildUsageSegmentsFromBobine(b));
       document.getElementById("returnModal").style.display = "block";
       focusFirstInput("returnModal");
     }
@@ -2472,7 +2640,22 @@ function confirmReturn(){
 
     const b = doc.data();
 
-    const calc = getDifferenceCalculation(b.startNummer || "", b.endNummer || "", parsePositiveNumber(b.laenge));
+    const usageForReturn = buildUsageSegmentsFromBobine(b);
+    const segmentDifferenz = usageForReturn.reduce((sum, segment) => {
+      const differenz = getSegmentDifference(segment);
+      return sum + (differenz === null ? 0 : differenz);
+    }, 0);
+    const calc = {
+      isComplete: segmentDifferenz > 0,
+      hasError: parsePositiveNumber(b.laenge) === null || parsePositiveNumber(b.laenge) - segmentDifferenz < 0,
+      neueLaenge: (parsePositiveNumber(b.laenge) || 0) - segmentDifferenz,
+      message: "Abschnittssumme: " + formatNumberForDisplay(parsePositiveNumber(b.laenge) || 0) + " m - " + formatNumberForDisplay(segmentDifferenz) + " m = " + formatNumberForDisplay((parsePositiveNumber(b.laenge) || 0) - segmentDifferenz) + " m"
+    };
+
+    if(calc.hasError){
+      calc.message = "Die berechnete Länge wäre kleiner als 0 m oder die Länge ist ungültig. Bitte Eingaben prüfen.";
+    }
+
     const berechneteLaenge = (!calc.hasError && calc.isComplete)
       ? formatNumberForDisplay(calc.neueLaenge)
       : returnLaenge;
@@ -2485,7 +2668,8 @@ function confirmReturn(){
       inGebrauchVonEmail: "",
       inGebrauchVonUid: "",
       startNummer: "",
-      endNummer: ""
+      endNummer: "",
+      usageSegments: []
     }).then(() => {
       writeLog(
         "Kabellager",
@@ -2559,6 +2743,7 @@ function closeModal(){
   document.getElementById("modal").style.display = "none";
   document.getElementById("returnModal").style.display = "none";
   document.getElementById("usageNumbersModal").style.display = "none";
+  renderReturnUsageSummary([]);
   selectedId = null;
   selectedOriginalLaenge = null;
   selectedUsageId = null;
