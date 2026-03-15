@@ -1709,10 +1709,16 @@ function saveUsageNumbers(){
       hasInfo: !!segment.hasInfo,
       infoText: segment.hasInfo ? sanitizeInput(segment.infoText || "", 200) : ""
     }))
-    .filter(segment => segment.startNummer !== "" && segment.endNummer !== "");
+    .filter(segment =>
+      segment.startNummer !== "" ||
+      segment.endNummer !== "" ||
+      (segment.hasInfo && segment.infoText !== "")
+    );
 
   const ersterAbschnitt = gespeicherteSegmente[0] || { startNummer: "", endNummer: "" };
   const letzterAbschnitt = gespeicherteSegmente[gespeicherteSegmente.length - 1] || { startNummer: "", endNummer: "" };
+  const startNummerGesamt = ersterAbschnitt.startNummer || ersterAbschnitt.endNummer || "";
+  const endNummerGesamt = letzterAbschnitt.endNummer || letzterAbschnitt.startNummer || "";
 
   bobinenCollection.doc(selectedUsageId).get().then(doc => {
     if(!doc.exists){
@@ -1723,8 +1729,8 @@ function saveUsageNumbers(){
     const b = doc.data();
 
     return bobinenCollection.doc(selectedUsageId).update({
-      startNummer: ersterAbschnitt.startNummer,
-      endNummer: letzterAbschnitt.endNummer,
+      startNummer: startNummerGesamt,
+      endNummer: endNummerGesamt,
       usageSegments: gespeicherteSegmente
     }).then(() => {
       writeLog(
@@ -1734,8 +1740,8 @@ function saveUsageNumbers(){
         selectedUsageId,
         "Nummer: " + (b.nummer || "") +
         " | Abschnitte: " + gespeicherteSegmente.length +
-        " | Anfangsnummer: " + ersterAbschnitt.startNummer +
-        " | Endnummer: " + letzterAbschnitt.endNummer +
+        " | Anfangsnummer: " + startNummerGesamt +
+        " | Endnummer: " + endNummerGesamt +
         " | Abschnitte mit Info: " + gespeicherteSegmente.filter(segment => segment.hasInfo && segment.infoText).length
       );
 
