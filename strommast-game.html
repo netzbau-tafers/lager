@@ -669,7 +669,7 @@ let spawnTimer = 0;
 let gameOverSaved = false;
 let selectedCharacter = null;
 
-const obstacleTypes = ["mast", "wind", "solar", "tree"];
+const obstacleTypes = ["mast", "wind", "solar", "tree", "house", "nuclear"];
 
 function loadRanking(){
   try{
@@ -1115,6 +1115,12 @@ function createObstacle(){
   }else if(type === "tree"){
     width = 34;
     height = 58;
+  }else if(type === "house"){
+    width = 54;
+    height = 64;
+  }else if(type === "nuclear"){
+    width = 66;
+    height = 104;
   }
 
   obstacles.push({
@@ -1715,6 +1721,60 @@ function drawTree(ob){
   ctx.fill();
 }
 
+function drawHouse(ob){
+  const x = ob.x;
+  const y = ob.y;
+  const w = ob.width;
+
+  ctx.fillStyle = "#d9c3a8";
+  ctx.fillRect(x + 4, y + 24, w - 8, ob.height - 24);
+
+  ctx.fillStyle = "#b4614b";
+  ctx.beginPath();
+  ctx.moveTo(x, y + 24);
+  ctx.lineTo(x + w / 2, y + 4);
+  ctx.lineTo(x + w, y + 24);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#8b5a35";
+  ctx.fillRect(x + w / 2 - 6, y + ob.height - 20, 12, 20);
+
+  ctx.fillStyle = "#b7d9ef";
+  ctx.fillRect(x + 11, y + 31, 10, 9);
+  ctx.fillRect(x + w - 21, y + 31, 10, 9);
+}
+
+function drawNuclearPlant(ob){
+  const x = ob.x;
+  const y = ob.y;
+  const w = ob.width;
+  const towerWidth = 18;
+  const towerHeight = ob.height - 16;
+
+  ctx.fillStyle = "#a6adb4";
+  roundedRect(x + 6, y + 8, towerWidth, towerHeight, 9);
+  ctx.fill();
+  roundedRect(x + w - towerWidth - 6, y + 12, towerWidth, towerHeight - 4, 9);
+  ctx.fill();
+
+  ctx.fillStyle = "rgba(220,228,236,0.8)";
+  ctx.beginPath();
+  ctx.arc(x + 15, y + 2, 9, 0, Math.PI * 2);
+  ctx.arc(x + 9, y + 9, 7, 0, Math.PI * 2);
+  ctx.arc(x + 21, y + 10, 7, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(x + w - 15, y + 6, 9, 0, Math.PI * 2);
+  ctx.arc(x + w - 21, y + 13, 7, 0, Math.PI * 2);
+  ctx.arc(x + w - 9, y + 14, 7, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#7f8a95";
+  ctx.fillRect(x + 24, y + ob.height - 25, w - 48, 25);
+}
+
 function drawAnimatedSky(){
   for(let i = 0; i < 6; i++){
     const offset = 0;
@@ -1833,6 +1893,16 @@ function drawObstacle(ob){
 
   if(ob.type === "tree"){
     drawTree(ob);
+    return;
+  }
+
+  if(ob.type === "house"){
+    drawHouse(ob);
+    return;
+  }
+
+  if(ob.type === "nuclear"){
+    drawNuclearPlant(ob);
     return;
   }
 
