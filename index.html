@@ -2036,7 +2036,16 @@ function renderFilteredTable(){
   renderDesktopTable(gefiltert);
   renderMobileCards(gefiltert);
 
-  document.getElementById("resultInfo").innerText = "Angezeigte Bobinen: " + gefiltert.length;
+  const ausgeschriebenAnzahl = gefiltert.filter(docItem => String(docItem.data().status || "") === "In Gebrauch").length;
+  const reserviertAnzahl = gefiltert.filter(docItem => {
+    const bobine = docItem.data();
+    return String(bobine.status || "") === "Lager" && !!bobine.reserviert;
+  }).length;
+
+  document.getElementById("resultInfo").innerText =
+    "Angezeigte Bobinen: " + gefiltert.length +
+    " | Ausgeschrieben: " + ausgeschriebenAnzahl +
+    " | Reserviert: " + reserviertAnzahl;
 }
 
 function resetSearch(){
