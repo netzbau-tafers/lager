@@ -1187,6 +1187,7 @@ let selectedOriginalLaenge = null;
 let selectedUsageId = null;
 let alleBobinen = [];
 let unsubscribeBobinen = null;
+let isSavingBobine = false;
 let openDetailsRows = new Set();
 
 function getStoredUsername(){
@@ -2109,6 +2110,16 @@ function nummerBereinigen(wert){
   return sanitizeInput(wert, 60);
 }
 
+function buildBobineDocId(nummer){
+  const normalisiert = String(nummer || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9\-_]/g, "");
+
+  return "bobine-" + normalisiert;
+}
+
 function nummerSchonVorhanden(nummer, aktuelleId = null){
   return bobinenCollection.where("nummer", "==", nummer).get().then(snapshot => {
     let vorhanden = false;
@@ -2152,6 +2163,10 @@ function markActiveMenu(){
 document.addEventListener("DOMContentLoaded", markActiveMenu);
 
 function saveBobine(){
+  if(isSavingBobine){
+    return;
+  }
+
   const nummerWert = nummerBereinigen(document.getElementById("nummer").value);
   const typ = getSelectedTyp();
   const istDreiBobinen = document.getElementById("istDreiBobinen").checked;
@@ -2197,6 +2212,8 @@ function saveBobine(){
       return;
     }
 
+    isSavingBobine = true;
+
     if(editId){
       bobinenCollection.doc(editId).get().then(doc => {
         if(!doc.exists){
@@ -2229,17 +2246,29 @@ function saveBobine(){
       }).catch(error => {
         console.error("Fehler beim Bearbeiten:", error);
         alert("Fehler beim Speichern.");
+      }).finally(() => {
+        isSavingBobine = false;
       });
     }else{
       data.status = "Lager";
       data.hinzugefuegtAm = firebase.firestore.FieldValue.serverTimestamp();
 
-      bobinenCollection.add(data).then((docRef) => {
+      const targetDocRef = bobinenCollection.doc(buildBobineDocId(nummerWert));
+
+      db.runTransaction(transaction => {
+        return transaction.get(targetDocRef).then(existingDoc => {
+          if(existingDoc.exists){
+            throw new Error("DUPLICATE_NUMMER");
+          }
+
+          transaction.set(targetDocRef, data);
+        });
+      }).then(() => {
         writeLog(
           "Kabellager",
           "Bobine erstellt",
           "bobine",
-          docRef.id,
+          targetDocRef.id,
           "Nummer: " + nummerWert +
           " | Typ: " + typ +
           " | 3 Bobinen: " + (istDreiBobinen ? "Ja" : "Nein") +
@@ -2251,13 +2280,21 @@ function saveBobine(){
         );
         closeModal();
       }).catch(error => {
+        if(error && error.message === "DUPLICATE_NUMMER"){
+          alert("Diese Bobinen-Nummer ist bereits im Lager vorhanden.");
+          return;
+        }
+
         console.error("Fehler beim Hinzufügen:", error);
         alert("Fehler beim Hinzufügen.");
+      }).finally(() => {
+        isSavingBobine = false;
       });
     }
   }).catch(error => {
     console.error("Fehler bei Nummernprüfung:", error);
     alert("Fehler bei der Prüfung der Nummer.");
+    isSavingBobine = false;
   });
 }
 
