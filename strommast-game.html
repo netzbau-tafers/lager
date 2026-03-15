@@ -585,6 +585,7 @@ canvas{
         <button type="button" class="character-button" data-character="frog">🐸 Santivastler</button>
         <button type="button" class="character-button" data-character="donkey">🫏 Düdinger</button>
         <button type="button" class="character-button" data-character="unimog">🚛 Unimog</button>
+        <button type="button" class="character-button" data-character="sprinter">🚐 Käta</button>
       </div>
 
       <p id="characterHint" class="character-hint hidden-message">Bitte zuerst einen Charakter auswählen.</p>
@@ -700,11 +701,27 @@ function getScoreUsername(){
   return "Unbekannt";
 }
 
+function getCharacterMeta(character){
+  const fallback = { key: "worker", icon: "👷" };
+  const characterMap = {
+    worker: { key: "worker", icon: "👷" },
+    frog: { key: "frog", icon: "🐸" },
+    donkey: { key: "donkey", icon: "🫏" },
+    unimog: { key: "unimog", icon: "🚛" },
+    sprinter: { key: "sprinter", icon: "🚐" }
+  };
+
+  return characterMap[character] || fallback;
+}
+
 function renderRanking(){
   const ranking = cloudRanking.length ? cloudRanking : loadRanking();
 
   const html = ranking.length
-    ? ranking.map(entry => `<li><strong>${escapeHtml(entry.name)}</strong> - ${entry.score} Punkte</li>`).join("")
+    ? ranking.map((entry) => {
+      const character = getCharacterMeta(entry.character);
+      return `<li><strong>${escapeHtml(entry.name)}</strong> - ${entry.score} Punkte ${character.icon}</li>`;
+    }).join("")
     : "<li>Noch keine Einträge</li>";
 
   liveRankingList.innerHTML = html;
@@ -723,7 +740,8 @@ async function fetchRankingFromFirestore(){
       return {
         id: doc.id,
         name: typeof data.name === "string" ? data.name : "Unbekannt",
-        score: Number(data.score) || 0
+        score: Number(data.score) || 0,
+        character: getCharacterMeta(data.character).key
       };
     });
 
@@ -745,7 +763,8 @@ async function fetchRankingFromFirestore(){
         return {
           id: doc.id,
           name: typeof data.name === "string" ? data.name : "Unbekannt",
-          score: Number(data.score) || 0
+          score: Number(data.score) || 0,
+          character: getCharacterMeta(data.character).key
         };
       });
 
@@ -796,6 +815,7 @@ async function saveScore(){
   const newEntry = {
     name: name.slice(0, 20),
     score: Math.floor(score),
+    character: getCharacterMeta(selectedCharacter).key,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
 
@@ -818,7 +838,8 @@ async function saveScore(){
   }else{
     rankingAfterSave.push({
       name: newEntry.name,
-      score: newEntry.score
+      score: newEntry.score,
+      character: newEntry.character
     });
     rankingAfterSave.sort((a, b) => b.score - a.score);
     rankingAfterSave = rankingAfterSave.slice(0, RANKING_LIMIT);
@@ -833,7 +854,8 @@ async function saveScore(){
 
   cloudRanking = rankingAfterSave.map(entry => ({
     name: entry.name,
-    score: entry.score
+    score: entry.score,
+    character: getCharacterMeta(entry.character).key
   }));
 
   gameOverSaved = true;
@@ -917,7 +939,8 @@ function subscribeRanking(){
         return {
           id: doc.id,
           name: typeof data.name === "string" ? data.name : "Unbekannt",
-          score: Number(data.score) || 0
+          score: Number(data.score) || 0,
+          character: getCharacterMeta(data.character).key
         };
       });
 
@@ -940,7 +963,8 @@ function subscribeRanking(){
           return {
             id: doc.id,
             name: typeof data.name === "string" ? data.name : "Unbekannt",
-            score: Number(data.score) || 0
+            score: Number(data.score) || 0,
+            character: getCharacterMeta(data.character).key
           };
         });
 
@@ -988,6 +1012,7 @@ function resetGameState(){
   saveStatusEl.textContent = "";
   startOverlay.classList.add("hidden");
   gameOverOverlay.classList.add("hidden");
+  setCharacterSelectionLocked(true);
 }
 
 function showStartScreen(){
@@ -1008,6 +1033,7 @@ function showStartScreen(){
   saveStatusEl.textContent = "";
   startOverlay.classList.remove("hidden");
   gameOverOverlay.classList.add("hidden");
+  setCharacterSelectionLocked(false);
   draw();
 }
 
@@ -1053,6 +1079,13 @@ function endGame(){
   }
 
   gameOverOverlay.classList.remove("hidden");
+  setCharacterSelectionLocked(false);
+}
+
+function setCharacterSelectionLocked(locked){
+  characterButtons.forEach((button) => {
+    button.disabled = locked;
+  });
 }
 
 function createObstacle(){
@@ -1150,6 +1183,13 @@ function update(){
         y: player.y + 14,
         width: 42,
         height: 30
+      }
+    : selectedCharacter === "sprinter"
+    ? {
+        x: player.x + 6,
+        y: player.y + 16,
+        width: 41,
+        height: 28
       }
     : {
         x: player.x + 8,
@@ -1370,6 +1410,40 @@ function drawUnimog(){
   ctx.restore();
 }
 
+function drawSprinter(){
+  const x = player.x;
+  const y = player.y + 8;
+  const running = gameRunning && player.grounded;
+  const wheelTurn = frameCount * 0.22;
+  const bodyBob = running ? Math.sin(frameCount * 0.35) * 0.9 : 0;
+
+  ctx.save();
+  ctx.translate(0, bodyBob);
+
+  ctx.fillStyle = "#e8edf3";
+  roundedRect(x + 6, y + 14, 40, 20, 5);
+  ctx.fill();
+
+  ctx.fillStyle = "#d5dce5";
+  roundedRect(x + 28, y + 8, 16, 16, 4);
+  ctx.fill();
+
+  ctx.fillStyle = "#a8d3f0";
+  roundedRect(x + 30, y + 10, 12, 8, 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#f6c949";
+  ctx.fillRect(x + 7, y + 24, 4, 4);
+
+  ctx.fillStyle = "#95a0ad";
+  ctx.fillRect(x + 44, y + 19, 3, 3);
+
+  drawWheel(x + 17, y + 36, 6.5, wheelTurn);
+  drawWheel(x + 37, y + 36, 6.5, wheelTurn);
+
+  ctx.restore();
+}
+
 function drawWheel(cx, cy, r, angle){
   ctx.fillStyle = "#223243";
   ctx.beginPath();
@@ -1410,6 +1484,11 @@ function drawPlayer(){
 
   if(selectedCharacter === "unimog"){
     drawUnimog();
+    return;
+  }
+
+  if(selectedCharacter === "sprinter"){
+    drawSprinter();
     return;
   }
 
@@ -1756,6 +1835,10 @@ draw();
 
 characterButtons.forEach((button) => {
   button.addEventListener("click", () => {
+    if(gameRunning){
+      return;
+    }
+
     selectedCharacter = button.dataset.character;
     characterHint.classList.add("hidden-message");
 
