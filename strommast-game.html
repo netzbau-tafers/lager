@@ -8,6 +8,7 @@
 
 <link rel="icon" type="image/png" sizes="48x48" href="favicon.png">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
@@ -554,17 +555,11 @@ canvas{
         <div class="overlay-box">
           <h2>Game Over</h2>
           <p>Punkte: <span id="finalScore">0</span></p>
-
-          <input
-            id="playerName"
-            class="name-input"
-            type="text"
-            maxlength="20"
-            placeholder="Dein Name"
-          >
+          <p id="saveStatus"></p>
 
           <div class="overlay-actions">
             <button type="button" onclick="saveScore()">Punkte speichern</button>
+            <button type="button" onclick="startGame()">Neu spielen</button>
           </div>
         </div>
       </div>
@@ -613,7 +608,7 @@ const bestScoreEl = document.getElementById("bestScore");
 const finalScoreEl = document.getElementById("finalScore");
 const startOverlay = document.getElementById("startOverlay");
 const gameOverOverlay = document.getElementById("gameOverOverlay");
-const playerNameInput = document.getElementById("playerName");
+const saveStatusEl = document.getElementById("saveStatus");
 const liveRankingList = document.getElementById("liveRankingList");
 const characterButtons = document.querySelectorAll(".character-button");
 const characterHint = document.getElementById("characterHint");
@@ -641,6 +636,7 @@ const firebaseApp = firebase.apps.length
   ? firebase.app()
   : firebase.initializeApp(firebaseConfig);
 const db = firebaseApp.firestore();
+const auth = firebaseApp.auth();
 
 const RANKING_KEY = "strommastRanking";
 const SCORE_COLLECTION = "strommastRanking";
@@ -680,6 +676,28 @@ function loadRanking(){
 
 function saveRankingLocal(ranking){
   localStorage.setItem(RANKING_KEY, JSON.stringify(ranking.slice(0, RANKING_LIMIT)));
+}
+
+function sanitizeInput(value, maxLength = 120){
+  return String(value || "").replace(/\s+/g, " ").trim().slice(0, maxLength);
+}
+
+function getStoredUsername(){
+  return sanitizeInput(localStorage.getItem("lagerUsername") || "", 120);
+}
+
+function getScoreUsername(){
+  const storedUsername = getStoredUsername();
+  if(storedUsername){
+    return storedUsername;
+  }
+
+  const user = auth.currentUser;
+  if(user && user.email){
+    return sanitizeInput(user.email, 120);
+  }
+
+  return "Unbekannt";
 }
 
 function renderRanking(){
@@ -773,8 +791,7 @@ async function saveScore(){
     return;
   }
 
-  const rawName = playerNameInput.value.trim();
-  const name = rawName || "Unbekannt";
+  const name = getScoreUsername();
 
   const newEntry = {
     name: name.slice(0, 20),
@@ -820,8 +837,8 @@ async function saveScore(){
   }));
 
   gameOverSaved = true;
+  saveStatusEl.textContent = `Punkte wurden für ${name} gespeichert.`;
   renderRanking();
-  showStartScreen();
 }
 
 async function lockLandscapeOnMobile(){
@@ -968,7 +985,7 @@ function resetGameState(){
 
   scoreEl.textContent = "0";
   finalScoreEl.textContent = "0";
-  playerNameInput.value = "";
+  saveStatusEl.textContent = "";
   startOverlay.classList.add("hidden");
   gameOverOverlay.classList.add("hidden");
 }
@@ -988,7 +1005,7 @@ function showStartScreen(){
   score = 0;
   scoreEl.textContent = "0";
   finalScoreEl.textContent = "0";
-  playerNameInput.value = "";
+  saveStatusEl.textContent = "";
   startOverlay.classList.remove("hidden");
   gameOverOverlay.classList.add("hidden");
   draw();
@@ -1726,6 +1743,13 @@ document.addEventListener("msfullscreenchange", updateFullscreenButtons);
 
 subscribeRanking();
 fetchRankingFromFirestore();
+
+auth.onAuthStateChanged((user) => {
+  if(!user){
+    alert("Bitte zuerst auf der Startseite einloggen.");
+    window.location.href = "home.html";
+  }
+});
 renderRanking();
 updateFullscreenButtons();
 draw();

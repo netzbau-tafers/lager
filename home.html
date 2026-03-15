@@ -193,6 +193,19 @@ button:hover{
   text-decoration:none;
 }
 
+.hero-image-wrap{
+  position:relative;
+}
+
+.hero-game-link{
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  height:33.34%;
+  z-index:5;
+}
+
 .hero-image{
   width:100%;
   height:auto;
@@ -283,7 +296,10 @@ button:hover{
       </a>
     </div>
 
-    <img src="ChatGPT Image 10. März 2026, 21_46_18.png" alt="Startseitenbild" class="hero-image">
+    <div class="hero-image-wrap">
+      <img src="ChatGPT Image 10. März 2026, 21_46_18.png" alt="Startseitenbild" class="hero-image">
+      <a href="strommast-game.html" class="hero-game-link" aria-label="Mast Runner öffnen"></a>
+    </div>
   </section>
   </div>
 
