@@ -587,7 +587,7 @@ canvas{
         <button type="button" class="character-button" data-character="unimog">🚛 Unimog</button>
         <button type="button" class="character-button" data-character="sprinter">🚐 Käta</button>
         <button type="button" class="character-button" data-character="chef">👑 Chef</button>
-        <button type="button" class="character-button" data-character="muskelprotz">💪 Muskelprotz</button>
+        <button type="button" class="character-button" data-character="buezer">💪 Büezer</button>
       </div>
 
       <p id="characterHint" class="character-hint hidden-message">Bitte zuerst einen Charakter auswählen.</p>
@@ -669,7 +669,7 @@ let spawnTimer = 0;
 let gameOverSaved = false;
 let selectedCharacter = null;
 
-const obstacleTypes = ["mast", "wind", "solar", "tree", "house", "nuclear"];
+const obstacleTypes = ["mast", "wind", "solar", "tree", "house"];
 
 function loadRanking(){
   try{
@@ -1118,9 +1118,6 @@ function createObstacle(){
   }else if(type === "house"){
     width = 54;
     height = 64;
-  }else if(type === "nuclear"){
-    width = 66;
-    height = 104;
   }
 
   obstacles.push({
@@ -1898,11 +1895,6 @@ function drawObstacle(ob){
 
   if(ob.type === "house"){
     drawHouse(ob);
-    return;
-  }
-
-  if(ob.type === "nuclear"){
-    drawNuclearPlant(ob);
     return;
   }
 
