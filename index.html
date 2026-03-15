@@ -1115,15 +1115,11 @@ wie <b>Bearbeiten</b> oder <b>Löschen</b>.
       <h3>Anfangs-/Endnummer erfassen</h3>
 
       <div class="optional-calc-box">
-        <div class="optional-calc-row">
-          <div>
-            <p>Anfangsnummer</p>
-            <input id="usageStartNummer" placeholder="z. B. 1000" maxlength="40">
-          </div>
-          <div>
-            <p>Endnummer</p>
-            <input id="usageEndNummer" placeholder="z. B. 1075" maxlength="40">
-          </div>
+        <div id="usageSegmentsContainer"></div>
+        <div style="margin-top:8px;">
+          <button type="button" class="details-toggle-btn" onclick="addUsageSegmentFromLast()">
+            <i class="fa-solid fa-plus"></i> Weiterer Kabelabschnitt
+          </button>
         </div>
       </div>
 
@@ -1186,6 +1182,7 @@ let editId = null;
 let selectedId = null;
 let selectedOriginalLaenge = null;
 let selectedUsageId = null;
+let usageSegments = [];
 let alleBobinen = [];
 let unsubscribeBobinen = null;
 let isSavingBobine = false;
@@ -1382,6 +1379,90 @@ function updateReturnDifference(startValue, endValue){
   }
 }
 
+function buildUsageSegmentsFromBobine(b){
+  const legacyStart = sanitizeInput(b.startNummer || "", 40);
+  const legacyEnd = sanitizeInput(b.endNummer || "", 40);
+  const hasLegacyValues = legacyStart !== "" || legacyEnd !== "";
+  const hasSegmentsArray = Array.isArray(b.usageSegments) && b.usageSegments.length > 0;
+
+  if(hasSegmentsArray){
+    return b.usageSegments.map(segment => ({
+      startNummer: sanitizeInput(segment && segment.startNummer ? segment.startNummer : "", 40),
+      endNummer: sanitizeInput(segment && segment.endNummer ? segment.endNummer : "", 40)
+    }));
+  }
+
+  if(hasLegacyValues){
+    return [{ startNummer: legacyStart, endNummer: legacyEnd }];
+  }
+
+  return [{ startNummer: "", endNummer: "" }];
+}
+
+function renderUsageSegments(){
+  const container = document.getElementById("usageSegmentsContainer");
+  if(!container){
+    return;
+  }
+
+  container.innerHTML = usageSegments.map((segment, index) => {
+    const abschnittLabel = "Kabelabschnitt " + (index + 1);
+    return `
+      <div class="optional-calc-row" style="margin-bottom:8px;">
+        <div>
+          <p>${abschnittLabel}: Anfangsnummer</p>
+          <input data-usage-start="${index}" placeholder="z. B. 1000" maxlength="40" value="${escapeHtml(segment.startNummer || "")}">
+        </div>
+        <div>
+          <p>${abschnittLabel}: Endnummer</p>
+          <input data-usage-end="${index}" placeholder="z. B. 1075" maxlength="40" value="${escapeHtml(segment.endNummer || "")}">
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function syncUsageSegmentsFromInputs(){
+  const startInputs = document.querySelectorAll("#usageSegmentsContainer [data-usage-start]");
+  const endInputs = document.querySelectorAll("#usageSegmentsContainer [data-usage-end]");
+
+  usageSegments = usageSegments.map((segment, index) => {
+    const startInput = startInputs[index];
+    const endInput = endInputs[index];
+    const startNummer = sanitizeInput(startInput ? startInput.value : segment.startNummer, 40);
+    const endNummer = sanitizeInput(endInput ? endInput.value : segment.endNummer, 40);
+
+    if(startInput){
+      startInput.value = startNummer;
+    }
+
+    if(endInput){
+      endInput.value = endNummer;
+    }
+
+    return {
+      startNummer: startNummer,
+      endNummer: endNummer
+    };
+  });
+}
+
+function addUsageSegmentFromLast(){
+  syncUsageSegmentsFromInputs();
+
+  if(!usageSegments.length){
+    usageSegments.push({ startNummer: "", endNummer: "" });
+  }
+
+  const lastSegment = usageSegments[usageSegments.length - 1] || { endNummer: "" };
+  usageSegments.push({
+    startNummer: sanitizeInput(lastSegment.endNummer || "", 40),
+    endNummer: ""
+  });
+
+  renderUsageSegments();
+}
+
 function openUsageNumbersModal(id){
   selectedUsageId = id;
 
@@ -1392,8 +1473,8 @@ function openUsageNumbersModal(id){
     }
 
     const b = doc.data();
-    document.getElementById("usageStartNummer").value = sanitizeInput(b.startNummer || "", 40);
-    document.getElementById("usageEndNummer").value = sanitizeInput(b.endNummer || "", 40);
+    usageSegments = buildUsageSegmentsFromBobine(b);
+    renderUsageSegments();
     document.getElementById("usageNumbersModal").style.display = "block";
     focusFirstInput("usageNumbersModal");
   }).catch(error => {
@@ -1407,11 +1488,17 @@ function saveUsageNumbers(){
     return;
   }
 
-  const startNummer = sanitizeInput(document.getElementById("usageStartNummer").value, 40);
-  const endNummer = sanitizeInput(document.getElementById("usageEndNummer").value, 40);
+  syncUsageSegmentsFromInputs();
 
-  document.getElementById("usageStartNummer").value = startNummer;
-  document.getElementById("usageEndNummer").value = endNummer;
+  const gespeicherteSegmente = usageSegments
+    .map(segment => ({
+      startNummer: sanitizeInput(segment.startNummer || "", 40),
+      endNummer: sanitizeInput(segment.endNummer || "", 40)
+    }))
+    .filter(segment => segment.startNummer !== "" || segment.endNummer !== "");
+
+  const ersterAbschnitt = gespeicherteSegmente[0] || { startNummer: "", endNummer: "" };
+  const letzterAbschnitt = gespeicherteSegmente[gespeicherteSegmente.length - 1] || { startNummer: "", endNummer: "" };
 
   bobinenCollection.doc(selectedUsageId).get().then(doc => {
     if(!doc.exists){
@@ -1422,8 +1509,9 @@ function saveUsageNumbers(){
     const b = doc.data();
 
     return bobinenCollection.doc(selectedUsageId).update({
-      startNummer: startNummer,
-      endNummer: endNummer
+      startNummer: ersterAbschnitt.startNummer,
+      endNummer: letzterAbschnitt.endNummer,
+      usageSegments: gespeicherteSegmente
     }).then(() => {
       writeLog(
         "Kabellager",
@@ -1431,11 +1519,13 @@ function saveUsageNumbers(){
         "bobine",
         selectedUsageId,
         "Nummer: " + (b.nummer || "") +
-        " | Anfangsnummer: " + startNummer +
-        " | Endnummer: " + endNummer
+        " | Abschnitte: " + gespeicherteSegmente.length +
+        " | Anfangsnummer: " + ersterAbschnitt.startNummer +
+        " | Endnummer: " + letzterAbschnitt.endNummer
       );
 
       selectedUsageId = null;
+      usageSegments = [];
       closeModal();
     });
   }).catch(error => {
@@ -2472,6 +2562,7 @@ function closeModal(){
   selectedId = null;
   selectedOriginalLaenge = null;
   selectedUsageId = null;
+  usageSegments = [];
 }
 
 function focusFirstInput(modalId){
