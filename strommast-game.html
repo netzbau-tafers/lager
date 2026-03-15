@@ -678,6 +678,10 @@ function loadRanking(){
   }
 }
 
+function saveRankingLocal(ranking){
+  localStorage.setItem(RANKING_KEY, JSON.stringify(ranking.slice(0, RANKING_LIMIT)));
+}
+
 function renderRanking(){
   const ranking = cloudRanking.length ? cloudRanking : loadRanking();
 
@@ -686,6 +690,82 @@ function renderRanking(){
     : "<li>Noch keine Einträge</li>";
 
   liveRankingList.innerHTML = html;
+}
+
+async function fetchRankingFromFirestore(){
+  try{
+    const snapshot = await db.collection(SCORE_COLLECTION)
+      .orderBy("score", "desc")
+      .orderBy("createdAt", "asc")
+      .limit(RANKING_LIMIT)
+      .get();
+
+    const ranking = snapshot.docs.map((doc) => {
+      const data = doc.data() || {};
+      return {
+        id: doc.id,
+        name: typeof data.name === "string" ? data.name : "Unbekannt",
+        score: Number(data.score) || 0
+      };
+    });
+
+    cloudRanking = ranking;
+    saveRankingLocal(ranking);
+    renderRanking();
+    return ranking;
+  }catch(error){
+    console.warn("Ranking mit createdAt konnte nicht geladen werden:", error);
+
+    try{
+      const fallbackSnapshot = await db.collection(SCORE_COLLECTION)
+        .orderBy("score", "desc")
+        .limit(RANKING_LIMIT)
+        .get();
+
+      const fallbackRanking = fallbackSnapshot.docs.map((doc) => {
+        const data = doc.data() || {};
+        return {
+          id: doc.id,
+          name: typeof data.name === "string" ? data.name : "Unbekannt",
+          score: Number(data.score) || 0
+        };
+      });
+
+      cloudRanking = fallbackRanking;
+      saveRankingLocal(fallbackRanking);
+      renderRanking();
+      return fallbackRanking;
+    }catch(fallbackError){
+      console.error("Firestore Ranking-Update fehlgeschlagen:", fallbackError);
+      renderRanking();
+      return loadRanking();
+    }
+  }
+}
+
+async function cleanupRanking(){
+  try{
+    const snapshot = await db.collection(SCORE_COLLECTION)
+      .orderBy("score", "desc")
+      .orderBy("createdAt", "asc")
+      .get();
+
+    const docsToDelete = snapshot.docs.slice(RANKING_LIMIT);
+    await Promise.all(docsToDelete.map((doc) => doc.ref.delete()));
+  }catch(error){
+    console.warn("Ranking-Cleanup mit createdAt fehlgeschlagen:", error);
+
+    try{
+      const fallbackSnapshot = await db.collection(SCORE_COLLECTION)
+        .orderBy("score", "desc")
+        .get();
+
+      const docsToDelete = fallbackSnapshot.docs.slice(RANKING_LIMIT);
+      await Promise.all(docsToDelete.map((doc) => doc.ref.delete()));
+    }catch(fallbackError){
+      console.error("Ranking-Cleanup fehlgeschlagen:", fallbackError);
+    }
+  }
 }
 
 async function saveScore(){
@@ -698,56 +778,46 @@ async function saveScore(){
 
   const newEntry = {
     name: name.slice(0, 20),
-    score: Math.floor(score)
+    score: Math.floor(score),
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
 
-  let rankingForCheck = cloudRanking.length ? [...cloudRanking] : loadRanking();
+  let saveWorked = false;
+
   try{
-    const snapshot = await db.collection(SCORE_COLLECTION)
-      .orderBy("score", "desc")
-      .orderBy("createdAt", "asc")
-      .limit(RANKING_LIMIT)
-      .get();
-
-    rankingForCheck = snapshot.docs.map((doc) => {
-      const data = doc.data() || {};
-      return {
-        name: typeof data.name === "string" ? data.name : "Unbekannt",
-        score: Number(data.score) || 0
-      };
-    });
-
-    const lowestTopScore = rankingForCheck[rankingForCheck.length - 1]?.score ?? -Infinity;
-    const qualifiesForTop20 = rankingForCheck.length < RANKING_LIMIT || newEntry.score >= lowestTopScore;
-
-    if(qualifiesForTop20){
-      await db.collection(SCORE_COLLECTION).add({
-        ...newEntry,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      const cleanupSnapshot = await db.collection(SCORE_COLLECTION)
-        .orderBy("score", "desc")
-        .orderBy("createdAt", "asc")
-        .get();
-
-      const docsToDelete = cleanupSnapshot.docs.slice(RANKING_LIMIT);
-      await Promise.all(docsToDelete.map((doc) => doc.ref.delete()));
-    }
+    await db.collection(SCORE_COLLECTION).add(newEntry);
+    saveWorked = true;
+    console.log("Score erfolgreich in Firestore gespeichert.");
   }catch(error){
     console.error("Firestore speichern fehlgeschlagen:", error);
   }
 
-  rankingForCheck.push(newEntry);
-  rankingForCheck.sort((a, b) => b.score - a.score);
-  const localTop20 = rankingForCheck.slice(0, RANKING_LIMIT);
-  localStorage.setItem(RANKING_KEY, JSON.stringify(localTop20));
+  let rankingAfterSave = loadRanking();
+
+  if(saveWorked){
+    rankingAfterSave = await fetchRankingFromFirestore();
+    await cleanupRanking();
+    rankingAfterSave = await fetchRankingFromFirestore();
+  }else{
+    rankingAfterSave.push({
+      name: newEntry.name,
+      score: newEntry.score
+    });
+    rankingAfterSave.sort((a, b) => b.score - a.score);
+    rankingAfterSave = rankingAfterSave.slice(0, RANKING_LIMIT);
+    saveRankingLocal(rankingAfterSave);
+  }
 
   if(score > bestScore){
     bestScore = Math.floor(score);
     localStorage.setItem("strommastBestScore", bestScore);
     bestScoreEl.textContent = bestScore;
   }
+
+  cloudRanking = rankingAfterSave.map(entry => ({
+    name: entry.name,
+    score: entry.score
+  }));
 
   gameOverSaved = true;
   renderRanking();
@@ -828,19 +898,44 @@ function subscribeRanking(){
       cloudRanking = snapshot.docs.map((doc) => {
         const data = doc.data() || {};
         return {
+          id: doc.id,
           name: typeof data.name === "string" ? data.name : "Unbekannt",
           score: Number(data.score) || 0
         };
       });
 
       if(cloudRanking.length){
-        localStorage.setItem(RANKING_KEY, JSON.stringify(cloudRanking));
+        saveRankingLocal(cloudRanking);
       }
 
       renderRanking();
-    }, (error) => {
-      console.error("Firestore Ranking-Update fehlgeschlagen:", error);
-      renderRanking();
+    }, async (error) => {
+      console.warn("Live-Ranking mit createdAt fehlgeschlagen:", error);
+
+      try{
+        const fallbackSnapshot = await db.collection(SCORE_COLLECTION)
+          .orderBy("score", "desc")
+          .limit(RANKING_LIMIT)
+          .get();
+
+        cloudRanking = fallbackSnapshot.docs.map((doc) => {
+          const data = doc.data() || {};
+          return {
+            id: doc.id,
+            name: typeof data.name === "string" ? data.name : "Unbekannt",
+            score: Number(data.score) || 0
+          };
+        });
+
+        if(cloudRanking.length){
+          saveRankingLocal(cloudRanking);
+        }
+
+        renderRanking();
+      }catch(fallbackError){
+        console.error("Fallback-Ranking ebenfalls fehlgeschlagen:", fallbackError);
+        renderRanking();
+      }
     });
 }
 
@@ -1630,6 +1725,7 @@ document.addEventListener("webkitfullscreenchange", updateFullscreenButtons);
 document.addEventListener("msfullscreenchange", updateFullscreenButtons);
 
 subscribeRanking();
+fetchRankingFromFirestore();
 renderRanking();
 updateFullscreenButtons();
 draw();
