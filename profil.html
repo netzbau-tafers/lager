@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profil</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <style>
+    body{font-family:Arial,sans-serif;background:#f5f5f5;margin:0;color:#222}
+    .header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+    .menu-wrap{position:relative}
+    .menu-button{background:#2e7d32;color:#fff;border:none;border-radius:8px;padding:10px 12px;cursor:pointer}
+    .dropdown-menu{position:absolute;right:0;top:46px;background:#fff;border:1px solid #ddd;border-radius:10px;min-width:220px;display:none;z-index:5;box-shadow:0 6px 20px rgba(0,0,0,.15)}
+    .dropdown-menu.open{display:block}
+    .dropdown-menu button{width:100%;text-align:left;padding:10px 12px;border:none;background:#fff;cursor:pointer}
+    .dropdown-menu button:hover{background:#f2f2f2}
+    .card{max-width:620px;margin:24px auto;background:#fff;padding:20px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+    input{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;margin:8px 0 12px}
+    button{background:#2e7d32;color:#fff;border:none;border-radius:8px;padding:10px 14px;cursor:pointer}
+    .muted{color:#666;font-size:14px}
+    .logout-safe{background:#b3261e}
+    .info{font-size:14px;margin-top:10px}
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:24px;">Profil</h1>
+    <div class="menu-wrap">
+      <button class="menu-button" onclick="toggleMenu(event)" title="Menü öffnen"><i class="fa-solid fa-bars"></i></button>
+      <div id="dropdownMenu" class="dropdown-menu">
+        <button onclick="goToHome()"><i class="fa-solid fa-house"></i> Startseite</button>
+        <button onclick="goToKabellager()"><i class="fa-solid fa-warehouse"></i> Kabellager</button>
+        <button onclick="goToBaustellen()"><i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial</button>
+        <button onclick="closeMenu()"><i class="fa-solid fa-user"></i> Profil</button>
+        <button class="logout-safe" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <section class="card">
+    <label for="usernameInput"><strong>Benutzername</strong></label>
+    <input id="usernameInput" type="text" maxlength="120" placeholder="z. B. Max Muster">
+    <button onclick="saveUsername()"><i class="fa-solid fa-floppy-disk"></i> Benutzername speichern</button>
+    <p class="muted">Wenn kein Benutzername gesetzt ist, wird weiterhin die E-Mail angezeigt.</p>
+
+    <hr style="margin:18px 0; border:none; border-top:1px solid #eee;">
+
+    <button onclick="resetPassword()"><i class="fa-solid fa-key"></i> Passwort zurücksetzen</button>
+    <p id="profileInfo" class="info"></p>
+  </section>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",
+      authDomain: "netzbau-tafers.firebaseapp.com",
+      projectId: "netzbau-tafers",
+      storageBucket: "netzbau-tafers.appspot.com",
+      messagingSenderId: "389541837675",
+      appId: "1:389541837675:web:db580ce67c57a9a16dea2e",
+      measurementId: "G-B5MJGD3108"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const usersCollection = db.collection("users");
+
+    function sanitizeInput(value, maxLength = 120){
+      return String(value || "")
+        .replace(/[<>]/g, "")
+        .replace(/[\u0000-\u001F\u007F]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, maxLength);
+    }
+
+    function toggleMenu(event){
+      event.stopPropagation();
+      document.getElementById("dropdownMenu").classList.toggle("open");
+    }
+
+    function closeMenu(){
+      document.getElementById("dropdownMenu").classList.remove("open");
+    }
+
+    function goToHome(){ closeMenu(); window.location.href = "home.html"; }
+    function goToKabellager(){ closeMenu(); window.location.href = "index.html"; }
+    function goToBaustellen(){ closeMenu(); window.location.href = "baustellen.html"; }
+
+    function logout(){
+      closeMenu();
+      if(!confirm("Wirklich ausloggen?")) return;
+      auth.signOut().then(() => {
+        localStorage.removeItem("lagerUsername");
+        window.location.href = "home.html";
+      });
+    }
+
+    function setInfo(message, isError = false){
+      const el = document.getElementById("profileInfo");
+      el.textContent = message;
+      el.style.color = isError ? "#b3261e" : "#1b5e20";
+    }
+
+    function saveUsername(){
+      const user = auth.currentUser;
+      if(!user){
+        setInfo("Nicht eingeloggt.", true);
+        return;
+      }
+
+      const username = sanitizeInput(document.getElementById("usernameInput").value, 120);
+
+      usersCollection.doc(user.uid).set({
+        username: username,
+        email: user.email || "",
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true })
+        .then(() => {
+          if(username){
+            localStorage.setItem("lagerUsername", username);
+          }else{
+            localStorage.removeItem("lagerUsername");
+          }
+          setInfo("Profil gespeichert.");
+        })
+        .catch((error) => {
+          console.error("Profil speichern fehlgeschlagen:", error);
+          setInfo("Profil konnte nicht gespeichert werden.", true);
+        });
+    }
+
+    function resetPassword(){
+      const user = auth.currentUser;
+      const email = user && user.email ? user.email : "";
+      if(!email){
+        setInfo("Keine E-Mail verfügbar.", true);
+        return;
+      }
+
+      auth.sendPasswordResetEmail(email)
+        .then(() => setInfo(`E-Mail zum Zurücksetzen wurde an ${email} gesendet.`))
+        .catch((error) => {
+          console.error("Passwort zurücksetzen Fehler:", error);
+          setInfo("Zurücksetzen fehlgeschlagen.", true);
+        });
+    }
+
+    auth.onAuthStateChanged((user) => {
+      if(!user){
+        window.location.href = "home.html";
+        return;
+      }
+
+      usersCollection.doc(user.uid).get().then((doc) => {
+        const data = doc.exists ? (doc.data() || {}) : {};
+        document.getElementById("usernameInput").value = sanitizeInput(data.username || "", 120);
+      });
+    });
+
+    document.addEventListener("click", (event) => {
+      const menu = document.getElementById("dropdownMenu");
+      const wrap = document.querySelector(".menu-wrap");
+      if(menu.classList.contains("open") && !wrap.contains(event.target)){
+        closeMenu();
+      }
+    });
+  </script>
+</body>
+</html>

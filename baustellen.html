@@ -715,8 +715,8 @@ label{
     <i class="fa-solid fa-clipboard-list"></i> Logs
   </button>
 
-  <button onclick="resetPassword()">
-    <i class="fa-solid fa-key"></i> Passwort zurücksetzen
+  <button onclick="goToProfile()">
+    <i class="fa-solid fa-user"></i> Profil
   </button>
 
   <button class="logout-safe" onclick="logout()">
@@ -1132,6 +1132,11 @@ function goToLogs(){
   window.location.href = "logs.html";
 }
 
+
+function goToProfile(){
+  closeMenu();
+  window.location.href = "profil.html";
+}
 function closeAllCardMenus(){
   document.querySelectorAll(".card-dropdown").forEach(menu => {
     menu.classList.remove("open");

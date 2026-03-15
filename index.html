@@ -904,8 +904,8 @@ input{
           <i class="fa-solid fa-clipboard-list"></i> Logs
         </button>
 
-        <button onclick="resetPassword()">
-          <i class="fa-solid fa-key"></i> Passwort zurücksetzen
+        <button onclick="goToProfile()">
+          <i class="fa-solid fa-user"></i> Profil
         </button>
         <button class="logout-safe" onclick="logout()">
           <i class="fa-solid fa-right-from-bracket"></i> Logout
@@ -1099,6 +1099,7 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 const bobinenCollection = db.collection("bobinen");
 const logsCollection = db.collection("logs");
+const usersCollection = db.collection("users");
 const ADMIN_UID = "smnnQd4RhEQZR3uuNN0otNALUqi1";
 
 const PREDEFINED_KABELTYPEN = [
@@ -1136,6 +1137,40 @@ let alleBobinen = [];
 let unsubscribeBobinen = null;
 let openDetailsRows = new Set();
 
+function getStoredUsername(){
+  return sanitizeInput(localStorage.getItem("lagerUsername") || "", 120);
+}
+
+function getCurrentUserDisplayName(user){
+  const username = getStoredUsername();
+  if(username){
+    return username;
+  }
+  return sanitizeInput(user && user.email ? user.email : "", 120);
+}
+
+function syncUsernameFromFirestore(user){
+  if(!user || !user.uid){
+    localStorage.removeItem("lagerUsername");
+    return Promise.resolve();
+  }
+
+  return usersCollection.doc(user.uid).get()
+    .then(doc => {
+      const data = doc.exists ? (doc.data() || {}) : {};
+      const username = sanitizeInput(data.username || "", 120);
+
+      if(username){
+        localStorage.setItem("lagerUsername", username);
+      }else{
+        localStorage.removeItem("lagerUsername");
+      }
+    })
+    .catch(error => {
+      console.error("Fehler beim Laden des Benutzernamens:", error);
+    });
+}
+
 function setAdminMenuVisibility(isAdminUser){
   const archivButton = document.getElementById("archivMenuButton");
   const logsButton = document.getElementById("logsMenuButton");
@@ -1157,6 +1192,7 @@ function writeLog(bereich, aktion, objektTyp, objektId, details){
     aktion: aktion,
     objektTyp: objektTyp,
     objektId: objektId || "",
+    benutzerName: getCurrentUserDisplayName(user),
     benutzerEmail: user && user.email ? user.email : "",
     benutzerUid: user && user.uid ? user.uid : "",
     details: details || "",
@@ -1471,6 +1507,11 @@ function goToLogs(){
   window.location.href = "logs.html";
 }
 
+
+function goToProfile(){
+  closeMenu();
+  window.location.href = "profil.html";
+}
 function closeAllRowMenus(){
   document.querySelectorAll(".row-dropdown").forEach(menu => {
     menu.classList.remove("open");
@@ -1653,6 +1694,7 @@ function stopListeners(){
 
 auth.onAuthStateChanged((user) => {
   if(user){
+    syncUsernameFromFirestore(user);
     setAdminMenuVisibility(user.uid === ADMIN_UID);
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
@@ -1675,7 +1717,7 @@ function renderDesktopTable(data){
     const b = docItem.data();
     const hinzugefuegtAm = formatDatum(b.hinzugefuegtAm);
     const isInUse = b.status === "In Gebrauch";
-    const inGebrauchVon = b.inGebrauchVonEmail || "Unbekannt";
+    const inGebrauchVon = b.inGebrauchVonName || b.inGebrauchVonEmail || "Unbekannt";
     const isDetailOpen = openDetailsRows.has(docItem.id);
     const bobinenBadge = getBobinenBadgeHtml(!!b.istDreiBobinen);
 
@@ -1776,7 +1818,7 @@ function renderMobileCards(data){
     const b = docItem.data();
     const hinzugefuegtAm = formatDatum(b.hinzugefuegtAm);
     const isInUse = b.status === "In Gebrauch";
-    const inGebrauchVon = b.inGebrauchVonEmail || "Unbekannt";
+    const inGebrauchVon = b.inGebrauchVonName || b.inGebrauchVonEmail || "Unbekannt";
     const isDetailOpen = openDetailsRows.has(docItem.id);
 
     const statusButtonText = b.status === "Lager" ? "In Gebrauch" : "Zurück ins Lager";
@@ -2149,11 +2191,13 @@ function toggleStatus(id){
     const b = doc.data();
     const currentUser = auth.currentUser;
     const inGebrauchVonEmail = sanitizeInput(currentUser && currentUser.email ? currentUser.email : "", 120);
+    const inGebrauchVonName = getCurrentUserDisplayName(currentUser);
     const inGebrauchVonUid = sanitizeInput(currentUser && currentUser.uid ? currentUser.uid : "", 120);
 
     if(b.status === "Lager"){
       return bobinenCollection.doc(id).update({
         status: "In Gebrauch",
+        inGebrauchVonName: inGebrauchVonName,
         inGebrauchVonEmail: inGebrauchVonEmail,
         inGebrauchVonUid: inGebrauchVonUid,
         startNummer: "",
@@ -2168,7 +2212,7 @@ function toggleStatus(id){
           " | Typ: " + (b.typ || "") +
           " | 3 Bobinen: " + (b.istDreiBobinen ? "Ja" : "Nein") +
           " | Länge: " + (b.laenge || "") +
-          " | In Gebrauch von: " + inGebrauchVonEmail +
+          " | In Gebrauch von: " + inGebrauchVonName +
           " | Baustelle: " + (b.baustelle || "") +
           " | Hersteller: " + (b.hersteller || "") +
           " | Infos: " + (b.infos || "")
@@ -2220,6 +2264,7 @@ function confirmReturn(){
       laenge: berechneteLaenge,
       baustelle: returnBaustelle,
       status: "Lager",
+      inGebrauchVonName: "",
       inGebrauchVonEmail: "",
       inGebrauchVonUid: "",
       startNummer: "",

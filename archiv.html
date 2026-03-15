@@ -408,8 +408,8 @@ input{
     <i class="fa-solid fa-clipboard-list"></i> Logs
   </button>
 
-  <button onclick="resetPassword()">
-    <i class="fa-solid fa-key"></i> Passwort zurücksetzen
+  <button onclick="goToProfile()">
+    <i class="fa-solid fa-user"></i> Profil
   </button>
   <button class="logout-safe" onclick="logout()">
     <i class="fa-solid fa-right-from-bracket"></i> Logout
@@ -624,6 +624,11 @@ function goToLogs(){
   window.location.href = "logs.html";
 }
 
+
+function goToProfile(){
+  closeMenu();
+  window.location.href = "profil.html";
+}
 function toggleLoginPasswordVisibility(){
   const passwordField = document.getElementById("loginPassword");
   const toggleIcon = document.getElementById("loginPasswordToggleIcon");

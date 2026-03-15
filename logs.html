@@ -389,8 +389,8 @@ input, select{
     <i class="fa-solid fa-clipboard-list"></i> Logs
   </button>
 
-  <button onclick="resetPassword()">
-    <i class="fa-solid fa-key"></i> Passwort zurücksetzen
+  <button onclick="goToProfile()">
+    <i class="fa-solid fa-user"></i> Profil
   </button>
   <button class="logout-safe" onclick="logout()">
     <i class="fa-solid fa-right-from-bracket"></i> Logout
@@ -587,6 +587,11 @@ function goToArchiv(){
   window.location.href = "archiv.html";
 }
 
+
+function goToProfile(){
+  closeMenu();
+  window.location.href = "profil.html";
+}
 function toggleLoginPasswordVisibility(){
   const passwordField = document.getElementById("loginPassword");
   const toggleIcon = document.getElementById("loginPasswordToggleIcon");
@@ -766,7 +771,7 @@ function renderBenutzerFilter(){
 
   const benutzer = [...new Set(
     alleLogs
-      .map(l => String(l.benutzerEmail || "").trim())
+      .map(l => String(l.benutzerName || l.benutzerEmail || "").trim())
       .filter(Boolean)
   )].sort((a, b) => a.localeCompare(b, "de"));
 
@@ -809,19 +814,19 @@ function passtZurSuche(log){
   const bereich = String(log.bereich || "");
   const aktion = String(log.aktion || "");
   const objektTyp = String(log.objektTyp || "");
-  const benutzerEmail = String(log.benutzerEmail || "");
+  const benutzerName = String(log.benutzerName || log.benutzerEmail || "");
   const details = String(log.details || "");
 
   const textPasst = suchbegriff === "" || (
     bereich.toLowerCase().includes(suchbegriff) ||
     aktion.toLowerCase().includes(suchbegriff) ||
     objektTyp.toLowerCase().includes(suchbegriff) ||
-    benutzerEmail.toLowerCase().includes(suchbegriff) ||
+    benutzerName.toLowerCase().includes(suchbegriff) ||
     details.toLowerCase().includes(suchbegriff)
   );
 
   const bereichPasst = bereichFilter === "Alle" || bereich === bereichFilter;
-  const benutzerPasst = benutzerFilter === "Alle" || benutzerEmail === benutzerFilter;
+  const benutzerPasst = benutzerFilter === "Alle" || benutzerName === benutzerFilter;
 
   return textPasst && bereichPasst && benutzerPasst;
 }
@@ -850,7 +855,7 @@ function renderLogs(){
       const bereich = escapeHtml(log.bereich || "");
       const aktion = escapeHtml(log.aktion || "");
       const objektTyp = escapeHtml(log.objektTyp || "");
-      const benutzerEmail = escapeHtml(log.benutzerEmail || "-");
+      const benutzerAnzeige = escapeHtml(log.benutzerName || log.benutzerEmail || "-");
       const zeit = escapeHtml(formatDateTime(log.createdAt) || "-");
       const details = escapeHtml(log.details || "-");
 
@@ -862,7 +867,7 @@ function renderLogs(){
           <div class="log-time">${zeit}</div>
         </div>
 
-        <div class="log-meta"><strong>Benutzer:</strong> ${benutzerEmail}</div>
+        <div class="log-meta"><strong>Benutzer:</strong> ${benutzerAnzeige}</div>
         <div class="log-meta"><strong>Objekt:</strong> ${objektTyp}</div>
 
         <div class="log-details">${details}</div>
