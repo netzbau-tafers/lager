@@ -2212,6 +2212,14 @@ function renderDesktopTable(data){
       </div>
     `
       : "";
+    const reserviertVonDetailsHtml = b.reserviert
+      ? `
+      <div class="details-item">
+        <div class="details-label">Reserviert von</div>
+        <div class="details-value">${escapeHtml(b.reserviertVon || "")}</div>
+      </div>
+    `
+      : "";
 
     detailsRow.innerHTML = `
       <td colspan="6" class="details-cell">
@@ -2221,18 +2229,11 @@ function renderDesktopTable(data){
             <div class="details-value">${escapeHtml(b.hersteller || "")}</div>
           </div>
           <div class="details-item">
-            <div class="details-label">Infos</div>
-            <div class="details-value">${formatMultilineText(b.infos || "")}</div>
-          </div>
-          <div class="details-item">
             <div class="details-label">Hinzugefügt am</div>
             <div class="details-value">${escapeHtml(hinzugefuegtAm || "")}</div>
           </div>
           ${statusDetailsHtml}
-          <div class="details-item">
-            <div class="details-label">Reserviert von</div>
-            <div class="details-value">${escapeHtml(b.reserviertVon || "")}</div>
-          </div>
+          ${reserviertVonDetailsHtml}
           ${inUseDetailsHtml}
         </div>
       </td>
@@ -2277,6 +2278,14 @@ function renderMobileCards(data){
       <div class="mobile-details-item">
         <div class="mobile-details-label">In Gebrauch von</div>
         <div class="mobile-details-value">${escapeHtml(inGebrauchVon)}</div>
+      </div>
+    `
+      : "";
+    const mobileReserviertVonDetailsHtml = b.reserviert
+      ? `
+      <div class="mobile-details-item">
+        <div class="mobile-details-label">Reserviert von</div>
+        <div class="mobile-details-value">${escapeHtml(b.reserviertVon || "")}</div>
       </div>
     `
       : "";
@@ -2341,20 +2350,12 @@ function renderMobileCards(data){
             <div class="mobile-details-label">Hersteller</div>
             <div class="mobile-details-value">${escapeHtml(b.hersteller || "")}</div>
           </div>
-
-          <div class="mobile-details-item">
-            <div class="mobile-details-label">Infos</div>
-            <div class="mobile-details-value">${formatMultilineText(b.infos || "")}</div>
-          </div>
           <div class="mobile-details-item">
             <div class="mobile-details-label">Hinzugefügt am</div>
             <div class="mobile-details-value">${escapeHtml(hinzugefuegtAm || "")}</div>
           </div>
           ${mobileStatusDetailsHtml}
-          <div class="mobile-details-item">
-            <div class="mobile-details-label">Reserviert von</div>
-            <div class="mobile-details-value">${escapeHtml(b.reserviertVon || "")}</div>
-          </div>
+          ${mobileReserviertVonDetailsHtml}
           ${mobileInUseDetailsHtml}
         </div>
       </div>
