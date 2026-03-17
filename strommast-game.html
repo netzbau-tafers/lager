@@ -558,6 +558,7 @@ canvas{
         <div class="overlay-box">
           <h2>Game Over</h2>
           <p>Punkte: <span id="finalScore">0</span></p>
+          <input id="scoreNameInput" class="name-input" type="text" maxlength="20" placeholder="Dein Name für die Rangliste" autocomplete="nickname">
           <p id="saveStatus"></p>
 
           <div class="overlay-actions">
@@ -618,6 +619,7 @@ const saveStatusEl = document.getElementById("saveStatus");
 const saveScoreButton = document.getElementById("saveScoreButton");
 const newGameButton = document.getElementById("newGameButton");
 const liveRankingList = document.getElementById("liveRankingList");
+const scoreNameInput = document.getElementById("scoreNameInput");
 const characterButtons = document.querySelectorAll(".character-button");
 const characterHint = document.getElementById("characterHint");
 
@@ -695,6 +697,11 @@ function getStoredUsername(){
 }
 
 function getScoreUsername(){
+  const enteredName = sanitizeInput(scoreNameInput.value || "", 20);
+  if(enteredName){
+    return enteredName;
+  }
+
   const storedUsername = getStoredUsername();
   if(storedUsername){
     return storedUsername;
@@ -1066,6 +1073,7 @@ function resetGameState(){
   scoreEl.textContent = "0";
   finalScoreEl.textContent = "0";
   saveStatusEl.textContent = "";
+  scoreNameInput.value = "";
   saveScoreButton.classList.remove("hidden");
   newGameButton.classList.remove("hidden");
   startOverlay.classList.add("hidden");
@@ -1129,6 +1137,8 @@ function releaseJump(){
 function endGame(){
   gameRunning = false;
   finalScoreEl.textContent = Math.floor(score);
+  scoreNameInput.value = getScoreUsername();
+  saveStatusEl.textContent = "";
 
   if(score > bestScore){
     bestScore = Math.floor(score);
@@ -1138,6 +1148,8 @@ function endGame(){
 
   gameOverOverlay.classList.remove("hidden");
   setCharacterSelectionLocked(false);
+  scoreNameInput.focus();
+  scoreNameInput.select();
 }
 
 function setCharacterSelectionLocked(locked){
