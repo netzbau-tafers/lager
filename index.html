@@ -612,7 +612,8 @@ th{
   overflow-y:auto;
 }
 
-input{
+input,
+textarea{
   width:100%;
   padding:10px;
   margin:6px 0 12px 0;
@@ -620,6 +621,12 @@ input{
   border:1px solid #ccc;
   border-radius:6px;
   font-size:15px;
+}
+
+textarea{
+  resize:vertical;
+  min-height:96px;
+  font-family:Arial, sans-serif;
 }
 
 .checkbox-row{
@@ -1093,6 +1100,7 @@ wie <b>Bearbeiten</b> oder <b>Löschen</b>.
           <th>Kabeltyp</th>
           <th>Länge</th>
           <th>Baustelle</th>
+          <th>Infos</th>
           <th>Aktionen</th>
         </tr>
       </thead>
@@ -1110,7 +1118,7 @@ wie <b>Bearbeiten</b> oder <b>Löschen</b>.
     <div class="modal-content">
       <h3 id="modalTitle">Neue Bobine</h3>
 
-      <input id="nummer" placeholder="Nummer" maxlength="60">
+      <input id="nummer" placeholder="Nummer" maxlength="60" inputmode="numeric" pattern="[0-9]*">
 
       <select id="typSelect" onchange="handleTypChange()">
         <option value="">Kabeltyp auswählen</option>
@@ -1154,15 +1162,17 @@ wie <b>Bearbeiten</b> oder <b>Löschen</b>.
         <span class="checkbox-label-text">Kabel ist auf 3 Bobinen</span>
       </label>
 
-      <input id="laenge" placeholder="Länge (m)" maxlength="40" inputmode="numeric" pattern="[0-9]*">
+      <input id="laenge" placeholder="Länge (m)" maxlength="40">
       <input id="baustelle" placeholder="Baustelle" maxlength="120">
       <input id="hersteller" placeholder="Hersteller" maxlength="120">
-      <input id="infos" placeholder="Infos" maxlength="250">
+      <textarea id="infos" placeholder="Infos" maxlength="500" rows="4"></textarea>
 
       <label class="checkbox-row">
         <input type="checkbox" id="reserviert">
         <span class="checkbox-label-text">Reservieren</span>
       </label>
+
+      <input id="reserviertVon" class="hidden" placeholder="Reserviert von" maxlength="120">
 
       <button onclick="saveBobine()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
       <button class="back" onclick="closeModal()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
@@ -1188,6 +1198,8 @@ wie <b>Bearbeiten</b> oder <b>Löschen</b>.
         <input type="checkbox" id="returnReserviert">
         <span class="checkbox-label-text">Im Lager immer noch als reserviert anzeigen?</span>
       </label>
+
+      <input id="returnReserviertVon" class="hidden" placeholder="Reserviert von" maxlength="120">
 
       <button onclick="confirmReturn()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
       <button class="back" onclick="closeModal()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
@@ -1340,8 +1352,10 @@ function writeLog(bereich, aktion, objektTyp, objektId, details){
 function sanitizeInput(value, maxLength = 200){
   return String(value || "")
     .replace(/[<>]/g, "")
-    .replace(/[\u0000-\u001F\u007F]/g, " ")
-    .replace(/\s+/g, " ")
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, " ")
+    .replace(/\r\n?/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
     .trim()
     .slice(0, maxLength);
 }
@@ -1359,6 +1373,26 @@ function escapeHtml(value){
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function formatMultilineText(value){
+  return escapeHtml(value || "").replace(/\n/g, "<br>");
+}
+
+function toggleReserviertVonInput(checkboxId, inputId){
+  const checkbox = document.getElementById(checkboxId);
+  const input = document.getElementById(inputId);
+
+  if(!checkbox || !input){
+    return;
+  }
+
+  const sichtbar = !!checkbox.checked;
+  input.classList.toggle("hidden", !sichtbar);
+
+  if(!sichtbar){
+    input.value = "";
+  }
 }
 
 function formatDatum(value){
@@ -2129,6 +2163,7 @@ function renderDesktopTable(data){
       <td>${escapeHtml(b.typ || "")}</td>
       <td>${escapeHtml(b.laenge || "")}</td>
       <td>${escapeHtml(b.baustelle || "")}</td>
+      <td>${formatMultilineText(b.infos || "")}</td>
       <td>
         <div class="table-actions">
           <button class="status-btn" onclick="toggleStatus('${docItem.id}')">
@@ -2179,7 +2214,7 @@ function renderDesktopTable(data){
       : "";
 
     detailsRow.innerHTML = `
-      <td colspan="5" class="details-cell">
+      <td colspan="6" class="details-cell">
         <div class="details-grid">
           <div class="details-item">
             <div class="details-label">Hersteller</div>
@@ -2187,13 +2222,17 @@ function renderDesktopTable(data){
           </div>
           <div class="details-item">
             <div class="details-label">Infos</div>
-            <div class="details-value">${escapeHtml(b.infos || "")}</div>
+            <div class="details-value">${formatMultilineText(b.infos || "")}</div>
           </div>
           <div class="details-item">
             <div class="details-label">Hinzugefügt am</div>
             <div class="details-value">${escapeHtml(hinzugefuegtAm || "")}</div>
           </div>
           ${statusDetailsHtml}
+          <div class="details-item">
+            <div class="details-label">Reserviert von</div>
+            <div class="details-value">${escapeHtml(b.reserviertVon || "")}</div>
+          </div>
           ${inUseDetailsHtml}
         </div>
       </td>
@@ -2277,6 +2316,11 @@ function renderMobileCards(data){
           <div class="mobile-info-label">Baustelle</div>
           <div class="mobile-info-value">${escapeHtml(b.baustelle || "")}</div>
         </div>
+
+        <div class="mobile-info-box">
+          <div class="mobile-info-label">Infos</div>
+          <div class="mobile-info-value">${formatMultilineText(b.infos || "")}</div>
+        </div>
       </div>
 
       <div class="mobile-actions">
@@ -2300,13 +2344,17 @@ function renderMobileCards(data){
 
           <div class="mobile-details-item">
             <div class="mobile-details-label">Infos</div>
-            <div class="mobile-details-value">${escapeHtml(b.infos || "")}</div>
+            <div class="mobile-details-value">${formatMultilineText(b.infos || "")}</div>
           </div>
           <div class="mobile-details-item">
             <div class="mobile-details-label">Hinzugefügt am</div>
             <div class="mobile-details-value">${escapeHtml(hinzugefuegtAm || "")}</div>
           </div>
           ${mobileStatusDetailsHtml}
+          <div class="mobile-details-item">
+            <div class="mobile-details-label">Reserviert von</div>
+            <div class="mobile-details-value">${escapeHtml(b.reserviertVon || "")}</div>
+          </div>
           ${mobileInUseDetailsHtml}
         </div>
       </div>
@@ -2420,6 +2468,8 @@ function openAdd(){
   document.getElementById("hersteller").value = "";
   document.getElementById("infos").value = "";
   document.getElementById("reserviert").checked = false;
+  document.getElementById("reserviertVon").value = "";
+  toggleReserviertVonInput("reserviert", "reserviertVon");
 
   document.getElementById("modal").style.display = "block";
   focusFirstInput("modal");
@@ -2437,14 +2487,16 @@ function editBobine(id){
     const b = doc.data();
 
     document.getElementById("modalTitle").innerText = "Bobine bearbeiten";
-    document.getElementById("nummer").value = sanitizeInput(b.nummer || "", 60);
+    document.getElementById("nummer").value = nummerBereinigen(b.nummer || "");
     setTypFields(b.typ || "");
     document.getElementById("istDreiBobinen").checked = !!b.istDreiBobinen;
     document.getElementById("laenge").value = sanitizeInput(b.laenge || "", 40);
     document.getElementById("baustelle").value = sanitizeInput(b.baustelle || "", 120);
     document.getElementById("hersteller").value = sanitizeInput(b.hersteller || "", 120);
-    document.getElementById("infos").value = sanitizeInput(b.infos || "", 250);
+    document.getElementById("infos").value = sanitizeInput(b.infos || "", 500);
     document.getElementById("reserviert").checked = !!b.reserviert;
+    document.getElementById("reserviertVon").value = sanitizeInput(b.reserviertVon || "", 120);
+    toggleReserviertVonInput("reserviert", "reserviertVon");
 
     document.getElementById("modal").style.display = "block";
     focusFirstInput("modal");
@@ -2455,7 +2507,7 @@ function editBobine(id){
 }
 
 function nummerBereinigen(wert){
-  return sanitizeInput(wert, 60);
+  return sanitizeDigitsOnly(wert, 60);
 }
 
 function enforceDigitsOnly(inputId){
@@ -2524,7 +2576,18 @@ function markActiveMenu(){
 
 document.addEventListener("DOMContentLoaded", () => {
   markActiveMenu();
-  enforceDigitsOnly("laenge");
+  enforceDigitsOnly("nummer");
+
+  const reserviertCheckbox = document.getElementById("reserviert");
+  if(reserviertCheckbox){
+    reserviertCheckbox.addEventListener("change", () => toggleReserviertVonInput("reserviert", "reserviertVon"));
+  }
+  toggleReserviertVonInput("reserviert", "reserviertVon");
+
+  const returnReserviertCheckbox = document.getElementById("returnReserviert");
+  if(returnReserviertCheckbox){
+    returnReserviertCheckbox.addEventListener("change", () => toggleReserviertVonInput("returnReserviert", "returnReserviertVon"));
+  }
 });
 
 function saveBobine(){
@@ -2538,14 +2601,16 @@ function saveBobine(){
   const laenge = sanitizeInput(document.getElementById("laenge").value, 40);
   const baustelle = sanitizeInput(document.getElementById("baustelle").value, 120);
   const hersteller = sanitizeInput(document.getElementById("hersteller").value, 120);
-  const infos = sanitizeInput(document.getElementById("infos").value, 250);
+  const infos = sanitizeInput(document.getElementById("infos").value, 500);
   const reserviert = document.getElementById("reserviert").checked;
+  const reserviertVon = reserviert ? sanitizeInput(document.getElementById("reserviertVon").value, 120) : "";
 
   document.getElementById("nummer").value = nummerWert;
   document.getElementById("laenge").value = laenge;
   document.getElementById("baustelle").value = baustelle;
   document.getElementById("hersteller").value = hersteller;
   document.getElementById("infos").value = infos;
+  document.getElementById("reserviertVon").value = reserviertVon;
   if(document.getElementById("typSelect").value === "__ANDERER__"){
     document.getElementById("typCustom").value = typ;
   }
@@ -2568,7 +2633,8 @@ function saveBobine(){
     baustelle: baustelle,
     hersteller: hersteller,
     infos: infos,
-    reserviert: reserviert
+    reserviert: reserviert,
+    reserviertVon: reserviertVon
   };
 
   nummerSchonVorhanden(nummerWert, editId).then(vorhanden => {
@@ -2603,6 +2669,7 @@ function saveBobine(){
             " | Hersteller: " + hersteller +
             " | Infos: " + infos +
             " | Reserviert: " + (reserviert ? "Ja" : "Nein") +
+            " | Reserviert von: " + reserviertVon +
             " | Status: " + alterStatus
           );
         });
@@ -2641,7 +2708,8 @@ function saveBobine(){
           " | Baustelle: " + baustelle +
           " | Hersteller: " + hersteller +
           " | Infos: " + infos +
-          " | Reserviert: " + (reserviert ? "Ja" : "Nein")
+          " | Reserviert: " + (reserviert ? "Ja" : "Nein") +
+          " | Reserviert von: " + reserviertVon
         );
         closeModal();
       }).catch(error => {
@@ -2713,9 +2781,13 @@ function toggleStatus(id){
       document.getElementById("returnBaustelle").value = sanitizeInput(b.baustelle || "", 120);
       const returnReserviertRow = document.getElementById("returnReserviertRow");
       const returnReserviertCheckbox = document.getElementById("returnReserviert");
+      const returnReserviertVonInput = document.getElementById("returnReserviertVon");
       const warReserviert = !!b.reserviert;
       returnReserviertRow.classList.toggle("hidden", !warReserviert);
       returnReserviertCheckbox.checked = warReserviert;
+      returnReserviertVonInput.value = sanitizeInput(b.reserviertVon || "", 120);
+      returnReserviertVonInput.classList.toggle("hidden", !warReserviert);
+      toggleReserviertVonInput("returnReserviert", "returnReserviertVon");
       const differenceResult = document.getElementById("differenceResult");
       differenceResult.textContent = calc.isComplete
         ? calc.message
@@ -2741,9 +2813,11 @@ function confirmReturn(){
   const returnBaustelle = sanitizeInput(document.getElementById("returnBaustelle").value, 120);
   const returnReserviertRow = document.getElementById("returnReserviertRow");
   const returnReserviert = !returnReserviertRow.classList.contains("hidden") && !!document.getElementById("returnReserviert").checked;
+  const returnReserviertVon = returnReserviert ? sanitizeInput(document.getElementById("returnReserviertVon").value, 120) : "";
 
   document.getElementById("returnLaenge").value = returnLaenge;
   document.getElementById("returnBaustelle").value = returnBaustelle;
+  document.getElementById("returnReserviertVon").value = returnReserviertVon;
 
   bobinenCollection.doc(selectedId).get().then(doc => {
     if(!doc.exists){
@@ -2764,6 +2838,7 @@ function confirmReturn(){
       laenge: berechneteLaenge,
       baustelle: returnBaustelle,
       reserviert: returnReserviert,
+      reserviertVon: returnReserviertVon,
       status: "Lager",
       inGebrauchVonName: "",
       inGebrauchVonEmail: "",
@@ -2783,6 +2858,7 @@ function confirmReturn(){
         " | Neue Länge: " + berechneteLaenge +
         " | Baustelle: " + returnBaustelle +
         " | Reserviert: " + (returnReserviert ? "Ja" : "Nein") +
+        " | Reserviert von: " + returnReserviertVon +
         " | Rechnung: " + (!calc.isComplete ? "Keine (nur ein Wert oder leer)" : calc.message) +
         " | Infos: " + (b.infos || "")
       );
@@ -2811,7 +2887,7 @@ function deleteBobine(id){
       "3 Bobinen: " + (b.istDreiBobinen ? "Ja" : "Nein") + "\n" +
       "Länge: " + sanitizeInput(b.laenge || "", 40) + "\n" +
       "Baustelle: " + sanitizeInput(b.baustelle || "", 120) + "\n" +
-      "Infos: " + sanitizeInput(b.infos || "", 250) + "\n\n" +
+      "Infos: " + sanitizeInput(b.infos || "", 500) + "\n\n" +
       "Diese Bobine wird endgültig aus dem Kabellager entfernt.";
 
     if(confirm(text)){
