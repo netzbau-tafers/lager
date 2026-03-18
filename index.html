@@ -653,43 +653,47 @@ textarea{
   font-weight:bold;
 }
 
+.bobinen-badges{
+  display:inline-flex;
+  flex-wrap:wrap;
+  gap:6px;
+  vertical-align:middle;
+}
+
 .bobinen-badge{
   display:inline-block;
-  margin-left:8px;
   padding:4px 10px;
   border-radius:999px;
   background:#eef3f8;
   color:#334155;
   font-size:12px;
   font-weight:bold;
-  vertical-align:middle;
   white-space:nowrap;
-}
-
-.desktop-nummer-cell .bobinen-badge{
-  position:absolute;
-  left:calc(100% + 10px);
-  top:50%;
-  transform:translateY(-50%);
-  margin:0;
 }
 
 @media (min-width: 901px){
   .desktop-nummer-cell{
-    position:relative;
-    display:inline-block;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
   }
 
   table th:first-child,
   table td:first-child{
-    min-width:170px;
+    min-width:220px;
   }
+}
+
+.mobile-card-number{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:6px;
 }
 
 .mobile-card-number .bobinen-badge{
   font-size:11px;
   padding:4px 8px;
-  margin-left:6px;
 }
 
 .no-results{
@@ -1048,6 +1052,13 @@ Dann wird bei der Bobine der Hinweis <b>„3 Bobinen“</b> angezeigt.
 </p>
 
 <p>
+<b><i class="fa-solid fa-layer-group"></i> Mehrere Kabel auf einer Bobine</b><br>
+Wenn sich <b>mehrere Kabel auf einer Bobine</b> befinden,<br>
+kann dies beim Erfassen angegeben werden.<br>
+Dann wird bei der Bobine der Hinweis <b>„Mehrere Kabel“</b> angezeigt.
+</p>
+
+<p>
 <b><i class="fa-solid fa-arrow-right"></i> In Gebrauch</b><br>
 Drücke diesen Button, wenn du eine Bobine auf eine Baustelle mitnimmst.<br>
 Die Bobine wird dann als <b>In Gebrauch</b> markiert und <b>rot</b> angezeigt.
@@ -1160,6 +1171,11 @@ wie <b>Bearbeiten</b> oder <b>Löschen</b>.
       <label class="checkbox-row">
         <input type="checkbox" id="istDreiBobinen">
         <span class="checkbox-label-text">Kabel ist auf 3 Bobinen</span>
+      </label>
+
+      <label class="checkbox-row">
+        <input type="checkbox" id="mehrereKabelAufBobine">
+        <span class="checkbox-label-text">Mehrere Kabel auf einer Bobine</span>
       </label>
 
       <input id="laenge" placeholder="Länge (m)" maxlength="40">
@@ -1816,11 +1832,22 @@ function saveUsageNumbers(){
   });
 }
 
-function getBobinenBadgeHtml(istDreiBobinen){
+function getBobinenBadgeHtml(istDreiBobinen, mehrereKabelAufBobine){
+  const badges = [];
+
   if(istDreiBobinen){
-    return ' <span class="bobinen-badge">3 Bobinen</span>';
+    badges.push('<span class="bobinen-badge">3 Bobinen</span>');
   }
-  return "";
+
+  if(mehrereKabelAufBobine){
+    badges.push('<span class="bobinen-badge">Mehrere Kabel</span>');
+  }
+
+  if(badges.length === 0){
+    return "";
+  }
+
+  return ' <span class="bobinen-badges">' + badges.join('') + '</span>';
 }
 
 function handleTypChange(){
@@ -2145,7 +2172,7 @@ function renderDesktopTable(data){
     const isInUse = b.status === "In Gebrauch";
     const inGebrauchVon = b.inGebrauchVonName || b.inGebrauchVonEmail || "Unbekannt";
     const isDetailOpen = openDetailsRows.has(docItem.id);
-    const bobinenBadge = getBobinenBadgeHtml(!!b.istDreiBobinen);
+    const bobinenBadge = getBobinenBadgeHtml(!!b.istDreiBobinen, !!b.mehrereKabelAufBobine);
 
     const statusButtonText = b.status === "Lager" ? "In Gebrauch" : "Zurück ins Lager";
     const statusButtonIcon = b.status === "Lager" ? "fa-arrow-right" : "fa-rotate-left";
@@ -2259,7 +2286,7 @@ function renderMobileCards(data){
     const statusButtonIcon = b.status === "Lager" ? "fa-arrow-right" : "fa-rotate-left";
     const statusClass = b.status === "Lager" ? "instock" : "inuse";
     const reserviertClass = b.status === "Lager" && b.reserviert ? " reserved" : "";
-    const bobinenBadge = getBobinenBadgeHtml(!!b.istDreiBobinen);
+    const bobinenBadge = getBobinenBadgeHtml(!!b.istDreiBobinen, !!b.mehrereKabelAufBobine);
     const inUseCaptureButton = b.status === "In Gebrauch"
       ? `<button class="capture-btn" onclick="openUsageNumbersModal('${docItem.id}')"><i class="fa-solid fa-ruler"></i> Nummern</button>`
       : "";
@@ -2464,6 +2491,7 @@ function openAdd(){
   document.getElementById("typCustom").value = "";
   document.getElementById("typCustom").classList.add("hidden");
   document.getElementById("istDreiBobinen").checked = false;
+  document.getElementById("mehrereKabelAufBobine").checked = false;
   document.getElementById("laenge").value = "";
   document.getElementById("baustelle").value = "";
   document.getElementById("hersteller").value = "";
@@ -2491,6 +2519,7 @@ function editBobine(id){
     document.getElementById("nummer").value = nummerBereinigen(b.nummer || "");
     setTypFields(b.typ || "");
     document.getElementById("istDreiBobinen").checked = !!b.istDreiBobinen;
+    document.getElementById("mehrereKabelAufBobine").checked = !!b.mehrereKabelAufBobine;
     document.getElementById("laenge").value = sanitizeInput(b.laenge || "", 40);
     document.getElementById("baustelle").value = sanitizeInput(b.baustelle || "", 120);
     document.getElementById("hersteller").value = sanitizeInput(b.hersteller || "", 120);
@@ -2599,6 +2628,7 @@ function saveBobine(){
   const nummerWert = nummerBereinigen(document.getElementById("nummer").value);
   const typ = getSelectedTyp();
   const istDreiBobinen = document.getElementById("istDreiBobinen").checked;
+  const mehrereKabelAufBobine = document.getElementById("mehrereKabelAufBobine").checked;
   const laenge = sanitizeInput(document.getElementById("laenge").value, 40);
   const baustelle = sanitizeInput(document.getElementById("baustelle").value, 120);
   const hersteller = sanitizeInput(document.getElementById("hersteller").value, 120);
@@ -2630,6 +2660,7 @@ function saveBobine(){
     nummer: nummerWert,
     typ: typ,
     istDreiBobinen: istDreiBobinen,
+    mehrereKabelAufBobine: mehrereKabelAufBobine,
     laenge: laenge,
     baustelle: baustelle,
     hersteller: hersteller,
@@ -2665,6 +2696,7 @@ function saveBobine(){
             "Nummer: " + nummerWert +
             " | Typ: " + typ +
             " | 3 Bobinen: " + (istDreiBobinen ? "Ja" : "Nein") +
+            " | Mehrere Kabel auf einer Bobine: " + (mehrereKabelAufBobine ? "Ja" : "Nein") +
             " | Länge: " + laenge +
             " | Baustelle: " + baustelle +
             " | Hersteller: " + hersteller +
@@ -2705,6 +2737,7 @@ function saveBobine(){
           "Nummer: " + nummerWert +
           " | Typ: " + typ +
           " | 3 Bobinen: " + (istDreiBobinen ? "Ja" : "Nein") +
+          " | Mehrere Kabel auf einer Bobine: " + (mehrereKabelAufBobine ? "Ja" : "Nein") +
           " | Länge: " + laenge +
           " | Baustelle: " + baustelle +
           " | Hersteller: " + hersteller +
@@ -2763,6 +2796,7 @@ function toggleStatus(id){
           "Nummer: " + (b.nummer || "") +
           " | Typ: " + (b.typ || "") +
           " | 3 Bobinen: " + (b.istDreiBobinen ? "Ja" : "Nein") +
+          " | Mehrere Kabel auf einer Bobine: " + (b.mehrereKabelAufBobine ? "Ja" : "Nein") +
           " | Länge: " + (b.laenge || "") +
           " | In Gebrauch von: " + inGebrauchVonName +
           " | Baustelle: " + (b.baustelle || "") +
@@ -2856,6 +2890,7 @@ function confirmReturn(){
         "Nummer: " + (b.nummer || "") +
         " | Typ: " + (b.typ || "") +
         " | 3 Bobinen: " + (b.istDreiBobinen ? "Ja" : "Nein") +
+        " | Mehrere Kabel auf einer Bobine: " + (b.mehrereKabelAufBobine ? "Ja" : "Nein") +
         " | Neue Länge: " + berechneteLaenge +
         " | Baustelle: " + returnBaustelle +
         " | Reserviert: " + (returnReserviert ? "Ja" : "Nein") +
@@ -2886,6 +2921,7 @@ function deleteBobine(id){
       "Nummer: " + sanitizeInput(b.nummer || "", 60) + "\n" +
       "Kabeltyp: " + sanitizeInput(b.typ || "", 120) + "\n" +
       "3 Bobinen: " + (b.istDreiBobinen ? "Ja" : "Nein") + "\n" +
+      "Mehrere Kabel auf einer Bobine: " + (b.mehrereKabelAufBobine ? "Ja" : "Nein") + "\n" +
       "Länge: " + sanitizeInput(b.laenge || "", 40) + "\n" +
       "Baustelle: " + sanitizeInput(b.baustelle || "", 120) + "\n" +
       "Infos: " + sanitizeInput(b.infos || "", 500) + "\n\n" +
@@ -2902,6 +2938,7 @@ function deleteBobine(id){
           "Nummer: " + (b.nummer || "") +
           " | Typ: " + (b.typ || "") +
           " | 3 Bobinen: " + (b.istDreiBobinen ? "Ja" : "Nein") +
+          " | Mehrere Kabel auf einer Bobine: " + (b.mehrereKabelAufBobine ? "Ja" : "Nein") +
           " | Länge: " + (b.laenge || "") +
           " | Baustelle: " + (b.baustelle || "") +
           " | Hersteller: " + (b.hersteller || "") +
