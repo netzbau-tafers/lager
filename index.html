@@ -1055,7 +1055,8 @@ Dann wird bei der Bobine der Hinweis <b>„3 Bobinen“</b> angezeigt.
 <b><i class="fa-solid fa-layer-group"></i> Mehrere Kabel auf einer Bobine</b><br>
 Wenn sich <b>mehrere Kabel auf einer Bobine</b> befinden,<br>
 kann dies beim Erfassen angegeben werden.<br>
-Dann wird bei der Bobine der Hinweis <b>„Mehrere Kabel“</b> angezeigt.
+Dann wird bei der Bobine der Hinweis <b>„Mehrere Kabel“</b> angezeigt.<br>
+Es kann dabei immer nur <b>ein Hinweis gleichzeitig</b> gewählt werden.
 </p>
 
 <p>
@@ -1833,21 +1834,15 @@ function saveUsageNumbers(){
 }
 
 function getBobinenBadgeHtml(istDreiBobinen, mehrereKabelAufBobine){
-  const badges = [];
-
   if(istDreiBobinen){
-    badges.push('<span class="bobinen-badge">3 Bobinen</span>');
+    return ' <span class="bobinen-badges"><span class="bobinen-badge">3 Bobinen</span></span>';
   }
 
   if(mehrereKabelAufBobine){
-    badges.push('<span class="bobinen-badge">Mehrere Kabel</span>');
+    return ' <span class="bobinen-badges"><span class="bobinen-badge">Mehrere Kabel</span></span>';
   }
 
-  if(badges.length === 0){
-    return "";
-  }
-
-  return ' <span class="bobinen-badges">' + badges.join('') + '</span>';
+  return "";
 }
 
 function handleTypChange(){
@@ -2490,8 +2485,7 @@ function openAdd(){
   document.getElementById("typSelect").value = "";
   document.getElementById("typCustom").value = "";
   document.getElementById("typCustom").classList.add("hidden");
-  document.getElementById("istDreiBobinen").checked = false;
-  document.getElementById("mehrereKabelAufBobine").checked = false;
+  setBobinenHinweisSelection(false, false);
   document.getElementById("laenge").value = "";
   document.getElementById("baustelle").value = "";
   document.getElementById("hersteller").value = "";
@@ -2518,8 +2512,7 @@ function editBobine(id){
     document.getElementById("modalTitle").innerText = "Bobine bearbeiten";
     document.getElementById("nummer").value = nummerBereinigen(b.nummer || "");
     setTypFields(b.typ || "");
-    document.getElementById("istDreiBobinen").checked = !!b.istDreiBobinen;
-    document.getElementById("mehrereKabelAufBobine").checked = !!b.mehrereKabelAufBobine;
+    setBobinenHinweisSelection(!!b.istDreiBobinen, !!b.mehrereKabelAufBobine);
     document.getElementById("laenge").value = sanitizeInput(b.laenge || "", 40);
     document.getElementById("baustelle").value = sanitizeInput(b.baustelle || "", 120);
     document.getElementById("hersteller").value = sanitizeInput(b.hersteller || "", 120);
@@ -2604,9 +2597,43 @@ function markActiveMenu(){
   });
 }
 
+function setBobinenHinweisSelection(istDreiBobinen, mehrereKabelAufBobine){
+  const istDreiCheckbox = document.getElementById("istDreiBobinen");
+  const mehrereKabelCheckbox = document.getElementById("mehrereKabelAufBobine");
+
+  if(!istDreiCheckbox || !mehrereKabelCheckbox){
+    return;
+  }
+
+  istDreiCheckbox.checked = !!istDreiBobinen;
+  mehrereKabelCheckbox.checked = !istDreiCheckbox.checked && !!mehrereKabelAufBobine;
+}
+
+function setupBobinenHinweisExclusivity(){
+  const istDreiCheckbox = document.getElementById("istDreiBobinen");
+  const mehrereKabelCheckbox = document.getElementById("mehrereKabelAufBobine");
+
+  if(!istDreiCheckbox || !mehrereKabelCheckbox){
+    return;
+  }
+
+  istDreiCheckbox.addEventListener("change", () => {
+    if(istDreiCheckbox.checked){
+      mehrereKabelCheckbox.checked = false;
+    }
+  });
+
+  mehrereKabelCheckbox.addEventListener("change", () => {
+    if(mehrereKabelCheckbox.checked){
+      istDreiCheckbox.checked = false;
+    }
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   markActiveMenu();
   enforceDigitsOnly("nummer");
+  setupBobinenHinweisExclusivity();
 
   const reserviertCheckbox = document.getElementById("reserviert");
   if(reserviertCheckbox){
@@ -2628,7 +2655,7 @@ function saveBobine(){
   const nummerWert = nummerBereinigen(document.getElementById("nummer").value);
   const typ = getSelectedTyp();
   const istDreiBobinen = document.getElementById("istDreiBobinen").checked;
-  const mehrereKabelAufBobine = document.getElementById("mehrereKabelAufBobine").checked;
+  const mehrereKabelAufBobine = !istDreiBobinen && document.getElementById("mehrereKabelAufBobine").checked;
   const laenge = sanitizeInput(document.getElementById("laenge").value, 40);
   const baustelle = sanitizeInput(document.getElementById("baustelle").value, 120);
   const hersteller = sanitizeInput(document.getElementById("hersteller").value, 120);
@@ -2642,6 +2669,7 @@ function saveBobine(){
   document.getElementById("hersteller").value = hersteller;
   document.getElementById("infos").value = infos;
   document.getElementById("reserviertVon").value = reserviertVon;
+  setBobinenHinweisSelection(istDreiBobinen, mehrereKabelAufBobine);
   if(document.getElementById("typSelect").value === "__ANDERER__"){
     document.getElementById("typCustom").value = typ;
   }
