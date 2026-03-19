@@ -1300,6 +1300,7 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 const bobinenCollection = db.collection("bobinen");
 const logsCollection = db.collection("logs");
+const kabelReportCollection = db.collection("kabelReport");
 const usersCollection = db.collection("users");
 const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "3Jm2fQfSnOhLF50WoeePNQg0ZFf2", "Q33pfDjhxyQcmlnZjrq8tekvioB2", "hwZEme8xvkasSAGrmOtQRLOnnXn1", "PKDpb7Cb7ig8ZKZRMm23FOKnCHQ2", "T05YzzSRN2aUMkTTwGB2N1OqPgA2"];
 const LIMITED_ACCESS_UIDS = ["h8VfDCJ3eTb5GOwjgBzHVck3TEB3", "BVBSpAYOGaWKptCrQ81h8UtW13n2", "UIAvOHFf8QgqJ7UWkPV7CpV88512"];
@@ -1406,8 +1407,8 @@ function setNavigationVisibility(user){
 
 function writeLog(bereich, aktion, objektTyp, objektId, details){
   const user = auth.currentUser;
-
-  return logsCollection.add({
+  const logRef = logsCollection.doc();
+  const logData = {
     bereich: bereich,
     aktion: aktion,
     objektTyp: objektTyp,
@@ -1417,7 +1418,15 @@ function writeLog(bereich, aktion, objektTyp, objektId, details){
     benutzerUid: user && user.uid ? user.uid : "",
     details: details || "",
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  }).catch(error => {
+  };
+  const reportEntry = buildPersistedKabelReportEntry(logRef.id, logData);
+  const writes = [logRef.set(logData)];
+
+  if(reportEntry){
+    writes.push(kabelReportCollection.doc(logRef.id).set(reportEntry));
+  }
+
+  return Promise.all(writes).catch(error => {
     console.error("Fehler beim Schreiben des Logs:", error);
   });
 }
@@ -1431,6 +1440,87 @@ function sanitizeInput(value, maxLength = 200){
     .replace(/\n{3,}/g, "\n\n")
     .trim()
     .slice(0, maxLength);
+}
+
+function parseUsedMetersFromRechnung(details){
+  const text = String(details || "");
+  const patterns = [
+    /Abschnittssumme:[^|]*?-\s*([0-9.,]+)\s*m\s*=\s*[0-9.,]+\s*m/i,
+    /\|\s*=\s*([0-9.,]+)\s*m\s*=\s*[0-9.,]+\s*m/i
+  ];
+
+  for(const pattern of patterns){
+    const match = text.match(pattern);
+    if(match && match[1]){
+      const parsed = parsePositiveNumber(match[1]);
+      if(parsed !== null){
+        return Math.round(parsed * 100) / 100;
+      }
+    }
+  }
+
+  return null;
+}
+
+function buildPersistedKabelReportEntry(logId, logData){
+  if(String(logData.bereich || "") !== "Kabellager"){
+    return null;
+  }
+
+  const details = String(logData.details || "");
+  const aktion = String(logData.aktion || "");
+  const typ = sanitizeInput(extractDetail(details, "Typ") || "Unbekannter Typ", 200);
+  const nummer = sanitizeInput(extractDetail(details, "Nummer") || "", 200);
+
+  if(aktion === "Bobine zurück ins Lager gebucht"){
+    let usedMeters = null;
+    const neueLaenge = parsePositiveNumber(extractDetail(details, "Neue Länge"));
+    const rechnungMeters = parseUsedMetersFromRechnung(details);
+
+    if(rechnungMeters !== null){
+      usedMeters = rechnungMeters;
+    }else if(neueLaenge !== null){
+      const alteLaenge = parsePositiveNumber(extractDetail(details, "Länge"));
+      if(alteLaenge !== null){
+        usedMeters = Math.round(Math.max(0, alteLaenge - neueLaenge) * 100) / 100;
+      }
+    }
+
+    if(usedMeters === null || usedMeters <= 0){
+      return null;
+    }
+
+    return {
+      logId: logId,
+      objektId: sanitizeInput(logData.objektId || "", 200),
+      typ: typ,
+      nummer: nummer,
+      meter: usedMeters,
+      source: "Rückbuchung",
+      sourceAction: aktion,
+      createdAt: logData.createdAt
+    };
+  }
+
+  if(aktion === "Bobine gelöscht"){
+    const deletedMeters = Math.round((parsePositiveNumber(extractDetail(details, "Länge")) || 0) * 100) / 100;
+    if(deletedMeters <= 0){
+      return null;
+    }
+
+    return {
+      logId: logId,
+      objektId: sanitizeInput(logData.objektId || "", 200),
+      typ: typ,
+      nummer: nummer,
+      meter: deletedMeters,
+      source: "Komplett gelöscht",
+      sourceAction: aktion,
+      createdAt: logData.createdAt
+    };
+  }
+
+  return null;
 }
 
 function sanitizeDigitsOnly(value, maxLength = 40){

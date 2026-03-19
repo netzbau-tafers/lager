@@ -546,6 +546,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 const logsCollection = db.collection("logs");
+const kabelReportCollection = db.collection("kabelReport");
 const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "3Jm2fQfSnOhLF50WoeePNQg0ZFf2", "Q33pfDjhxyQcmlnZjrq8tekvioB2", "hwZEme8xvkasSAGrmOtQRLOnnXn1", "PKDpb7Cb7ig8ZKZRMm23FOKnCHQ2", "T05YzzSRN2aUMkTTwGB2N1OqPgA2"];
 const LIMITED_ACCESS_UIDS = ["h8VfDCJ3eTb5GOwjgBzHVck3TEB3", "BVBSpAYOGaWKptCrQ81h8UtW13n2", "UIAvOHFf8QgqJ7UWkPV7CpV88512"];
 const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
@@ -555,7 +556,9 @@ const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
 const MONTH_NAMES = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
 let unsubscribeLogs = null;
+let unsubscribeKabelReport = null;
 let allLogs = [];
+let persistedReportEntries = [];
 
 function escapeHtml(value){
   return String(value || "")
@@ -809,6 +812,11 @@ function stopListeners(){
     unsubscribeLogs();
     unsubscribeLogs = null;
   }
+
+  if(unsubscribeKabelReport){
+    unsubscribeKabelReport();
+    unsubscribeKabelReport = null;
+  }
 }
 
 function setNavigationVisibility(user){
@@ -852,6 +860,13 @@ function buildYearOptions(){
     }
   });
 
+  persistedReportEntries.forEach(entry => {
+    const date = getDate(entry.createdAt);
+    if(date){
+      years.add(date.getFullYear());
+    }
+  });
+
   const sortedYears = Array.from(years).sort((a, b) => b - a);
   const currentValue = select.value;
   select.innerHTML = sortedYears.map(year => `<option value="${year}">${year}</option>`).join("");
@@ -864,7 +879,7 @@ function resetFilters(){
   renderReport();
 }
 
-function buildReportEntries(year){
+function buildReportEntriesFromLogs(year, persistedLogIds){
   const reportEntries = [];
   const stateByBobine = new Map();
   let earliestLogDate = null;
@@ -873,6 +888,10 @@ function buildReportEntries(year){
 
   sortedLogs.forEach(log => {
     if(String(log.bereich || "") !== "Kabellager"){
+      return;
+    }
+
+    if(persistedLogIds.has(String(log.id || ""))){
       return;
     }
 
@@ -953,6 +972,58 @@ function buildReportEntries(year){
   });
 
   return { reportEntries, earliestLogDate };
+}
+
+function buildReportEntriesFromPersisted(year){
+  const reportEntries = [];
+  let earliestPersistedDate = null;
+
+  persistedReportEntries.forEach(entry => {
+    const entryDate = getDate(entry.createdAt);
+    if(!entryDate){
+      return;
+    }
+
+    if(!earliestPersistedDate || entryDate < earliestPersistedDate){
+      earliestPersistedDate = entryDate;
+    }
+
+    if(entryDate.getFullYear() !== year){
+      return;
+    }
+
+    const meter = roundMeters(parseNumber(entry.meter) || 0);
+    if(meter <= 0){
+      return;
+    }
+
+    reportEntries.push({
+      typ: sanitizeInput(entry.typ || "Unbekannter Typ", 200),
+      nummer: sanitizeInput(entry.nummer || "", 200),
+      meter: meter,
+      source: sanitizeInput(entry.source || "Rückbuchung", 80),
+      month: entryDate.getMonth(),
+      timestamp: entryDate.getTime()
+    });
+  });
+
+  return { reportEntries, earliestPersistedDate };
+}
+
+function buildReportEntries(year){
+  const persistedLogIds = new Set(
+    persistedReportEntries
+      .map(entry => String(entry.logId || ""))
+      .filter(Boolean)
+  );
+  const logsData = buildReportEntriesFromLogs(year, persistedLogIds);
+  const persistedData = buildReportEntriesFromPersisted(year);
+
+  return {
+    reportEntries: [...logsData.reportEntries, ...persistedData.reportEntries],
+    earliestLogDate: logsData.earliestLogDate,
+    earliestPersistedDate: persistedData.earliestPersistedDate
+  };
 }
 
 function groupEntries(entries, searchTerm){
@@ -1095,12 +1166,15 @@ function renderSummary(data){
   document.getElementById("summaryDeletes").textContent = formatCount(data.totalDeletes);
 }
 
-function renderNotice(earliestLogDate, year){
+function renderNotice(earliestLogDate, earliestPersistedDate, year){
   const notice = document.getElementById("reportNotice");
   const startOfYear = new Date(year, 0, 1);
+  const earliestAvailableDate = earliestPersistedDate && earliestLogDate
+    ? (earliestPersistedDate < earliestLogDate ? earliestPersistedDate : earliestLogDate)
+    : (earliestPersistedDate || earliestLogDate);
 
-  if(earliestLogDate && earliestLogDate > startOfYear){
-    notice.innerHTML = `Für ${escapeHtml(String(year))} sind Logs erst ab <strong>${escapeHtml(earliestLogDate.toLocaleDateString("de-CH"))}</strong> verfügbar. Ältere Einzüge aus diesem Jahr können deshalb fehlen.`;
+  if(earliestAvailableDate && earliestAvailableDate > startOfYear){
+    notice.innerHTML = `Für ${escapeHtml(String(year))} sind Report-Daten erst ab <strong>${escapeHtml(earliestAvailableDate.toLocaleDateString("de-CH"))}</strong> verfügbar. Ältere Einzüge aus diesem Jahr können deshalb fehlen.`;
     notice.style.display = "block";
   }else{
     notice.style.display = "none";
@@ -1127,14 +1201,14 @@ function renderReport(){
   const baseData = buildReportEntries(year);
   const reportData = groupEntries(baseData.reportEntries, searchTerm);
 
-  renderNotice(baseData.earliestLogDate, year);
+  renderNotice(baseData.earliestLogDate, baseData.earliestPersistedDate, year);
   renderSummary(reportData);
   renderAnnualTable(reportData);
   renderMonths(reportData);
 }
 
 function startLogsListener(){
-  if(unsubscribeLogs){
+  if(unsubscribeLogs || unsubscribeKabelReport){
     return;
   }
 
@@ -1145,6 +1219,15 @@ function startLogsListener(){
   }, error => {
     console.error("Fehler beim Laden des Kabel-Reports:", error);
     showError("Der Kabel Report konnte nicht geladen werden. Bitte prüfe die Berechtigungen oder versuche es erneut.");
+  });
+
+  unsubscribeKabelReport = kabelReportCollection.orderBy("createdAt", "asc").onSnapshot(snapshot => {
+    persistedReportEntries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    buildYearOptions();
+    renderReport();
+  }, error => {
+    console.error("Fehler beim Laden der gespeicherten Kabel-Report-Daten:", error);
+    showError("Die gespeicherten Kabel-Report-Daten konnten nicht geladen werden. Bitte prüfe die Berechtigungen oder versuche es erneut.");
   });
 }
 
