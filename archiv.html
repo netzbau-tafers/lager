@@ -15,6 +15,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 
 <style>
 body{
@@ -288,6 +289,57 @@ input{
   margin-bottom:4px;
 }
 
+.spontis-link{
+  color:#1d6fd6;
+  cursor:pointer;
+  text-decoration:underline;
+  font-weight:600;
+}
+
+.spontis-link:hover{
+  color:#1556a8;
+}
+
+.barcode-block{
+  margin-top:10px;
+  padding:10px 12px;
+  border:1px dashed #c9d2dc;
+  border-radius:10px;
+  background:#fff;
+}
+
+.barcode-label{
+  display:block;
+  font-size:12px;
+  font-weight:700;
+  color:#5b6570;
+  margin-bottom:8px;
+  letter-spacing:0.02em;
+}
+
+.barcode-svg-wrap{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  width:100%;
+  overflow-x:auto;
+}
+
+.barcode-svg{
+  width:100%;
+  max-width:320px;
+  height:70px;
+}
+
+.barcode-number{
+  margin-top:8px;
+  font-size:13px;
+  text-align:center;
+  letter-spacing:0.08em;
+  color:#333;
+  word-break:break-all;
+}
+
 .empty-box{
   background:white;
   border:1px dashed #bbb;
@@ -442,7 +494,7 @@ input{
   <div class="search-box">
     <div class="search-title">Archiv durchsuchen</div>
     <div class="search-row">
-      <input id="searchInput" type="text" placeholder="Nach Baustellenname, Nummer, Verantwortlicher oder Material suchen" oninput="handleArchivSearchInput()" maxlength="120">
+      <input id="searchInput" type="text" placeholder="Nach Baustellenname, Nummer, Verantwortlicher, Material oder Barcode suchen" oninput="handleArchivSearchInput()" maxlength="120">
       <button class="back" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
     </div>
   </div>
@@ -476,6 +528,7 @@ const auth = firebase.auth();
 
 const baustellenCollection = db.collection("baustellen");
 const materialCollection = db.collection("baustellen_material");
+const vorlagenCollection = db.collection("material_vorlagen");
 const logsCollection = db.collection("logs");
 
 const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "3Jm2fQfSnOhLF50WoeePNQg0ZFf2", "Q33pfDjhxyQcmlnZjrq8tekvioB2", "hwZEme8xvkasSAGrmOtQRLOnnXn1", "PKDpb7Cb7ig8ZKZRMm23FOKnCHQ2", "T05YzzSRN2aUMkTTwGB2N1OqPgA2"];
@@ -488,6 +541,7 @@ let unsubscribeMaterial = null;
 
 let alleBaustellen = [];
 let alleMaterialien = [];
+let alleVorlagen = [];
 let openMaterialLists = {};
 let isAdminUser = false;
 let archivVisibleCount = 30;
@@ -501,6 +555,8 @@ function setLogsMenuVisibility(isAdmin){
 }
 
 const ARCHIV_CACHE_KEY = "archiv_snapshot_v1";
+const VORLAGEN_CACHE_KEY = "material_vorlagen_cache_v1";
+const VORLAGEN_CACHE_MAX_AGE_MS = 1000 * 60 * 60 * 6;
 
 function saveArchivCache(){
   try{
@@ -535,6 +591,83 @@ function loadArchivCache(){
   }catch(error){
     console.warn("Archiv-Cache konnte nicht geladen werden:", error);
   }
+}
+
+function getVorlagenFromCache(){
+  try{
+    const raw = localStorage.getItem(VORLAGEN_CACHE_KEY);
+    if(!raw){
+      return null;
+    }
+
+    const parsed = JSON.parse(raw);
+    if(!parsed || !Array.isArray(parsed.vorlagen)){
+      return null;
+    }
+
+    const age = Date.now() - Number(parsed.savedAt || 0);
+    if(age > VORLAGEN_CACHE_MAX_AGE_MS){
+      return null;
+    }
+
+    return parsed.vorlagen.map(v => ({
+      id: sanitizeInput(v.id || "", 160),
+      material: sanitizeInput(v.material || "", 120),
+      spontis: sanitizeInput(v.spontis || "", 60),
+      link: parseAndNormalizeUrl(v.link || "") || "",
+      barcode: sanitizeBarcodeValue(v.barcode || "")
+    })).filter(v => v.id);
+  }catch(error){
+    return null;
+  }
+}
+
+function saveVorlagenToCache(vorlagen){
+  try{
+    localStorage.setItem(VORLAGEN_CACHE_KEY, JSON.stringify({
+      savedAt: Date.now(),
+      vorlagen: (vorlagen || []).map(v => ({
+        id: sanitizeInput(v.id || "", 160),
+        material: sanitizeInput(v.material || "", 120),
+        spontis: sanitizeInput(v.spontis || "", 60),
+        link: parseAndNormalizeUrl(v.link || "") || "",
+        barcode: sanitizeBarcodeValue(v.barcode || "")
+      }))
+    }));
+  }catch(error){
+    console.warn("Vorlagen-Cache konnte nicht gespeichert werden:", error);
+  }
+}
+
+function setVorlagen(vorlagen){
+  alleVorlagen = Array.isArray(vorlagen) ? vorlagen : [];
+  renderArchiv();
+}
+
+function loadVorlagen(forceRefresh = false){
+  if(!forceRefresh){
+    const cachedVorlagen = getVorlagenFromCache();
+    if(cachedVorlagen && cachedVorlagen.length > 0){
+      setVorlagen(cachedVorlagen);
+    }
+  }
+
+  vorlagenCollection.get().then(snapshot => {
+    const loadedVorlagen = snapshot.docs.map(doc => {
+      const data = doc.data() || {};
+      return {
+        id: doc.id,
+        ...data,
+        link: parseAndNormalizeUrl(data.link || "") || "",
+        barcode: sanitizeBarcodeValue(data.barcode || "")
+      };
+    });
+
+    setVorlagen(loadedVorlagen);
+    saveVorlagenToCache(loadedVorlagen);
+  }).catch(error => {
+    console.error("Fehler Materialvorlagen:", error);
+  });
 }
 
 function getCurrentUserDisplayName(user){
@@ -576,6 +709,34 @@ function sanitizeInput(value, maxLength = 200){
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, maxLength);
+}
+
+function sanitizeBarcodeValue(value, maxLength = 80){
+  return String(value || "")
+    .replace(/\D/g, "")
+    .slice(0, maxLength);
+}
+
+function parseAndNormalizeUrl(rawValue){
+  const cleaned = sanitizeInput(rawValue || "", 600);
+  if(cleaned === ""){
+    return "";
+  }
+
+  let value = cleaned;
+  if(!/^https?:\/\//i.test(value)){
+    value = "https://" + value;
+  }
+
+  try{
+    const url = new URL(value);
+    if(url.protocol !== "http:" && url.protocol !== "https:"){
+      return null;
+    }
+    return url.toString();
+  }catch(error){
+    return null;
+  }
 }
 
 function escapeHtml(value){
@@ -797,6 +958,7 @@ auth.onAuthStateChanged((user) => {
 
 function startListeners(){
   loadArchivCache();
+  loadVorlagen();
 
   if(!unsubscribeBaustellen){
     unsubscribeBaustellen = baustellenCollection.onSnapshot(snapshot => {
@@ -862,8 +1024,9 @@ function baustellePasstZurSuche(baustelle){
     const material = String(m.material || "").toLowerCase();
     const anzahl = String(m.anzahl || "").toLowerCase();
     const spontis = String(m.spontis || "").toLowerCase();
+    const barcode = getVorlageBarcodeBySpontis(m.spontis || "").toLowerCase();
 
-    return material.includes(suchbegriff) || anzahl.includes(suchbegriff) || spontis.includes(suchbegriff);
+    return material.includes(suchbegriff) || anzahl.includes(suchbegriff) || spontis.includes(suchbegriff) || barcode.includes(suchbegriff);
   });
 
   return (
@@ -898,6 +1061,94 @@ function renderArchiv(){
   document.getElementById("resultInfo").innerText = "Archivierte Baustellen: " + sichtbareArchivierte.length + " von " + archivierte.length;
 }
 
+function getVorlageBarcodeBySpontis(spontisNummer){
+  const normalizedSpontis = sanitizeInput(spontisNummer || "", 60).toLowerCase();
+  if(normalizedSpontis === ""){
+    return "";
+  }
+
+  const vorlage = alleVorlagen.find(v => sanitizeInput(v.spontis || "", 60).toLowerCase() === normalizedSpontis);
+  return vorlage ? sanitizeBarcodeValue(vorlage.barcode || "") : "";
+}
+
+function getVorlageLinkBySpontis(spontisNummer){
+  const normalizedSpontis = sanitizeInput(spontisNummer || "", 60).toLowerCase();
+  if(normalizedSpontis === ""){
+    return "";
+  }
+
+  const vorlage = alleVorlagen.find(v => sanitizeInput(v.spontis || "", 60).toLowerCase() === normalizedSpontis);
+  return vorlage ? (parseAndNormalizeUrl(vorlage.link || "") || "") : "";
+}
+
+function createBarcodeSvgMarkup(barcodeValue){
+  const barcode = sanitizeBarcodeValue(barcodeValue || "");
+  if(barcode === ""){
+    return "";
+  }
+
+  if(typeof JsBarcode !== "function"){
+    return `<div class="barcode-number">${escapeHtml(barcode)}</div>`;
+  }
+
+  try{
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "barcode-svg");
+    JsBarcode(svg, barcode, {
+      format: "CODE128",
+      displayValue: false,
+      margin: 0,
+      width: 1.7,
+      height: 70
+    });
+    return svg.outerHTML;
+  }catch(error){
+    console.error("Barcode konnte nicht gerendert werden:", error);
+    return `<div class="barcode-number">${escapeHtml(barcode)}</div>`;
+  }
+}
+
+function renderBarcodeBlock(barcodeValue, label = "Barcode"){
+  const barcode = sanitizeBarcodeValue(barcodeValue || "");
+  if(barcode === ""){
+    return "";
+  }
+
+  return `
+    <div class="barcode-block">
+      <span class="barcode-label">${escapeHtml(label)}</span>
+      <div class="barcode-svg-wrap">${createBarcodeSvgMarkup(barcode)}</div>
+      <div class="barcode-number">${escapeHtml(barcode)}</div>
+    </div>
+  `;
+}
+
+function renderSpontisFeld(spontisNummer, link, darfKlicken){
+  const spontis = escapeHtml(spontisNummer || "");
+  const normalizedLink = parseAndNormalizeUrl(link || "");
+
+  if(!darfKlicken || !normalizedLink){
+    return spontis;
+  }
+
+  const encodedUrl = encodeURIComponent(normalizedLink);
+  return `<span class="spontis-link" onclick="openSpontisLink('${encodedUrl}')">${spontis}</span>`;
+}
+
+function openSpontisLink(encodedUrl){
+  if(!isAdminUser){
+    return;
+  }
+
+  const url = decodeURIComponent(encodedUrl || "");
+  const normalizedUrl = parseAndNormalizeUrl(url);
+  if(!normalizedUrl){
+    return;
+  }
+
+  window.open(normalizedUrl, "_blank", "noopener,noreferrer");
+}
+
 function createBaustelleCard(baustelle){
   const card = document.createElement("div");
   card.className = "baustelle-card";
@@ -916,7 +1167,8 @@ function createBaustelleCard(baustelle){
         <div class="material-item">
           <div class="material-row"><strong>Material:</strong> ${escapeHtml(m.material || "")}</div>
           <div class="material-row"><strong>Anzahl:</strong> ${escapeHtml(m.anzahl || "")}</div>
-          <div class="material-row"><strong>Spontis Nummer:</strong> ${escapeHtml(m.spontis || "")}</div>
+          <div class="material-row"><strong>Spontis Nummer:</strong> ${renderSpontisFeld(m.spontis || "", getVorlageLinkBySpontis(m.spontis || ""), isAdminUser)}</div>
+          ${renderBarcodeBlock(getVorlageBarcodeBySpontis(m.spontis || ""), "Barcode")}
         </div>
       `;
     });
@@ -976,7 +1228,7 @@ function printBaustelle(id){
   if(materialien.length === 0){
     materialRows = `
       <tr>
-        <td colspan="3" style="text-align:center;">Keine Materialdaten vorhanden</td>
+        <td colspan="4" style="text-align:center;">Keine Materialdaten vorhanden</td>
       </tr>
     `;
   }else{
@@ -986,6 +1238,7 @@ function printBaustelle(id){
           <td>${escapeHtml(m.material || "")}</td>
           <td>${escapeHtml(m.anzahl || "")}</td>
           <td>${escapeHtml(m.spontis || "")}</td>
+          <td>${renderBarcodeBlock(getVorlageBarcodeBySpontis(m.spontis || ""), "Barcode") || "-"}</td>
         </tr>
       `;
     });
@@ -1061,6 +1314,40 @@ function printBaustelle(id){
           background:#f0f0f0;
         }
 
+        .barcode-block{
+          padding:6px;
+          border:1px dashed #c9d2dc;
+          border-radius:8px;
+          background:#fff;
+        }
+
+        .barcode-label{
+          display:block;
+          font-size:11px;
+          font-weight:700;
+          color:#5b6570;
+          margin-bottom:6px;
+        }
+
+        .barcode-svg-wrap{
+          display:flex;
+          justify-content:center;
+        }
+
+        .barcode-svg{
+          width:100%;
+          max-width:220px;
+          height:60px;
+        }
+
+        .barcode-number{
+          margin-top:6px;
+          font-size:12px;
+          text-align:center;
+          letter-spacing:0.08em;
+          word-break:break-all;
+        }
+
         .footer{
           margin-top:35px;
           font-size:12px;
@@ -1098,6 +1385,7 @@ function printBaustelle(id){
             <th>Material</th>
             <th>Anzahl</th>
             <th>Spontis Nummer</th>
+            <th>Barcode</th>
           </tr>
         </thead>
         <tbody>
