@@ -796,6 +796,10 @@ label{
     <i class="fa-solid fa-clipboard-list"></i> Logs
   </button>
 
+  <button id="gespartMenuButton" onclick="goToGespart()" data-page="gespart" style="display:none;">
+    <i class="fa-solid fa-piggy-bank"></i> Kosten gespart
+  </button>
+
   <button onclick="goToProfile()">
     <i class="fa-solid fa-user"></i> Profil
   </button>
@@ -1041,6 +1045,8 @@ const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "3Jm2fQfSnOhLF50WoeePNQg0ZFf
 const LIMITED_ACCESS_UIDS = ["h8VfDCJ3eTb5GOwjgBzHVck3TEB3", "BVBSpAYOGaWKptCrQ81h8UtW13n2", "UIAvOHFf8QgqJ7UWkPV7CpV88512"];
 const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
 const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
+const SPECIAL_SAVINGS_UID = "3Jm2fQfSnOhLF50WoeePNQg0ZFf2";
+const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
 
 let unsubscribeBaustellen = null;
 let unsubscribeMaterial = null;
@@ -1097,6 +1103,7 @@ function syncUsernameFromFirestore(user){
 function setAdminMenuVisibility(isAdmin){
   const archivButton = document.getElementById("archivMenuButton");
   const logsButton = document.getElementById("logsMenuButton");
+  const gespartButton = document.getElementById("gespartMenuButton");
 
   if(archivButton){
     archivButton.style.display = isAdmin ? "inline-flex" : "none";
@@ -1104,6 +1111,11 @@ function setAdminMenuVisibility(isAdmin){
 
   if(logsButton){
     logsButton.style.display = isAdmin ? "inline-flex" : "none";
+  }
+
+  if(gespartButton){
+    const user = auth.currentUser;
+    gespartButton.style.display = user && canAccessSavingsPage(user.uid) ? "inline-flex" : "none";
   }
 }
 
@@ -1243,6 +1255,7 @@ function writeLog(bereich, aktion, objektTyp, objektId, details){
     aktion: aktion,
     objektTyp: objektTyp,
     objektId: objektId || "",
+    benutzerName: getCurrentUserDisplayName(user),
     benutzerEmail: user && user.email ? user.email : "",
     benutzerUid: user && user.uid ? user.uid : "",
     details: details || "",
@@ -1359,6 +1372,18 @@ function goToLogs(){
   window.location.href = "logs.html";
 }
 
+
+function goToGespart(){
+  const user = auth.currentUser;
+  if(!user || !canAccessSavingsPage(user.uid)){
+    closeMenu();
+    alert("Diese Seite ist nur für den freigegebenen Benutzer sichtbar.");
+    return;
+  }
+
+  closeMenu();
+  window.location.href = "gespart.html";
+}
 
 function goToProfile(){
   closeMenu();
@@ -2884,7 +2909,10 @@ function deleteMaterial(id){
         "Material gelöscht",
         "material",
         id,
-        "Material: " + (m.material || "") +
+        "Baustelle: " + (baustelle ? (baustelle.name || "") : "") +
+        " | Baustellen Nummer: " + (baustelle ? (baustelle.nummer || "") : "") +
+        " | Baustellen Status: " + (baustelle ? getStatusLabel(baustelle.status || "") : "") +
+        " | Material: " + (m.material || "") +
         " | Anzahl: " + (m.anzahl || "") +
         " | Spontis Nummer: " + (m.spontis || "")
       );
@@ -2942,6 +2970,8 @@ function markActiveMenu(){
   }
   else if(path.includes("baustellen")){
     currentPage = "baustellen";
+  }else if(path.includes("gespart")){
+    currentPage = "gespart";
   }
   else if(path.includes("archiv")){
     currentPage = "archiv";
