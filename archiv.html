@@ -363,6 +363,23 @@ input{
     min-width:240px;
   }
 }
+
+.app-footer{
+  margin:32px auto 0;
+  max-width:1100px;
+  padding:14px 18px;
+  text-align:center;
+  color:#5b6570;
+  font-size:14px;
+}
+
+@media (max-width: 680px){
+  .app-footer{
+    margin-top:24px;
+    padding:12px 10px;
+    font-size:13px;
+  }
+}
 </style>
 </head>
 <body>
@@ -1024,7 +1041,7 @@ function printBaustelle(id){
             margin:18mm;
           }
         }
-      </style>
+</style>
     </head>
     <body>
       <div class="print-header">
@@ -1056,7 +1073,8 @@ function printBaustelle(id){
       </table>
 
       <div class="footer">
-        Ausdruck erstellt am: ${escapeHtml(new Date().toLocaleString("de-CH"))}
+        Ausdruck erstellt am: ${escapeHtml(new Date().toLocaleString("de-CH"))}<br>
+        © 2026 Martin Gross. Alle Rechte vorbehalten.
       </div>
     </body>
     </html>
@@ -1140,5 +1158,7 @@ function deleteBaustelle(id){
 }
 </script>
 
+
+  <footer class="app-footer">© 2026 Martin Gross. Alle Rechte vorbehalten.</footer>
 </body>
 </html>
