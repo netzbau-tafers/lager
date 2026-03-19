@@ -978,7 +978,9 @@ const logsCollection = db.collection("logs");
 const usersCollection = db.collection("users");
 
 const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "3Jm2fQfSnOhLF50WoeePNQg0ZFf2"];
+const LIMITED_ACCESS_UIDS = ["h8VfDCJ3eTb5GOwjgBzHVck3TEB3", "BVBSpAYOGaWKptCrQ81h8UtW13n2", "UIAvOHFf8QgqJ7UWkPV7CpV88512"];
 const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
+const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
 
 let unsubscribeBaustellen = null;
 let unsubscribeMaterial = null;
@@ -1434,6 +1436,13 @@ function stopListeners(){
 
 auth.onAuthStateChanged((user) => {
   if(user){
+    if(hasLimitedAccess(user.uid)){
+      closeMenu();
+      alert("Du hast nur Zugriff auf Startseite, Kabellager, Mast Runner und Profil.");
+      window.location.href = "home.html";
+      return;
+    }
+
     isAdminUser = isAdminUid(user.uid);
     setAdminMenuVisibility(isAdminUser);
     document.getElementById("loginScreen").style.display = "none";

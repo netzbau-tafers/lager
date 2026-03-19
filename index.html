@@ -981,7 +981,7 @@ textarea{
           <i class="fa-solid fa-warehouse"></i> Kabellager
         </button>
 
-        <button onclick="goToBaustellenmaterial()" data-page="baustellen">
+        <button id="baustellenMenuButton" onclick="goToBaustellenmaterial()" data-page="baustellen">
           <i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial
         </button>
 
@@ -1263,7 +1263,9 @@ const bobinenCollection = db.collection("bobinen");
 const logsCollection = db.collection("logs");
 const usersCollection = db.collection("users");
 const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "3Jm2fQfSnOhLF50WoeePNQg0ZFf2"];
+const LIMITED_ACCESS_UIDS = ["h8VfDCJ3eTb5GOwjgBzHVck3TEB3", "BVBSpAYOGaWKptCrQ81h8UtW13n2", "UIAvOHFf8QgqJ7UWkPV7CpV88512"];
 const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
+const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
 
 const PREDEFINED_KABELTYPEN = [
   "GKN 3x6/6mm² Cu",
@@ -1336,16 +1338,23 @@ function syncUsernameFromFirestore(user){
     });
 }
 
-function setAdminMenuVisibility(isAdminUser){
+function setNavigationVisibility(user){
+  const isAdminUser = !!(user && isAdminUid(user.uid));
+  const isLimitedUser = !!(user && hasLimitedAccess(user.uid));
   const archivButton = document.getElementById("archivMenuButton");
   const logsButton = document.getElementById("logsMenuButton");
+  const baustellenButton = document.getElementById("baustellenMenuButton");
 
   if(archivButton){
-    archivButton.style.display = isAdminUser ? "inline-flex" : "none";
+    archivButton.style.display = isAdminUser && !isLimitedUser ? "inline-flex" : "none";
   }
 
   if(logsButton){
-    logsButton.style.display = isAdminUser ? "inline-flex" : "none";
+    logsButton.style.display = isAdminUser && !isLimitedUser ? "inline-flex" : "none";
+  }
+
+  if(baustellenButton){
+    baustellenButton.style.display = isLimitedUser ? "none" : "inline-flex";
   }
 }
 
@@ -1923,6 +1932,13 @@ function closeMenu(){
 }
 
 function goToBaustellenmaterial(){
+  const user = auth.currentUser;
+  if(user && hasLimitedAccess(user.uid)){
+    closeMenu();
+    alert("Du hast nur Zugriff auf Startseite, Kabellager, Mast Runner und Profil.");
+    return;
+  }
+
   closeMenu();
   window.location.href = "baustellen.html";
 }
@@ -2144,12 +2160,12 @@ function stopListeners(){
 auth.onAuthStateChanged((user) => {
   if(user){
     syncUsernameFromFirestore(user);
-    setAdminMenuVisibility(isAdminUid(user.uid));
+    setNavigationVisibility(user);
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
     startDatabaseListener();
   }else{
-    setAdminMenuVisibility(false);
+    setNavigationVisibility(null);
     stopListeners();
     closeMenu();
     closeAllRowMenus();
