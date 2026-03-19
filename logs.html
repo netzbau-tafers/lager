@@ -488,8 +488,6 @@ let logsVisibleCount = 30;
 const LOGS_PAGE_SIZE = 30;
 
 const LOGS_CACHE_KEY = "logs_snapshot_v1";
-const LOGS_RETENTION_DAYS = 1460;
-const MILLIS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function saveLogsCache(){
   try{
@@ -831,7 +829,6 @@ auth.onAuthStateChanged((user) => {
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
     loadLogsCache();
-    cleanupOldLogs();
     startLogsListener();
   }else{
     isAdminUser = false;
@@ -840,33 +837,6 @@ auth.onAuthStateChanged((user) => {
     window.location.href = "home.html";
   }
 });
-
-function cleanupOldLogs(){
-  if(!isAdminUser){
-    return;
-  }
-
-  const cutoffMs = Date.now() - (LOGS_RETENTION_DAYS * MILLIS_PER_DAY);
-
-  logsCollection
-    .where("createdAt", "<", new Date(cutoffMs))
-    .get()
-    .then(snapshot => {
-      if(snapshot.empty){
-        return;
-      }
-
-      const writes = [];
-      snapshot.forEach(doc => {
-        writes.push(logsCollection.doc(doc.id).delete());
-      });
-
-      return Promise.all(writes);
-    })
-    .catch(error => {
-      console.error("Fehler beim Löschen alter Logs:", error);
-    });
-}
 
 function startLogsListener(){
   if(unsubscribeLogs){
