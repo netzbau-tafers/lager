@@ -673,14 +673,28 @@ textarea{
 
 @media (min-width: 901px){
   .desktop-nummer-cell{
-    display:inline-flex;
+    display:inline-grid;
+    grid-template-columns:48px auto;
     align-items:center;
-    gap:8px;
+    column-gap:10px;
+    width:100%;
+  }
+
+  .desktop-nummer-value{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    width:48px;
+  }
+
+  .desktop-nummer-cell .bobinen-badges{
+    justify-content:flex-start;
   }
 
   table th:first-child,
   table td:first-child{
-    min-width:220px;
+    min-width:250px;
   }
 }
 
@@ -2198,7 +2212,7 @@ function renderDesktopTable(data){
     mainRow.className = "main-row " + statusClass + reserviertClass;
 
     mainRow.innerHTML = `
-      <td><div class="desktop-nummer-cell">${escapeHtml(b.nummer || "")}${bobinenBadge}</div></td>
+      <td><div class="desktop-nummer-cell"><span class="desktop-nummer-value">${escapeHtml(b.nummer || "")}</span>${bobinenBadge}</div></td>
       <td>${escapeHtml(b.typ || "")}</td>
       <td>${escapeHtml(b.laenge || "")}</td>
       <td>${escapeHtml(b.baustelle || "")}</td>
