@@ -268,7 +268,7 @@ button:hover{
           <i class="fa-solid fa-warehouse"></i> Kabellager
         </button>
 
-        <button onclick="goToBaustellen()" data-page="baustellen">
+        <button id="baustellenMenuButton" onclick="goToBaustellen()" data-page="baustellen">
           <i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial
         </button>
 
@@ -295,7 +295,7 @@ button:hover{
       <a href="index.html" class="hero-link">
         <button><i class="fa-solid fa-warehouse"></i>Kabellager</button>
       </a>
-      <a href="baustellen.html" class="hero-link">
+      <a id="baustellenHeroLink" href="baustellen.html" class="hero-link">
         <button><i class="fa-solid fa-screwdriver-wrench"></i>Baustellenmaterial</button>
       </a>
     </div>
@@ -321,19 +321,33 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "3Jm2fQfSnOhLF50WoeePNQg0ZFf2"];
+const LIMITED_ACCESS_UIDS = ["h8VfDCJ3eTb5GOwjgBzHVck3TEB3", "BVBSpAYOGaWKptCrQ81h8UtW13n2", "UIAvOHFf8QgqJ7UWkPV7CpV88512"];
 const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
+const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
 
 
-function setAdminMenuVisibility(isAdminUser){
+function setNavigationVisibility(user){
+  const isAdminUser = !!(user && isAdminUid(user.uid));
+  const isLimitedUser = !!(user && hasLimitedAccess(user.uid));
   const archivButton = document.getElementById("archivMenuButton");
   const logsButton = document.getElementById("logsMenuButton");
+  const baustellenButton = document.getElementById("baustellenMenuButton");
+  const baustellenHeroLink = document.getElementById("baustellenHeroLink");
 
   if(archivButton){
-    archivButton.style.display = isAdminUser ? "inline-flex" : "none";
+    archivButton.style.display = isAdminUser && !isLimitedUser ? "inline-flex" : "none";
   }
 
   if(logsButton){
-    logsButton.style.display = isAdminUser ? "inline-flex" : "none";
+    logsButton.style.display = isAdminUser && !isLimitedUser ? "inline-flex" : "none";
+  }
+
+  if(baustellenButton){
+    baustellenButton.style.display = isLimitedUser ? "none" : "inline-flex";
+  }
+
+  if(baustellenHeroLink){
+    baustellenHeroLink.style.display = isLimitedUser ? "none" : "inline-flex";
   }
 }
 
@@ -354,6 +368,13 @@ function goToKabellager(){
 }
 
 function goToBaustellen(){
+  const user = auth.currentUser;
+  if(user && hasLimitedAccess(user.uid)){
+    closeMenu();
+    alert("Du hast nur Zugriff auf Startseite, Kabellager, Mast Runner und Profil.");
+    return;
+  }
+
   closeMenu();
   window.location.href = "baustellen.html";
 }
@@ -476,11 +497,11 @@ document.addEventListener("DOMContentLoaded", markActiveMenu);
 
 auth.onAuthStateChanged((user) => {
   if(user){
-    setAdminMenuVisibility(isAdminUid(user.uid));
+    setNavigationVisibility(user);
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
   }else{
-    setAdminMenuVisibility(false);
+    setNavigationVisibility(null);
     closeMenu();
     document.getElementById("loginScreen").style.display = "flex";
     document.getElementById("appContent").style.display = "none";
