@@ -398,6 +398,10 @@ input, select{
     <i class="fa-solid fa-warehouse"></i> Kabellager
   </button>
 
+  <button onclick="goToKabelReport()" data-page="kabelreport">
+    <i class="fa-solid fa-chart-column"></i> Kabel Report
+  </button>
+
   <button onclick="goToBaustellen()" data-page="baustellen">
     <i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial
   </button>
@@ -484,7 +488,7 @@ let logsVisibleCount = 30;
 const LOGS_PAGE_SIZE = 30;
 
 const LOGS_CACHE_KEY = "logs_snapshot_v1";
-const LOGS_RETENTION_DAYS = 14;
+const LOGS_RETENTION_DAYS = 1460;
 const MILLIS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function saveLogsCache(){
@@ -630,6 +634,11 @@ function goToGespart(){
   window.location.href = "gespart.html";
 }
 
+function goToKabelReport(){
+  closeMenu();
+  window.location.href = "kabel-report.html";
+}
+
 function goToProfile(){
   closeMenu();
   window.location.href = "profil.html";
@@ -713,6 +722,8 @@ function markActiveMenu(){
     currentPage = "baustellen";
   }else if(path.includes("archiv")){
     currentPage = "archiv";
+  }else if(path.includes("kabel-report")){
+    currentPage = "kabelreport";
   }else if(path.includes("logs")){
     currentPage = "logs";
   }else if(path.includes("gespart")){
