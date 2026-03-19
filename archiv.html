@@ -460,7 +460,8 @@ const auth = firebase.auth();
 const baustellenCollection = db.collection("baustellen");
 const materialCollection = db.collection("baustellen_material");
 
-const ADMIN_UID = "smnnQd4RhEQZR3uuNN0otNALUqi1";
+const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "3Jm2fQfSnOhLF50WoeePNQg0ZFf2"];
+const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
 
 let unsubscribeBaustellen = null;
 let unsubscribeMaterial = null;
@@ -714,7 +715,7 @@ function stopListeners(){
 
 auth.onAuthStateChanged((user) => {
   if(user){
-    isAdminUser = user.uid === ADMIN_UID;
+    isAdminUser = isAdminUid(user.uid);
     setLogsMenuVisibility(isAdminUser);
 
     if(!isAdminUser){

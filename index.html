@@ -1262,7 +1262,8 @@ const auth = firebase.auth();
 const bobinenCollection = db.collection("bobinen");
 const logsCollection = db.collection("logs");
 const usersCollection = db.collection("users");
-const ADMIN_UID = "smnnQd4RhEQZR3uuNN0otNALUqi1";
+const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "3Jm2fQfSnOhLF50WoeePNQg0ZFf2"];
+const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
 
 const PREDEFINED_KABELTYPEN = [
   "GKN 3x6/6mm² Cu",
@@ -1933,7 +1934,7 @@ function goToHome(){
 
 function goToArchiv(){
   const user = auth.currentUser;
-  if(!user || user.uid !== ADMIN_UID){
+  if(!user || !isAdminUid(user.uid)){
     closeMenu();
     alert("Archiv ist nur für Administratoren sichtbar.");
     return;
@@ -1945,7 +1946,7 @@ function goToArchiv(){
 
 function goToLogs(){
   const user = auth.currentUser;
-  if(!user || user.uid !== ADMIN_UID){
+  if(!user || !isAdminUid(user.uid)){
     closeMenu();
     alert("Logs sind nur für Administratoren sichtbar.");
     return;
@@ -2143,7 +2144,7 @@ function stopListeners(){
 auth.onAuthStateChanged((user) => {
   if(user){
     syncUsernameFromFirestore(user);
-    setAdminMenuVisibility(user.uid === ADMIN_UID);
+    setAdminMenuVisibility(isAdminUid(user.uid));
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
     startDatabaseListener();
