@@ -50,11 +50,13 @@ body{
   font-family:Arial, sans-serif;
   background:radial-gradient(circle at 20% 10%, var(--bg-1) 0%, var(--bg-2) 45%, var(--bg-3) 100%);
   color:var(--text);
-  display:flex;
-  justify-content:center;
-  align-items:center;
   min-height:100vh;
+  min-height:100dvh;
   padding:18px;
+  padding-left:max(18px, env(safe-area-inset-left));
+  padding-right:max(18px, env(safe-area-inset-right));
+  padding-top:max(18px, env(safe-area-inset-top));
+  padding-bottom:max(18px, env(safe-area-inset-bottom));
 }
 
 body.auth-loading .game-wrap{
@@ -62,7 +64,8 @@ body.auth-loading .game-wrap{
 }
 
 .game-wrap{
-  width:min(1100px, 98vw);
+  width:min(1100px, 100%);
+  margin:0 auto;
   background:var(--card);
   border:1px solid var(--border);
   border-radius:var(--radius);
@@ -345,7 +348,10 @@ canvas{
 @media (max-width: 900px){
   body{
     padding:10px;
-    align-items:flex-start;
+    padding-left:max(10px, env(safe-area-inset-left));
+    padding-right:max(10px, env(safe-area-inset-right));
+    padding-top:max(10px, env(safe-area-inset-top));
+    padding-bottom:max(10px, env(safe-area-inset-bottom));
   }
 
   .game-wrap{
@@ -364,16 +370,25 @@ canvas{
 @media (max-width: 700px){
   body{
     padding:0;
-    align-items:flex-start;
     background:#eef3f8;
   }
 
   .game-wrap{
-    width:100vw;
+    width:100%;
     min-height:100vh;
+    min-height:100dvh;
     border-radius:0;
     border:none;
     box-shadow:none;
+  }
+
+  .canvas-wrap{
+    display:flex;
+    justify-content:center;
+  }
+
+  canvas{
+    max-width:100%;
   }
 
   .topbar{
