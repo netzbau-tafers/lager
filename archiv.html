@@ -469,6 +469,10 @@ input{
     <i class="fa-solid fa-warehouse"></i> Kabellager
   </button>
 
+  <button onclick="goToKabelReport()" data-page="kabelreport">
+    <i class="fa-solid fa-chart-column"></i> Kabel Report
+  </button>
+
   <button onclick="goToBaustellen()" data-page="baustellen">
     <i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial
   </button>
@@ -859,6 +863,11 @@ function goToGespart(){
 
   closeMenu();
   window.location.href = "gespart.html";
+}
+
+function goToKabelReport(){
+  closeMenu();
+  window.location.href = "kabel-report.html";
 }
 
 function goToProfile(){
@@ -1445,6 +1454,8 @@ function markActiveMenu(){
     currentPage = "baustellen";
   }else if(path.includes("archiv")){
     currentPage = "archiv";
+  }else if(path.includes("kabel-report")){
+    currentPage = "kabelreport";
   }else if(path.includes("logs")){
     currentPage = "logs";
   }else if(path.includes("gespart")){

@@ -466,6 +466,7 @@ label{
       <div id="dropdownMenu" class="dropdown-menu">
         <button onclick="goToHome()" data-page="home"><i class="fa-solid fa-house"></i> Startseite</button>
         <button onclick="goToKabellager()" data-page="index"><i class="fa-solid fa-warehouse"></i> Kabellager</button>
+        <button onclick="goToKabelReport()" data-page="kabelreport"><i class="fa-solid fa-chart-column"></i> Kabel Report</button>
         <button onclick="goToBaustellen()" data-page="baustellen"><i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial</button>
         <button onclick="goToArchiv()" data-page="archiv"><i class="fa-solid fa-box-archive"></i> Archiv</button>
         <button onclick="goToLogs()" data-page="logs"><i class="fa-solid fa-clipboard-list"></i> Logs</button>
@@ -1389,6 +1390,11 @@ function goToArchiv(){
 function goToLogs(){
   closeMenu();
   window.location.href = "logs.html";
+}
+
+function goToKabelReport(){
+  closeMenu();
+  window.location.href = "kabel-report.html";
 }
 
 function goToProfile(){

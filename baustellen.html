@@ -784,6 +784,10 @@ label{
     <i class="fa-solid fa-warehouse"></i> Kabellager
   </button>
 
+  <button onclick="goToKabelReport()" data-page="kabelreport">
+    <i class="fa-solid fa-chart-column"></i> Kabel Report
+  </button>
+
   <button onclick="closeMenu()" data-page="baustellen">
     <i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial
   </button>
@@ -1383,6 +1387,11 @@ function goToGespart(){
 
   closeMenu();
   window.location.href = "gespart.html";
+}
+
+function goToKabelReport(){
+  closeMenu();
+  window.location.href = "kabel-report.html";
 }
 
 function goToProfile(){

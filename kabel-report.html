@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kabel Report</title>
+
+<link rel="icon" type="image/png" sizes="any" href="favicon.png">
+<link rel="shortcut icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" sizes="180x180" href="favicon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#e6eaef">
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+body{
+  font-family:Arial, sans-serif;
+  background:#e6eaef;
+  margin:40px;
+  color:#222;
+}
+
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:25px;
+  gap:15px;
+}
+
+.header h1{
+  margin:0;
+}
+
+.menu-wrap{
+  position:relative;
+}
+
+.menu-button{
+  background:#555;
+  color:white;
+  border:none;
+  border-radius:10px;
+  padding:11px 15px;
+  font-size:20px;
+  line-height:1;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:48px;
+  min-height:44px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.10);
+  transition:background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.menu-button:hover{
+  background:#333;
+  transform:translateY(-1px);
+  box-shadow:0 4px 10px rgba(0,0,0,0.14);
+}
+
+.active-page{
+  background:#e0e0e0 !important;
+  color:#333 !important;
+  cursor:default;
+}
+
+.dropdown-menu{
+  display:none;
+  position:absolute;
+  top:52px;
+  right:0;
+  min-width:240px;
+  background:white;
+  border:1px solid #ccc;
+  border-radius:12px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.12);
+  padding:8px;
+  z-index:3000;
+}
+
+.dropdown-menu.open{
+  display:block;
+}
+
+.dropdown-menu button{
+  width:100%;
+  text-align:left;
+  margin:0 0 8px 0;
+}
+
+.dropdown-menu button:last-child{
+  margin-bottom:0;
+}
+
+button{
+  padding:10px 14px;
+  cursor:pointer;
+  border:none;
+  border-radius:8px;
+  background:#3498db;
+  color:white;
+  margin:2px;
+  font-size:14px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);
+  transition:background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+button:hover{
+  background:#2980b9;
+  transform:translateY(-1px);
+  box-shadow:0 4px 10px rgba(0,0,0,0.12);
+}
+
+button i{
+  font-size:14px;
+}
+
+.logout-safe{
+  background:#777;
+}
+
+.logout-safe:hover{
+  background:#555;
+}
+
+.secondary-btn{
+  background:#5c6f82;
+}
+
+.secondary-btn:hover{
+  background:#495968;
+}
+
+.filters-box,
+.info-panel,
+.table-card,
+.month-card,
+.empty-box,
+.summary-card{
+  background:white;
+  border:1px solid #d7dde4;
+  border-radius:14px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.06);
+}
+
+.filters-box,
+.info-panel,
+.table-card,
+.empty-box{
+  padding:18px;
+}
+
+.filters-box{
+  margin-bottom:18px;
+}
+
+.filters-title{
+  font-weight:bold;
+  margin-bottom:12px;
+}
+
+.filters-grid{
+  display:grid;
+  grid-template-columns:220px 1fr auto;
+  gap:12px;
+  align-items:end;
+}
+
+input,
+select{
+  width:100%;
+  padding:10px;
+  margin:0;
+  box-sizing:border-box;
+  border:1px solid #ccc;
+  border-radius:8px;
+  font-size:15px;
+  background:white;
+}
+
+label{
+  display:block;
+  font-size:14px;
+  font-weight:bold;
+  margin-bottom:6px;
+}
+
+.info-panel{
+  margin-bottom:18px;
+  color:#43505c;
+  line-height:1.5;
+}
+
+.warning-panel{
+  background:#fff6d9;
+  border:1px solid #ebd38e;
+  color:#775c00;
+}
+
+.error-panel{
+  background:#ffe5e1;
+  border:1px solid #efb3aa;
+  color:#8a2f20;
+}
+
+.summary-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+  gap:16px;
+  margin-bottom:20px;
+}
+
+.summary-card{
+  padding:18px;
+}
+
+.summary-label{
+  color:#5b6570;
+  font-size:14px;
+  margin-bottom:10px;
+}
+
+.summary-value{
+  font-size:30px;
+  font-weight:bold;
+  color:#1c2f41;
+}
+
+.summary-sub{
+  margin-top:8px;
+  font-size:13px;
+  color:#61707d;
+}
+
+.section-title{
+  margin:26px 0 14px 0;
+  font-size:22px;
+}
+
+.table-card{
+  overflow:auto;
+}
+
+.table-meta{
+  color:#5c6874;
+  font-size:14px;
+  margin:0 0 12px 0;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+th,
+td{
+  padding:12px 10px;
+  border-bottom:1px solid #e7ecf1;
+  text-align:left;
+  vertical-align:top;
+}
+
+th{
+  background:#f4f7fa;
+  position:sticky;
+  top:0;
+  z-index:1;
+}
+
+tr.total-row td{
+  font-weight:bold;
+  background:#f8fbfd;
+}
+
+.number-cell{
+  text-align:right;
+  white-space:nowrap;
+}
+
+.months-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));
+  gap:16px;
+}
+
+.month-card{
+  padding:18px;
+}
+
+.month-title{
+  margin:0 0 10px 0;
+  font-size:20px;
+}
+
+.month-total{
+  margin:0 0 12px 0;
+  color:#4b5965;
+  font-size:14px;
+}
+
+.month-table th,
+.month-table td{
+  padding:8px 6px;
+  font-size:14px;
+}
+
+.small-muted{
+  color:#65717d;
+  font-size:13px;
+}
+
+.empty-box{
+  text-align:center;
+  color:#687480;
+}
+
+.login-screen{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:#f2f4f7;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:3000;
+  padding:20px;
+  box-sizing:border-box;
+}
+
+.login-card{
+  background:white;
+  width:420px;
+  max-width:95%;
+  padding:25px;
+  border-radius:12px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.2);
+  box-sizing:border-box;
+}
+
+.login-card h2{
+  margin-top:0;
+  text-align:center;
+}
+
+.login-info{
+  color:#555;
+  font-size:14px;
+  text-align:center;
+  margin-bottom:15px;
+}
+
+.login-error{
+  color:#c0392b;
+  display:none;
+  margin-top:10px;
+  text-align:center;
+}
+
+.app-footer{
+  margin:32px auto 0;
+  max-width:1200px;
+  padding:14px 18px;
+  text-align:center;
+  color:#5b6570;
+  font-size:14px;
+}
+
+@media (max-width: 900px){
+  body{
+    margin:15px;
+  }
+
+  .filters-grid{
+    grid-template-columns:1fr;
+  }
+
+  button{
+    font-size:16px;
+    padding:12px 16px;
+  }
+
+  .menu-button{
+    font-size:22px;
+    padding:12px 16px;
+  }
+}
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <h2>Login Kabel Report</h2>
+    <div class="login-info">Bitte mit E-Mail und Passwort anmelden</div>
+    <input id="loginEmail" type="email" placeholder="E-Mail" maxlength="120" autocomplete="username">
+    <div style="position:relative; margin-top:10px;">
+      <input id="loginPassword" type="password" placeholder="Passwort" maxlength="120" autocomplete="current-password" style="margin:0; padding-right:44px;">
+      <button type="button" onclick="toggleLoginPasswordVisibility()" aria-label="Passwort anzeigen oder ausblenden" title="Passwort anzeigen oder ausblenden" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:transparent; color:#666; box-shadow:none; padding:6px; margin:0; min-width:auto;">
+        <i id="loginPasswordToggleIcon" class="fa-regular fa-eye"></i>
+      </button>
+    </div>
+    <button onclick="login()"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
+    <p id="loginError" class="login-error">Login fehlgeschlagen. Bitte Daten prüfen.</p>
+  </div>
+</div>
+
+<div id="appContent" style="display:none;">
+  <div class="header">
+    <h1>Kabel Report</h1>
+
+    <div class="menu-wrap">
+      <button class="menu-button" onclick="toggleMenu(event)" title="Menü öffnen">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+
+      <div id="dropdownMenu" class="dropdown-menu">
+        <button onclick="goToHome()" data-page="home">
+          <i class="fa-solid fa-house"></i> Startseite
+        </button>
+
+        <button onclick="goToKabellager()" data-page="index">
+          <i class="fa-solid fa-warehouse"></i> Kabellager
+        </button>
+
+        <button onclick="closeMenu()" data-page="kabelreport">
+          <i class="fa-solid fa-chart-column"></i> Kabel Report
+        </button>
+
+        <button id="baustellenMenuButton" onclick="goToBaustellenmaterial()" data-page="baustellen">
+          <i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial
+        </button>
+
+        <button id="archivMenuButton" onclick="goToArchiv()" data-page="archiv" style="display:none;">
+          <i class="fa-solid fa-box-archive"></i> Archiv
+        </button>
+
+        <button id="logsMenuButton" onclick="goToLogs()" data-page="logs" style="display:none;">
+          <i class="fa-solid fa-clipboard-list"></i> Logs
+        </button>
+
+        <button id="gespartMenuButton" onclick="goToGespart()" data-page="gespart" style="display:none;">
+          <i class="fa-solid fa-piggy-bank"></i> Kosten gespart
+        </button>
+
+        <button onclick="goToProfile()">
+          <i class="fa-solid fa-user"></i> Profil
+        </button>
+        <button class="logout-safe" onclick="logout()">
+          <i class="fa-solid fa-right-from-bracket"></i> Logout
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="filters-box">
+    <div class="filters-title">Auswertung 01.01 bis 31.12</div>
+    <div class="filters-grid">
+      <div>
+        <label for="yearFilter">Jahr</label>
+        <select id="yearFilter" onchange="renderReport()"></select>
+      </div>
+      <div>
+        <label for="typeSearch">Kabeltyp filtern</label>
+        <input id="typeSearch" type="text" placeholder="z. B. GKN, XKDT oder TT" maxlength="120" oninput="renderReport()">
+      </div>
+      <div>
+        <button class="secondary-btn" onclick="resetFilters()"><i class="fa-solid fa-rotate-left"></i> Filter zurücksetzen</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-panel">
+    Der Report zählt alle eingezogenen Meter aus den verfügbaren Kabellager-Logs zusammen. Rückbuchungen werden aus der Differenz zwischen vorheriger Länge und neuer Länge gerechnet. Vollständig gelöschte Bobinen werden zusätzlich mit ihrer gelöschten Länge gezählt, damit die im Boden liegenden Meter ebenfalls im Report erscheinen.
+  </div>
+
+  <div id="reportNotice" class="info-panel warning-panel" style="display:none;"></div>
+  <div id="reportError" class="info-panel error-panel" style="display:none;"></div>
+
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="summary-label">Total eingezogene Meter</div>
+      <div id="summaryTotal" class="summary-value">0 m</div>
+      <div id="summaryBookings" class="summary-sub">0 Buchungen</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Kabeltypen mit Einzug</div>
+      <div id="summaryTypes" class="summary-value">0</div>
+      <div class="summary-sub">Typen mit mindestens 1 m im gewählten Jahr</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Rückbuchungen</div>
+      <div id="summaryReturns" class="summary-value">0</div>
+      <div class="summary-sub">Differenzen aus manueller Länge oder Nummern-Erfassung</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Komplett gelöscht</div>
+      <div id="summaryDeletes" class="summary-value">0</div>
+      <div class="summary-sub">Gelöschte Bobinen, die ebenfalls zum Report zählen</div>
+    </div>
+  </div>
+
+  <h2 class="section-title">Jahresübersicht nach Kabeltyp</h2>
+  <div class="table-card">
+    <p id="annualMeta" class="table-meta"></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Kabeltyp</th>
+          <th class="number-cell">Meter</th>
+          <th class="number-cell">Anteil</th>
+          <th class="number-cell">Buchungen</th>
+        </tr>
+      </thead>
+      <tbody id="annualTableBody"></tbody>
+    </table>
+  </div>
+
+  <h2 class="section-title">Monatsübersicht</h2>
+  <div id="monthsContainer" class="months-grid"></div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",
+  authDomain: "netzbau-tafers.firebaseapp.com",
+  projectId: "netzbau-tafers",
+  storageBucket: "netzbau-tafers.appspot.com",
+  messagingSenderId: "389541837675",
+  appId: "1:389541837675:web:db580ce67c57a9a16dea2e",
+  measurementId: "G-B5MJGD3108"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+const logsCollection = db.collection("logs");
+const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "3Jm2fQfSnOhLF50WoeePNQg0ZFf2", "Q33pfDjhxyQcmlnZjrq8tekvioB2", "hwZEme8xvkasSAGrmOtQRLOnnXn1", "PKDpb7Cb7ig8ZKZRMm23FOKnCHQ2", "T05YzzSRN2aUMkTTwGB2N1OqPgA2"];
+const LIMITED_ACCESS_UIDS = ["h8VfDCJ3eTb5GOwjgBzHVck3TEB3", "BVBSpAYOGaWKptCrQ81h8UtW13n2", "UIAvOHFf8QgqJ7UWkPV7CpV88512"];
+const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
+const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
+const SPECIAL_SAVINGS_UID = "3Jm2fQfSnOhLF50WoeePNQg0ZFf2";
+const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
+const MONTH_NAMES = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+
+let unsubscribeLogs = null;
+let allLogs = [];
+
+function escapeHtml(value){
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function sanitizeInput(value, maxLength = 200){
+  return String(value || "")
+    .replace(/[<>]/g, "")
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, " ")
+    .replace(/\r\n?/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function parseNumber(value){
+  const cleaned = String(value || "").replace(/[^0-9,.-]/g, "").replace(/,/g, ".").trim();
+  if(cleaned === ""){
+    return null;
+  }
+
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function roundMeters(value){
+  return Math.round(Number(value || 0) * 100) / 100;
+}
+
+function formatMeters(value){
+  return roundMeters(value).toLocaleString("de-CH", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  }) + " m";
+}
+
+function formatCount(value){
+  return Number(value || 0).toLocaleString("de-CH");
+}
+
+function getMillis(value){
+  if(!value){
+    return 0;
+  }
+
+  if(typeof value.toMillis === "function"){
+    return value.toMillis();
+  }
+
+  if(value.seconds){
+    return value.seconds * 1000;
+  }
+
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function getDate(value){
+  const millis = getMillis(value);
+  return millis ? new Date(millis) : null;
+}
+
+function extractDetail(details, label){
+  const safeDetails = String(details || "");
+  const parts = safeDetails.split("|");
+
+  for(const part of parts){
+    const cleanedPart = sanitizeInput(part, 500);
+    const prefix = label + ":";
+    if(cleanedPart.startsWith(prefix)){
+      return sanitizeInput(cleanedPart.slice(prefix.length), 200);
+    }
+  }
+
+  return "";
+}
+
+function parseUsedMetersFromRechnung(details){
+  const text = String(details || "");
+  const patterns = [
+    /Abschnittssumme:[^|]*?-\s*([0-9.,]+)\s*m\s*=\s*[0-9.,]+\s*m/i,
+    /\|\s*=\s*([0-9.,]+)\s*m\s*=\s*[0-9.,]+\s*m/i
+  ];
+
+  for(const pattern of patterns){
+    const match = text.match(pattern);
+    if(match && match[1]){
+      const parsed = parseNumber(match[1]);
+      if(parsed !== null){
+        return roundMeters(parsed);
+      }
+    }
+  }
+
+  return null;
+}
+
+function getMonthKey(date){
+  return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0");
+}
+
+function getMonthLabel(monthIndex){
+  return MONTH_NAMES[monthIndex] || "";
+}
+
+function toggleMenu(event){
+  if(event){
+    event.stopPropagation();
+  }
+
+  const menu = document.getElementById("dropdownMenu");
+  if(menu){
+    menu.classList.toggle("open");
+  }
+}
+
+function closeMenu(){
+  const menu = document.getElementById("dropdownMenu");
+  if(menu){
+    menu.classList.remove("open");
+  }
+}
+
+document.addEventListener("click", function(event){
+  const menu = document.getElementById("dropdownMenu");
+  const menuWrap = document.querySelector(".menu-wrap");
+
+  if(menu && menuWrap && !menuWrap.contains(event.target)){
+    closeMenu();
+  }
+});
+
+function goToHome(){
+  closeMenu();
+  window.location.href = "home.html";
+}
+
+function goToKabellager(){
+  closeMenu();
+  window.location.href = "index.html";
+}
+
+function goToBaustellenmaterial(){
+  const user = auth.currentUser;
+  if(user && hasLimitedAccess(user.uid)){
+    closeMenu();
+    alert("Du hast nur Zugriff auf Startseite, Kabellager, Mast Runner und Profil.");
+    return;
+  }
+
+  closeMenu();
+  window.location.href = "baustellen.html";
+}
+
+function goToArchiv(){
+  const user = auth.currentUser;
+  if(!user || !isAdminUid(user.uid)){
+    closeMenu();
+    alert("Archiv ist nur für Administratoren sichtbar.");
+    return;
+  }
+
+  closeMenu();
+  window.location.href = "archiv.html";
+}
+
+function goToLogs(){
+  const user = auth.currentUser;
+  if(!user || !isAdminUid(user.uid)){
+    closeMenu();
+    alert("Logs sind nur für Administratoren sichtbar.");
+    return;
+  }
+
+  closeMenu();
+  window.location.href = "logs.html";
+}
+
+function goToGespart(){
+  const user = auth.currentUser;
+  if(!user || !canAccessSavingsPage(user.uid)){
+    closeMenu();
+    alert("Diese Seite ist nur für den freigegebenen Benutzer sichtbar.");
+    return;
+  }
+
+  closeMenu();
+  window.location.href = "gespart.html";
+}
+
+function goToProfile(){
+  closeMenu();
+  window.location.href = "profil.html";
+}
+
+function toggleLoginPasswordVisibility(){
+  const passwordField = document.getElementById("loginPassword");
+  const toggleIcon = document.getElementById("loginPasswordToggleIcon");
+
+  if(!passwordField || !toggleIcon){
+    return;
+  }
+
+  const shouldShowPassword = passwordField.type === "password";
+  passwordField.type = shouldShowPassword ? "text" : "password";
+  toggleIcon.className = shouldShowPassword ? "fa-regular fa-eye-slash" : "fa-regular fa-eye";
+}
+
+function login(){
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+
+  auth.signInWithEmailAndPassword(email, password)
+    .then(() => {
+      document.getElementById("loginError").style.display = "none";
+      document.getElementById("loginPassword").value = "";
+    })
+    .catch((error) => {
+      console.error("Login Fehler:", error);
+      document.getElementById("loginError").style.display = "block";
+    });
+}
+
+function logout(){
+  closeMenu();
+
+  if(!confirm("Wirklich ausloggen?")){
+    return;
+  }
+
+  stopListeners();
+
+  auth.signOut()
+    .then(() => {
+      window.location.href = "home.html";
+    })
+    .catch((error) => {
+      console.error("Logout Fehler:", error);
+      alert("Fehler beim Logout.");
+    });
+}
+
+function stopListeners(){
+  if(unsubscribeLogs){
+    unsubscribeLogs();
+    unsubscribeLogs = null;
+  }
+}
+
+function setNavigationVisibility(user){
+  const isAdminUser = !!(user && isAdminUid(user.uid));
+  const isLimitedUser = !!(user && hasLimitedAccess(user.uid));
+  const archivButton = document.getElementById("archivMenuButton");
+  const logsButton = document.getElementById("logsMenuButton");
+  const baustellenButton = document.getElementById("baustellenMenuButton");
+  const gespartButton = document.getElementById("gespartMenuButton");
+
+  if(archivButton){
+    archivButton.style.display = isAdminUser && !isLimitedUser ? "inline-flex" : "none";
+  }
+
+  if(logsButton){
+    logsButton.style.display = isAdminUser && !isLimitedUser ? "inline-flex" : "none";
+  }
+
+  if(baustellenButton){
+    baustellenButton.style.display = isLimitedUser ? "none" : "inline-flex";
+  }
+
+  if(gespartButton){
+    gespartButton.style.display = user && canAccessSavingsPage(user.uid) && !isLimitedUser ? "inline-flex" : "none";
+  }
+}
+
+function buildYearOptions(){
+  const select = document.getElementById("yearFilter");
+  if(!select){
+    return;
+  }
+
+  const currentYear = new Date().getFullYear();
+  const years = new Set([currentYear]);
+
+  allLogs.forEach(log => {
+    const date = getDate(log.createdAt);
+    if(date){
+      years.add(date.getFullYear());
+    }
+  });
+
+  const sortedYears = Array.from(years).sort((a, b) => b - a);
+  const currentValue = select.value;
+  select.innerHTML = sortedYears.map(year => `<option value="${year}">${year}</option>`).join("");
+  select.value = sortedYears.includes(Number(currentValue)) ? currentValue : String(currentYear);
+}
+
+function resetFilters(){
+  document.getElementById("typeSearch").value = "";
+  buildYearOptions();
+  renderReport();
+}
+
+function buildReportEntries(year){
+  const reportEntries = [];
+  const stateByBobine = new Map();
+  let earliestLogDate = null;
+
+  const sortedLogs = allLogs.slice().sort((a, b) => getMillis(a.createdAt) - getMillis(b.createdAt));
+
+  sortedLogs.forEach(log => {
+    if(String(log.bereich || "") !== "Kabellager"){
+      return;
+    }
+
+    const logDate = getDate(log.createdAt);
+    if(!logDate){
+      return;
+    }
+
+    if(!earliestLogDate || logDate < earliestLogDate){
+      earliestLogDate = logDate;
+    }
+
+    const bobineId = String(log.objektId || "");
+    const details = String(log.details || "");
+    const action = String(log.aktion || "");
+    const typ = extractDetail(details, "Typ") || (stateByBobine.get(bobineId) || {}).typ || "Unbekannter Typ";
+    const nummer = extractDetail(details, "Nummer") || (stateByBobine.get(bobineId) || {}).nummer || "";
+    const currentState = stateByBobine.get(bobineId) || { typ: typ, nummer: nummer, inUseLength: null };
+
+    currentState.typ = typ || currentState.typ || "Unbekannter Typ";
+    currentState.nummer = nummer || currentState.nummer || "";
+
+    if(action === "Bobine auf In Gebrauch gesetzt"){
+      currentState.inUseLength = parseNumber(extractDetail(details, "Länge"));
+      stateByBobine.set(bobineId, currentState);
+      return;
+    }
+
+    if(action === "Bobine erstellt" || action === "Bobine bearbeitet"){
+      stateByBobine.set(bobineId, currentState);
+      return;
+    }
+
+    if(action === "Bobine zurück ins Lager gebucht"){
+      const newLength = parseNumber(extractDetail(details, "Neue Länge"));
+      let usedMeters = null;
+
+      if(currentState.inUseLength !== null && newLength !== null){
+        usedMeters = roundMeters(Math.max(0, currentState.inUseLength - newLength));
+      }
+
+      if((usedMeters === null || usedMeters === 0) && details){
+        usedMeters = parseUsedMetersFromRechnung(details);
+      }
+
+      currentState.inUseLength = null;
+      stateByBobine.set(bobineId, currentState);
+
+      if(logDate.getFullYear() === year && usedMeters !== null && usedMeters > 0){
+        reportEntries.push({
+          typ: currentState.typ || "Unbekannter Typ",
+          nummer: currentState.nummer || "",
+          meter: usedMeters,
+          source: "Rückbuchung",
+          month: logDate.getMonth(),
+          timestamp: logDate.getTime()
+        });
+      }
+
+      return;
+    }
+
+    if(action === "Bobine gelöscht"){
+      const deletedMeters = roundMeters(parseNumber(extractDetail(details, "Länge")) || 0);
+      stateByBobine.delete(bobineId);
+
+      if(logDate.getFullYear() === year && deletedMeters > 0){
+        reportEntries.push({
+          typ: currentState.typ || "Unbekannter Typ",
+          nummer: currentState.nummer || "",
+          meter: deletedMeters,
+          source: "Komplett gelöscht",
+          month: logDate.getMonth(),
+          timestamp: logDate.getTime()
+        });
+      }
+    }
+  });
+
+  return { reportEntries, earliestLogDate };
+}
+
+function groupEntries(entries, searchTerm){
+  const term = String(searchTerm || "").trim().toLowerCase();
+  const filteredEntries = entries.filter(entry => {
+    if(term === ""){
+      return true;
+    }
+
+    return String(entry.typ || "").toLowerCase().includes(term);
+  });
+
+  const annualByType = new Map();
+  const monthlyByMonth = Array.from({ length: 12 }, () => new Map());
+  let totalMeters = 0;
+  let totalReturns = 0;
+  let totalDeletes = 0;
+
+  filteredEntries.forEach(entry => {
+    totalMeters += entry.meter;
+
+    if(entry.source === "Rückbuchung"){
+      totalReturns += 1;
+    }else if(entry.source === "Komplett gelöscht"){
+      totalDeletes += 1;
+    }
+
+    const annualRow = annualByType.get(entry.typ) || { typ: entry.typ, meter: 0, count: 0 };
+    annualRow.meter += entry.meter;
+    annualRow.count += 1;
+    annualByType.set(entry.typ, annualRow);
+
+    const monthMap = monthlyByMonth[entry.month];
+    const monthRow = monthMap.get(entry.typ) || { typ: entry.typ, meter: 0, count: 0 };
+    monthRow.meter += entry.meter;
+    monthRow.count += 1;
+    monthMap.set(entry.typ, monthRow);
+  });
+
+  const annualRows = Array.from(annualByType.values())
+    .map(row => ({ ...row, meter: roundMeters(row.meter) }))
+    .sort((a, b) => b.meter - a.meter || a.typ.localeCompare(b.typ, "de", { sensitivity: "base" }));
+
+  const monthlyRows = monthlyByMonth.map(monthMap => {
+    const rows = Array.from(monthMap.values())
+      .map(row => ({ ...row, meter: roundMeters(row.meter) }))
+      .sort((a, b) => b.meter - a.meter || a.typ.localeCompare(b.typ, "de", { sensitivity: "base" }));
+
+    return {
+      rows,
+      total: roundMeters(rows.reduce((sum, row) => sum + row.meter, 0))
+    };
+  });
+
+  return {
+    entries: filteredEntries,
+    annualRows,
+    monthlyRows,
+    totalMeters: roundMeters(totalMeters),
+    totalReturns,
+    totalDeletes
+  };
+}
+
+function renderAnnualTable(data){
+  const annualMeta = document.getElementById("annualMeta");
+  const tbody = document.getElementById("annualTableBody");
+
+  annualMeta.textContent = "Alle Kabeltypen im gewählten Jahr inklusive Total über alle Buchungen.";
+
+  if(data.annualRows.length === 0){
+    tbody.innerHTML = '<tr><td colspan="4">Keine passenden Einträge für dieses Jahr oder den aktuellen Filter gefunden.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = data.annualRows.map(row => {
+    const share = data.totalMeters > 0 ? ((row.meter / data.totalMeters) * 100) : 0;
+    return `
+      <tr>
+        <td>${escapeHtml(row.typ)}</td>
+        <td class="number-cell">${escapeHtml(formatMeters(row.meter))}</td>
+        <td class="number-cell">${escapeHtml(share.toLocaleString("de-CH", { minimumFractionDigits: 0, maximumFractionDigits: 1 }))} %</td>
+        <td class="number-cell">${escapeHtml(formatCount(row.count))}</td>
+      </tr>
+    `;
+  }).join("") + `
+    <tr class="total-row">
+      <td>Total alle Kabel</td>
+      <td class="number-cell">${escapeHtml(formatMeters(data.totalMeters))}</td>
+      <td class="number-cell">100 %</td>
+      <td class="number-cell">${escapeHtml(formatCount(data.entries.length))}</td>
+    </tr>
+  `;
+}
+
+function renderMonths(data){
+  const container = document.getElementById("monthsContainer");
+
+  container.innerHTML = data.monthlyRows.map((monthData, monthIndex) => {
+    const tableRows = monthData.rows.length
+      ? monthData.rows.map(row => `
+          <tr>
+            <td>${escapeHtml(row.typ)}</td>
+            <td class="number-cell">${escapeHtml(formatMeters(row.meter))}</td>
+            <td class="number-cell">${escapeHtml(formatCount(row.count))}</td>
+          </tr>
+        `).join("") + `
+          <tr class="total-row">
+            <td>Total ${escapeHtml(getMonthLabel(monthIndex))}</td>
+            <td class="number-cell">${escapeHtml(formatMeters(monthData.total))}</td>
+            <td class="number-cell">${escapeHtml(formatCount(monthData.rows.reduce((sum, row) => sum + row.count, 0)))}</td>
+          </tr>
+        `
+      : '<tr><td colspan="3">Keine Einzüge in diesem Monat.</td></tr>';
+
+    return `
+      <div class="month-card">
+        <h3 class="month-title">${escapeHtml(getMonthLabel(monthIndex))}</h3>
+        <p class="month-total">Monatstotal: <strong>${escapeHtml(formatMeters(monthData.total))}</strong></p>
+        <table class="month-table">
+          <thead>
+            <tr>
+              <th>Kabeltyp</th>
+              <th class="number-cell">Meter</th>
+              <th class="number-cell">Buchungen</th>
+            </tr>
+          </thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderSummary(data){
+  document.getElementById("summaryTotal").textContent = formatMeters(data.totalMeters);
+  document.getElementById("summaryBookings").textContent = formatCount(data.entries.length) + " Buchungen im Report";
+  document.getElementById("summaryTypes").textContent = formatCount(data.annualRows.length);
+  document.getElementById("summaryReturns").textContent = formatCount(data.totalReturns);
+  document.getElementById("summaryDeletes").textContent = formatCount(data.totalDeletes);
+}
+
+function renderNotice(earliestLogDate, year){
+  const notice = document.getElementById("reportNotice");
+  const startOfYear = new Date(year, 0, 1);
+
+  if(earliestLogDate && earliestLogDate > startOfYear){
+    notice.innerHTML = `Für ${escapeHtml(String(year))} sind Logs erst ab <strong>${escapeHtml(earliestLogDate.toLocaleDateString("de-CH"))}</strong> verfügbar. Ältere Einzüge aus diesem Jahr können deshalb fehlen.`;
+    notice.style.display = "block";
+  }else{
+    notice.style.display = "none";
+    notice.textContent = "";
+  }
+}
+
+function clearError(){
+  const errorBox = document.getElementById("reportError");
+  errorBox.style.display = "none";
+  errorBox.textContent = "";
+}
+
+function showError(message){
+  const errorBox = document.getElementById("reportError");
+  errorBox.textContent = message;
+  errorBox.style.display = "block";
+}
+
+function renderReport(){
+  clearError();
+  const year = Number(document.getElementById("yearFilter").value || new Date().getFullYear());
+  const searchTerm = document.getElementById("typeSearch").value;
+  const baseData = buildReportEntries(year);
+  const reportData = groupEntries(baseData.reportEntries, searchTerm);
+
+  renderNotice(baseData.earliestLogDate, year);
+  renderSummary(reportData);
+  renderAnnualTable(reportData);
+  renderMonths(reportData);
+}
+
+function startLogsListener(){
+  if(unsubscribeLogs){
+    return;
+  }
+
+  unsubscribeLogs = logsCollection.orderBy("createdAt", "asc").onSnapshot(snapshot => {
+    allLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    buildYearOptions();
+    renderReport();
+  }, error => {
+    console.error("Fehler beim Laden des Kabel-Reports:", error);
+    showError("Der Kabel Report konnte nicht geladen werden. Bitte prüfe die Berechtigungen oder versuche es erneut.");
+  });
+}
+
+auth.onAuthStateChanged((user) => {
+  if(user){
+    setNavigationVisibility(user);
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("appContent").style.display = "block";
+    startLogsListener();
+  }else{
+    stopListeners();
+    closeMenu();
+    window.location.href = "home.html";
+  }
+});
+
+document.addEventListener("DOMContentLoaded", function(){
+  const currentYear = new Date().getFullYear();
+  document.getElementById("yearFilter").innerHTML = `<option value="${currentYear}">${currentYear}</option>`;
+  document.getElementById("yearFilter").value = String(currentYear);
+});
+</script>
+
+<footer class="app-footer">© 2026 Martin Gross. Alle Rechte vorbehalten.</footer>
+</body>
+</html>

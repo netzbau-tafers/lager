@@ -178,6 +178,7 @@
       <div id="dropdownMenu" class="dropdown-menu">
         <button onclick="goToHome()"><i class="fa-solid fa-house"></i> Startseite</button>
         <button onclick="goToKabellager()"><i class="fa-solid fa-warehouse"></i> Kabellager</button>
+        <button onclick="goToKabelReport()"><i class="fa-solid fa-chart-column"></i> Kabel Report</button>
         <button id="baustellenMenuButton" onclick="goToBaustellen()"><i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial</button>
         <button id="gespartMenuButton" onclick="goToGespart()" style="display:none;"><i class="fa-solid fa-piggy-bank"></i> Kosten gespart</button>
         <button class="active-page" onclick="closeMenu()"><i class="fa-solid fa-user"></i> Profil</button>
@@ -241,6 +242,7 @@ const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
 
     function goToHome(){ closeMenu(); window.location.href = "home.html"; }
     function goToKabellager(){ closeMenu(); window.location.href = "index.html"; }
+    function goToKabelReport(){ closeMenu(); window.location.href = "kabel-report.html"; }
     function goToBaustellen(){
       const user = auth.currentUser;
       if(user && hasLimitedAccess(user.uid)){
