@@ -646,10 +646,16 @@ const characterHint = document.getElementById("characterHint");
 
 let animationId = null;
 let gameRunning = false;
-let gameSpeed = 2.35;
-let gravity = 0.47;
+const FRAME_DURATION = 1000 / 60;
+const MAX_UPDATES_PER_FRAME = 5;
+const BASE_GAME_SPEED = 2.8;
+const BASE_GRAVITY = 0.47;
+let gameSpeed = BASE_GAME_SPEED;
+let gravity = BASE_GRAVITY;
 let score = 0;
 let frameCount = 0;
+let lastFrameTime = 0;
+let accumulatedTime = 0;
 let bestScore = Number(localStorage.getItem("strommastBestScore") || 0);
 bestScoreEl.textContent = bestScore;
 
@@ -681,11 +687,11 @@ const player = {
   width: 36,
   height: 56,
   vy: 0,
-  jumpPower: -11.1,
+  jumpPower: -11.8,
   grounded: true,
   jumpHoldTime: 0,
   jumpHolding: false,
-  maxJumpHoldTime: 15,
+  maxJumpHoldTime: 17,
   jumpsUsed: 0,
   coyoteTime: 0
 };
@@ -696,7 +702,7 @@ let gameOverSaved = false;
 let selectedCharacter = null;
 let gameInitialized = false;
 
-const obstacleTypes = ["mast", "wind", "solar", "tree", "house"];
+const obstacleTypes = ["mast", "wind", "solar", "tree", "house", "bagger"];
 
 function loadRanking(){
   try{
@@ -1076,13 +1082,15 @@ function escapeHtml(text){
 
 function resetGameState(){
   gameRunning = true;
-  gameSpeed = 2.35;
-  gravity = 0.47;
+  gameSpeed = BASE_GAME_SPEED;
+  gravity = BASE_GRAVITY;
   score = 0;
   frameCount = 0;
   spawnTimer = 0;
   obstacles = [];
   gameOverSaved = false;
+  lastFrameTime = 0;
+  accumulatedTime = 0;
 
   player.y = groundY;
   player.vy = 0;
@@ -1108,6 +1116,8 @@ function showStartScreen(){
   gameRunning = false;
   obstacles = [];
   spawnTimer = 0;
+  lastFrameTime = 0;
+  accumulatedTime = 0;
   player.y = groundY;
   player.vy = 0;
   player.grounded = true;
@@ -1199,6 +1209,9 @@ function createObstacle(){
   }else if(type === "house"){
     width = 54;
     height = 64;
+  }else if(type === "bagger"){
+    width = 68;
+    height = 42;
   }
 
   obstacles.push({
@@ -1823,6 +1836,47 @@ function drawHouse(ob){
   ctx.fillRect(x + w - 21, y + 31, 10, 9);
 }
 
+function drawBagger(ob){
+  const x = ob.x;
+  const y = ob.y;
+  const bodyY = y + 12;
+  const wheelY = y + ob.height - 6;
+
+  ctx.fillStyle = "#3b4651";
+  roundedRect(x + 8, y + ob.height - 12, ob.width - 16, 8, 4);
+  ctx.fill();
+
+  ctx.fillStyle = "#f2c84b";
+  roundedRect(x + 18, bodyY + 2, 24, 16, 4);
+  ctx.fill();
+  roundedRect(x + 28, y, 14, 12, 4);
+  ctx.fill();
+
+  ctx.fillStyle = "#a7d5f2";
+  roundedRect(x + 31, y + 2, 8, 6, 2);
+  ctx.fill();
+
+  ctx.strokeStyle = "#c99820";
+  ctx.lineWidth = 6;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(x + 42, bodyY + 6);
+  ctx.lineTo(x + 53, bodyY - 3);
+  ctx.lineTo(x + 60, bodyY + 7);
+  ctx.stroke();
+
+  ctx.fillStyle = "#d89b1d";
+  ctx.beginPath();
+  ctx.moveTo(x + 58, bodyY + 5);
+  ctx.lineTo(x + 68, bodyY + 11);
+  ctx.lineTo(x + 58, bodyY + 16);
+  ctx.closePath();
+  ctx.fill();
+
+  drawWheel(x + 21, wheelY, 6, frameCount * 0.18);
+  drawWheel(x + 43, wheelY, 6, frameCount * 0.18);
+}
+
 function drawNuclearPlant(ob){
   const x = ob.x;
   const y = ob.y;
@@ -1979,6 +2033,11 @@ function drawObstacle(ob){
     return;
   }
 
+  if(ob.type === "bagger"){
+    drawBagger(ob);
+    return;
+  }
+
   drawMast(ob);
 }
 
@@ -1994,13 +2053,35 @@ function draw(){
   }
 }
 
-function loop(){
-  if(gameRunning){
+function loop(timestamp = performance.now()){
+  if(!gameRunning){
+    draw();
+    return;
+  }
+
+  if(!lastFrameTime){
+    lastFrameTime = timestamp;
+  }
+
+  const elapsed = Math.min(timestamp - lastFrameTime, 100);
+  lastFrameTime = timestamp;
+  accumulatedTime += elapsed;
+
+  let updates = 0;
+  while(accumulatedTime >= FRAME_DURATION && updates < MAX_UPDATES_PER_FRAME && gameRunning){
     update();
-    draw();
+    accumulatedTime -= FRAME_DURATION;
+    updates++;
+  }
+
+  if(updates === MAX_UPDATES_PER_FRAME){
+    accumulatedTime = 0;
+  }
+
+  draw();
+
+  if(gameRunning){
     animationId = requestAnimationFrame(loop);
-  }else{
-    draw();
   }
 }
 
