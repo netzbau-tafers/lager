@@ -1380,6 +1380,32 @@ function syncUsernameFromFirestore(user){
     });
 }
 
+function getFirebaseActionErrorMessage(actionLabel, error){
+  const errorCode = error && error.code ? String(error.code) : "";
+
+  if(errorCode === "permission-denied"){
+    return actionLabel + " nicht möglich: Dein Konto hat keine Schreibrechte für das Kabellager.";
+  }
+
+  if(errorCode === "unauthenticated"){
+    return actionLabel + " nicht möglich: Du bist nicht mehr angemeldet. Bitte neu einloggen.";
+  }
+
+  if(errorCode === "unavailable"){
+    return actionLabel + " momentan nicht möglich: Keine Verbindung zu Firebase.";
+  }
+
+  if(errorCode === "failed-precondition"){
+    return actionLabel + " momentan nicht möglich: Firebase ist noch nicht bereit.";
+  }
+
+  if(errorCode){
+    return actionLabel + " fehlgeschlagen (" + errorCode + ").";
+  }
+
+  return actionLabel + " fehlgeschlagen. Bitte später erneut versuchen.";
+}
+
 function setNavigationVisibility(user){
   const isAdminUser = !!(user && isAdminUid(user.uid));
   const isLimitedUser = !!(user && hasLimitedAccess(user.uid));
@@ -2826,6 +2852,11 @@ function saveBobine(){
     return;
   }
 
+  if(!auth.currentUser){
+    alert("Speichern nicht möglich: Du bist nicht angemeldet. Bitte neu einloggen.");
+    return;
+  }
+
   const nummerWert = nummerBereinigen(document.getElementById("nummer").value);
   const typ = getSelectedTyp();
   const istDreiBobinen = document.getElementById("istDreiBobinen").checked;
@@ -2912,7 +2943,7 @@ function saveBobine(){
         closeModal();
       }).catch(error => {
         console.error("Fehler beim Bearbeiten:", error);
-        alert("Fehler beim Speichern.");
+        alert(getFirebaseActionErrorMessage("Speichern", error));
       }).finally(() => {
         isSavingBobine = false;
       });
@@ -2955,14 +2986,14 @@ function saveBobine(){
         }
 
         console.error("Fehler beim Hinzufügen:", error);
-        alert("Fehler beim Hinzufügen.");
+        alert(getFirebaseActionErrorMessage("Hinzufügen", error));
       }).finally(() => {
         isSavingBobine = false;
       });
     }
   }).catch(error => {
     console.error("Fehler bei Nummernprüfung:", error);
-    alert("Fehler bei der Prüfung der Nummer.");
+    alert(getFirebaseActionErrorMessage("Prüfung der Bobinen-Nummer", error));
     isSavingBobine = false;
   });
 }
@@ -3110,6 +3141,11 @@ function confirmReturn(){
 }
 
 function deleteBobine(id){
+  if(!auth.currentUser){
+    alert("Löschen nicht möglich: Du bist nicht angemeldet. Bitte neu einloggen.");
+    return;
+  }
+
   bobinenCollection.doc(id).get().then(doc => {
     if(!doc.exists){
       alert("Bobine nicht gefunden.");
@@ -3148,12 +3184,12 @@ function deleteBobine(id){
         );
       }).catch(error => {
         console.error("Fehler beim Löschen:", error);
-        alert("Fehler beim Löschen.");
+        alert(getFirebaseActionErrorMessage("Löschen", error));
       });
     }
   }).catch(error => {
     console.error("Fehler beim Laden der Bobine:", error);
-    alert("Fehler beim Laden der Bobinen-Daten.");
+    alert(getFirebaseActionErrorMessage("Laden der Bobinen-Daten", error));
   });
 }
 
