@@ -297,6 +297,10 @@ button:hover{
           <i class="fa-solid fa-clipboard-list"></i> Logs
         </button>
 
+        <button id="gespartMenuButton" onclick="goToGespart()" data-page="gespart" style="display:none;">
+          <i class="fa-solid fa-piggy-bank"></i> Kosten gespart
+        </button>
+
         <button onclick="goToProfile()">
           <i class="fa-solid fa-user"></i> Profil
         </button>
@@ -341,6 +345,8 @@ const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "3Jm2fQfSnOhLF50WoeePNQg0ZFf
 const LIMITED_ACCESS_UIDS = ["h8VfDCJ3eTb5GOwjgBzHVck3TEB3", "BVBSpAYOGaWKptCrQ81h8UtW13n2", "UIAvOHFf8QgqJ7UWkPV7CpV88512"];
 const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
 const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
+const SPECIAL_SAVINGS_UID = "3Jm2fQfSnOhLF50WoeePNQg0ZFf2";
+const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
 
 
 function setNavigationVisibility(user){
@@ -350,6 +356,7 @@ function setNavigationVisibility(user){
   const logsButton = document.getElementById("logsMenuButton");
   const baustellenButton = document.getElementById("baustellenMenuButton");
   const baustellenHeroLink = document.getElementById("baustellenHeroLink");
+  const gespartButton = document.getElementById("gespartMenuButton");
 
   if(archivButton){
     archivButton.style.display = isAdminUser && !isLimitedUser ? "inline-flex" : "none";
@@ -365,6 +372,10 @@ function setNavigationVisibility(user){
 
   if(baustellenHeroLink){
     baustellenHeroLink.style.display = isLimitedUser ? "none" : "inline-flex";
+  }
+
+  if(gespartButton){
+    gespartButton.style.display = user && canAccessSavingsPage(user.uid) && !isLimitedUser ? "inline-flex" : "none";
   }
 }
 
@@ -420,6 +431,18 @@ function goToLogs(){
   window.location.href = "logs.html";
 }
 
+
+function goToGespart(){
+  const user = auth.currentUser;
+  if(!user || !canAccessSavingsPage(user.uid)){
+    closeMenu();
+    alert("Diese Seite ist nur für den freigegebenen Benutzer sichtbar.");
+    return;
+  }
+
+  closeMenu();
+  window.location.href = "gespart.html";
+}
 
 function goToProfile(){
   closeMenu();

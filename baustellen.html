@@ -796,6 +796,10 @@ label{
     <i class="fa-solid fa-clipboard-list"></i> Logs
   </button>
 
+  <button id="gespartMenuButton" onclick="goToGespart()" data-page="gespart" style="display:none;">
+    <i class="fa-solid fa-piggy-bank"></i> Kosten gespart
+  </button>
+
   <button onclick="goToProfile()">
     <i class="fa-solid fa-user"></i> Profil
   </button>
@@ -1035,12 +1039,15 @@ const baustellenCollection = db.collection("baustellen");
 const materialCollection = db.collection("baustellen_material");
 const vorlagenCollection = db.collection("material_vorlagen");
 const logsCollection = db.collection("logs");
+const gespartEintraegeCollection = db.collection("gespart_eintraege");
 const usersCollection = db.collection("users");
 
 const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "3Jm2fQfSnOhLF50WoeePNQg0ZFf2", "Q33pfDjhxyQcmlnZjrq8tekvioB2", "hwZEme8xvkasSAGrmOtQRLOnnXn1", "PKDpb7Cb7ig8ZKZRMm23FOKnCHQ2", "T05YzzSRN2aUMkTTwGB2N1OqPgA2"];
 const LIMITED_ACCESS_UIDS = ["h8VfDCJ3eTb5GOwjgBzHVck3TEB3", "BVBSpAYOGaWKptCrQ81h8UtW13n2", "UIAvOHFf8QgqJ7UWkPV7CpV88512"];
 const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
 const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
+const SPECIAL_SAVINGS_UID = "3Jm2fQfSnOhLF50WoeePNQg0ZFf2";
+const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
 
 let unsubscribeBaustellen = null;
 let unsubscribeMaterial = null;
@@ -1097,6 +1104,7 @@ function syncUsernameFromFirestore(user){
 function setAdminMenuVisibility(isAdmin){
   const archivButton = document.getElementById("archivMenuButton");
   const logsButton = document.getElementById("logsMenuButton");
+  const gespartButton = document.getElementById("gespartMenuButton");
 
   if(archivButton){
     archivButton.style.display = isAdmin ? "inline-flex" : "none";
@@ -1104,6 +1112,11 @@ function setAdminMenuVisibility(isAdmin){
 
   if(logsButton){
     logsButton.style.display = isAdmin ? "inline-flex" : "none";
+  }
+
+  if(gespartButton){
+    const user = auth.currentUser;
+    gespartButton.style.display = user && canAccessSavingsPage(user.uid) ? "inline-flex" : "none";
   }
 }
 
@@ -1243,12 +1256,76 @@ function writeLog(bereich, aktion, objektTyp, objektId, details){
     aktion: aktion,
     objektTyp: objektTyp,
     objektId: objektId || "",
+    benutzerName: getCurrentUserDisplayName(user),
     benutzerEmail: user && user.email ? user.email : "",
     benutzerUid: user && user.uid ? user.uid : "",
     details: details || "",
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   }).catch(error => {
     console.error("Fehler beim Schreiben des Logs:", error);
+  });
+}
+
+function parseGespartQuantity(value){
+  const cleaned = String(value || "")
+    .replace(/\s+/g, "")
+    .replace(/,/g, ".");
+
+  const match = cleaned.match(/-?\d+(?:\.\d+)?/);
+  if(!match){
+    return 0;
+  }
+
+  const parsed = Number(match[0]);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function buildGespartEntryBase(baustelle, materialData){
+  return {
+    baustelleId: baustelle && baustelle.id ? baustelle.id : "",
+    baustelle: baustelle ? sanitizeInput(baustelle.name || "", 120) : "",
+    baustellenNummer: baustelle ? sanitizeInput(baustelle.nummer || "", 60) : "",
+    baustellenStatus: baustelle ? sanitizeInput(baustelle.status || "", 40) : "",
+    material: sanitizeInput(materialData && materialData.material ? materialData.material : "", 120),
+    spontis: sanitizeInput(materialData && materialData.spontis ? materialData.spontis : "", 60),
+    ausgetragenAnzahl: parseGespartQuantity(materialData && materialData.anzahl ? materialData.anzahl : 0),
+    ausgetragenAnzahlRaw: sanitizeInput(materialData && materialData.anzahl ? materialData.anzahl : "", 40),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+}
+
+function createGespartAustragEntry(materialId, baustelle, materialData){
+  return gespartEintraegeCollection.doc(materialId).set({
+    materialId: materialId,
+    ...buildGespartEntryBase(baustelle, materialData),
+    zurueckgetragenAnzahl: 0,
+    zurueckgetragenAnzahlRaw: "",
+    returned: false,
+    austragDatum: firebase.firestore.FieldValue.serverTimestamp(),
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true }).catch(error => {
+    console.error("Fehler beim Erstellen des Gespart-Eintrags:", error);
+  });
+}
+
+function updateGespartAustragEntry(materialId, baustelle, materialData){
+  return gespartEintraegeCollection.doc(materialId).set({
+    ...buildGespartEntryBase(baustelle, materialData)
+  }, { merge: true }).catch(error => {
+    console.error("Fehler beim Aktualisieren des Gespart-Eintrags:", error);
+  });
+}
+
+function markGespartRuecktragEntry(materialId, baustelle, materialData){
+  return gespartEintraegeCollection.doc(materialId).set({
+    materialId: materialId,
+    ...buildGespartEntryBase(baustelle, materialData),
+    zurueckgetragenAnzahl: parseGespartQuantity(materialData && materialData.anzahl ? materialData.anzahl : 0),
+    zurueckgetragenAnzahlRaw: sanitizeInput(materialData && materialData.anzahl ? materialData.anzahl : "", 40),
+    returned: true,
+    ruecktragDatum: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true }).catch(error => {
+    console.error("Fehler beim Markieren des Rücktrags für Gespart:", error);
   });
 }
 
@@ -1359,6 +1436,18 @@ function goToLogs(){
   window.location.href = "logs.html";
 }
 
+
+function goToGespart(){
+  const user = auth.currentUser;
+  if(!user || !canAccessSavingsPage(user.uid)){
+    closeMenu();
+    alert("Diese Seite ist nur für den freigegebenen Benutzer sichtbar.");
+    return;
+  }
+
+  closeMenu();
+  window.location.href = "gespart.html";
+}
 
 function goToProfile(){
   closeMenu();
@@ -2374,12 +2463,19 @@ function saveMaterial(){
   openMaterialLists[currentBaustelleId] = true;
 
   if(editMaterialId){
+    const baustelle = aktuelleBaustelle;
     materialCollection.doc(editMaterialId).update({
       material: material,
       anzahl: anzahl,
       spontis: spontis
     }).then(() => {
-      writeLog(
+      return Promise.all([
+        updateGespartAustragEntry(editMaterialId, baustelle, {
+          material: material,
+          anzahl: anzahl,
+          spontis: spontis
+        }),
+        writeLog(
         "Baustellenmaterial",
         "Material bearbeitet",
         "material",
@@ -2387,7 +2483,9 @@ function saveMaterial(){
         "Material: " + material +
         " | Anzahl: " + anzahl +
         " | Spontis Nummer: " + spontis
-      );
+        )
+      ]);
+    }).then(() => {
       closeModals();
     }).catch(error => {
       console.error("Fehler beim Bearbeiten des Materials:", error);
@@ -2402,8 +2500,13 @@ function saveMaterial(){
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then((docRef) => {
       const baustelle = alleBaustellen.find(b => b.id === currentBaustelleId);
-
-      writeLog(
+      return Promise.all([
+        createGespartAustragEntry(docRef.id, baustelle, {
+          material: material,
+          anzahl: anzahl,
+          spontis: spontis
+        }),
+        writeLog(
         "Baustellenmaterial",
         "Material hinzugefügt",
         "material",
@@ -2413,8 +2516,9 @@ function saveMaterial(){
         " | Material: " + material +
         " | Anzahl: " + anzahl +
         " | Spontis Nummer: " + spontis
-      );
-
+        )
+      ]);
+    }).then(() => {
       closeModals();
     }).catch(error => {
       console.error("Fehler beim Hinzufügen des Materials:", error);
@@ -2837,6 +2941,7 @@ function deleteBaustelle(id){
     batch.delete(baustellenCollection.doc(id));
     materialien.forEach(m => {
       batch.delete(materialCollection.doc(m.id));
+      batch.delete(gespartEintraegeCollection.doc(m.id));
     });
 
     batch.commit()
@@ -2879,15 +2984,21 @@ function deleteMaterial(id){
 
   if(confirm(text)){
     materialCollection.doc(id).delete().then(() => {
-      writeLog(
+      return Promise.all([
+        markGespartRuecktragEntry(id, baustelle, m),
+        writeLog(
         "Baustellenmaterial",
         "Material gelöscht",
         "material",
         id,
-        "Material: " + (m.material || "") +
+        "Baustelle: " + (baustelle ? (baustelle.name || "") : "") +
+        " | Baustellen Nummer: " + (baustelle ? (baustelle.nummer || "") : "") +
+        " | Baustellen Status: " + (baustelle ? getStatusLabel(baustelle.status || "") : "") +
+        " | Material: " + (m.material || "") +
         " | Anzahl: " + (m.anzahl || "") +
         " | Spontis Nummer: " + (m.spontis || "")
-      );
+        )
+      ]);
     }).catch(error => {
       console.error("Fehler beim Löschen des Materials:", error);
       alert("Fehler beim Löschen.");
@@ -2942,6 +3053,8 @@ function markActiveMenu(){
   }
   else if(path.includes("baustellen")){
     currentPage = "baustellen";
+  }else if(path.includes("gespart")){
+    currentPage = "gespart";
   }
   else if(path.includes("archiv")){
     currentPage = "archiv";

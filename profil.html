@@ -179,6 +179,7 @@
         <button onclick="goToHome()"><i class="fa-solid fa-house"></i> Startseite</button>
         <button onclick="goToKabellager()"><i class="fa-solid fa-warehouse"></i> Kabellager</button>
         <button id="baustellenMenuButton" onclick="goToBaustellen()"><i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial</button>
+        <button id="gespartMenuButton" onclick="goToGespart()" style="display:none;"><i class="fa-solid fa-piggy-bank"></i> Kosten gespart</button>
         <button class="active-page" onclick="closeMenu()"><i class="fa-solid fa-user"></i> Profil</button>
         <button class="logout-safe" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
       </div>
@@ -217,6 +218,8 @@
     const usersCollection = db.collection("users");
     const LIMITED_ACCESS_UIDS = ["h8VfDCJ3eTb5GOwjgBzHVck3TEB3", "BVBSpAYOGaWKptCrQ81h8UtW13n2", "UIAvOHFf8QgqJ7UWkPV7CpV88512"];
     const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
+const SPECIAL_SAVINGS_UID = "3Jm2fQfSnOhLF50WoeePNQg0ZFf2";
+const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
 
     function sanitizeInput(value, maxLength = 120){
       return String(value || "")
@@ -252,11 +255,28 @@
 
     function updateNavigationVisibility(user){
       const baustellenButton = document.getElementById("baustellenMenuButton");
+      const gespartButton = document.getElementById("gespartMenuButton");
       const isLimitedUser = !!(user && hasLimitedAccess(user.uid));
 
       if(baustellenButton){
         baustellenButton.style.display = isLimitedUser ? "none" : "inline-flex";
       }
+
+      if(gespartButton){
+        gespartButton.style.display = user && canAccessSavingsPage(user.uid) && !isLimitedUser ? "inline-flex" : "none";
+      }
+    }
+
+    function goToGespart(){
+      const user = auth.currentUser;
+      if(!user || !canAccessSavingsPage(user.uid)){
+        closeMenu();
+        alert("Diese Seite ist nur für den freigegebenen Benutzer sichtbar.");
+        return;
+      }
+
+      closeMenu();
+      window.location.href = "gespart.html";
     }
 
     function logout(){

@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kosten gespart</title>
+
+<link rel="icon" type="image/png" sizes="any" href="favicon.png">
+<link rel="shortcut icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" sizes="180x180" href="favicon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#e6eaef">
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+body{font-family:Arial,sans-serif;background:#e6eaef;margin:40px;color:#222;}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:25px;gap:15px;}
+.header h1{margin:0;}
+.menu-wrap{position:relative;}
+.menu-button{background:#555;color:#fff;border:none;border-radius:10px;padding:11px 15px;font-size:20px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-width:48px;min-height:44px;box-shadow:0 2px 6px rgba(0,0,0,0.10);transition:background .2s ease,transform .15s ease,box-shadow .2s ease;}
+.menu-button:hover{background:#333;transform:translateY(-1px);box-shadow:0 4px 10px rgba(0,0,0,0.14);}
+.active-page{background:#e0e0e0 !important;color:#333 !important;cursor:default;}
+.dropdown-menu{display:none;position:absolute;top:52px;right:0;min-width:240px;background:white;border:1px solid #ccc;border-radius:12px;box-shadow:0 8px 20px rgba(0,0,0,0.12);padding:8px;z-index:2000;}
+.dropdown-menu.open{display:block;}
+.dropdown-menu button{width:100%;text-align:left;margin:0 0 8px 0;}
+.dropdown-menu button:last-child{margin-bottom:0;}
+button{padding:10px 14px;cursor:pointer;border:none;border-radius:8px;background:#3498db;color:white;margin:2px;font-size:14px;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 2px 6px rgba(0,0,0,0.08);transition:background .2s ease,transform .15s ease,box-shadow .2s ease;}
+button:hover{background:#2980b9;transform:translateY(-1px);box-shadow:0 4px 10px rgba(0,0,0,0.12);}
+button.secondary,.back{background:#555;}
+button.secondary:hover,.back:hover{background:#333;}
+button.danger{background:#e74c3c;}
+button.danger:hover{background:#c0392b;}
+.logout-safe{background:#777;}
+.logout-safe:hover{background:#555;}
+.panel,.summary-card,.card,.empty-box,.login-card{background:white;border:1px solid #ddd;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.panel,.card{padding:18px;margin-bottom:20px;}
+.panel h2,.panel h3,.card h3{margin-top:0;}
+.helper-text{color:#555;font-size:14px;line-height:1.5;}
+.search-row,.form-grid{display:grid;gap:10px;align-items:end;}
+.search-row{grid-template-columns:1fr auto;}
+.form-grid{grid-template-columns:repeat(4,minmax(0,1fr));}
+input,select{width:100%;padding:10px;margin:0;box-sizing:border-box;border:1px solid #ccc;border-radius:6px;font-size:15px;background:white;}
+label{display:block;font-size:13px;color:#555;margin-bottom:6px;}
+.summary-grid,.grid-two,.grid-three{display:grid;gap:16px;}
+.summary-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-bottom:20px;}
+.grid-two{grid-template-columns:repeat(auto-fit,minmax(320px,1fr));}
+.grid-three{grid-template-columns:repeat(auto-fit,minmax(280px,1fr));}
+.summary-card{padding:18px;}
+.summary-label{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:#66707a;margin-bottom:8px;}
+.summary-value{font-size:30px;font-weight:bold;color:#1e293b;}
+.summary-sub{margin-top:8px;color:#5b6570;font-size:13px;}
+.info-box{margin:10px 0 20px 0;font-size:14px;color:#444;}
+.card-title{font-size:18px;font-weight:bold;margin:0 0 10px 0;}
+.card-meta{font-size:14px;color:#4b5563;margin-bottom:6px;}
+.amount-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:16px 0;}
+.amount-item{border:1px solid #e5e7eb;border-radius:10px;padding:12px;background:#fafafa;}
+.amount-label{font-size:12px;text-transform:uppercase;color:#6b7280;margin-bottom:6px;}
+.amount-value{font-size:22px;font-weight:bold;color:#111827;}
+.badge{display:inline-block;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:bold;margin-bottom:12px;}
+.badge-aktiv{background:#dff3ff;color:#1e5f8a;}
+.badge-rausschreiben{background:#fff1d8;color:#9a5a00;}
+.badge-archiviert{background:#ece7ff;color:#5f3dc4;}
+.badge-geloescht{background:#f4f5f7;color:#616a75;}
+.badge-config{background:#e8f5e9;color:#256029;}
+.table-wrap{overflow:auto;}
+.table-wrap table{width:100%;border-collapse:collapse;}
+.table-wrap th,.table-wrap td{text-align:left;padding:10px;border-bottom:1px solid #ececec;vertical-align:top;}
+.table-wrap th{font-size:13px;color:#55606b;text-transform:uppercase;letter-spacing:.03em;}
+.empty-box{padding:20px;text-align:center;color:#666;}
+.login-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:#f2f4f7;display:none;align-items:center;justify-content:center;z-index:3000;padding:20px;box-sizing:border-box;}
+.login-card{width:420px;max-width:95%;padding:25px;box-sizing:border-box;}
+.login-card h2{margin-top:0;text-align:center;}
+.login-error{color:#c0392b;display:none;margin-top:10px;text-align:center;}
+.login-info{color:#555;font-size:14px;text-align:center;margin-bottom:15px;}
+.app-footer{margin:32px auto 0;max-width:1100px;padding:14px 18px;text-align:center;color:#5b6570;font-size:14px;}
+@media (max-width:980px){body{margin:15px;}.form-grid,.search-row,.amount-grid{grid-template-columns:1fr;}button{font-size:16px;padding:12px 16px;}.menu-button{font-size:22px;padding:12px 16px;}}
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <h2>Login Kosten gespart</h2>
+    <div class="login-info">Bitte mit E-Mail und Passwort anmelden</div>
+    <input id="loginEmail" type="email" placeholder="E-Mail" maxlength="120" autocomplete="username">
+    <div style="position:relative; margin-top:10px;">
+      <input id="loginPassword" type="password" placeholder="Passwort" maxlength="120" autocomplete="current-password" style="margin:0; padding-right:44px;">
+      <button type="button" onclick="toggleLoginPasswordVisibility()" aria-label="Passwort anzeigen oder ausblenden" title="Passwort anzeigen oder ausblenden" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:transparent; color:#666; box-shadow:none; padding:6px; margin:0; min-width:auto;"><i id="loginPasswordToggleIcon" class="fa-regular fa-eye"></i></button>
+    </div>
+    <button onclick="login()"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
+    <p id="loginError" class="login-error">Login fehlgeschlagen. Bitte Daten prüfen.</p>
+  </div>
+</div>
+
+<div id="appContent" style="display:none;">
+  <div class="header">
+    <h1>Kosten gespart</h1>
+    <div class="menu-wrap">
+      <button class="menu-button" onclick="toggleMenu(event)" title="Menü öffnen"><i class="fa-solid fa-bars"></i></button>
+      <div id="dropdownMenu" class="dropdown-menu">
+        <button onclick="goToHome()" data-page="home"><i class="fa-solid fa-house"></i> Startseite</button>
+        <button onclick="goToKabellager()" data-page="index"><i class="fa-solid fa-warehouse"></i> Kabellager</button>
+        <button onclick="goToBaustellen()" data-page="baustellen"><i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial</button>
+        <button onclick="goToArchiv()" data-page="archiv"><i class="fa-solid fa-box-archive"></i> Archiv</button>
+        <button onclick="goToLogs()" data-page="logs"><i class="fa-solid fa-clipboard-list"></i> Logs</button>
+        <button onclick="closeMenu()" data-page="gespart"><i class="fa-solid fa-piggy-bank"></i> Kosten gespart</button>
+        <button onclick="goToProfile()"><i class="fa-solid fa-user"></i> Profil</button>
+        <button class="logout-safe" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Eigene Datenbasis für diese Seite</h2>
+    <div class="helper-text">
+      <p>Diese Seite liest <strong>nicht direkt</strong> aus `logs` oder `baustellen`, sondern nur aus den vorbereiteten Collections <strong>`gespart_eintraege`</strong> und <strong>`gespart_tarife`</strong>.</p>
+      <p>So bleiben andere Seiten unverändert, und für eine spätere Absicherung müssen nur diese Collections speziell für den freigegebenen User geschützt werden.</p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>So wird gerechnet</h2>
+    <div class="helper-text">
+      <p><strong>Austrage Betrag:</strong> fixer CHF-Betrag pro Materialeinheit beim Austragen auf die Baustelle.</p>
+      <p><strong>Zurücktrage Betrag:</strong> fixer CHF-Betrag pro Materialeinheit beim Zurücktragen ins Lager.</p>
+      <p>Es wird <strong>nur Material gerechnet, das wieder zurück ins Lager kam</strong>, also Einträge mit Austrag und späterem Rücktrag.</p>
+      <p>Formel pro Eintrag: <strong>zurückgekommene Anzahl × (Austrage Tarif zum Austrag-Datum + Zurücktrage Tarif zum Rücktrag-Datum)</strong>.</p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Tarife mit Gültigkeitsdatum</h2>
+    <div class="helper-text" style="margin-bottom:12px;">Wenn sich der Betrag ändert, legst du einfach einen neuen Tarif mit neuem Datum an. Alte Einträge werden bis zum Änderungsdatum mit dem alten Tarif gerechnet.</div>
+    <div class="form-grid">
+      <div>
+        <label for="tarifGueltigAb">Gültig ab</label>
+        <input id="tarifGueltigAb" type="date">
+      </div>
+      <div>
+        <label for="tarifAustragen">Austrage Betrag (CHF)</label>
+        <input id="tarifAustragen" type="number" min="0" step="0.01" placeholder="z. B. 10">
+      </div>
+      <div>
+        <label for="tarifZuruecktragen">Zurücktrage Betrag (CHF)</label>
+        <input id="tarifZuruecktragen" type="number" min="0" step="0.01" placeholder="z. B. 20">
+      </div>
+      <div>
+        <button onclick="saveTarif()"><i class="fa-solid fa-floppy-disk"></i> Tarif speichern</button>
+      </div>
+    </div>
+    <div style="margin-top:10px;"><button class="secondary" onclick="resetTarifForm()"><i class="fa-solid fa-rotate-left"></i> Formular zurücksetzen</button></div>
+    <div id="tarifInfo" class="info-box"></div>
+    <div id="tarifList" class="grid-two"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Suche</h2>
+    <div class="search-row">
+      <input id="searchInput" type="text" placeholder="Nach Material, Baustelle, Monat oder Datum suchen" oninput="renderAll()" maxlength="120">
+      <button class="secondary" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
+    </div>
+  </div>
+
+  <div class="summary-grid">
+    <div class="summary-card"><div class="summary-label">Ausgetragen</div><div id="summaryAustragenAnzahl" class="summary-value">0</div><div class="summary-sub">Gesamte Anzahl der wieder zurückgekommenen Materialien</div></div>
+    <div class="summary-card"><div class="summary-label">Zurückgetragen</div><div id="summaryZurueckAnzahl" class="summary-value">0</div><div class="summary-sub">Anzahl, die wieder ins Lager kam</div></div>
+    <div class="summary-card"><div class="summary-label">Austrage Betrag</div><div id="summaryAustrageChf" class="summary-value">CHF 0.00</div><div class="summary-sub">Total verrechnete Austrage-Kosten</div></div>
+    <div class="summary-card"><div class="summary-label">Zurücktrage Betrag</div><div id="summaryZurueckChf" class="summary-value">CHF 0.00</div><div class="summary-sub">Total verrechnete Zurücktrage-Kosten</div></div>
+    <div class="summary-card"><div class="summary-label">Eingespart</div><div id="summaryGespartChf" class="summary-value">CHF 0.00</div><div class="summary-sub">Austrage + Zurücktrage für zurückgekommenes Material</div></div>
+    <div class="summary-card"><div class="summary-label">Monate</div><div id="summaryMonate" class="summary-value">0</div><div class="summary-sub">Monatliche Reports mit Export</div></div>
+  </div>
+
+  <div id="resultInfo" class="info-box"></div>
+
+  <div class="panel">
+    <h2>Monatsdateien</h2>
+    <div class="helper-text" style="margin-bottom:12px;">Für jeden Monat mit Rückträgen wird automatisch ein Report erstellt. Du kannst ihn als CSV oder TXT herunterladen.</div>
+    <div id="monthlyReportList" class="grid-two"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Materialübersicht</h2>
+    <div id="materialSummaryTable" class="table-wrap"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Einzelne Rückträge mit Datum</h2>
+    <div id="entryList" class="grid-three"></div>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",
+  authDomain: "netzbau-tafers.firebaseapp.com",
+  projectId: "netzbau-tafers",
+  storageBucket: "netzbau-tafers.appspot.com",
+  messagingSenderId: "389541837675",
+  appId: "1:389541837675:web:db580ce67c57a9a16dea2e",
+  measurementId: "G-B5MJGD3108"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+const gespartEintraegeCollection = db.collection("gespart_eintraege");
+const tarifeCollection = db.collection("gespart_tarife");
+
+const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "3Jm2fQfSnOhLF50WoeePNQg0ZFf2", "Q33pfDjhxyQcmlnZjrq8tekvioB2", "hwZEme8xvkasSAGrmOtQRLOnnXn1", "PKDpb7Cb7ig8ZKZRMm23FOKnCHQ2", "T05YzzSRN2aUMkTTwGB2N1OqPgA2"];
+const LIMITED_ACCESS_UIDS = ["h8VfDCJ3eTb5GOwjgBzHVck3TEB3", "BVBSpAYOGaWKptCrQ81h8UtW13n2", "UIAvOHFf8QgqJ7UWkPV7CpV88512"];
+const SPECIAL_SAVINGS_UID = "3Jm2fQfSnOhLF50WoeePNQg0ZFf2";
+const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
+const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
+const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
+
+let unsubscribeEintraege = null;
+let unsubscribeTarife = null;
+let alleEintraege = [];
+let alleTarife = [];
+let editTarifId = null;
+
+function escapeHtml(value){return String(value||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");}
+function sanitizeInput(value,maxLength=200){return String(value||"").replace(/[<>]/g,"").replace(/[\u0000-\u001F\u007F]/g," ").replace(/\s+/g," ").trim().slice(0,maxLength);}
+function normalizeKey(value){return sanitizeInput(value||"",200).toLowerCase();}
+function getMillis(value){if(!value){return 0;} if(typeof value.toMillis==="function"){return value.toMillis();} if(value.seconds){return value.seconds*1000;} const time=new Date(value).getTime(); return Number.isNaN(time)?0:time;}
+function formatDate(value){const millis=getMillis(value); return millis ? new Date(millis).toLocaleDateString("de-CH") : "-";}
+function formatDateTime(value){const millis=getMillis(value); return millis ? new Date(millis).toLocaleString("de-CH") : "-";}
+function formatMonthLabel(monthKey){const [year,month]=String(monthKey||"").split("-"); if(!year||!month){return "Unbekannt";} return new Date(Number(year),Number(month)-1,1).toLocaleDateString("de-CH",{month:"long",year:"numeric"});}
+function formatCurrency(value){return new Intl.NumberFormat("de-CH",{style:"currency",currency:"CHF",minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(value||0));}
+function formatQuantity(value){return new Intl.NumberFormat("de-CH",{minimumFractionDigits:Number.isInteger(value)?0:2,maximumFractionDigits:2}).format(Number(value||0));}
+function parseMoney(value){const cleaned=String(value||"").replace(/,/g,".").trim(); if(cleaned===""){return null;} const parsed=Number(cleaned); if(!Number.isFinite(parsed)||parsed<0){return null;} return Math.round(parsed*100)/100;}
+function getMonthKey(value){const millis=getMillis(value); if(!millis){return "unbekannt";} const date=new Date(millis); return date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0");}
+function getStatusLabel(status){if(status==="aktiv"){return "Aktiv";} if(status==="rausschreiben"){return "Ausbuchen";} if(status==="archiviert"){return "Archiviert";} return "Gelöscht";}
+function getStatusBadgeClass(status){if(status==="aktiv"){return "badge badge-aktiv";} if(status==="rausschreiben"){return "badge badge-rausschreiben";} if(status==="archiviert"){return "badge badge-archiviert";} return "badge badge-geloescht";}
+function getTarifTime(tarif){if(typeof tarif.gueltigAbMs==="number"){return tarif.gueltigAbMs;} if(tarif.gueltigAb){const parsed=new Date(tarif.gueltigAb+"T00:00:00").getTime(); return Number.isNaN(parsed)?0:parsed;} return getMillis(tarif.createdAt);}
+function getTarifForDate(value){const target=getMillis(value); const sorted=[...alleTarife].sort((a,b)=>getTarifTime(b)-getTarifTime(a)); for(const tarif of sorted){if(getTarifTime(tarif)<=target){return tarif;}} return null;}
+
+function buildReturnedEntries(){
+  return [...alleEintraege]
+    .filter(entry => entry && entry.returned === true)
+    .map(entry => {
+      const verrechneteAnzahl = Math.min(Number(entry.ausgetragenAnzahl || 0), Number(entry.zurueckgetragenAnzahl || 0));
+      const austragTarif = getTarifForDate(entry.austragDatum);
+      const ruecktragTarif = getTarifForDate(entry.ruecktragDatum);
+      const austrageBetrag = verrechneteAnzahl * Number(austragTarif && austragTarif.austrageBetrag ? austragTarif.austrageBetrag : 0);
+      const zuruecktrageBetrag = verrechneteAnzahl * Number(ruecktragTarif && ruecktragTarif.zuruecktrageBetrag ? ruecktragTarif.zuruecktrageBetrag : 0);
+
+      return {
+        ...entry,
+        ausgetragenAnzahl: Number(entry.ausgetragenAnzahl || 0),
+        zurueckgetragenAnzahl: Number(entry.zurueckgetragenAnzahl || 0),
+        verrechneteAnzahl: verrechneteAnzahl,
+        austragTarif: austragTarif ? Number(austragTarif.austrageBetrag || 0) : 0,
+        ruecktragTarif: ruecktragTarif ? Number(ruecktragTarif.zuruecktrageBetrag || 0) : 0,
+        austrageBetrag: austrageBetrag,
+        zuruecktrageBetrag: zuruecktrageBetrag,
+        gespartBetrag: austrageBetrag + zuruecktrageBetrag,
+        monatKey: getMonthKey(entry.ruecktragDatum)
+      };
+    })
+    .filter(entry => entry.verrechneteAnzahl > 0 && getMillis(entry.ruecktragDatum) > 0)
+    .sort((a,b) => getMillis(b.ruecktragDatum) - getMillis(a.ruecktragDatum));
+}
+
+function matchesSearch(entry){
+  const search = document.getElementById("searchInput").value.trim().toLowerCase();
+  if(search === ""){ return true; }
+  return [
+    entry.baustelle,
+    entry.baustellenNummer,
+    entry.material,
+    entry.spontis,
+    formatDate(entry.austragDatum),
+    formatDate(entry.ruecktragDatum),
+    formatMonthLabel(entry.monatKey),
+    getStatusLabel(entry.baustellenStatus || entry.status || "")
+  ].join(" ").toLowerCase().includes(search);
+}
+
+function buildMaterialSummary(entries){
+  const map = new Map();
+  entries.forEach(entry => {
+    const key = normalizeKey((entry.material || "") + "__" + (entry.spontis || ""));
+    const row = map.get(key) || { material: entry.material || "Unbekanntes Material", spontis: entry.spontis || "", ausgetragenAnzahl: 0, zurueckgetragenAnzahl: 0, austrageBetrag: 0, zuruecktrageBetrag: 0, gespartBetrag: 0 };
+    row.ausgetragenAnzahl += entry.verrechneteAnzahl;
+    row.zurueckgetragenAnzahl += entry.verrechneteAnzahl;
+    row.austrageBetrag += entry.austrageBetrag;
+    row.zuruecktrageBetrag += entry.zuruecktrageBetrag;
+    row.gespartBetrag += entry.gespartBetrag;
+    map.set(key,row);
+  });
+  return [...map.values()].sort((a,b)=>b.gespartBetrag-a.gespartBetrag);
+}
+
+function buildMonthlyReports(entries){
+  const map = new Map();
+  entries.forEach(entry => {
+    const key = entry.monatKey || "unbekannt";
+    const report = map.get(key) || { monthKey:key, entries:[], austrageBetrag:0, zuruecktrageBetrag:0, gespartBetrag:0, anzahl:0 };
+    report.entries.push(entry);
+    report.austrageBetrag += entry.austrageBetrag;
+    report.zuruecktrageBetrag += entry.zuruecktrageBetrag;
+    report.gespartBetrag += entry.gespartBetrag;
+    report.anzahl += entry.verrechneteAnzahl;
+    map.set(key, report);
+  });
+  return [...map.values()].sort((a,b)=>b.monthKey.localeCompare(a.monthKey));
+}
+
+function buildCsvForMonth(report){
+  const lines = [["Monat","Ruecktrag Datum","Austrag Datum","Baustelle","Baustellen Nummer","Material","Spontis Nummer","Anzahl","Austrage Tarif CHF","Zuruecktrage Tarif CHF","Austrage Betrag CHF","Zuruecktrage Betrag CHF","Gespart CHF"].join(";")];
+  report.entries.forEach(entry => {
+    lines.push([
+      formatMonthLabel(report.monthKey),
+      formatDate(entry.ruecktragDatum),
+      formatDate(entry.austragDatum),
+      '"'+String(entry.baustelle||"").replace(/"/g,'""')+'"',
+      '"'+String(entry.baustellenNummer||"").replace(/"/g,'""')+'"',
+      '"'+String(entry.material||"").replace(/"/g,'""')+'"',
+      '"'+String(entry.spontis||"").replace(/"/g,'""')+'"',
+      formatQuantity(entry.verrechneteAnzahl),
+      Number(entry.austragTarif||0).toFixed(2),
+      Number(entry.ruecktragTarif||0).toFixed(2),
+      Number(entry.austrageBetrag||0).toFixed(2),
+      Number(entry.zuruecktrageBetrag||0).toFixed(2),
+      Number(entry.gespartBetrag||0).toFixed(2)
+    ].join(";"));
+  });
+  lines.push("");
+  lines.push("Total Austrage Betrag;"+Number(report.austrageBetrag||0).toFixed(2));
+  lines.push("Total Zuruecktrage Betrag;"+Number(report.zuruecktrageBetrag||0).toFixed(2));
+  lines.push("Total Gespart;"+Number(report.gespartBetrag||0).toFixed(2));
+  return lines.join("\n");
+}
+
+function buildTxtForMonth(report){
+  const rows = ["Monatsreport: "+formatMonthLabel(report.monthKey),"","Total Austrage Betrag: "+formatCurrency(report.austrageBetrag),"Total Zuruecktrage Betrag: "+formatCurrency(report.zuruecktrageBetrag),"Total Gespart: "+formatCurrency(report.gespartBetrag),"","Materialien:",""];
+  report.entries.forEach(entry => {
+    rows.push(formatDate(entry.ruecktragDatum)+" | "+(entry.material||"-")+" | Baustelle: "+(entry.baustelle||"-")+" | Anzahl: "+formatQuantity(entry.verrechneteAnzahl)+" | Austrage: "+formatCurrency(entry.austrageBetrag)+" | Zuruecktragen: "+formatCurrency(entry.zuruecktrageBetrag)+" | Total: "+formatCurrency(entry.gespartBetrag));
+  });
+  return rows.join("\n");
+}
+
+function downloadReport(filename, content, type){const blob=new Blob([content],{type:type}); const url=URL.createObjectURL(blob); const link=document.createElement("a"); link.href=url; link.download=filename; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url);}
+function downloadMonthlyCsv(monthKey){const report=buildMonthlyReports(buildReturnedEntries().filter(matchesSearch)).find(item=>item.monthKey===monthKey); if(report){downloadReport("gespart-"+monthKey+".csv",buildCsvForMonth(report),"text/csv;charset=utf-8");}}
+function downloadMonthlyTxt(monthKey){const report=buildMonthlyReports(buildReturnedEntries().filter(matchesSearch)).find(item=>item.monthKey===monthKey); if(report){downloadReport("gespart-"+monthKey+".txt",buildTxtForMonth(report),"text/plain;charset=utf-8");}}
+
+function renderTarife(){
+  const list=document.getElementById("tarifList");
+  const info=document.getElementById("tarifInfo");
+  list.innerHTML="";
+  const sorted=[...alleTarife].sort((a,b)=>getTarifTime(b)-getTarifTime(a));
+  if(info){info.innerText=sorted.length===0?"Noch keine Tarife gespeichert. Ohne Tarif werden 0 CHF verrechnet.":"Tarifperioden: "+sorted.length;}
+  if(sorted.length===0){list.innerHTML='<div class="empty-box">Noch keine Tarifperiode erfasst.</div>'; return;}
+  sorted.forEach(tarif => {
+    const card=document.createElement("div");
+    card.className="card";
+    card.innerHTML=`
+      <div class="badge badge-config">Gültig ab ${escapeHtml(formatDate(tarif.gueltigAbMs || tarif.gueltigAb))}</div>
+      <div class="card-title">Tarifperiode</div>
+      <div class="card-meta"><strong>Austrage Betrag:</strong> ${escapeHtml(formatCurrency(tarif.austrageBetrag || 0))}</div>
+      <div class="card-meta"><strong>Zurücktrage Betrag:</strong> ${escapeHtml(formatCurrency(tarif.zuruecktrageBetrag || 0))}</div>
+      <div style="margin-top:12px;">
+        <button onclick="editTarif('${escapeHtml(tarif.id)}')"><i class="fa-solid fa-pen"></i> Bearbeiten</button>
+        <button class="danger" onclick="deleteTarif('${escapeHtml(tarif.id)}')"><i class="fa-solid fa-trash"></i> Löschen</button>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+function renderSummary(entries,reports){
+  const austragenAnzahl=entries.reduce((sum,entry)=>sum+entry.verrechneteAnzahl,0);
+  const zurueckAnzahl=entries.reduce((sum,entry)=>sum+entry.verrechneteAnzahl,0);
+  const austrageChf=entries.reduce((sum,entry)=>sum+entry.austrageBetrag,0);
+  const zurueckChf=entries.reduce((sum,entry)=>sum+entry.zuruecktrageBetrag,0);
+  const gespartChf=entries.reduce((sum,entry)=>sum+entry.gespartBetrag,0);
+  document.getElementById("summaryAustragenAnzahl").innerText=formatQuantity(austragenAnzahl);
+  document.getElementById("summaryZurueckAnzahl").innerText=formatQuantity(zurueckAnzahl);
+  document.getElementById("summaryAustrageChf").innerText=formatCurrency(austrageChf);
+  document.getElementById("summaryZurueckChf").innerText=formatCurrency(zurueckChf);
+  document.getElementById("summaryGespartChf").innerText=formatCurrency(gespartChf);
+  document.getElementById("summaryMonate").innerText=String(reports.length);
+}
+
+function renderMonthlyReports(reports){
+  const container=document.getElementById("monthlyReportList");
+  container.innerHTML="";
+  if(reports.length===0){container.innerHTML='<div class="empty-box">Noch keine Monatsreports vorhanden.</div>'; return;}
+  reports.forEach(report => {
+    const card=document.createElement("div");
+    card.className="card";
+    card.innerHTML=`
+      <div class="card-title">${escapeHtml(formatMonthLabel(report.monthKey))}</div>
+      <div class="card-meta"><strong>Zurückgekommene Anzahl:</strong> ${escapeHtml(formatQuantity(report.anzahl))}</div>
+      <div class="card-meta"><strong>Austrage Betrag:</strong> ${escapeHtml(formatCurrency(report.austrageBetrag))}</div>
+      <div class="card-meta"><strong>Zurücktrage Betrag:</strong> ${escapeHtml(formatCurrency(report.zuruecktrageBetrag))}</div>
+      <div class="card-meta"><strong>Total eingespart:</strong> ${escapeHtml(formatCurrency(report.gespartBetrag))}</div>
+      <div style="margin-top:12px;">
+        <button onclick="downloadMonthlyCsv('${escapeHtml(report.monthKey)}')"><i class="fa-solid fa-file-csv"></i> CSV</button>
+        <button class="secondary" onclick="downloadMonthlyTxt('${escapeHtml(report.monthKey)}')"><i class="fa-solid fa-file-lines"></i> TXT</button>
+      </div>`;
+    container.appendChild(card);
+  });
+}
+
+function renderMaterialSummary(rows){
+  const container=document.getElementById("materialSummaryTable");
+  if(rows.length===0){container.innerHTML='<div class="empty-box">Keine Materialdaten für die Übersicht vorhanden.</div>'; return;}
+  container.innerHTML=`<table><thead><tr><th>Material</th><th>Spontis</th><th>Ausgetragen</th><th>Zurückgetragen</th><th>Austrage Betrag</th><th>Zurücktrage Betrag</th><th>Gespart</th></tr></thead><tbody>${rows.map(row=>`<tr><td>${escapeHtml(row.material)}</td><td>${escapeHtml(row.spontis||"-")}</td><td>${escapeHtml(formatQuantity(row.ausgetragenAnzahl))}</td><td>${escapeHtml(formatQuantity(row.zurueckgetragenAnzahl))}</td><td>${escapeHtml(formatCurrency(row.austrageBetrag))}</td><td>${escapeHtml(formatCurrency(row.zuruecktrageBetrag))}</td><td>${escapeHtml(formatCurrency(row.gespartBetrag))}</td></tr>`).join("")}</tbody></table>`;
+}
+
+function renderEntries(entries){
+  const container=document.getElementById("entryList");
+  container.innerHTML="";
+  if(entries.length===0){container.innerHTML='<div class="empty-box">Keine passenden Rückträge gefunden.</div>'; return;}
+  entries.forEach(entry => {
+    const card=document.createElement("div");
+    card.className="card";
+    card.innerHTML=`
+      <div class="${getStatusBadgeClass(entry.baustellenStatus || entry.status || '')}">${escapeHtml(getStatusLabel(entry.baustellenStatus || entry.status || ''))}</div>
+      <div class="card-title">${escapeHtml(entry.material || 'Unbekanntes Material')}</div>
+      <div class="card-meta"><strong>Baustelle:</strong> ${escapeHtml(entry.baustelle || '-')}</div>
+      <div class="card-meta"><strong>Baustellen Nummer:</strong> ${escapeHtml(entry.baustellenNummer || '-')}</div>
+      <div class="card-meta"><strong>Spontis Nummer:</strong> ${escapeHtml(entry.spontis || '-')}</div>
+      <div class="card-meta"><strong>Austrag Datum:</strong> ${escapeHtml(formatDateTime(entry.austragDatum))}</div>
+      <div class="card-meta"><strong>Rücktrag Datum:</strong> ${escapeHtml(formatDateTime(entry.ruecktragDatum))}</div>
+      <div class="card-meta"><strong>Monat:</strong> ${escapeHtml(formatMonthLabel(entry.monatKey))}</div>
+      <div class="amount-grid">
+        <div class="amount-item"><div class="amount-label">Ausgetragen</div><div class="amount-value">${escapeHtml(formatQuantity(entry.ausgetragenAnzahl))}</div></div>
+        <div class="amount-item"><div class="amount-label">Zurückgetragen</div><div class="amount-value">${escapeHtml(formatQuantity(entry.zurueckgetragenAnzahl))}</div></div>
+        <div class="amount-item"><div class="amount-label">Verrechnete Anzahl</div><div class="amount-value">${escapeHtml(formatQuantity(entry.verrechneteAnzahl))}</div></div>
+      </div>
+      <div class="table-wrap"><table><tbody>
+        <tr><th>Austrage Tarif</th><td>${escapeHtml(formatCurrency(entry.austragTarif))}</td></tr>
+        <tr><th>Zurücktrage Tarif</th><td>${escapeHtml(formatCurrency(entry.ruecktragTarif))}</td></tr>
+        <tr><th>Austrage Betrag</th><td>${escapeHtml(formatCurrency(entry.austrageBetrag))}</td></tr>
+        <tr><th>Zurücktrage Betrag</th><td>${escapeHtml(formatCurrency(entry.zuruecktrageBetrag))}</td></tr>
+        <tr><th>Gespart</th><td>${escapeHtml(formatCurrency(entry.gespartBetrag))}</td></tr>
+      </tbody></table></div>`;
+    container.appendChild(card);
+  });
+}
+
+function renderAll(){
+  renderTarife();
+  const entries=buildReturnedEntries().filter(matchesSearch);
+  const reports=buildMonthlyReports(entries);
+  renderSummary(entries,reports);
+  renderMonthlyReports(reports);
+  renderMaterialSummary(buildMaterialSummary(entries));
+  renderEntries(entries);
+  document.getElementById("resultInfo").innerText="Angezeigte Rückträge: "+entries.length;
+}
+
+function editTarif(id){const tarif=alleTarife.find(item=>item.id===id); if(!tarif){return;} editTarifId=id; document.getElementById("tarifGueltigAb").value=tarif.gueltigAb||""; document.getElementById("tarifAustragen").value=String(tarif.austrageBetrag||""); document.getElementById("tarifZuruecktragen").value=String(tarif.zuruecktrageBetrag||"");}
+function resetTarifForm(){editTarifId=null; document.getElementById("tarifGueltigAb").value=""; document.getElementById("tarifAustragen").value=""; document.getElementById("tarifZuruecktragen").value="";}
+function saveTarif(){
+  const gueltigAb=document.getElementById("tarifGueltigAb").value;
+  const austrageBetrag=parseMoney(document.getElementById("tarifAustragen").value);
+  const zuruecktrageBetrag=parseMoney(document.getElementById("tarifZuruecktragen").value);
+  if(!gueltigAb){alert("Bitte ein Gültig-ab-Datum eingeben."); return;}
+  if(austrageBetrag===null || zuruecktrageBetrag===null){alert("Bitte gültige CHF-Beträge für Austragen und Zurücktragen eingeben."); return;}
+  const gueltigAbMs=new Date(gueltigAb+"T00:00:00").getTime();
+  if(Number.isNaN(gueltigAbMs)){alert("Das Gültig-ab-Datum ist ungültig."); return;}
+  const payload={gueltigAb:gueltigAb,gueltigAbMs:gueltigAbMs,austrageBetrag:austrageBetrag,zuruecktrageBetrag:zuruecktrageBetrag,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+  const action=editTarifId ? tarifeCollection.doc(editTarifId).update(payload) : tarifeCollection.add({...payload,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+  action.then(()=>{resetTarifForm();}).catch(error=>{console.error("Fehler beim Speichern des Tarifs:",error); alert("Tarif konnte nicht gespeichert werden.");});
+}
+function deleteTarif(id){if(!confirm("Tarif wirklich löschen?")){return;} tarifeCollection.doc(id).delete().then(()=>{if(editTarifId===id){resetTarifForm();}}).catch(error=>{console.error("Fehler beim Löschen des Tarifs:",error); alert("Tarif konnte nicht gelöscht werden.");});}
+function resetSearch(){document.getElementById("searchInput").value=""; renderAll();}
+function toggleMenu(event){if(event){event.stopPropagation();} const menu=document.getElementById("dropdownMenu"); if(menu){menu.classList.toggle("open");}}
+function closeMenu(){const menu=document.getElementById("dropdownMenu"); if(menu){menu.classList.remove("open");}}
+document.addEventListener("click",function(event){const menu=document.getElementById("dropdownMenu"); const menuWrap=document.querySelector(".menu-wrap"); if(menu&&menuWrap&&!menuWrap.contains(event.target)){closeMenu();}});
+document.addEventListener("DOMContentLoaded",function(){document.querySelectorAll("#dropdownMenu button").forEach(button=>{if(button.getAttribute("data-page")==="gespart"){button.classList.add("active-page");}});});
+function goToHome(){closeMenu(); window.location.href="home.html";}
+function goToKabellager(){closeMenu(); window.location.href="index.html";}
+function goToBaustellen(){closeMenu(); window.location.href="baustellen.html";}
+function goToArchiv(){closeMenu(); window.location.href="archiv.html";}
+function goToLogs(){closeMenu(); window.location.href="logs.html";}
+function goToProfile(){closeMenu(); window.location.href="profil.html";}
+function toggleLoginPasswordVisibility(){const passwordField=document.getElementById("loginPassword"); const toggleIcon=document.getElementById("loginPasswordToggleIcon"); if(!passwordField||!toggleIcon){return;} const shouldShowPassword=passwordField.type==="password"; passwordField.type=shouldShowPassword?"text":"password"; toggleIcon.className=shouldShowPassword?"fa-regular fa-eye-slash":"fa-regular fa-eye";}
+function login(){const email=document.getElementById("loginEmail").value.trim(); const password=document.getElementById("loginPassword").value; auth.signInWithEmailAndPassword(email,password).then(()=>{document.getElementById("loginError").style.display="none"; document.getElementById("loginPassword").value="";}).catch(error=>{console.error("Login Fehler:",error); document.getElementById("loginError").style.display="block";});}
+function logout(){closeMenu(); if(!confirm("Wirklich ausloggen?")){return;} stopListeners(); auth.signOut().then(()=>{window.location.href="home.html";}).catch(error=>{console.error("Logout Fehler:",error); alert("Fehler beim Logout.");});}
+function stopListeners(){if(unsubscribeEintraege){unsubscribeEintraege(); unsubscribeEintraege=null;} if(unsubscribeTarife){unsubscribeTarife(); unsubscribeTarife=null;}}
+function startListeners(){
+  if(!unsubscribeEintraege){unsubscribeEintraege=gespartEintraegeCollection.onSnapshot(snapshot=>{alleEintraege=snapshot.docs.map(doc=>({id:doc.id,...doc.data()})); renderAll();},error=>{console.error("Fehler Gespart-Einträge:",error); alert("Fehler beim Laden der Gespart-Einträge.");});}
+  if(!unsubscribeTarife){unsubscribeTarife=tarifeCollection.onSnapshot(snapshot=>{alleTarife=snapshot.docs.map(doc=>({id:doc.id,...doc.data()})); renderAll();},error=>{console.error("Fehler Tarife:",error); alert("Fehler beim Laden der Tarife.");});}
+}
+
+auth.onAuthStateChanged(user=>{
+  if(user){
+    if(hasLimitedAccess(user.uid)){closeMenu(); alert("Du hast nur Zugriff auf Startseite, Kabellager, Mast Runner und Profil."); window.location.href="home.html"; return;}
+    if(!canAccessSavingsPage(user.uid)){closeMenu(); alert("Diese Seite ist nur für den freigegebenen Benutzer sichtbar."); window.location.href=isAdminUid(user.uid)?"home.html":"profil.html"; return;}
+    document.getElementById("loginScreen").style.display="none";
+    document.getElementById("appContent").style.display="block";
+    startListeners();
+  }else{
+    stopListeners();
+    closeMenu();
+    window.location.href="home.html";
+  }
+});
+</script>
+
+<footer class="app-footer">© 2026 Martin Gross. Alle Rechte vorbehalten.</footer>
+</body>
+</html>
