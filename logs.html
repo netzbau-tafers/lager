@@ -473,6 +473,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 const logsCollection = db.collection("logs");
+const kabelReportCollection = db.collection("kabelReport");
 
 const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "3Jm2fQfSnOhLF50WoeePNQg0ZFf2", "Q33pfDjhxyQcmlnZjrq8tekvioB2", "hwZEme8xvkasSAGrmOtQRLOnnXn1", "PKDpb7Cb7ig8ZKZRMm23FOKnCHQ2", "T05YzzSRN2aUMkTTwGB2N1OqPgA2"];
 const LIMITED_ACCESS_UIDS = ["h8VfDCJ3eTb5GOwjgBzHVck3TEB3", "BVBSpAYOGaWKptCrQ81h8UtW13n2", "UIAvOHFf8QgqJ7UWkPV7CpV88512"];
@@ -531,6 +532,111 @@ function escapeHtml(value){
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function sanitizeInput(value, maxLength = 200){
+  return String(value || "")
+    .replace(/[<>]/g, "")
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, " ")
+    .replace(/\r\n?/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function parsePositiveNumber(value){
+  const normalized = String(value || "").replace(/[^0-9,.-]/g, "").replace(/,/g, ".").trim();
+  if(normalized === ""){
+    return null;
+  }
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function extractDetail(details, label){
+  const safeDetails = String(details || "");
+  const parts = safeDetails.split("|");
+
+  for(const part of parts){
+    const cleanedPart = sanitizeInput(part, 500);
+    const prefix = label + ":";
+    if(cleanedPart.startsWith(prefix)){
+      return sanitizeInput(cleanedPart.slice(prefix.length), 200);
+    }
+  }
+
+  return "";
+}
+
+function parseUsedMetersFromRechnung(details){
+  const text = String(details || "");
+  const patterns = [
+    /Abschnittssumme:[^|]*?-\s*([0-9.,]+)\s*m\s*=\s*[0-9.,]+\s*m/i,
+    /\|\s*=\s*([0-9.,]+)\s*m\s*=\s*[0-9.,]+\s*m/i
+  ];
+
+  for(const pattern of patterns){
+    const match = text.match(pattern);
+    if(match && match[1]){
+      const parsed = parsePositiveNumber(match[1]);
+      if(parsed !== null){
+        return Math.round(parsed * 100) / 100;
+      }
+    }
+  }
+
+  return null;
+}
+
+function buildPersistedKabelReportEntry(log){
+  if(String(log.bereich || "") !== "Kabellager"){
+    return null;
+  }
+
+  const details = String(log.details || "");
+  const aktion = String(log.aktion || "");
+  const typ = sanitizeInput(extractDetail(details, "Typ") || "Unbekannter Typ", 200);
+  const nummer = sanitizeInput(extractDetail(details, "Nummer") || "", 200);
+
+  if(aktion === "Bobine zurück ins Lager gebucht"){
+    const usedMeters = parseUsedMetersFromRechnung(details);
+    if(usedMeters === null || usedMeters <= 0){
+      return null;
+    }
+
+    return {
+      logId: sanitizeInput(log.id || "", 200),
+      objektId: sanitizeInput(log.objektId || "", 200),
+      typ: typ,
+      nummer: nummer,
+      meter: usedMeters,
+      source: "Rückbuchung",
+      sourceAction: aktion,
+      createdAt: log.createdAt || null
+    };
+  }
+
+  if(aktion === "Bobine gelöscht"){
+    const deletedMeters = Math.round((parsePositiveNumber(extractDetail(details, "Länge")) || 0) * 100) / 100;
+    if(deletedMeters <= 0){
+      return null;
+    }
+
+    return {
+      logId: sanitizeInput(log.id || "", 200),
+      objektId: sanitizeInput(log.objektId || "", 200),
+      typ: typ,
+      nummer: nummer,
+      meter: deletedMeters,
+      source: "Komplett gelöscht",
+      sourceAction: aktion,
+      createdAt: log.createdAt || null
+    };
+  }
+
+  return null;
 }
 
 function getMillis(value){
@@ -800,12 +906,19 @@ function cleanupOldLogs(){
         return;
       }
 
-      const deletions = [];
+      const writes = [];
       snapshot.forEach(doc => {
-        deletions.push(logsCollection.doc(doc.id).delete());
+        const log = { id: doc.id, ...doc.data() };
+        const reportEntry = buildPersistedKabelReportEntry(log);
+
+        if(reportEntry){
+          writes.push(kabelReportCollection.doc(doc.id).set(reportEntry, { merge: true }));
+        }
+
+        writes.push(logsCollection.doc(doc.id).delete());
       });
 
-      return Promise.all(deletions);
+      return Promise.all(writes);
     })
     .catch(error => {
       console.error("Fehler beim Löschen alter Logs:", error);
