@@ -476,6 +476,7 @@ const auth = firebase.auth();
 
 const baustellenCollection = db.collection("baustellen");
 const materialCollection = db.collection("baustellen_material");
+const logsCollection = db.collection("logs");
 
 const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "3Jm2fQfSnOhLF50WoeePNQg0ZFf2", "Q33pfDjhxyQcmlnZjrq8tekvioB2", "hwZEme8xvkasSAGrmOtQRLOnnXn1", "PKDpb7Cb7ig8ZKZRMm23FOKnCHQ2", "T05YzzSRN2aUMkTTwGB2N1OqPgA2"];
 const LIMITED_ACCESS_UIDS = ["h8VfDCJ3eTb5GOwjgBzHVck3TEB3", "BVBSpAYOGaWKptCrQ81h8UtW13n2", "UIAvOHFf8QgqJ7UWkPV7CpV88512"];
@@ -534,6 +535,38 @@ function loadArchivCache(){
   }catch(error){
     console.warn("Archiv-Cache konnte nicht geladen werden:", error);
   }
+}
+
+function getCurrentUserDisplayName(user){
+  if(!user){
+    return "";
+  }
+
+  const displayName = sanitizeInput(user.displayName || "", 120);
+  if(displayName){
+    return displayName;
+  }
+
+  const emailName = sanitizeInput((user.email || "").split("@")[0] || "", 120);
+  return emailName || "Unbekannt";
+}
+
+function writeLog(bereich, aktion, objektTyp, objektId, details){
+  const user = auth.currentUser;
+
+  return logsCollection.add({
+    bereich: bereich,
+    aktion: aktion,
+    objektTyp: objektTyp,
+    objektId: objektId || "",
+    benutzerName: getCurrentUserDisplayName(user),
+    benutzerEmail: user && user.email ? user.email : "",
+    benutzerUid: user && user.uid ? user.uid : "",
+    details: details || "",
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(error => {
+    console.error("Fehler beim Schreiben des Logs:", error);
+  });
 }
 
 function sanitizeInput(value, maxLength = 200){
@@ -1150,6 +1183,18 @@ function deleteBaustelle(id){
     });
 
     batch.commit()
+      .then(() => {
+        writeLog(
+          "Baustellenmaterial",
+          "Archivierte Baustelle gelöscht",
+          "baustelle",
+          id,
+          "Name: " + (b.name || "") +
+          " | Nummer: " + (b.nummer || "") +
+          " | Verantwortlicher: " + (b.verantwortlicher || "") +
+          " | Gelöschte Materialeinträge: " + materialien.length
+        );
+      })
       .catch(error => {
         console.error("Fehler beim Löschen der Baustelle:", error);
         alert("Fehler beim Löschen.");
