@@ -57,6 +57,10 @@ body{
   padding:18px;
 }
 
+body.auth-loading .game-wrap{
+  visibility:hidden;
+}
+
 .game-wrap{
   width:min(1100px, 98vw);
   background:var(--card);
@@ -529,7 +533,7 @@ canvas{
 }
 </style>
 </head>
-<body>
+<body class="auth-loading">
   <div class="game-wrap" id="gameWrap">
     <div class="topbar">
       <div class="topbar-left">
@@ -673,6 +677,7 @@ let obstacles = [];
 let spawnTimer = 0;
 let gameOverSaved = false;
 let selectedCharacter = null;
+let gameInitialized = false;
 
 const obstacleTypes = ["mast", "wind", "solar", "tree", "house"];
 
@@ -2046,18 +2051,28 @@ document.addEventListener("fullscreenchange", updateFullscreenButtons);
 document.addEventListener("webkitfullscreenchange", updateFullscreenButtons);
 document.addEventListener("msfullscreenchange", updateFullscreenButtons);
 
-subscribeRanking();
-fetchRankingFromFirestore();
+function initializeGame(){
+  if(gameInitialized){
+    return;
+  }
+
+  gameInitialized = true;
+  document.body.classList.remove("auth-loading");
+  subscribeRanking();
+  fetchRankingFromFirestore();
+  renderRanking();
+  updateFullscreenButtons();
+  draw();
+}
 
 auth.onAuthStateChanged((user) => {
   if(!user){
-    alert("Bitte zuerst auf der Startseite einloggen.");
-    window.location.href = "home.html";
+    window.location.replace("home.html");
+    return;
   }
+
+  initializeGame();
 });
-renderRanking();
-updateFullscreenButtons();
-draw();
 
 characterButtons.forEach((button) => {
   button.addEventListener("click", () => {
