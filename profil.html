@@ -316,6 +316,44 @@ const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
       el.style.color = isError ? "#b3261e" : "#1b5e20";
     }
 
+    function getSanitizedUserEmail(user){
+      return sanitizeInput(user && user.email ? user.email : "", 120).toLowerCase();
+    }
+
+    function syncUserEmail(user, options = {}){
+      if(!user || !user.uid){
+        return Promise.resolve("");
+      }
+
+      const { reloadUser = false } = options;
+      const emailInput = document.getElementById("emailChangeInput");
+      const refreshPromise = reloadUser
+        ? user.reload().catch((error) => {
+            console.warn("Benutzerdaten konnten nicht neu geladen werden:", error);
+          })
+        : Promise.resolve();
+
+      return refreshPromise
+        .then(() => auth.currentUser || user)
+        .then((currentUser) => {
+          const currentEmail = getSanitizedUserEmail(currentUser);
+
+          if(emailInput){
+            emailInput.value = currentEmail;
+          }
+
+          if(!currentEmail){
+            return currentEmail;
+          }
+
+          return usersCollection.doc(currentUser.uid).set({
+            email: currentEmail,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true })
+            .then(() => currentEmail);
+        });
+    }
+
     function saveUsername(){
       const user = auth.currentUser;
       if(!user){
@@ -325,11 +363,11 @@ const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
 
       const username = sanitizeInput(document.getElementById("usernameInput").value, 120);
 
-      usersCollection.doc(user.uid).set({
-        username: username,
-        email: user.email || "",
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true })
+      syncUserEmail(user, { reloadUser: true })
+        .then(() => usersCollection.doc(user.uid).set({
+          username: username,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }))
         .then(() => {
           if(username){
             localStorage.setItem("lagerUsername", username);
@@ -442,10 +480,14 @@ const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
 
       updateNavigationVisibility(user);
 
+      syncUserEmail(user, { reloadUser: true }).catch((error) => {
+        console.error("E-Mail-Synchronisierung fehlgeschlagen:", error);
+      });
+
       usersCollection.doc(user.uid).get().then((doc) => {
         const data = doc.exists ? (doc.data() || {}) : {};
         document.getElementById("usernameInput").value = sanitizeInput(data.username || "", 120);
-        document.getElementById("emailChangeInput").value = user.email || "";
+        document.getElementById("emailChangeInput").value = getSanitizedUserEmail(auth.currentUser || user);
       });
     });
 
