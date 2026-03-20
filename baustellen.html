@@ -1009,12 +1009,6 @@ label{
         <i class="fa-solid fa-trash"></i>
       </button>
     </div>
-    <div class="input-with-action">
-      <input id="vorlageBarcode" placeholder="Barcode (nur Zahlen, Code 128)" inputmode="numeric" maxlength="80" oninput="this.value = this.value.replace(/\D/g, '').slice(0, 80)">
-      <button type="button" class="inline-icon-btn" onclick="clearVorlageBarcodeInput()" title="Barcode löschen" aria-label="Barcode löschen">
-        <i class="fa-solid fa-trash"></i>
-      </button>
-    </div>
     <button onclick="saveVorlage()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
     <button class="back" onclick="closeModals()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
   </div>
@@ -1171,9 +1165,11 @@ function updateAdminVisibility(){
 }
 
 function sanitizeBarcodeValue(value, maxLength = 80){
-  return String(value || "")
-    .replace(/\D/g, "")
-    .slice(0, maxLength);
+  return sanitizeInput(value || "", maxLength);
+}
+
+function getBarcodeValueFromSpontis(spontisNummer){
+  return sanitizeBarcodeValue(spontisNummer || "", 80);
 }
 
 function parseAndNormalizeUrl(rawValue){
@@ -1219,8 +1215,7 @@ function getVorlagenFromCache(){
       id: sanitizeInput(v.id || "", 160),
       material: sanitizeInput(v.material || "", 120),
       spontis: sanitizeInput(v.spontis || "", 60),
-      link: parseAndNormalizeUrl(v.link || "") || "",
-      barcode: sanitizeBarcodeValue(v.barcode || "")
+      link: parseAndNormalizeUrl(v.link || "") || ""
     })).filter(v => v.id);
   }catch(error){
     return null;
@@ -1235,8 +1230,7 @@ function saveVorlagenToCache(vorlagen){
         id: v.id || "",
         material: sanitizeInput(v.material || "", 120),
         spontis: sanitizeInput(v.spontis || "", 60),
-        link: parseAndNormalizeUrl(v.link || "") || "",
-        barcode: sanitizeBarcodeValue(v.barcode || "")
+        link: parseAndNormalizeUrl(v.link || "") || ""
       }))
     }));
   }catch(error){
@@ -1601,8 +1595,7 @@ function loadVorlagen(forceRefresh = false){
       return {
         id: doc.id,
         ...data,
-        link: parseAndNormalizeUrl(data.link || "") || "",
-        barcode: sanitizeBarcodeValue(data.barcode || "")
+        link: parseAndNormalizeUrl(data.link || "") || ""
       };
     });
 
@@ -1831,7 +1824,7 @@ function renderVorlagen(){
       card.innerHTML = `
         <h3>${escapeHtml(v.material || "")}</h3>
         <div class="baustelle-meta"><strong>Spontis Nummer:</strong> ${renderSpontisFeld(v.spontis || "", v.link || "", isAdminUser, isAdminUser)}</div>
-        ${renderBarcodeBlock(v.barcode || "", "Barcode")}
+        ${renderBarcodeBlock(getBarcodeValueFromSpontis(v.spontis || ""), "Barcode")}
         ${isAdminUser ? `
         <div class="card-actions">
           <div class="card-menu-wrap">
@@ -1930,13 +1923,7 @@ function updateAusgewaehlteVorlageInfo(){
 }
 
 function getVorlageBarcodeBySpontis(spontisNummer){
-  const normalizedSpontis = sanitizeInput(spontisNummer || "", 60).toLowerCase();
-  if(normalizedSpontis === ""){
-    return "";
-  }
-
-  const vorlage = alleVorlagen.find(v => sanitizeInput(v.spontis || "", 60).toLowerCase() === normalizedSpontis);
-  return vorlage ? sanitizeBarcodeValue(vorlage.barcode || "") : "";
+  return getBarcodeValueFromSpontis(spontisNummer || "");
 }
 
 function createBarcodeSvgMarkup(barcodeValue){
@@ -2476,13 +2463,11 @@ function openVorlageModal(id = null){
     document.getElementById("vorlageMaterial").value = sanitizeInput(v.material || "", 120);
     document.getElementById("vorlageSpontis").value = sanitizeInput(v.spontis || "", 60);
     document.getElementById("vorlageLink").value = sanitizeInput(v.link || "", 600);
-    document.getElementById("vorlageBarcode").value = sanitizeBarcodeValue(v.barcode || "");
   }else{
     document.getElementById("vorlageModalTitle").innerText = "Neue Materialvorlage";
     document.getElementById("vorlageMaterial").value = "";
     document.getElementById("vorlageSpontis").value = "";
     document.getElementById("vorlageLink").value = "";
-    document.getElementById("vorlageBarcode").value = "";
   }
 
   document.getElementById("vorlageModal").style.display = "block";
@@ -2498,12 +2483,11 @@ function saveVorlage(){
   const spontis = sanitizeInput(document.getElementById("vorlageSpontis").value, 60);
   const linkInput = document.getElementById("vorlageLink").value;
   const normalizedLink = parseAndNormalizeUrl(linkInput);
-  const barcode = sanitizeBarcodeValue(document.getElementById("vorlageBarcode").value, 80);
+  const barcode = getBarcodeValueFromSpontis(spontis);
 
   document.getElementById("vorlageMaterial").value = material;
   document.getElementById("vorlageSpontis").value = spontis;
   document.getElementById("vorlageLink").value = sanitizeInput(linkInput, 600);
-  document.getElementById("vorlageBarcode").value = barcode;
 
   if(normalizedLink === null){
     alert("Bitte einen gültigen Link eingeben (http oder https).");
@@ -2530,7 +2514,7 @@ function saveVorlage(){
       material: material,
       spontis: spontis,
       link: normalizedLink || "",
-      barcode: barcode
+      barcode: firebase.firestore.FieldValue.delete()
     }).then(() => {
       writeLog(
         "Baustellenmaterial",
@@ -2553,7 +2537,6 @@ function saveVorlage(){
       material: material,
       spontis: spontis,
       link: normalizedLink || "",
-      barcode: barcode,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then((docRef) => {
       writeLog(
@@ -3015,26 +2998,12 @@ function closeModals(){
   if(vorlageLinkInput){
     vorlageLinkInput.value = "";
   }
-  const vorlageBarcodeInput = document.getElementById("vorlageBarcode");
-  if(vorlageBarcodeInput){
-    vorlageBarcodeInput.value = "";
-  }
   document.getElementById("ausgewaehlteVorlageInfo").style.display = "none";
   document.getElementById("ausgewaehlteVorlageInfo").innerHTML = "";
   currentBaustelleId = null;
   editMaterialId = null;
   editVorlageId = null;
   selectedVorlageId = null;
-}
-
-function clearVorlageBarcodeInput(){
-  const vorlageBarcodeInput = document.getElementById("vorlageBarcode");
-  if(!vorlageBarcodeInput){
-    return;
-  }
-
-  vorlageBarcodeInput.value = "";
-  vorlageBarcodeInput.focus();
 }
 
 function clearVorlageLinkInput(){
