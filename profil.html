@@ -364,6 +364,19 @@ const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
     }
 
+    function getEmailChangeActionCodeSettings(){
+      const isHttp = window.location.protocol === "http:" || window.location.protocol === "https:";
+      const hasUsableOrigin = isHttp && window.location.origin && window.location.origin !== "null";
+      const continueUrl = hasUsableOrigin
+        ? window.location.origin + window.location.pathname
+        : `https://${firebaseConfig.authDomain}/profil.html`;
+
+      return {
+        url: continueUrl,
+        handleCodeInApp: false
+      };
+    }
+
     function sendEmailChangeLink(){
       const user = auth.currentUser;
       if(!user){
@@ -392,10 +405,7 @@ const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
         return;
       }
 
-      const actionCodeSettings = {
-        url: window.location.origin + window.location.pathname,
-        handleCodeInApp: false
-      };
+      const actionCodeSettings = getEmailChangeActionCodeSettings();
 
       user.verifyBeforeUpdateEmail(newEmail, actionCodeSettings)
         .then(() => {
@@ -412,6 +422,11 @@ const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
 
           if(error && error.code === "auth/email-already-in-use"){
             setInfo("Diese E-Mail-Adresse wird bereits verwendet.", true);
+            return;
+          }
+
+          if(error && (error.code === "auth/invalid-continue-uri" || error.code === "auth/unauthorized-continue-uri")){
+            setInfo("Der Bestätigungslink konnte nicht erstellt werden. Bitte die Seite über die freigegebene Web-Adresse öffnen und erneut versuchen.", true);
             return;
           }
 
