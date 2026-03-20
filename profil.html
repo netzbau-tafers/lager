@@ -139,6 +139,19 @@
       font-size:15px;
     }
 
+    .action-group{
+      margin-top:14px;
+    }
+
+    .action-group button{
+      width:100%;
+      margin:0 0 8px 0;
+    }
+
+    .action-group button:last-of-type{
+      margin-bottom:0;
+    }
+
     .muted{color:#555;font-size:14px}
     .info{font-size:14px;margin-top:10px}
 
@@ -195,7 +208,14 @@
 
     <hr style="margin:18px 0; border:none; border-top:1px solid #eee;">
 
-    <button onclick="resetPassword()"><i class="fa-solid fa-key"></i> Passwort zurücksetzen</button>
+    <label for="emailChangeInput"><strong>Neue E-Mail-Adresse</strong></label>
+    <input id="emailChangeInput" type="email" maxlength="120" placeholder="z. B. max@firma.ch" autocomplete="email">
+    <p class="muted">Firebase sendet einen Bestätigungslink an die neue E-Mail-Adresse. Erst nach dem Klick auf den Link wird die Adresse im Login geändert.</p>
+
+    <div class="action-group">
+      <button onclick="resetPassword()"><i class="fa-solid fa-key"></i> Passwort zurücksetzen</button>
+      <button onclick="sendEmailChangeLink()"><i class="fa-solid fa-envelope"></i> E-Mail ändern</button>
+    </div>
     <p id="profileInfo" class="info"></p>
   </section>
 
@@ -340,6 +360,65 @@ const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
         });
     }
 
+    function isValidEmail(value){
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+    }
+
+    function sendEmailChangeLink(){
+      const user = auth.currentUser;
+      if(!user){
+        setInfo("Nicht eingeloggt.", true);
+        return;
+      }
+
+      const emailInput = document.getElementById("emailChangeInput");
+      const newEmail = String(emailInput.value || "").trim().toLowerCase();
+
+      if(!newEmail){
+        setInfo("Bitte eine neue E-Mail-Adresse eingeben.", true);
+        emailInput.focus();
+        return;
+      }
+
+      if(!isValidEmail(newEmail)){
+        setInfo("Bitte eine gültige E-Mail-Adresse eingeben.", true);
+        emailInput.focus();
+        return;
+      }
+
+      if((user.email || "").toLowerCase() === newEmail){
+        setInfo("Die neue E-Mail-Adresse ist identisch mit der aktuellen Adresse.", true);
+        emailInput.focus();
+        return;
+      }
+
+      const actionCodeSettings = {
+        url: window.location.origin + window.location.pathname,
+        handleCodeInApp: false
+      };
+
+      user.verifyBeforeUpdateEmail(newEmail, actionCodeSettings)
+        .then(() => {
+          setInfo(`Bestätigungslink wurde an ${newEmail} gesendet. Die Änderung wird nach Bestätigung übernommen.`);
+          emailInput.value = "";
+        })
+        .catch((error) => {
+          console.error("E-Mail ändern Fehler:", error);
+
+          if(error && error.code === "auth/requires-recent-login"){
+            setInfo("Bitte neu einloggen und danach den E-Mail-Wechsel erneut starten.", true);
+            return;
+          }
+
+          if(error && error.code === "auth/email-already-in-use"){
+            setInfo("Diese E-Mail-Adresse wird bereits verwendet.", true);
+            return;
+          }
+
+          setInfo("Link zum Ändern der E-Mail-Adresse konnte nicht gesendet werden.", true);
+        });
+    }
+
     auth.onAuthStateChanged((user) => {
       if(!user){
         window.location.href = "home.html";
@@ -351,6 +430,7 @@ const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
       usersCollection.doc(user.uid).get().then((doc) => {
         const data = doc.exists ? (doc.data() || {}) : {};
         document.getElementById("usernameInput").value = sanitizeInput(data.username || "", 120);
+        document.getElementById("emailChangeInput").value = user.email || "";
       });
     });
 
