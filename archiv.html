@@ -727,6 +727,10 @@ function sanitizeBarcodeValue(value, maxLength = 80){
     .slice(0, maxLength);
 }
 
+function getBarcodeValueFromSpontis(spontisNummer){
+  return sanitizeBarcodeValue(spontisNummer || "");
+}
+
 function parseAndNormalizeUrl(rawValue){
   const cleaned = sanitizeInput(rawValue || "", 600);
   if(cleaned === ""){
@@ -1055,7 +1059,7 @@ function baustellePasstZurSuche(baustelle){
     const material = String(m.material || "").toLowerCase();
     const anzahl = String(m.anzahl || "").toLowerCase();
     const spontis = String(m.spontis || "").toLowerCase();
-    const barcode = getVorlageBarcodeBySpontis(m.spontis || "").toLowerCase();
+    const barcode = getMaterialBarcodeValue(m).toLowerCase();
 
     return material.includes(suchbegriff) || anzahl.includes(suchbegriff) || spontis.includes(suchbegriff) || barcode.includes(suchbegriff);
   });
@@ -1100,6 +1104,14 @@ function getVorlageBarcodeBySpontis(spontisNummer){
 
   const vorlage = alleVorlagen.find(v => sanitizeInput(v.spontis || "", 60).toLowerCase() === normalizedSpontis);
   return vorlage ? sanitizeBarcodeValue(vorlage.barcode || "") : "";
+}
+
+function getMaterialBarcodeValue(material){
+  return sanitizeBarcodeValue(
+    (material && material.barcode) ||
+    getVorlageBarcodeBySpontis(material && material.spontis ? material.spontis : "") ||
+    getBarcodeValueFromSpontis(material && material.spontis ? material.spontis : "")
+  );
 }
 
 function getVorlageLinkBySpontis(spontisNummer){
@@ -1199,7 +1211,7 @@ function createBaustelleCard(baustelle){
           <div class="material-row"><strong>Material:</strong> ${escapeHtml(m.material || "")}</div>
           <div class="material-row"><strong>Anzahl:</strong> ${escapeHtml(m.anzahl || "")}</div>
           <div class="material-row"><strong>Spontis Nummer:</strong> ${renderSpontisFeld(m.spontis || "", getVorlageLinkBySpontis(m.spontis || ""), isAdminUser)}</div>
-          ${renderBarcodeBlock(getVorlageBarcodeBySpontis(m.spontis || ""), "Barcode")}
+          ${renderBarcodeBlock(getMaterialBarcodeValue(m), "Barcode")}
         </div>
       `;
     });
@@ -1269,7 +1281,7 @@ function printBaustelle(id){
           <td>${escapeHtml(m.material || "")}</td>
           <td>${escapeHtml(m.anzahl || "")}</td>
           <td>${escapeHtml(m.spontis || "")}</td>
-          <td>${renderBarcodeBlock(getVorlageBarcodeBySpontis(m.spontis || ""), "Barcode") || "-"}</td>
+          <td>${renderBarcodeBlock(getMaterialBarcodeValue(m), "Barcode") || "-"}</td>
         </tr>
       `;
     });
