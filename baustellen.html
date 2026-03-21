@@ -2907,13 +2907,6 @@ function printBaustelle(id){
     });
   }
 
-  const printWindow = window.open("", "_blank", "width=900,height=700");
-
-  if(!printWindow){
-    alert("Das Druckfenster konnte nicht geöffnet werden. Bitte Popups erlauben.");
-    return;
-  }
-
   const html = `
     <!DOCTYPE html>
     <html lang="de">
@@ -3057,14 +3050,74 @@ function printBaustelle(id){
     </html>
   `;
 
+  const isSmallScreen = window.matchMedia && window.matchMedia("(max-width: 900px)").matches;
+  if(isSmallScreen){
+    printBaustelleMobile(html);
+    return;
+  }
+
+  const printWindow = window.open("", "_blank", "width=900,height=700");
+
+  if(!printWindow){
+    alert("Das Druckfenster konnte nicht geöffnet werden. Bitte Popups erlauben.");
+    return;
+  }
+
   printWindow.document.open();
   printWindow.document.write(html);
   printWindow.document.close();
 
-  printWindow.addEventListener("load", function(){
+  printWindow.onload = function(){
     printWindow.focus();
     printWindow.print();
-  });
+  };
+}
+
+function printBaustelleMobile(html){
+  const existingFrame = document.getElementById("baustellePrintFrame");
+  if(existingFrame){
+    existingFrame.remove();
+  }
+
+  const printFrame = document.createElement("iframe");
+  printFrame.id = "baustellePrintFrame";
+  printFrame.title = "Baustelle drucken";
+  printFrame.style.position = "fixed";
+  printFrame.style.right = "0";
+  printFrame.style.bottom = "0";
+  printFrame.style.width = "1px";
+  printFrame.style.height = "1px";
+  printFrame.style.border = "0";
+  printFrame.style.opacity = "0";
+  printFrame.setAttribute("aria-hidden", "true");
+  document.body.appendChild(printFrame);
+
+  const cleanup = () => {
+    window.removeEventListener("afterprint", cleanup);
+    setTimeout(() => {
+      if(printFrame.parentNode){
+        printFrame.parentNode.removeChild(printFrame);
+      }
+    }, 300);
+  };
+
+  const frameWindow = printFrame.contentWindow;
+  if(!frameWindow){
+    cleanup();
+    alert("Die Druckansicht konnte auf diesem Gerät nicht geöffnet werden.");
+    return;
+  }
+
+  printFrame.onload = function(){
+    window.addEventListener("afterprint", cleanup, { once: true });
+    frameWindow.focus();
+    frameWindow.print();
+    setTimeout(cleanup, 1500);
+  };
+
+  frameWindow.document.open();
+  frameWindow.document.write(html);
+  frameWindow.document.close();
 }
 
 function deleteBaustelle(id){
