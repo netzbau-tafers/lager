@@ -1430,7 +1430,7 @@ function renderNotice(earliestLogDate, year, snapshotDocs = []){
   const messages = [];
 
   if(snapshotCount > 0){
-    messages.push(`Für abgeschlossene Monate werden <strong>${escapeHtml(formatCount(snapshotCount))} Monats-Snapshots</strong> aus Firestore verwendet.`);
+    messages.push(`Für abgeschlossene Monate und Monate ohne verfügbare Live-Logs werden <strong>${escapeHtml(formatCount(snapshotCount))} Monats-Snapshots</strong> aus Firestore verwendet.`);
   }
 
   if(earliestLogDate && earliestLogDate > startOfYear && snapshotCount === 0){
@@ -1463,13 +1463,19 @@ function getPreviousMonthReference(){
   return new Date(now.getFullYear(), now.getMonth() - 1, 1);
 }
 
-function getHistoricalSnapshotDocs(year){
+function getDisplaySnapshotDocs(year, reportEntries = []){
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
   const currentMonthIndex = currentDate.getMonth();
+  const liveEntryMonths = new Set((Array.isArray(reportEntries) ? reportEntries : []).map(entry => Number(entry.month)).filter(month => Number.isInteger(month) && month >= 0 && month <= 11));
 
   return allSnapshots.filter(snapshot => {
     if(snapshot.status !== SNAPSHOT_STATUS_READY || snapshot.year !== year){
+      return false;
+    }
+
+    const snapshotMonthIndex = Number(snapshot.monthIndex);
+    if(!Number.isInteger(snapshotMonthIndex) || snapshotMonthIndex < 0 || snapshotMonthIndex > 11){
       return false;
     }
 
@@ -1477,7 +1483,11 @@ function getHistoricalSnapshotDocs(year){
       return true;
     }
 
-    return Number(snapshot.monthIndex) < currentMonthIndex;
+    if(snapshotMonthIndex < currentMonthIndex){
+      return true;
+    }
+
+    return !liveEntryMonths.has(snapshotMonthIndex);
   });
 }
 
@@ -1560,7 +1570,7 @@ function renderReport(){
   const year = Number(document.getElementById("yearFilter").value || new Date().getFullYear());
   const searchTerm = document.getElementById("typeSearch").value;
   const baseData = buildReportEntries(year);
-  const historicalSnapshots = getHistoricalSnapshotDocs(year);
+  const historicalSnapshots = getDisplaySnapshotDocs(year, baseData.reportEntries);
   const snapshotMonthKeys = new Set(historicalSnapshots.map(snapshot => getSnapshotDocumentId(snapshot.year, snapshot.monthIndex)));
   const liveEntries = baseData.reportEntries.filter(entry => !snapshotMonthKeys.has(getSnapshotDocumentId(year, entry.month)));
   const reportData = mergeReportData([
