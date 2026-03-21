@@ -1241,29 +1241,41 @@ function getVorlagenFromCache(){
       return null;
     }
 
-    return parsed.vorlagen.map(v => ({
-      id: sanitizeInput(v.id || "", 160),
-      material: sanitizeInput(v.material || "", 120),
-      spontis: sanitizeInput(v.spontis || "", 60),
-      alteSpontis: sanitizeInput(v.alteSpontis || "", 60),
-      link: parseAndNormalizeUrl(v.link || "") || ""
-    })).filter(v => v.id);
+    return parsed.vorlagen.map(normalizeVorlage).filter(Boolean);
   }catch(error){
     return null;
   }
 }
 
+function normalizeVorlage(vorlage){
+  if(!vorlage || typeof vorlage !== "object"){
+    return null;
+  }
+
+  const normalizedId = sanitizeInput(vorlage.id || "", 160);
+  if(normalizedId === ""){
+    return null;
+  }
+
+  return {
+    id: normalizedId,
+    material: sanitizeInput(vorlage.material || "", 120),
+    spontis: sanitizeInput(vorlage.spontis || "", 60),
+    alteSpontis: sanitizeInput(vorlage.alteSpontis || "", 60),
+    link: parseAndNormalizeUrl(vorlage.link || "") || "",
+    inGespart: !!vorlage.inGespart
+  };
+}
+
 function saveVorlagenToCache(vorlagen){
   try{
+    const normalizedVorlagen = Array.isArray(vorlagen)
+      ? vorlagen.map(normalizeVorlage).filter(Boolean)
+      : [];
+
     localStorage.setItem(VORLAGEN_CACHE_KEY, JSON.stringify({
       savedAt: Date.now(),
-      vorlagen: vorlagen.map(v => ({
-        id: v.id || "",
-        material: sanitizeInput(v.material || "", 120),
-        spontis: sanitizeInput(v.spontis || "", 60),
-        alteSpontis: sanitizeInput(v.alteSpontis || "", 60),
-        link: parseAndNormalizeUrl(v.link || "") || ""
-      }))
+      vorlagen: normalizedVorlagen
     }));
   }catch(error){
     console.warn("Vorlagen Cache konnte nicht gespeichert werden:", error);
@@ -1271,7 +1283,9 @@ function saveVorlagenToCache(vorlagen){
 }
 
 function setVorlagen(vorlagen){
-  alleVorlagen = Array.isArray(vorlagen) ? vorlagen : [];
+  alleVorlagen = Array.isArray(vorlagen)
+    ? vorlagen.map(normalizeVorlage).filter(Boolean)
+    : [];
   renderAll();
   renderVorlagen();
   renderMaterialVorlagenTreffer();
@@ -1673,7 +1687,8 @@ function getErstellerFilterModus(){
 }
 
 function getVorlagenSuchbegriff(){
-  return document.getElementById("vorlagenSearchInput").value.trim().toLowerCase();
+  const input = document.getElementById("vorlagenSearchInput");
+  return input ? input.value.trim().toLowerCase() : "";
 }
 
 function getMaterialVorlageSuchbegriff(){
@@ -1750,6 +1765,10 @@ function baustellePasstZumErstellerFilter(baustelle){
 }
 
 function vorlagePasstZurSuche(vorlage){
+  if(!vorlage || typeof vorlage !== "object"){
+    return false;
+  }
+
   const suchbegriff = getVorlagenSuchbegriff();
 
   if(suchbegriff === ""){
@@ -1764,6 +1783,10 @@ function vorlagePasstZurSuche(vorlage){
 }
 
 function materialVorlagePasstZurSuche(vorlage){
+  if(!vorlage || typeof vorlage !== "object"){
+    return false;
+  }
+
   const suchbegriff = getMaterialVorlageSuchbegriff();
 
   if(suchbegriff === ""){
