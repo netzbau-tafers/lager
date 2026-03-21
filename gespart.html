@@ -745,16 +745,16 @@ const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
 const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
 
 let unsubscribeLogs = null;
-let unsubscribeBaustellen = null;
-let unsubscribeVorlagen = null;
 let unsubscribeTarife = null;
-let unsubscribeMonthlyArchives = null;
 let alleLogs = [];
 let alleBaustellen = [];
 let alleVorlagen = [];
 let alleTarife = [];
 let alleMonatsarchive = [];
 let editTarifId = null;
+let staticRefreshIntervalId = null;
+let refreshStaticDataPromise = null;
+const STATIC_REFRESH_INTERVAL_MS = 1000 * 60 * 5;
 
 function escapeHtml(value){
   return String(value || "")
@@ -1259,6 +1259,93 @@ function normalizeArchiveReport(archive){
   };
 }
 
+function normalizeVorlagenSnapshot(snapshot){
+  return snapshot.docs.map(doc => {
+    const data = doc.data() || {};
+    return {
+      id: doc.id,
+      material: sanitizeInput(data.material || "", 120),
+      spontis: sanitizeInput(data.spontis || "", 60),
+      inGespart: !!data.inGespart
+    };
+  });
+}
+
+function normalizeArchiveSnapshot(snapshot){
+  return snapshot.docs
+    .map(doc => ({ id: doc.id, ...doc.data() }))
+    .sort((a, b) => String(b.monthKey || "").localeCompare(String(a.monthKey || "")));
+}
+
+function applyStaticSnapshots({ baustellenSnapshot, vorlagenSnapshot, monthlyArchiveSnapshot }, shouldRender = true){
+  if(baustellenSnapshot){
+    alleBaustellen = baustellenSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }
+  if(vorlagenSnapshot){
+    alleVorlagen = normalizeVorlagenSnapshot(vorlagenSnapshot);
+  }
+  if(monthlyArchiveSnapshot){
+    alleMonatsarchive = normalizeArchiveSnapshot(monthlyArchiveSnapshot);
+  }
+
+  if(shouldRender){
+    renderAll();
+  }
+}
+
+function refreshStaticData({ shouldRender = true, force = false, silent = false } = {}){
+  if(refreshStaticDataPromise && !force){
+    return refreshStaticDataPromise;
+  }
+
+  refreshStaticDataPromise = Promise.allSettled([
+    baustellenCollection.get(),
+    vorlagenCollection.get(),
+    monthlyArchiveCollection.get()
+  ]).then((results) => {
+    const [baustellenResult, vorlagenResult, monthlyArchiveResult] = results;
+    const firstError = results.find(result => result.status === "rejected");
+
+    applyStaticSnapshots({
+      baustellenSnapshot: baustellenResult.status === "fulfilled" ? baustellenResult.value : null,
+      vorlagenSnapshot: vorlagenResult.status === "fulfilled" ? vorlagenResult.value : null,
+      monthlyArchiveSnapshot: monthlyArchiveResult.status === "fulfilled" ? monthlyArchiveResult.value : null
+    }, shouldRender);
+
+    if(firstError){
+      console.error("Fehler beim Aktualisieren der Gespart-Stammdaten:", firstError.reason);
+    }
+    if(firstError && !silent){
+      alert("Die Stammdaten für Gespart konnten nicht geladen werden.");
+    }
+  }).finally(() => {
+    refreshStaticDataPromise = null;
+  });
+
+  return refreshStaticDataPromise;
+}
+
+function startStaticRefresh(){
+  if(staticRefreshIntervalId){
+    return;
+  }
+
+  staticRefreshIntervalId = window.setInterval(() => {
+    if(document.visibilityState === "visible"){
+      refreshStaticData({ shouldRender: true, silent: true });
+    }
+  }, STATIC_REFRESH_INTERVAL_MS);
+}
+
+function stopStaticRefresh(){
+  if(!staticRefreshIntervalId){
+    return;
+  }
+
+  window.clearInterval(staticRefreshIntervalId);
+  staticRefreshIntervalId = null;
+}
+
 function saveMonthlyArchive(monthKey){
   const report = buildMonthlyReports(buildReturnedEntries()).find(item => item.monthKey === monthKey);
   if(!report){
@@ -1271,6 +1358,7 @@ function saveMonthlyArchive(monthKey){
     ...payload,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   }, { merge: true }).then(() => {
+    refreshStaticData({ shouldRender: true, force: true });
     alert("Monatsarchiv wurde gesichert.");
   }).catch(error => {
     console.error("Fehler beim Sichern des Monatsarchivs:", error);
@@ -1286,6 +1374,8 @@ function deleteMonthlyArchive(monthKey){
   monthlyArchiveCollection.doc(monthKey).delete().catch(error => {
     console.error("Fehler beim Löschen des Monatsarchivs:", error);
     alert("Gesichertes Monatsarchiv konnte nicht gelöscht werden.");
+  }).finally(() => {
+    refreshStaticData({ shouldRender: true, force: true });
   });
 }
 
@@ -1997,27 +2087,19 @@ function stopListeners(){
     unsubscribeLogs();
     unsubscribeLogs = null;
   }
-  if(unsubscribeBaustellen){
-    unsubscribeBaustellen();
-    unsubscribeBaustellen = null;
-  }
-  if(unsubscribeVorlagen){
-    unsubscribeVorlagen();
-    unsubscribeVorlagen = null;
-  }
   if(unsubscribeTarife){
     unsubscribeTarife();
     unsubscribeTarife = null;
   }
-  if(unsubscribeMonthlyArchives){
-    unsubscribeMonthlyArchives();
-    unsubscribeMonthlyArchives = null;
-  }
+  stopStaticRefresh();
+  refreshStaticDataPromise = null;
 }
 
 function startListeners(){
   if(!unsubscribeLogs){
-    unsubscribeLogs = logsCollection.onSnapshot(snapshot => {
+    unsubscribeLogs = logsCollection
+      .where("bereich", "==", "Baustellenmaterial")
+      .onSnapshot(snapshot => {
       alleLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       renderAll();
     }, error => {
@@ -2025,35 +2107,6 @@ function startListeners(){
       alert("Fehler beim Laden der Logs.");
     });
   }
-
-  if(!unsubscribeBaustellen){
-    unsubscribeBaustellen = baustellenCollection.onSnapshot(snapshot => {
-      alleBaustellen = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      renderAll();
-    }, error => {
-      console.error("Fehler Baustellen:", error);
-      alert("Fehler beim Laden der Baustellen.");
-    });
-  }
-
-  if(!unsubscribeVorlagen){
-    unsubscribeVorlagen = vorlagenCollection.onSnapshot(snapshot => {
-      alleVorlagen = snapshot.docs.map(doc => {
-        const data = doc.data() || {};
-        return {
-          id: doc.id,
-          material: sanitizeInput(data.material || "", 120),
-          spontis: sanitizeInput(data.spontis || "", 60),
-          inGespart: !!data.inGespart
-        };
-      });
-      renderAll();
-    }, error => {
-      console.error("Fehler Materialvorlagen:", error);
-      alert("Fehler beim Laden der Materialvorlagen.");
-    });
-  }
-
   if(!unsubscribeTarife){
     unsubscribeTarife = tarifeCollection.onSnapshot(snapshot => {
       alleTarife = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -2063,18 +2116,10 @@ function startListeners(){
       alert("Fehler beim Laden der Tarife.");
     });
   }
-
-  if(!unsubscribeMonthlyArchives){
-    unsubscribeMonthlyArchives = monthlyArchiveCollection.onSnapshot(snapshot => {
-      alleMonatsarchive = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .sort((a, b) => String(b.monthKey || "").localeCompare(String(a.monthKey || "")));
-      renderAll();
-    }, error => {
-      console.error("Fehler Monatsarchive:", error);
-      alert("Fehler beim Laden der Monatsarchive.");
-    });
-  }
+  refreshStaticData({ shouldRender: false, force: true }).then(() => {
+    renderAll();
+  });
+  startStaticRefresh();
 }
 
 auth.onAuthStateChanged(user => {
@@ -2100,6 +2145,18 @@ auth.onAuthStateChanged(user => {
     stopListeners();
     closeMenu();
     window.location.href = "home.html";
+  }
+});
+
+window.addEventListener("focus", () => {
+  if(auth.currentUser){
+    refreshStaticData({ shouldRender: true, silent: true });
+  }
+});
+
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState === "visible" && auth.currentUser){
+    refreshStaticData({ shouldRender: true, silent: true });
   }
 });
 </script>
