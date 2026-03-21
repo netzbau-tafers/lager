@@ -180,6 +180,104 @@ button.danger:hover{
   line-height:1.5;
 }
 
+.stack{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.card-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:12px;
+}
+
+.card-actions button{
+  margin:0;
+}
+
+.insight-list{
+  margin:0;
+  padding-left:18px;
+  color:#4b5563;
+  line-height:1.6;
+}
+
+.month-group{
+  border:1px solid #d7dce2;
+  border-radius:12px;
+  background:#fff;
+  box-shadow:0 2px 8px rgba(0,0,0,0.06);
+  overflow:hidden;
+}
+
+.month-group summary{
+  list-style:none;
+  cursor:pointer;
+  padding:16px 18px;
+  background:#f7f9fb;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+}
+
+.month-group summary::-webkit-details-marker{
+  display:none;
+}
+
+.month-group[open] summary{
+  border-bottom:1px solid #e5e7eb;
+}
+
+.month-group-body{
+  padding:18px;
+}
+
+.month-group-meta{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));
+  gap:10px;
+  margin-top:12px;
+}
+
+.month-stat{
+  background:#fafafa;
+  border:1px solid #e5e7eb;
+  border-radius:10px;
+  padding:12px;
+}
+
+.month-stat-label{
+  font-size:12px;
+  text-transform:uppercase;
+  color:#6b7280;
+  margin-bottom:6px;
+}
+
+.month-stat-value{
+  font-size:20px;
+  font-weight:bold;
+  color:#111827;
+}
+
+.archive-card{
+  border-left:4px solid #2563eb;
+}
+
+.archive-meta{
+  font-size:13px;
+  color:#5b6570;
+  margin-bottom:4px;
+}
+
+.print-note{
+  font-size:13px;
+  color:#5b6570;
+  margin-top:10px;
+}
+
 .search-row,
 .form-grid{
   display:grid;
@@ -518,10 +616,39 @@ label{
   </div>
 
   <div class="panel">
-    <h2>Suche</h2>
+    <h2>Suche & Monatsfilter</h2>
     <div class="search-row">
       <input id="searchInput" type="text" placeholder="Nach Material, Baustelle, Monat oder Datum suchen" oninput="renderAll()" maxlength="120">
       <button class="secondary" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
+    </div>
+    <div class="form-grid" style="margin-top:12px;">
+      <div>
+        <label for="monthFilter">Monat</label>
+        <select id="monthFilter" onchange="renderAll()">
+          <option value="">Alle Monate</option>
+        </select>
+      </div>
+      <div>
+        <label for="detailMode">Detailansicht</label>
+        <select id="detailMode" onchange="renderAll()">
+          <option value="selected">Nur gewählter Monat</option>
+          <option value="all">Alle Monate</option>
+        </select>
+      </div>
+      <div>
+        <label for="sortMode">Sortierung Materialübersicht</label>
+        <select id="sortMode" onchange="renderAll()">
+          <option value="savings">Nach gespartem Betrag</option>
+          <option value="quantity">Nach Anzahl</option>
+          <option value="name">Nach Materialname</option>
+        </select>
+      </div>
+      <div>
+        <label for="savedArchiveFilter">Gesicherte Monatsdatei</label>
+        <select id="savedArchiveFilter" onchange="renderAll()">
+          <option value="">Alle gesicherten Reports</option>
+        </select>
+      </div>
     </div>
   </div>
 
@@ -562,18 +689,27 @@ label{
 
   <div class="panel">
     <h2>Monatsdateien</h2>
-    <div class="helper-text" style="margin-bottom:12px;">Für jeden Monat mit Rückträgen wird automatisch ein Report erstellt. Du kannst ihn als CSV oder TXT herunterladen.</div>
+    <div class="helper-text" style="margin-bottom:12px;">Für jeden Monat mit Rückträgen wird automatisch ein Report erstellt. Du kannst ihn herunterladen, drucken oder als Monatsarchiv sichern, damit er auch nach einem Log-Reset erhalten bleibt.</div>
     <div id="monthlyReportList" class="grid-two"></div>
   </div>
 
   <div class="panel">
+    <h2>Gesicherte Monatsarchive</h2>
+    <div class="helper-text" style="margin-bottom:12px;">Gesicherte Monatsarchive liegen in Firestore und bleiben verfügbar, auch wenn die Logs später zurückgesetzt werden.</div>
+    <div id="monthlyArchiveInfo" class="info-box"></div>
+    <div id="monthlyArchiveList" class="grid-two"></div>
+  </div>
+
+  <div class="panel">
     <h2>Materialübersicht</h2>
+    <div class="helper-text" style="margin-bottom:12px;">Die Übersicht zeigt nur den aktuell gefilterten Monat oder alle Monate, je nach gewählter Detailansicht.</div>
     <div id="materialSummaryTable" class="table-wrap"></div>
   </div>
 
   <div class="panel">
     <h2>Einzelne Rückträge mit Datum</h2>
-    <div id="entryList" class="grid-three"></div>
+    <div class="helper-text" style="margin-bottom:12px;">Die Rückträge werden monatlich gruppiert, damit lange Listen übersichtlicher bleiben.</div>
+    <div id="entryList" class="grid-two"></div>
   </div>
 </div>
 
@@ -599,6 +735,7 @@ const logsCollection = db.collection("logs");
 const baustellenCollection = db.collection("baustellen");
 const vorlagenCollection = db.collection("material_vorlagen");
 const tarifeCollection = db.collection("gespart_tarife");
+const monthlyArchiveCollection = db.collection("gespart_monatsreports");
 
 const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "pmyu29TlC3QM7JIysmy2EmiHSWW2", "Q33pfDjhxyQcmlnZjrq8tekvioB2", "hwZEme8xvkasSAGrmOtQRLOnnXn1", "PKDpb7Cb7ig8ZKZRMm23FOKnCHQ2", "T05YzzSRN2aUMkTTwGB2N1OqPgA2", "DSMERv7Uu4b4eEYQx5SKbjvdher2"];
 const LIMITED_ACCESS_UIDS = ["h8VfDCJ3eTb5GOwjgBzHVck3TEB3", "BVBSpAYOGaWKptCrQ81h8UtW13n2", "UIAvOHFf8QgqJ7UWkPV7CpV88512"];
@@ -611,10 +748,12 @@ let unsubscribeLogs = null;
 let unsubscribeBaustellen = null;
 let unsubscribeVorlagen = null;
 let unsubscribeTarife = null;
+let unsubscribeMonthlyArchives = null;
 let alleLogs = [];
 let alleBaustellen = [];
 let alleVorlagen = [];
 let alleTarife = [];
+let alleMonatsarchive = [];
 let editTarifId = null;
 
 function escapeHtml(value){
@@ -996,6 +1135,248 @@ function buildMonthlyReports(entries){
   return [...map.values()].sort((a, b) => b.monthKey.localeCompare(a.monthKey));
 }
 
+function sortMaterialSummaryRows(rows){
+  const sortModeElement = document.getElementById("sortMode");
+  const sortMode = sortModeElement ? sortModeElement.value : "savings";
+  const sorted = [...rows];
+
+  if(sortMode === "quantity"){
+    return sorted.sort((a, b) => b.zurueckgetragenAnzahl - a.zurueckgetragenAnzahl || b.gespartBetrag - a.gespartBetrag);
+  }
+
+  if(sortMode === "name"){
+    return sorted.sort((a, b) => String(a.material || "").localeCompare(String(b.material || ""), "de"));
+  }
+
+  return sorted.sort((a, b) => b.gespartBetrag - a.gespartBetrag || b.zurueckgetragenAnzahl - a.zurueckgetragenAnzahl);
+}
+
+function getSelectedMonth(){
+  const element = document.getElementById("monthFilter");
+  return element ? element.value : "";
+}
+
+function getDetailEntries(entries){
+  const selectedMonth = getSelectedMonth();
+  const detailModeElement = document.getElementById("detailMode");
+  const detailMode = detailModeElement ? detailModeElement.value : "selected";
+
+  if(detailMode === "all" || !selectedMonth){
+    return entries;
+  }
+
+  return entries.filter(entry => entry.monatKey === selectedMonth);
+}
+
+function populateMonthFilters(monthlyReports, monthlyArchives){
+  const monthFilter = document.getElementById("monthFilter");
+  const archiveFilter = document.getElementById("savedArchiveFilter");
+  if(!monthFilter || !archiveFilter){
+    return;
+  }
+
+  const currentMonthValue = monthFilter.value;
+  const currentArchiveValue = archiveFilter.value;
+  const monthOptions = monthlyReports.map(report => report.monthKey);
+  const archiveOptions = monthlyArchives.map(archive => archive.monthKey);
+
+  monthFilter.innerHTML = '<option value="">Alle Monate</option>' + monthOptions.map(monthKey => (
+    '<option value="' + escapeHtml(monthKey) + '">' + escapeHtml(formatMonthLabel(monthKey)) + '</option>'
+  )).join('');
+
+  archiveFilter.innerHTML = '<option value="">Alle gesicherten Reports</option>' + archiveOptions.map(monthKey => (
+    '<option value="' + escapeHtml(monthKey) + '">' + escapeHtml(formatMonthLabel(monthKey)) + '</option>'
+  )).join('');
+
+  if(monthOptions.includes(currentMonthValue)){
+    monthFilter.value = currentMonthValue;
+  }else if(!currentMonthValue && monthOptions.length > 0){
+    monthFilter.value = monthOptions[0];
+  }
+  if(archiveOptions.includes(currentArchiveValue)){
+    archiveFilter.value = currentArchiveValue;
+  }
+}
+
+function buildArchivePayload(report){
+  const materialSummary = buildMaterialSummary(report.entries);
+  return {
+    monthKey: report.monthKey,
+    monthLabel: formatMonthLabel(report.monthKey),
+    anzahl: Math.round((report.anzahl || 0) * 100) / 100,
+    austrageBetrag: Math.round((report.austrageBetrag || 0) * 100) / 100,
+    zuruecktrageBetrag: Math.round((report.zuruecktrageBetrag || 0) * 100) / 100,
+    gespartBetrag: Math.round((report.gespartBetrag || 0) * 100) / 100,
+    materialSummary: materialSummary.map(row => ({
+      material: row.material || "",
+      spontis: row.spontis || "",
+      ausgetragenAnzahl: Math.round((row.ausgetragenAnzahl || 0) * 100) / 100,
+      zurueckgetragenAnzahl: Math.round((row.zurueckgetragenAnzahl || 0) * 100) / 100,
+      austrageBetrag: Math.round((row.austrageBetrag || 0) * 100) / 100,
+      zuruecktrageBetrag: Math.round((row.zuruecktrageBetrag || 0) * 100) / 100,
+      gespartBetrag: Math.round((row.gespartBetrag || 0) * 100) / 100
+    })),
+    entries: report.entries.map(entry => ({
+      material: entry.material || "",
+      baustelle: entry.baustelle || "",
+      baustellenNummer: entry.baustellenNummer || "",
+      spontis: entry.spontis || "",
+      status: entry.status || "",
+      austragDatumMs: getMillis(entry.austragDatum),
+      ruecktragDatumMs: getMillis(entry.ruecktragDatum),
+      monatKey: entry.monatKey || "",
+      ausgetragenAnzahl: Math.round((entry.ausgetragenAnzahl || 0) * 100) / 100,
+      zurueckgetragenAnzahl: Math.round((entry.zurueckgetragenAnzahl || 0) * 100) / 100,
+      verrechneteAnzahl: Math.round((entry.verrechneteAnzahl || 0) * 100) / 100,
+      austragTarif: Math.round((entry.austragTarif || 0) * 100) / 100,
+      ruecktragTarif: Math.round((entry.ruecktragTarif || 0) * 100) / 100,
+      austrageBetrag: Math.round((entry.austrageBetrag || 0) * 100) / 100,
+      zuruecktrageBetrag: Math.round((entry.zuruecktrageBetrag || 0) * 100) / 100,
+      gespartBetrag: Math.round((entry.gespartBetrag || 0) * 100) / 100
+    })),
+    source: "manual",
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+}
+
+function normalizeArchiveReport(archive){
+  return {
+    id: archive.id,
+    monthKey: archive.monthKey || "unbekannt",
+    monthLabel: archive.monthLabel || formatMonthLabel(archive.monthKey),
+    anzahl: Number(archive.anzahl || 0),
+    austrageBetrag: Number(archive.austrageBetrag || 0),
+    zuruecktrageBetrag: Number(archive.zuruecktrageBetrag || 0),
+    gespartBetrag: Number(archive.gespartBetrag || 0),
+    materialSummary: Array.isArray(archive.materialSummary) ? archive.materialSummary : [],
+    entries: Array.isArray(archive.entries) ? archive.entries.map(entry => ({
+      ...entry,
+      austragDatum: entry.austragDatumMs || entry.austragDatum || null,
+      ruecktragDatum: entry.ruecktragDatumMs || entry.ruecktragDatum || null
+    })) : [],
+    createdAt: archive.createdAt || archive.updatedAt || null,
+    updatedAt: archive.updatedAt || archive.createdAt || null
+  };
+}
+
+function saveMonthlyArchive(monthKey){
+  const report = buildMonthlyReports(buildReturnedEntries()).find(item => item.monthKey === monthKey);
+  if(!report){
+    alert("Für diesen Monat sind aktuell keine Daten verfügbar.");
+    return;
+  }
+
+  const payload = buildArchivePayload(report);
+  monthlyArchiveCollection.doc(monthKey).set({
+    ...payload,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true }).then(() => {
+    alert("Monatsarchiv wurde gesichert.");
+  }).catch(error => {
+    console.error("Fehler beim Sichern des Monatsarchivs:", error);
+    alert("Monatsarchiv konnte nicht gesichert werden.");
+  });
+}
+
+function deleteMonthlyArchive(monthKey){
+  if(!confirm("Gesichertes Monatsarchiv wirklich löschen?")){
+    return;
+  }
+
+  monthlyArchiveCollection.doc(monthKey).delete().catch(error => {
+    console.error("Fehler beim Löschen des Monatsarchivs:", error);
+    alert("Gesichertes Monatsarchiv konnte nicht gelöscht werden.");
+  });
+}
+
+function buildPrintableHtml(report, options = {}){
+  const materialRows = sortMaterialSummaryRows(report.materialSummary && report.materialSummary.length ? report.materialSummary : buildMaterialSummary(report.entries));
+  const entryRows = (report.entries || []).map(entry => `
+    <tr>
+      <td>${escapeHtml(formatDate(entry.ruecktragDatum))}</td>
+      <td>${escapeHtml(entry.material || "-")}</td>
+      <td>${escapeHtml(entry.baustelle || "-")}</td>
+      <td>${escapeHtml(entry.baustellenNummer || "-")}</td>
+      <td>${escapeHtml(formatQuantity(entry.verrechneteAnzahl || 0))}</td>
+      <td>${escapeHtml(formatCurrency(entry.gespartBetrag || 0))}</td>
+    </tr>
+  `).join("");
+  const savedHint = options.savedHint ? `<div class="meta">${escapeHtml(options.savedHint)}</div>` : "";
+
+  return `<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Gespart ${escapeHtml(formatMonthLabel(report.monthKey))}</title>
+<style>
+  body{font-family:Arial,sans-serif;color:#1f2937;margin:32px;}
+  h1,h2{margin-bottom:10px;}
+  .meta{color:#4b5563;font-size:13px;margin-bottom:6px;}
+  .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:20px 0;}
+  .card{border:1px solid #d1d5db;border-radius:10px;padding:12px;background:#f9fafb;}
+  .label{font-size:12px;text-transform:uppercase;color:#6b7280;margin-bottom:6px;}
+  .value{font-size:22px;font-weight:bold;}
+  table{width:100%;border-collapse:collapse;margin-top:12px;}
+  th,td{border:1px solid #d1d5db;padding:8px;text-align:left;font-size:13px;vertical-align:top;}
+  th{background:#f3f4f6;}
+  @media print { body{margin:14mm;} .no-print{display:none;} }
+</style>
+</head>
+<body>
+  <h1>Monatsreport Kosten gespart – ${escapeHtml(formatMonthLabel(report.monthKey))}</h1>
+  ${savedHint}
+  <div class="meta">Erstellt am: ${escapeHtml(new Date().toLocaleString("de-CH"))}</div>
+  <div class="grid">
+    <div class="card"><div class="label">Zurückgekommene Anzahl</div><div class="value">${escapeHtml(formatQuantity(report.anzahl || 0))}</div></div>
+    <div class="card"><div class="label">Austrage Betrag</div><div class="value">${escapeHtml(formatCurrency(report.austrageBetrag || 0))}</div></div>
+    <div class="card"><div class="label">Zurücktrage Betrag</div><div class="value">${escapeHtml(formatCurrency(report.zuruecktrageBetrag || 0))}</div></div>
+    <div class="card"><div class="label">Total gespart</div><div class="value">${escapeHtml(formatCurrency(report.gespartBetrag || 0))}</div></div>
+  </div>
+
+  <h2>Materialübersicht</h2>
+  <table>
+    <thead><tr><th>Material</th><th>Spontis</th><th>Anzahl</th><th>Austrage Betrag</th><th>Zurücktrage Betrag</th><th>Gespart</th></tr></thead>
+    <tbody>${materialRows.map(row => `
+      <tr>
+        <td>${escapeHtml(row.material || "-")}</td>
+        <td>${escapeHtml(row.spontis || "-")}</td>
+        <td>${escapeHtml(formatQuantity(row.zurueckgetragenAnzahl || 0))}</td>
+        <td>${escapeHtml(formatCurrency(row.austrageBetrag || 0))}</td>
+        <td>${escapeHtml(formatCurrency(row.zuruecktrageBetrag || 0))}</td>
+        <td>${escapeHtml(formatCurrency(row.gespartBetrag || 0))}</td>
+      </tr>
+    `).join("")}</tbody>
+  </table>
+
+  <h2>Einzelne Rückträge</h2>
+  <table>
+    <thead><tr><th>Rücktrag</th><th>Material</th><th>Baustelle</th><th>Nr.</th><th>Anzahl</th><th>Gespart</th></tr></thead>
+    <tbody>${entryRows}</tbody>
+  </table>
+</body>
+</html>`;
+}
+
+function downloadMonthlyHtml(report, filenameSuffix = ""){
+  const suffix = filenameSuffix ? '-' + filenameSuffix : '';
+  downloadReport('gespart-' + report.monthKey + suffix + '.html', buildPrintableHtml(report), 'text/html;charset=utf-8');
+}
+
+function printMonthlyReport(report, savedHint = ""){
+  const printWindow = window.open('', '_blank');
+  if(!printWindow){
+    alert('Bitte Pop-ups erlauben, um die Druckansicht zu öffnen.');
+    return;
+  }
+  printWindow.document.open();
+  printWindow.document.write(buildPrintableHtml(report, { savedHint: savedHint }));
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(() => {
+    printWindow.print();
+  }, 250);
+}
+
 function buildCsvForMonth(report){
   const lines = [
     [
@@ -1079,7 +1460,7 @@ function downloadReport(filename, content, type){
 }
 
 function downloadMonthlyCsv(monthKey){
-  const report = buildMonthlyReports(buildReturnedEntries().filter(matchesSearch)).find(item => item.monthKey === monthKey);
+  const report = buildMonthlyReports(buildReturnedEntries()).find(item => item.monthKey === monthKey);
   if(!report){
     return;
   }
@@ -1087,7 +1468,7 @@ function downloadMonthlyCsv(monthKey){
 }
 
 function downloadMonthlyTxt(monthKey){
-  const report = buildMonthlyReports(buildReturnedEntries().filter(matchesSearch)).find(item => item.monthKey === monthKey);
+  const report = buildMonthlyReports(buildReturnedEntries()).find(item => item.monthKey === monthKey);
   if(!report){
     return;
   }
@@ -1166,6 +1547,7 @@ function renderMonthlyReports(reports){
   }
 
   reports.forEach(report => {
+    const materialSummary = sortMaterialSummaryRows(buildMaterialSummary(report.entries)).slice(0, 5);
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
@@ -1174,10 +1556,15 @@ function renderMonthlyReports(reports){
       <div class="card-meta"><strong>Austrage Betrag:</strong> ${escapeHtml(formatCurrency(report.austrageBetrag))}</div>
       <div class="card-meta"><strong>Zurücktrage Betrag:</strong> ${escapeHtml(formatCurrency(report.zuruecktrageBetrag))}</div>
       <div class="card-meta"><strong>Total eingespart:</strong> ${escapeHtml(formatCurrency(report.gespartBetrag))}</div>
-      <div style="margin-top:12px;">
+      <ul class="insight-list">${materialSummary.map(row => `<li><strong>${escapeHtml(row.material || "-")}</strong>: ${escapeHtml(formatCurrency(row.gespartBetrag || 0))}</li>`).join("") || '<li>Keine Materialdaten vorhanden.</li>'}</ul>
+      <div class="card-actions">
         <button type="button" class="js-download-monthly-csv"><i class="fa-solid fa-file-csv"></i> CSV</button>
         <button type="button" class="secondary js-download-monthly-txt"><i class="fa-solid fa-file-lines"></i> TXT</button>
+        <button type="button" class="secondary js-download-monthly-html"><i class="fa-solid fa-file"></i> Druckdatei</button>
+        <button type="button" class="secondary js-print-month"><i class="fa-solid fa-print"></i> Drucken / PDF</button>
+        <button type="button" class="js-save-month"><i class="fa-solid fa-box-archive"></i> Monat sichern</button>
       </div>
+      <div class="print-note">Tipp: Über "Drucken / PDF" kannst du direkt eine PDF-Datei pro Monat speichern.</div>
     `;
     const csvButton = card.querySelector(".js-download-monthly-csv");
     if(csvButton){
@@ -1191,19 +1578,94 @@ function renderMonthlyReports(reports){
         downloadMonthlyTxt(report.monthKey);
       });
     }
+    const htmlButton = card.querySelector(".js-download-monthly-html");
+    if(htmlButton){
+      htmlButton.addEventListener("click", function(){
+        downloadMonthlyHtml(report);
+      });
+    }
+    const printButton = card.querySelector(".js-print-month");
+    if(printButton){
+      printButton.addEventListener("click", function(){
+        printMonthlyReport(report);
+      });
+    }
+    const saveButton = card.querySelector(".js-save-month");
+    if(saveButton){
+      saveButton.addEventListener("click", function(){
+        saveMonthlyArchive(report.monthKey);
+      });
+    }
+    container.appendChild(card);
+  });
+}
+
+function renderMonthlyArchives(archives){
+  const container = document.getElementById("monthlyArchiveList");
+  const info = document.getElementById("monthlyArchiveInfo");
+  const archiveFilterElement = document.getElementById("savedArchiveFilter");
+  const selectedArchiveMonth = archiveFilterElement ? archiveFilterElement.value : "";
+  const filteredArchives = selectedArchiveMonth ? archives.filter(archive => archive.monthKey === selectedArchiveMonth) : archives;
+
+  info.innerText = filteredArchives.length === 0
+    ? "Noch keine Monatsarchive gesichert."
+    : "Gesicherte Archive: " + filteredArchives.length;
+
+  container.innerHTML = "";
+  if(filteredArchives.length === 0){
+    container.innerHTML = '<div class="empty-box">Noch keine gesicherten Monatsarchive vorhanden.</div>';
+    return;
+  }
+
+  filteredArchives.forEach(archive => {
+    const normalized = normalizeArchiveReport(archive);
+    const card = document.createElement("div");
+    card.className = "card archive-card";
+    card.innerHTML = `
+      <div class="card-title">${escapeHtml(normalized.monthLabel)}</div>
+      <div class="archive-meta">Gesichert am: ${escapeHtml(formatDateTime(normalized.updatedAt || normalized.createdAt))}</div>
+      <div class="archive-meta">Einträge: ${escapeHtml(String(normalized.entries.length))}</div>
+      <div class="card-meta"><strong>Total eingespart:</strong> ${escapeHtml(formatCurrency(normalized.gespartBetrag))}</div>
+      <div class="card-actions">
+        <button type="button" class="secondary js-archive-html"><i class="fa-solid fa-file"></i> Druckdatei</button>
+        <button type="button" class="secondary js-archive-print"><i class="fa-solid fa-print"></i> Drucken / PDF</button>
+        <button type="button" class="danger js-archive-delete"><i class="fa-solid fa-trash"></i> Löschen</button>
+      </div>
+    `;
+    const htmlButton = card.querySelector('.js-archive-html');
+    if(htmlButton){
+      htmlButton.addEventListener('click', function(){
+        downloadReport('gespart-archiv-' + normalized.monthKey + '.html', buildPrintableHtml(normalized, {
+          savedHint: 'Gesichertes Monatsarchiv vom ' + formatDateTime(normalized.updatedAt || normalized.createdAt)
+        }), 'text/html;charset=utf-8');
+      });
+    }
+    const printButton = card.querySelector('.js-archive-print');
+    if(printButton){
+      printButton.addEventListener('click', function(){
+        printMonthlyReport(normalized, 'Gesichertes Monatsarchiv vom ' + formatDateTime(normalized.updatedAt || normalized.createdAt));
+      });
+    }
+    const deleteButton = card.querySelector('.js-archive-delete');
+    if(deleteButton){
+      deleteButton.addEventListener('click', function(){
+        deleteMonthlyArchive(normalized.monthKey);
+      });
+    }
     container.appendChild(card);
   });
 }
 
 function renderMaterialSummary(summaryRows){
   const container = document.getElementById("materialSummaryTable");
+  const sortedRows = sortMaterialSummaryRows(summaryRows);
 
-  if(summaryRows.length === 0){
+  if(sortedRows.length === 0){
     container.innerHTML = '<div class="empty-box">Keine Materialdaten für die Übersicht vorhanden.</div>';
     return;
   }
 
-  const rowsHtml = summaryRows.map(row => `
+  const rowsHtml = sortedRows.map(row => `
     <tr>
       <td>${escapeHtml(row.material)}</td>
       <td>${escapeHtml(row.spontis || "-")}</td>
@@ -1242,78 +1704,82 @@ function renderEntries(entries){
     return;
   }
 
-  entries.forEach(entry => {
-    const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `
-      <div class="${getStatusBadgeClass(entry.status)}">${escapeHtml(getStatusLabel(entry.status))}</div>
-      <div class="card-title">${escapeHtml(entry.material || "Unbekanntes Material")}</div>
-      <div class="card-meta"><strong>Baustelle:</strong> ${escapeHtml(entry.baustelle || "-")}</div>
-      <div class="card-meta"><strong>Baustellen Nummer:</strong> ${escapeHtml(entry.baustellenNummer || "-")}</div>
-      <div class="card-meta"><strong>Spontis Nummer:</strong> ${escapeHtml(entry.spontis || "-")}</div>
-      <div class="card-meta"><strong>Austrag Datum:</strong> ${escapeHtml(formatDateTime(entry.austragDatum))}</div>
-      <div class="card-meta"><strong>Rücktrag Datum:</strong> ${escapeHtml(formatDateTime(entry.ruecktragDatum))}</div>
-      <div class="card-meta"><strong>Monat:</strong> ${escapeHtml(formatMonthLabel(entry.monatKey))}</div>
+  const monthGroups = buildMonthlyReports(entries);
+  monthGroups.forEach((report, index) => {
+    const group = document.createElement("details");
+    group.className = "month-group";
+    if(index === 0){
+      group.open = true;
+    }
 
-      <div class="amount-grid">
-        <div class="amount-item">
-          <div class="amount-label">Ausgetragen</div>
-          <div class="amount-value">${escapeHtml(formatQuantity(entry.ausgetragenAnzahl))}</div>
-        </div>
-        <div class="amount-item">
-          <div class="amount-label">Zurückgetragen</div>
-          <div class="amount-value">${escapeHtml(formatQuantity(entry.zurueckgetragenAnzahl))}</div>
-        </div>
-        <div class="amount-item">
-          <div class="amount-label">Verrechnete Anzahl</div>
-          <div class="amount-value">${escapeHtml(formatQuantity(entry.verrechneteAnzahl))}</div>
+    const monthEntriesHtml = report.entries.map(entry => `
+      <div class="card" style="margin-bottom:12px;">
+        <div class="${getStatusBadgeClass(entry.status)}">${escapeHtml(getStatusLabel(entry.status))}</div>
+        <div class="card-title">${escapeHtml(entry.material || "Unbekanntes Material")}</div>
+        <div class="card-meta"><strong>Baustelle:</strong> ${escapeHtml(entry.baustelle || "-")}</div>
+        <div class="card-meta"><strong>Baustellen Nummer:</strong> ${escapeHtml(entry.baustellenNummer || "-")}</div>
+        <div class="card-meta"><strong>Spontis Nummer:</strong> ${escapeHtml(entry.spontis || "-")}</div>
+        <div class="card-meta"><strong>Austrag Datum:</strong> ${escapeHtml(formatDateTime(entry.austragDatum))}</div>
+        <div class="card-meta"><strong>Rücktrag Datum:</strong> ${escapeHtml(formatDateTime(entry.ruecktragDatum))}</div>
+        <div class="amount-grid">
+          <div class="amount-item">
+            <div class="amount-label">Ausgetragen</div>
+            <div class="amount-value">${escapeHtml(formatQuantity(entry.ausgetragenAnzahl))}</div>
+          </div>
+          <div class="amount-item">
+            <div class="amount-label">Zurückgetragen</div>
+            <div class="amount-value">${escapeHtml(formatQuantity(entry.zurueckgetragenAnzahl))}</div>
+          </div>
+          <div class="amount-item">
+            <div class="amount-label">Gespart</div>
+            <div class="amount-value">${escapeHtml(formatCurrency(entry.gespartBetrag))}</div>
+          </div>
         </div>
       </div>
+    `).join("");
 
-      <div class="table-wrap">
-        <table>
-          <tbody>
-            <tr>
-              <th>Austrage Tarif</th>
-              <td>${escapeHtml(formatCurrency(entry.austragTarif))}</td>
-            </tr>
-            <tr>
-              <th>Zurücktrage Tarif</th>
-              <td>${escapeHtml(formatCurrency(entry.ruecktragTarif))}</td>
-            </tr>
-            <tr>
-              <th>Austrage Betrag</th>
-              <td>${escapeHtml(formatCurrency(entry.austrageBetrag))}</td>
-            </tr>
-            <tr>
-              <th>Zurücktrage Betrag</th>
-              <td>${escapeHtml(formatCurrency(entry.zuruecktrageBetrag))}</td>
-            </tr>
-            <tr>
-              <th>Gespart</th>
-              <td>${escapeHtml(formatCurrency(entry.gespartBetrag))}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    group.innerHTML = `
+      <summary>
+        <div>
+          <div class="card-title" style="margin-bottom:6px;">${escapeHtml(formatMonthLabel(report.monthKey))}</div>
+          <div class="card-meta">${escapeHtml(String(report.entries.length))} Rückträge in diesem Monat</div>
+        </div>
+        <div class="month-group-meta">
+          <div class="month-stat">
+            <div class="month-stat-label">Anzahl</div>
+            <div class="month-stat-value">${escapeHtml(formatQuantity(report.anzahl))}</div>
+          </div>
+          <div class="month-stat">
+            <div class="month-stat-label">Gespart</div>
+            <div class="month-stat-value">${escapeHtml(formatCurrency(report.gespartBetrag))}</div>
+          </div>
+        </div>
+      </summary>
+      <div class="month-group-body stack">${monthEntriesHtml}</div>
     `;
-    container.appendChild(card);
+    container.appendChild(group);
   });
 }
 
 function renderAll(){
   renderTarife();
 
-  const entries = buildReturnedEntries().filter(matchesSearch);
-  const monthlyReports = buildMonthlyReports(entries);
-  const materialSummary = buildMaterialSummary(entries);
+  const allEntries = buildReturnedEntries().filter(matchesSearch);
+  const monthlyReports = buildMonthlyReports(allEntries);
+  populateMonthFilters(monthlyReports, alleMonatsarchive);
 
-  renderSummary(entries, monthlyReports);
+  const detailEntries = getDetailEntries(allEntries);
+  const materialSummary = buildMaterialSummary(detailEntries);
+
+  renderSummary(allEntries, monthlyReports);
   renderMonthlyReports(monthlyReports);
+  renderMonthlyArchives(alleMonatsarchive);
   renderMaterialSummary(materialSummary);
-  renderEntries(entries);
+  renderEntries(detailEntries);
 
-  document.getElementById("resultInfo").innerText = "Angezeigte Rückträge: " + entries.length;
+  const selectedMonth = getSelectedMonth();
+  const scopeLabel = selectedMonth ? " im Monat " + formatMonthLabel(selectedMonth) : "";
+  document.getElementById("resultInfo").innerText = "Angezeigte Rückträge" + scopeLabel + ": " + detailEntries.length + " | Monate gesamt: " + monthlyReports.length;
 }
 
 function editTarif(id){
@@ -1396,6 +1862,18 @@ function deleteTarif(id){
 
 function resetSearch(){
   document.getElementById("searchInput").value = "";
+  const monthFilter = document.getElementById("monthFilter");
+  const archiveFilter = document.getElementById("savedArchiveFilter");
+  const detailMode = document.getElementById("detailMode");
+  if(monthFilter){
+    monthFilter.value = "";
+  }
+  if(archiveFilter){
+    archiveFilter.value = "";
+  }
+  if(detailMode){
+    detailMode.value = "selected";
+  }
   renderAll();
 }
 
@@ -1531,6 +2009,10 @@ function stopListeners(){
     unsubscribeTarife();
     unsubscribeTarife = null;
   }
+  if(unsubscribeMonthlyArchives){
+    unsubscribeMonthlyArchives();
+    unsubscribeMonthlyArchives = null;
+  }
 }
 
 function startListeners(){
@@ -1579,6 +2061,18 @@ function startListeners(){
     }, error => {
       console.error("Fehler Tarife:", error);
       alert("Fehler beim Laden der Tarife.");
+    });
+  }
+
+  if(!unsubscribeMonthlyArchives){
+    unsubscribeMonthlyArchives = monthlyArchiveCollection.onSnapshot(snapshot => {
+      alleMonatsarchive = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .sort((a, b) => String(b.monthKey || "").localeCompare(String(a.monthKey || "")));
+      renderAll();
+    }, error => {
+      console.error("Fehler Monatsarchive:", error);
+      alert("Fehler beim Laden der Monatsarchive.");
     });
   }
 }
