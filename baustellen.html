@@ -254,6 +254,32 @@ label{
   background:#636e72;
 }
 
+.vorlage-checkbox-wrap{
+  display:none;
+  align-items:center;
+  gap:10px;
+  margin:-2px 0 14px 0;
+  padding:10px 12px;
+  border:1px solid #d7dee6;
+  border-radius:8px;
+  background:#f7f9fb;
+}
+
+.vorlage-checkbox-wrap input[type="checkbox"]{
+  width:18px;
+  height:18px;
+  margin:0;
+  flex:0 0 auto;
+}
+
+.vorlage-checkbox-label{
+  margin:0;
+  font-size:14px;
+  font-weight:bold;
+  color:#22303c;
+  cursor:pointer;
+}
+
 #searchInput,
 #vorlagenSearchInput{
   margin:0;
@@ -1014,6 +1040,10 @@ label{
         <i class="fa-solid fa-trash"></i>
       </button>
     </div>
+    <div id="vorlageSavingsCheckboxWrap" class="vorlage-checkbox-wrap">
+      <input id="vorlageInGespart" type="checkbox">
+      <label for="vorlageInGespart" class="vorlage-checkbox-label">In gespart.html berücksichtigen</label>
+    </div>
     <button onclick="saveVorlage()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
     <button class="back" onclick="closeModals()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
   </div>
@@ -1067,6 +1097,25 @@ let vorlagenBereichOffen = false;
 let beendeteBereichOffen = false;
 let selectedVorlageId = null;
 let isAdminUser = false;
+
+function canManageSavingsCheckbox(){
+  const user = auth.currentUser;
+  return !!(user && user.uid === SPECIAL_SAVINGS_UID);
+}
+
+function updateSavingsCheckboxVisibility(){
+  const checkboxWrap = document.getElementById("vorlageSavingsCheckboxWrap");
+  const checkbox = document.getElementById("vorlageInGespart");
+  if(!checkboxWrap || !checkbox){
+    return;
+  }
+
+  const visible = canManageSavingsCheckbox();
+  checkboxWrap.style.display = visible ? "flex" : "none";
+  if(!visible){
+    checkbox.checked = false;
+  }
+}
 
 function getStoredUsername(){
   return sanitizeInput(localStorage.getItem("lagerUsername") || "", 120);
@@ -1221,7 +1270,8 @@ function getVorlagenFromCache(){
       material: sanitizeInput(v.material || "", 120),
       spontis: sanitizeInput(v.spontis || "", 60),
       alteSpontis: sanitizeInput(v.alteSpontis || "", 60),
-      link: parseAndNormalizeUrl(v.link || "") || ""
+      link: parseAndNormalizeUrl(v.link || "") || "",
+      inGespart: !!v.inGespart
     })).filter(v => v.id);
   }catch(error){
     return null;
@@ -1237,7 +1287,8 @@ function saveVorlagenToCache(vorlagen){
         material: sanitizeInput(v.material || "", 120),
         spontis: sanitizeInput(v.spontis || "", 60),
         alteSpontis: sanitizeInput(v.alteSpontis || "", 60),
-        link: parseAndNormalizeUrl(v.link || "") || ""
+        link: parseAndNormalizeUrl(v.link || "") || "",
+        inGespart: !!v.inGespart
       }))
     }));
   }catch(error){
@@ -1548,6 +1599,7 @@ auth.onAuthStateChanged((user) => {
 
     isAdminUser = isAdminUid(user.uid);
     setAdminMenuVisibility(isAdminUser);
+    updateSavingsCheckboxVisibility();
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
     updateAdminVisibility();
@@ -1557,6 +1609,7 @@ auth.onAuthStateChanged((user) => {
   }else{
     isAdminUser = false;
     setAdminMenuVisibility(false);
+    updateSavingsCheckboxVisibility();
     stopListeners();
     closeMenu();
     closeAllCardMenus();
@@ -1604,7 +1657,8 @@ function loadVorlagen(forceRefresh = false){
         material: sanitizeInput(data.material || "", 120),
         spontis: sanitizeInput(data.spontis || "", 60),
         alteSpontis: sanitizeInput(data.alteSpontis || "", 60),
-        link: parseAndNormalizeUrl(data.link || "") || ""
+        link: parseAndNormalizeUrl(data.link || "") || "",
+        inGespart: !!data.inGespart
       };
     });
 
@@ -2512,14 +2566,17 @@ function openVorlageModal(id = null){
     document.getElementById("vorlageSpontis").value = sanitizeInput(v.spontis || "", 60);
     document.getElementById("vorlageAlteSpontis").value = sanitizeInput(v.alteSpontis || "", 60);
     document.getElementById("vorlageLink").value = sanitizeInput(v.link || "", 600);
+    document.getElementById("vorlageInGespart").checked = !!v.inGespart;
   }else{
     document.getElementById("vorlageModalTitle").innerText = "Neue Materialvorlage";
     document.getElementById("vorlageMaterial").value = "";
     document.getElementById("vorlageSpontis").value = "";
     document.getElementById("vorlageAlteSpontis").value = "";
     document.getElementById("vorlageLink").value = "";
+    document.getElementById("vorlageInGespart").checked = false;
   }
 
+  updateSavingsCheckboxVisibility();
   document.getElementById("vorlageModal").style.display = "block";
 }
 
@@ -2534,6 +2591,7 @@ function saveVorlage(){
   const alteSpontis = sanitizeInput(document.getElementById("vorlageAlteSpontis").value, 60);
   const linkInput = document.getElementById("vorlageLink").value;
   const normalizedLink = parseAndNormalizeUrl(linkInput);
+  const includeInSavings = canManageSavingsCheckbox() ? !!document.getElementById("vorlageInGespart").checked : null;
   const barcode = getBarcodeValueFromSpontis(spontis);
   const alteBarcode = getBarcodeValueFromSpontis(alteSpontis);
 
@@ -2562,12 +2620,20 @@ function saveVorlage(){
     return;
   }
 
+  const vorlagePayload = {
+    material: material,
+    spontis: spontis,
+    alteSpontis: alteSpontis,
+    link: normalizedLink || ""
+  };
+
+  if(canManageSavingsCheckbox()){
+    vorlagePayload.inGespart = includeInSavings;
+  }
+
   if(editVorlageId){
     vorlagenCollection.doc(editVorlageId).update({
-      material: material,
-      spontis: spontis,
-      alteSpontis: alteSpontis,
-      link: normalizedLink || "",
+      ...vorlagePayload,
       barcode: firebase.firestore.FieldValue.delete()
     }).then(() => {
       writeLog(
@@ -2579,6 +2645,7 @@ function saveVorlage(){
         " | Neue Spontis Nummer: " + spontis +
         " | Alte Spontis Nummer: " + (alteSpontis || "-") +
         " | Link: " + (normalizedLink || "-") +
+        " | In gespart.html: " + (canManageSavingsCheckbox() ? (includeInSavings ? "Ja" : "Nein") : "unveraendert") +
         " | Neuer Barcode: " + (barcode || "-") +
         " | Alter Barcode: " + (alteBarcode || "-")
       );
@@ -2590,10 +2657,8 @@ function saveVorlage(){
     });
   }else{
     vorlagenCollection.add({
-      material: material,
-      spontis: spontis,
-      alteSpontis: alteSpontis,
-      link: normalizedLink || "",
+      ...vorlagePayload,
+      inGespart: canManageSavingsCheckbox() ? includeInSavings : false,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then((docRef) => {
       writeLog(
@@ -2605,6 +2670,7 @@ function saveVorlage(){
         " | Neue Spontis Nummer: " + spontis +
         " | Alte Spontis Nummer: " + (alteSpontis || "-") +
         " | Link: " + (normalizedLink || "-") +
+        " | In gespart.html: " + (canManageSavingsCheckbox() ? (includeInSavings ? "Ja" : "Nein") : "Nein") +
         " | Neuer Barcode: " + (barcode || "-") +
         " | Alter Barcode: " + (alteBarcode || "-")
       );
@@ -3068,6 +3134,11 @@ function closeModals(){
   if(vorlageAlteSpontisInput){
     vorlageAlteSpontisInput.value = "";
   }
+  const vorlageInGespartInput = document.getElementById("vorlageInGespart");
+  if(vorlageInGespartInput){
+    vorlageInGespartInput.checked = false;
+  }
+  updateSavingsCheckboxVisibility();
   document.getElementById("ausgewaehlteVorlageInfo").style.display = "none";
   document.getElementById("ausgewaehlteVorlageInfo").innerHTML = "";
   currentBaustelleId = null;
