@@ -1246,7 +1246,8 @@ function saveVorlagenToCache(vorlagen){
 }
 
 function setVorlagen(vorlagen){
-  alleVorlagen = vorlagen;
+  alleVorlagen = Array.isArray(vorlagen) ? vorlagen : [];
+  renderAll();
   renderVorlagen();
   renderMaterialVorlagenTreffer();
   updateAusgewaehlteVorlageInfo();
