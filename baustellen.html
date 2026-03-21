@@ -992,7 +992,7 @@ label{
 
     <input id="materialName" placeholder="Material" maxlength="120">
     <input id="materialAnzahl" placeholder="Anzahl" maxlength="40">
-    <input id="materialSpontis" placeholder="Spontis Nummer (optional)" maxlength="60">
+    <input id="materialSpontis" placeholder="Neue Spontis Nummer (optional)" maxlength="60">
     <button onclick="saveMaterial()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
     <button class="back" onclick="closeModals()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
   </div>
@@ -1002,7 +1002,8 @@ label{
   <div class="modal-content">
     <h3 id="vorlageModalTitle">Neue Materialvorlage</h3>
     <input id="vorlageMaterial" placeholder="Material" maxlength="120">
-    <input id="vorlageSpontis" placeholder="Spontis Nummer" maxlength="60">
+    <input id="vorlageSpontis" placeholder="Neue Spontis Nummer" maxlength="60">
+    <input id="vorlageAlteSpontis" placeholder="Alte Spontis Nummer (optional)" maxlength="60">
     <div class="input-with-action">
       <input id="vorlageLink" placeholder="URL Link (optional)" maxlength="600">
       <button type="button" class="inline-icon-btn" onclick="clearVorlageLinkInput()" title="URL-Link löschen" aria-label="URL-Link löschen">
@@ -1215,6 +1216,7 @@ function getVorlagenFromCache(){
       id: sanitizeInput(v.id || "", 160),
       material: sanitizeInput(v.material || "", 120),
       spontis: sanitizeInput(v.spontis || "", 60),
+      alteSpontis: sanitizeInput(v.alteSpontis || "", 60),
       link: parseAndNormalizeUrl(v.link || "") || ""
     })).filter(v => v.id);
   }catch(error){
@@ -1230,6 +1232,7 @@ function saveVorlagenToCache(vorlagen){
         id: v.id || "",
         material: sanitizeInput(v.material || "", 120),
         spontis: sanitizeInput(v.spontis || "", 60),
+        alteSpontis: sanitizeInput(v.alteSpontis || "", 60),
         link: parseAndNormalizeUrl(v.link || "") || ""
       }))
     }));
@@ -1594,7 +1597,9 @@ function loadVorlagen(forceRefresh = false){
       const data = doc.data() || {};
       return {
         id: doc.id,
-        ...data,
+        material: sanitizeInput(data.material || "", 120),
+        spontis: sanitizeInput(data.spontis || "", 60),
+        alteSpontis: sanitizeInput(data.alteSpontis || "", 60),
         link: parseAndNormalizeUrl(data.link || "") || ""
       };
     });
@@ -1673,8 +1678,9 @@ function baustellePasstZurSuche(baustelle){
     const material = String(m.material || "").toLowerCase();
     const anzahl = String(m.anzahl || "").toLowerCase();
     const spontis = String(m.spontis || "").toLowerCase();
+    const alteSpontis = String(getVorlageAlteSpontisBySpontis(m.spontis || "") || "").toLowerCase();
 
-    return material.includes(suchbegriff) || anzahl.includes(suchbegriff) || spontis.includes(suchbegriff);
+    return material.includes(suchbegriff) || anzahl.includes(suchbegriff) || spontis.includes(suchbegriff) || alteSpontis.includes(suchbegriff);
   });
 
   return (
@@ -1721,8 +1727,9 @@ function vorlagePasstZurSuche(vorlage){
 
   const material = String(vorlage.material || "").toLowerCase();
   const spontis = String(vorlage.spontis || "").toLowerCase();
+  const alteSpontis = String(vorlage.alteSpontis || "").toLowerCase();
 
-  return material.includes(suchbegriff) || spontis.includes(suchbegriff);
+  return material.includes(suchbegriff) || spontis.includes(suchbegriff) || alteSpontis.includes(suchbegriff);
 }
 
 function materialVorlagePasstZurSuche(vorlage){
@@ -1734,8 +1741,9 @@ function materialVorlagePasstZurSuche(vorlage){
 
   const material = String(vorlage.material || "").toLowerCase();
   const spontis = String(vorlage.spontis || "").toLowerCase();
+  const alteSpontis = String(vorlage.alteSpontis || "").toLowerCase();
 
-  return material.includes(suchbegriff) || spontis.includes(suchbegriff);
+  return material.includes(suchbegriff) || spontis.includes(suchbegriff) || alteSpontis.includes(suchbegriff);
 }
 
 function getStatusLabel(status){
@@ -1823,8 +1831,10 @@ function renderVorlagen(){
 
       card.innerHTML = `
         <h3>${escapeHtml(v.material || "")}</h3>
-        <div class="baustelle-meta"><strong>Spontis Nummer:</strong> ${renderSpontisFeld(v.spontis || "", v.link || "", isAdminUser, isAdminUser)}</div>
-        ${renderBarcodeBlock(getBarcodeValueFromSpontis(v.spontis || ""), "Barcode")}
+        ${renderSpontisBlock("Neue Spontis Nummer", v.spontis || "", v.link || "", isAdminUser, isAdminUser)}
+        ${renderBarcodeBlock(getBarcodeValueFromSpontis(v.spontis || ""), "Neue Spontis Barcode")}
+        ${renderSpontisBlock("Alte Spontis Nummer", v.alteSpontis || "", "", false, false)}
+        ${renderBarcodeBlock(getBarcodeValueFromSpontis(v.alteSpontis || ""), "Alte Spontis Barcode")}
         ${isAdminUser ? `
         <div class="card-actions">
           <div class="card-menu-wrap">
@@ -1880,7 +1890,8 @@ function renderMaterialVorlagenTreffer(){
 
     button.innerHTML = `
       <div class="vorlagen-treffer-title">${escapeHtml(v.material || "")}</div>
-      <div class="vorlagen-treffer-sub">Spontis Nummer: ${escapeHtml(v.spontis || "")}</div>
+      <div class="vorlagen-treffer-sub">Neue Spontis Nummer: ${escapeHtml(v.spontis || "")}</div>
+      ${v.alteSpontis ? `<div class="vorlagen-treffer-sub">Alte Spontis Nummer: ${escapeHtml(v.alteSpontis || "")}</div>` : ""}
     `;
 
     container.appendChild(button);
@@ -1918,8 +1929,9 @@ function updateAusgewaehlteVorlageInfo(){
   info.innerHTML =
     "<strong>Ausgewählte Vorlage:</strong> " +
     escapeHtml(vorlage.material || "") +
-    " | <strong>Spontis Nummer:</strong> " +
-    escapeHtml(vorlage.spontis || "");
+    " | <strong>Neue Spontis Nummer:</strong> " +
+    escapeHtml(vorlage.spontis || "") +
+    (vorlage.alteSpontis ? " | <strong>Alte Spontis Nummer:</strong> " + escapeHtml(vorlage.alteSpontis || "") : "");
 }
 
 function getVorlageBarcodeBySpontis(spontisNummer){
@@ -1968,13 +1980,43 @@ function renderBarcodeBlock(barcodeValue, label = "Barcode"){
   `;
 }
 
-function getVorlageLinkBySpontis(spontisNummer){
+function getVorlageBySpontis(spontisNummer){
   const normalizedSpontis = sanitizeInput(spontisNummer || "", 60).toLowerCase();
   if(normalizedSpontis === ""){
+    return null;
+  }
+
+  return alleVorlagen.find(v => sanitizeInput(v.spontis || "", 60).toLowerCase() === normalizedSpontis) || null;
+}
+
+function getVorlageAlteSpontisBySpontis(spontisNummer){
+  const vorlage = getVorlageBySpontis(spontisNummer);
+  return vorlage ? sanitizeInput(vorlage.alteSpontis || "", 60) : "";
+}
+
+function renderSpontisBlock(label, spontisNummer, link, darfKlicken, userIstAdmin){
+  const sanitizedSpontis = sanitizeInput(spontisNummer || "", 60);
+  if(sanitizedSpontis === ""){
     return "";
   }
 
-  const vorlage = alleVorlagen.find(v => sanitizeInput(v.spontis || "", 60).toLowerCase() === normalizedSpontis);
+  return `<div class="material-row"><strong>${escapeHtml(label)}:</strong> ${renderSpontisFeld(sanitizedSpontis, link || "", darfKlicken, userIstAdmin)}</div>`;
+}
+
+function renderSpontisBarcodePair(label, spontisNummer){
+  const sanitizedSpontis = sanitizeInput(spontisNummer || "", 60);
+  if(sanitizedSpontis === ""){
+    return "";
+  }
+
+  return `
+    ${renderSpontisBlock(label, sanitizedSpontis, "", false, false)}
+    ${renderBarcodeBlock(getBarcodeValueFromSpontis(sanitizedSpontis), label + " Barcode")}
+  `;
+}
+
+function getVorlageLinkBySpontis(spontisNummer){
+  const vorlage = getVorlageBySpontis(spontisNummer);
   return vorlage ? (parseAndNormalizeUrl(vorlage.link || "") || "") : "";
 }
 
@@ -2026,8 +2068,9 @@ function createBaustelleCard(baustelle){
         <div class="material-item">
           <div class="material-row"><strong>Material:</strong> ${escapeHtml(m.material || "")}</div>
           <div class="material-row"><strong>Anzahl:</strong> ${escapeHtml(m.anzahl || "")}</div>
-          <div class="material-row"><strong>Spontis Nummer:</strong> ${renderSpontisFeld(m.spontis || "", getVorlageLinkBySpontis(m.spontis || ""), baustelle.status === "rausschreiben", isAdminUser)}</div>
-          ${baustelle.status !== "aktiv" ? renderBarcodeBlock(getVorlageBarcodeBySpontis(m.spontis || ""), "Barcode") : ""}
+          ${renderSpontisBlock("Neue Spontis Nummer", m.spontis || "", getVorlageLinkBySpontis(m.spontis || ""), baustelle.status === "rausschreiben", isAdminUser)}
+          ${baustelle.status !== "aktiv" ? renderBarcodeBlock(getVorlageBarcodeBySpontis(m.spontis || ""), "Neue Spontis Barcode") : ""}
+          ${baustelle.status !== "aktiv" ? renderSpontisBarcodePair("Alte Spontis Nummer", getVorlageAlteSpontisBySpontis(m.spontis || "")) : ""}
 
           ${darfMaterialBearbeiten ? `
           <div class="material-actions">
@@ -2407,7 +2450,7 @@ function saveMaterial(){
         editMaterialId,
         "Material: " + material +
         " | Anzahl: " + anzahl +
-        " | Spontis Nummer: " + spontis
+        " | Neue Spontis Nummer: " + spontis
       );
       closeModals();
     }).catch(error => {
@@ -2433,7 +2476,7 @@ function saveMaterial(){
         " | Baustellen Nummer: " + (baustelle ? (baustelle.nummer || "") : "") +
         " | Material: " + material +
         " | Anzahl: " + anzahl +
-        " | Spontis Nummer: " + spontis
+        " | Neue Spontis Nummer: " + spontis
       );
 
       closeModals();
@@ -2462,11 +2505,13 @@ function openVorlageModal(id = null){
     document.getElementById("vorlageModalTitle").innerText = "Materialvorlage bearbeiten";
     document.getElementById("vorlageMaterial").value = sanitizeInput(v.material || "", 120);
     document.getElementById("vorlageSpontis").value = sanitizeInput(v.spontis || "", 60);
+    document.getElementById("vorlageAlteSpontis").value = sanitizeInput(v.alteSpontis || "", 60);
     document.getElementById("vorlageLink").value = sanitizeInput(v.link || "", 600);
   }else{
     document.getElementById("vorlageModalTitle").innerText = "Neue Materialvorlage";
     document.getElementById("vorlageMaterial").value = "";
     document.getElementById("vorlageSpontis").value = "";
+    document.getElementById("vorlageAlteSpontis").value = "";
     document.getElementById("vorlageLink").value = "";
   }
 
@@ -2481,12 +2526,15 @@ function saveVorlage(){
 
   const material = sanitizeInput(document.getElementById("vorlageMaterial").value, 120);
   const spontis = sanitizeInput(document.getElementById("vorlageSpontis").value, 60);
+  const alteSpontis = sanitizeInput(document.getElementById("vorlageAlteSpontis").value, 60);
   const linkInput = document.getElementById("vorlageLink").value;
   const normalizedLink = parseAndNormalizeUrl(linkInput);
   const barcode = getBarcodeValueFromSpontis(spontis);
+  const alteBarcode = getBarcodeValueFromSpontis(alteSpontis);
 
   document.getElementById("vorlageMaterial").value = material;
   document.getElementById("vorlageSpontis").value = spontis;
+  document.getElementById("vorlageAlteSpontis").value = alteSpontis;
   document.getElementById("vorlageLink").value = sanitizeInput(linkInput, 600);
 
   if(normalizedLink === null){
@@ -2495,7 +2543,7 @@ function saveVorlage(){
   }
 
   if(material === "" || spontis === ""){
-    alert("Bitte Material und Spontis Nummer eingeben.");
+    alert("Bitte Material und die neue Spontis Nummer eingeben.");
     return;
   }
 
@@ -2513,6 +2561,7 @@ function saveVorlage(){
     vorlagenCollection.doc(editVorlageId).update({
       material: material,
       spontis: spontis,
+      alteSpontis: alteSpontis,
       link: normalizedLink || "",
       barcode: firebase.firestore.FieldValue.delete()
     }).then(() => {
@@ -2522,9 +2571,11 @@ function saveVorlage(){
         "vorlage",
         editVorlageId,
         "Material: " + material +
-        " | Spontis Nummer: " + spontis +
+        " | Neue Spontis Nummer: " + spontis +
+        " | Alte Spontis Nummer: " + (alteSpontis || "-") +
         " | Link: " + (normalizedLink || "-") +
-        " | Barcode: " + (barcode || "-")
+        " | Neuer Barcode: " + (barcode || "-") +
+        " | Alter Barcode: " + (alteBarcode || "-")
       );
       loadVorlagen(true);
       closeModals();
@@ -2536,6 +2587,7 @@ function saveVorlage(){
     vorlagenCollection.add({
       material: material,
       spontis: spontis,
+      alteSpontis: alteSpontis,
       link: normalizedLink || "",
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then((docRef) => {
@@ -2545,9 +2597,11 @@ function saveVorlage(){
         "vorlage",
         docRef.id,
         "Material: " + material +
-        " | Spontis Nummer: " + spontis +
+        " | Neue Spontis Nummer: " + spontis +
+        " | Alte Spontis Nummer: " + (alteSpontis || "-") +
         " | Link: " + (normalizedLink || "-") +
-        " | Barcode: " + (barcode || "-")
+        " | Neuer Barcode: " + (barcode || "-") +
+        " | Alter Barcode: " + (alteBarcode || "-")
       );
       loadVorlagen(true);
       closeModals();
@@ -2649,16 +2703,18 @@ function printBaustelle(id){
   if(materialien.length === 0){
     materialRows = `
       <tr>
-        <td colspan="3" style="text-align:center;">Keine Materialdaten vorhanden</td>
+        <td colspan="4" style="text-align:center;">Keine Materialdaten vorhanden</td>
       </tr>
     `;
   }else{
     materialien.forEach(m => {
+      const alteSpontis = getVorlageAlteSpontisBySpontis(m.spontis || "");
       materialRows += `
         <tr>
           <td>${escapeHtml(m.material || "")}</td>
           <td>${escapeHtml(m.anzahl || "")}</td>
-          <td>${escapeHtml(m.spontis || "")}${renderBarcodeBlock(getVorlageBarcodeBySpontis(m.spontis || ""), "Barcode")}</td>
+          <td>${escapeHtml(m.spontis || "")}${renderBarcodeBlock(getVorlageBarcodeBySpontis(m.spontis || ""), "Neue Spontis Barcode")}</td>
+          <td>${escapeHtml(alteSpontis || "-")}${alteSpontis ? renderBarcodeBlock(getBarcodeValueFromSpontis(alteSpontis), "Alte Spontis Barcode") : ""}</td>
         </tr>
       `;
     });
@@ -2797,7 +2853,8 @@ function printBaustelle(id){
           <tr>
             <th>Material</th>
             <th>Anzahl</th>
-            <th>Spontis Nummer</th>
+            <th>Neue Spontis Nummer</th>
+            <th>Alte Spontis Nummer</th>
           </tr>
         </thead>
         <tbody>
@@ -2892,7 +2949,8 @@ function deleteMaterial(id){
     "Material wirklich löschen?\n\n" +
     "Material: " + sanitizeInput(m.material || "", 120) + "\n" +
     "Anzahl: " + sanitizeInput(m.anzahl || "", 40) + "\n" +
-    "Spontis Nummer: " + sanitizeInput(m.spontis || "", 60);
+    "Neue Spontis Nummer: " + sanitizeInput(m.spontis || "", 60) +
+    (getVorlageAlteSpontisBySpontis(m.spontis || "") ? "\nAlte Spontis Nummer: " + getVorlageAlteSpontisBySpontis(m.spontis || "") : "");
 
   if(confirm(text)){
     materialCollection.doc(id).delete().then(() => {
@@ -2906,7 +2964,8 @@ function deleteMaterial(id){
         " | Baustellen Status: " + (baustelle ? getStatusLabel(baustelle.status || "") : "") +
         " | Material: " + (m.material || "") +
         " | Anzahl: " + (m.anzahl || "") +
-        " | Spontis Nummer: " + (m.spontis || "")
+        " | Neue Spontis Nummer: " + (m.spontis || "") +
+        " | Alte Spontis Nummer: " + (getVorlageAlteSpontisBySpontis(m.spontis || "") || "-")
       );
     }).catch(error => {
       console.error("Fehler beim Löschen des Materials:", error);
@@ -2930,7 +2989,8 @@ function deleteVorlage(id){
   const text =
     "Materialvorlage wirklich löschen?\n\n" +
     "Material: " + sanitizeInput(v.material || "", 120) + "\n" +
-    "Spontis Nummer: " + sanitizeInput(v.spontis || "", 60);
+    "Neue Spontis Nummer: " + sanitizeInput(v.spontis || "", 60) +
+    (v.alteSpontis ? "\nAlte Spontis Nummer: " + sanitizeInput(v.alteSpontis || "", 60) : "");
 
   if(confirm(text)){
     vorlagenCollection.doc(id).delete().then(() => {
@@ -2940,7 +3000,8 @@ function deleteVorlage(id){
         "vorlage",
         id,
         "Material: " + (v.material || "") +
-        " | Spontis Nummer: " + (v.spontis || "")
+        " | Neue Spontis Nummer: " + (v.spontis || "") +
+        " | Alte Spontis Nummer: " + (v.alteSpontis || "-")
       );
       loadVorlagen(true);
     }).catch(error => {
@@ -2997,6 +3058,10 @@ function closeModals(){
   const vorlageLinkInput = document.getElementById("vorlageLink");
   if(vorlageLinkInput){
     vorlageLinkInput.value = "";
+  }
+  const vorlageAlteSpontisInput = document.getElementById("vorlageAlteSpontis");
+  if(vorlageAlteSpontisInput){
+    vorlageAlteSpontisInput.value = "";
   }
   document.getElementById("ausgewaehlteVorlageInfo").style.display = "none";
   document.getElementById("ausgewaehlteVorlageInfo").innerHTML = "";
