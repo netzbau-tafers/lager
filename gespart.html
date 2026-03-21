@@ -591,6 +591,10 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
+const authReady = auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+  .catch((error) => {
+    console.error("Auth-Persistenz konnte nicht gesetzt werden:", error);
+  });
 const logsCollection = db.collection("logs");
 const baustellenCollection = db.collection("baustellen");
 const tarifeCollection = db.collection("gespart_tarife");
@@ -1419,7 +1423,7 @@ function login(){
   const email = document.getElementById("loginEmail").value.trim();
   const password = document.getElementById("loginPassword").value;
 
-  auth.signInWithEmailAndPassword(email, password)
+  authReady.then(() => auth.signInWithEmailAndPassword(email, password))
     .then(() => {
       document.getElementById("loginError").style.display = "none";
       document.getElementById("loginPassword").value = "";

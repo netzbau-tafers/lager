@@ -472,6 +472,10 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
+const authReady = auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+  .catch((error) => {
+    console.error("Auth-Persistenz konnte nicht gesetzt werden:", error);
+  });
 const logsCollection = db.collection("logs");
 
 const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "3Jm2fQfSnOhLF50WoeePNQg0ZFf2", "Q33pfDjhxyQcmlnZjrq8tekvioB2", "hwZEme8xvkasSAGrmOtQRLOnnXn1", "PKDpb7Cb7ig8ZKZRMm23FOKnCHQ2", "T05YzzSRN2aUMkTTwGB2N1OqPgA2", "DSMERv7Uu4b4eEYQx5SKbjvdher2"];
@@ -714,7 +718,7 @@ function login(){
   const email = document.getElementById("loginEmail").value.trim();
   const password = document.getElementById("loginPassword").value;
 
-  auth.signInWithEmailAndPassword(email, password)
+  authReady.then(() => auth.signInWithEmailAndPassword(email, password))
     .then(() => {
       document.getElementById("loginError").style.display = "none";
       document.getElementById("loginPassword").value = "";
