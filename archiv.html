@@ -1179,7 +1179,7 @@ function renderSpontisFeld(spontisNummer, link, darfKlicken){
   }
 
   const encodedUrl = encodeURIComponent(normalizedLink);
-  return `<span class="spontis-link" onclick="openSpontisLink('${encodedUrl}')">${spontis}</span>`;
+  return `<span class="spontis-link" data-encoded-url="${escapeHtml(encodedUrl)}">${spontis}</span>`;
 }
 
 function openSpontisLink(encodedUrl){
@@ -1230,12 +1230,12 @@ function createBaustelleCard(baustelle){
     ${archiviertText ? `<div class="baustelle-meta"><strong>Archiviert am:</strong> ${escapeHtml(archiviertText)}</div>` : ""}
 
     <div class="card-actions">
-      <button class="print-btn" onclick="printBaustelle('${baustelle.id}')"><i class="fa-solid fa-print"></i> Drucken</button>
-      ${isAdminUser ? `<button class="delete" onclick="deleteBaustelle('${baustelle.id}')"><i class="fa-solid fa-trash"></i> Löschen</button>` : ""}
+      <button type="button" class="print-btn js-print-baustelle"><i class="fa-solid fa-print"></i> Drucken</button>
+      ${isAdminUser ? `<button type="button" class="delete js-delete-baustelle"><i class="fa-solid fa-trash"></i> Löschen</button>` : ""}
     </div>
 
     <div class="material-box">
-      <button class="material-toggle" onclick="toggleMaterialList('${baustelle.id}')">
+      <button type="button" class="material-toggle js-toggle-material-list">
         <span><i class="fa-solid fa-list-check"></i> Materialliste</span>
         <span class="arrow">${isOpen ? "▲" : "▼"}</span>
       </button>
@@ -1245,6 +1245,30 @@ function createBaustelleCard(baustelle){
       </div>
     </div>
   `;
+
+  const printButton = card.querySelector(".js-print-baustelle");
+  if(printButton){
+    printButton.addEventListener("click", function(){
+      printBaustelle(baustelle.id);
+    });
+  }
+  const deleteButton = card.querySelector(".js-delete-baustelle");
+  if(deleteButton){
+    deleteButton.addEventListener("click", function(){
+      deleteBaustelle(baustelle.id);
+    });
+  }
+  const toggleButton = card.querySelector(".js-toggle-material-list");
+  if(toggleButton){
+    toggleButton.addEventListener("click", function(){
+      toggleMaterialList(baustelle.id);
+    });
+  }
+  card.querySelectorAll(".spontis-link[data-encoded-url]").forEach(function(linkElement){
+    linkElement.addEventListener("click", function(){
+      openSpontisLink(linkElement.dataset.encodedUrl || "");
+    });
+  });
 
   return card;
 }

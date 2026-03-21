@@ -1082,10 +1082,22 @@ function renderTarife(){
       <div class="card-meta"><strong>Austrage Betrag:</strong> ${escapeHtml(formatCurrency(tarif.austrageBetrag || 0))}</div>
       <div class="card-meta"><strong>Zurücktrage Betrag:</strong> ${escapeHtml(formatCurrency(tarif.zuruecktrageBetrag || 0))}</div>
       <div style="margin-top:12px;">
-        <button onclick="editTarif('${escapeHtml(tarif.id)}')"><i class="fa-solid fa-pen"></i> Bearbeiten</button>
-        <button class="danger" onclick="deleteTarif('${escapeHtml(tarif.id)}')"><i class="fa-solid fa-trash"></i> Löschen</button>
+        <button type="button" class="js-edit-tarif"><i class="fa-solid fa-pen"></i> Bearbeiten</button>
+        <button type="button" class="danger js-delete-tarif"><i class="fa-solid fa-trash"></i> Löschen</button>
       </div>
     `;
+    const editButton = card.querySelector(".js-edit-tarif");
+    if(editButton){
+      editButton.addEventListener("click", function(){
+        editTarif(tarif.id);
+      });
+    }
+    const deleteButton = card.querySelector(".js-delete-tarif");
+    if(deleteButton){
+      deleteButton.addEventListener("click", function(){
+        deleteTarif(tarif.id);
+      });
+    }
     list.appendChild(card);
   });
 }
@@ -1124,10 +1136,22 @@ function renderMonthlyReports(reports){
       <div class="card-meta"><strong>Zurücktrage Betrag:</strong> ${escapeHtml(formatCurrency(report.zuruecktrageBetrag))}</div>
       <div class="card-meta"><strong>Total eingespart:</strong> ${escapeHtml(formatCurrency(report.gespartBetrag))}</div>
       <div style="margin-top:12px;">
-        <button onclick="downloadMonthlyCsv('${escapeHtml(report.monthKey)}')"><i class="fa-solid fa-file-csv"></i> CSV</button>
-        <button class="secondary" onclick="downloadMonthlyTxt('${escapeHtml(report.monthKey)}')"><i class="fa-solid fa-file-lines"></i> TXT</button>
+        <button type="button" class="js-download-monthly-csv"><i class="fa-solid fa-file-csv"></i> CSV</button>
+        <button type="button" class="secondary js-download-monthly-txt"><i class="fa-solid fa-file-lines"></i> TXT</button>
       </div>
     `;
+    const csvButton = card.querySelector(".js-download-monthly-csv");
+    if(csvButton){
+      csvButton.addEventListener("click", function(){
+        downloadMonthlyCsv(report.monthKey);
+      });
+    }
+    const txtButton = card.querySelector(".js-download-monthly-txt");
+    if(txtButton){
+      txtButton.addEventListener("click", function(){
+        downloadMonthlyTxt(report.monthKey);
+      });
+    }
     container.appendChild(card);
   });
 }
