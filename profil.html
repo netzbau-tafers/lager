@@ -139,19 +139,6 @@
       font-size:15px;
     }
 
-    .action-group{
-      margin-top:14px;
-    }
-
-    .action-group button{
-      width:100%;
-      margin:0 0 8px 0;
-    }
-
-    .action-group button:last-of-type{
-      margin-bottom:0;
-    }
-
     .muted{color:#555;font-size:14px}
     .info{font-size:14px;margin-top:10px}
 
@@ -208,14 +195,7 @@
 
     <hr style="margin:18px 0; border:none; border-top:1px solid #eee;">
 
-    <label for="emailChangeInput"><strong>Neue E-Mail-Adresse</strong></label>
-    <input id="emailChangeInput" type="email" maxlength="120" placeholder="z. B. max@firma.ch" autocomplete="email">
-    <p class="muted">Firebase sendet einen Bestätigungslink an die neue E-Mail-Adresse. Erst nach dem Klick auf den Link wird die Adresse im Login geändert.</p>
-
-    <div class="action-group">
-      <button onclick="resetPassword()"><i class="fa-solid fa-key"></i> Passwort zurücksetzen</button>
-      <button onclick="sendEmailChangeLink()"><i class="fa-solid fa-envelope"></i> E-Mail ändern</button>
-    </div>
+    <button onclick="resetPassword()"><i class="fa-solid fa-key"></i> Passwort zurücksetzen</button>
     <p id="profileInfo" class="info"></p>
   </section>
 
@@ -235,10 +215,6 @@
 
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
-const authReady = auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-  .catch((error) => {
-    console.error("Auth-Persistenz konnte nicht gesetzt werden:", error);
-  });
     const db = firebase.firestore();
     const usersCollection = db.collection("users");
     const LIMITED_ACCESS_UIDS = ["h8VfDCJ3eTb5GOwjgBzHVck3TEB3", "BVBSpAYOGaWKptCrQ81h8UtW13n2", "UIAvOHFf8QgqJ7UWkPV7CpV88512"];
@@ -320,71 +296,6 @@ const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
       el.style.color = isError ? "#b3261e" : "#1b5e20";
     }
 
-    function getSanitizedUserEmail(user){
-      return sanitizeInput(user && user.email ? user.email : "", 120).toLowerCase();
-    }
-
-    function getSanitizedPendingEmail(data){
-      return sanitizeInput(data && data.pendingEmail ? data.pendingEmail : "", 120).toLowerCase();
-    }
-
-    function syncUserEmail(user, options = {}){
-      if(!user || !user.uid){
-        return Promise.resolve("");
-      }
-
-      const { reloadUser = false } = options;
-      const emailInput = document.getElementById("emailChangeInput");
-      const refreshPromise = reloadUser
-        ? user.reload().catch((error) => {
-            console.warn("Benutzerdaten konnten nicht neu geladen werden:", error);
-          })
-        : Promise.resolve();
-
-      return refreshPromise
-        .then(() => auth.currentUser || user)
-        .then((currentUser) => {
-          const currentEmail = getSanitizedUserEmail(currentUser);
-
-          if(emailInput){
-            emailInput.value = currentEmail;
-          }
-
-          if(!currentEmail){
-            return currentEmail;
-          }
-
-          return usersCollection.doc(currentUser.uid).get()
-            .then((doc) => {
-              const data = doc.exists ? (doc.data() || {}) : {};
-              const storedEmail = sanitizeInput(data.email || "", 120).toLowerCase();
-              const pendingEmail = getSanitizedPendingEmail(data);
-              const updates = {
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-              };
-
-              if(pendingEmail){
-                if(currentEmail === pendingEmail){
-                  updates.email = currentEmail;
-                  updates.pendingEmail = firebase.firestore.FieldValue.delete();
-                  updates.pendingEmailRequestedAt = firebase.firestore.FieldValue.delete();
-                }else if(!storedEmail){
-                  updates.email = currentEmail;
-                }
-              }else if(storedEmail !== currentEmail){
-                updates.email = currentEmail;
-              }
-
-              if(Object.keys(updates).length === 1 && !updates.email && !updates.pendingEmail && !updates.pendingEmailRequestedAt){
-                return currentEmail;
-              }
-
-              return usersCollection.doc(currentUser.uid).set(updates, { merge: true })
-                .then(() => currentEmail);
-            });
-        });
-    }
-
     function saveUsername(){
       const user = auth.currentUser;
       if(!user){
@@ -394,11 +305,11 @@ const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
 
       const username = sanitizeInput(document.getElementById("usernameInput").value, 120);
 
-      syncUserEmail(user, { reloadUser: true })
-        .then(() => usersCollection.doc(user.uid).set({
-          username: username,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true }))
+      usersCollection.doc(user.uid).set({
+        username: username,
+        email: user.email || "",
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true })
         .then(() => {
           if(username){
             localStorage.setItem("lagerUsername", username);
@@ -429,87 +340,6 @@ const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
         });
     }
 
-    function isValidEmail(value){
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
-    }
-
-    function getEmailChangeActionCodeSettings(){
-      const isHttp = window.location.protocol === "http:" || window.location.protocol === "https:";
-      const hasUsableOrigin = isHttp && window.location.origin && window.location.origin !== "null";
-      const continueUrl = hasUsableOrigin
-        ? window.location.origin + window.location.pathname
-        : `https://${firebaseConfig.authDomain}/profil.html`;
-
-      return {
-        url: continueUrl,
-        handleCodeInApp: false
-      };
-    }
-
-    function sendEmailChangeLink(){
-      const user = auth.currentUser;
-      if(!user){
-        setInfo("Nicht eingeloggt.", true);
-        return;
-      }
-
-      const emailInput = document.getElementById("emailChangeInput");
-      const newEmail = String(emailInput.value || "").trim().toLowerCase();
-
-      if(!newEmail){
-        setInfo("Bitte eine neue E-Mail-Adresse eingeben.", true);
-        emailInput.focus();
-        return;
-      }
-
-      if(!isValidEmail(newEmail)){
-        setInfo("Bitte eine gültige E-Mail-Adresse eingeben.", true);
-        emailInput.focus();
-        return;
-      }
-
-      if((user.email || "").toLowerCase() === newEmail){
-        setInfo("Die neue E-Mail-Adresse ist identisch mit der aktuellen Adresse.", true);
-        emailInput.focus();
-        return;
-      }
-
-      const actionCodeSettings = getEmailChangeActionCodeSettings();
-
-      user.verifyBeforeUpdateEmail(newEmail, actionCodeSettings)
-        .then(() => {
-          return usersCollection.doc(user.uid).set({
-            pendingEmail: newEmail,
-            pendingEmailRequestedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-          }, { merge: true });
-        })
-        .then(() => {
-          setInfo(`Bestätigungslink wurde an ${newEmail} gesendet. Die Änderung wird nach Bestätigung übernommen.`);
-          emailInput.value = getSanitizedUserEmail(auth.currentUser || user);
-        })
-        .catch((error) => {
-          console.error("E-Mail ändern Fehler:", error);
-
-          if(error && error.code === "auth/requires-recent-login"){
-            setInfo("Bitte neu einloggen und danach den E-Mail-Wechsel erneut starten.", true);
-            return;
-          }
-
-          if(error && error.code === "auth/email-already-in-use"){
-            setInfo("Diese E-Mail-Adresse wird bereits verwendet.", true);
-            return;
-          }
-
-          if(error && (error.code === "auth/invalid-continue-uri" || error.code === "auth/unauthorized-continue-uri")){
-            setInfo("Der Bestätigungslink konnte nicht erstellt werden. Bitte die Seite über die freigegebene Web-Adresse öffnen und erneut versuchen.", true);
-            return;
-          }
-
-          setInfo("Link zum Ändern der E-Mail-Adresse konnte nicht gesendet werden.", true);
-        });
-    }
-
     auth.onAuthStateChanged((user) => {
       if(!user){
         window.location.href = "home.html";
@@ -518,21 +348,9 @@ const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
 
       updateNavigationVisibility(user);
 
-      syncUserEmail(user, { reloadUser: true }).catch((error) => {
-        console.error("E-Mail-Synchronisierung fehlgeschlagen:", error);
-      });
-
       usersCollection.doc(user.uid).get().then((doc) => {
         const data = doc.exists ? (doc.data() || {}) : {};
         document.getElementById("usernameInput").value = sanitizeInput(data.username || "", 120);
-        document.getElementById("emailChangeInput").value = getSanitizedUserEmail(auth.currentUser || user);
-
-        const pendingEmail = getSanitizedPendingEmail(data);
-        if(pendingEmail){
-          setInfo(`E-Mail-Wechsel offen: Bitte bestätige den Link in ${pendingEmail}.`);
-        }else{
-          setInfo("");
-        }
       });
     });
 
