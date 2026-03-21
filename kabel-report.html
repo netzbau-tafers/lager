@@ -297,6 +297,31 @@ tr.total-row td{
   padding:18px;
 }
 
+.month-card-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:10px;
+}
+
+.month-card-actions{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:8px;
+}
+
+.month-card-header .month-title{
+  margin-bottom:0;
+}
+
+.snapshot-meta{
+  margin:0 0 12px 0;
+  color:#65717d;
+  font-size:13px;
+}
+
 .month-title{
   margin:0 0 10px 0;
   font-size:20px;
@@ -566,6 +591,8 @@ let allSnapshots = [];
 let hasLoadedLogs = false;
 let hasLoadedSnapshots = false;
 let isEnsuringSnapshot = false;
+let currentUser = null;
+let savingSnapshotKeys = new Set();
 const SNAPSHOT_STATUS_READY = "ready";
 
 function escapeHtml(value){
@@ -685,6 +712,15 @@ function getSnapshotDocumentId(year, monthIndex){
 function getSnapshotByMonth(year, monthIndex){
   const snapshotId = getSnapshotDocumentId(year, monthIndex);
   return allSnapshots.find(snapshot => snapshot.id === snapshotId && snapshot.status === SNAPSHOT_STATUS_READY) || null;
+}
+
+function canManuallySaveSnapshots(user){
+  return !!(user && user.uid === SPECIAL_SAVINGS_UID);
+}
+
+function formatTimestamp(value){
+  const date = getDate(value);
+  return date ? date.toLocaleString("de-CH") : "";
 }
 
 function createEmptySnapshotPayload(year, monthIndex, sourceLogCount = 0){
@@ -1315,8 +1351,19 @@ function renderAnnualTable(data){
 
 function renderMonths(data){
   const container = document.getElementById("monthsContainer");
+  const year = Number(document.getElementById("yearFilter").value || new Date().getFullYear());
+  const allowManualSnapshotSave = canManuallySaveSnapshots(currentUser);
 
   container.innerHTML = data.monthlyRows.map((monthData, monthIndex) => {
+    const snapshotId = getSnapshotDocumentId(year, monthIndex);
+    const snapshot = getSnapshotByMonth(year, monthIndex);
+    const isSavingSnapshot = savingSnapshotKeys.has(snapshotId);
+    const snapshotMeta = snapshot
+      ? `Snapshot gespeichert: ${escapeHtml(formatTimestamp(snapshot.generatedAt || snapshot.updatedAt || snapshot.createdAt) || "Zeitpunkt unbekannt")}`
+      : "Noch kein Snapshot gespeichert.";
+    const actionButton = allowManualSnapshotSave
+      ? `<button type="button" class="secondary-btn js-save-snapshot" data-year="${escapeHtml(String(year))}" data-month="${escapeHtml(String(monthIndex))}" ${isSavingSnapshot ? "disabled" : ""}><i class="fa-solid fa-camera"></i> ${isSavingSnapshot ? "Speichert..." : snapshot ? "Snapshot aktualisieren" : "Snapshot speichern"}</button>`
+      : "";
     const tableRows = monthData.rows.length
       ? monthData.rows.map(row => `
           <tr>
@@ -1335,8 +1382,14 @@ function renderMonths(data){
 
     return `
       <div class="month-card">
-        <h3 class="month-title">${escapeHtml(getMonthLabel(monthIndex))}</h3>
-        <p class="month-total">Monatstotal: <strong>${escapeHtml(formatMeters(monthData.total))}</strong></p>
+        <div class="month-card-header">
+          <div>
+            <h3 class="month-title">${escapeHtml(getMonthLabel(monthIndex))}</h3>
+            <p class="month-total">Monatstotal: <strong>${escapeHtml(formatMeters(monthData.total))}</strong></p>
+            ${allowManualSnapshotSave ? `<p class="snapshot-meta">${snapshotMeta}</p>` : ""}
+          </div>
+          ${actionButton ? `<div class="month-card-actions">${actionButton}</div>` : ""}
+        </div>
         <table class="month-table">
           <thead>
             <tr>
@@ -1350,6 +1403,16 @@ function renderMonths(data){
       </div>
     `;
   }).join("");
+
+  if(allowManualSnapshotSave){
+    container.querySelectorAll(".js-save-snapshot").forEach(button => {
+      button.addEventListener("click", function(){
+        const saveYear = Number(this.dataset.year);
+        const saveMonthIndex = Number(this.dataset.month);
+        saveSnapshotForMonth(saveYear, saveMonthIndex);
+      });
+    });
+  }
 }
 
 function renderSummary(data){
@@ -1416,6 +1479,44 @@ function getHistoricalSnapshotDocs(year){
 
     return Number(snapshot.monthIndex) < currentMonthIndex;
   });
+}
+
+async function saveSnapshotForMonth(year, monthIndex){
+  const user = auth.currentUser;
+  if(!canManuallySaveSnapshots(user)){
+    alert("Dieser Snapshot-Button ist nur für den freigegebenen Benutzer sichtbar.");
+    return;
+  }
+
+  const snapshotId = getSnapshotDocumentId(year, monthIndex);
+  const monthLabel = getMonthLabel(monthIndex);
+  const existingSnapshot = getSnapshotByMonth(year, monthIndex);
+  if(existingSnapshot && !confirm(`Snapshot für ${monthLabel} ${year} aktualisieren?`)){
+    return;
+  }
+
+  savingSnapshotKeys.add(snapshotId);
+  renderReport();
+
+  try{
+    const monthData = buildReportEntriesForMonth(year, monthIndex);
+    const payload = monthData.reportEntries.length
+      ? buildSnapshotPayload(year, monthIndex, monthData.reportEntries, monthData.reportEntries.length)
+      : createEmptySnapshotPayload(year, monthIndex, 0);
+
+    payload.generatedAt = firebase.firestore.FieldValue.serverTimestamp();
+    payload.generatedByUid = user.uid || "";
+    payload.generatedByEmail = user.email || "";
+
+    await reportSnapshotsCollection.doc(snapshotId).set(payload, { merge: true });
+    alert(`Snapshot für ${monthLabel} ${year} wurde gespeichert.`);
+  }catch(error){
+    console.error("Monats-Snapshot konnte nicht gespeichert werden:", error);
+    showError(`Der Snapshot für ${monthLabel} ${year} konnte nicht gespeichert werden.`);
+  }finally{
+    savingSnapshotKeys.delete(snapshotId);
+    renderReport();
+  }
 }
 
 async function ensurePreviousMonthSnapshot(){
@@ -1508,6 +1609,8 @@ function startLogsListener(){
 }
 
 auth.onAuthStateChanged((user) => {
+  currentUser = user || null;
+
   if(user){
     setNavigationVisibility(user);
     document.getElementById("loginScreen").style.display = "none";
