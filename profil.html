@@ -219,7 +219,7 @@
     const usersCollection = db.collection("users");
     const LIMITED_ACCESS_UIDS = ["h8VfDCJ3eTb5GOwjgBzHVck3TEB3", "BVBSpAYOGaWKptCrQ81h8UtW13n2", "UIAvOHFf8QgqJ7UWkPV7CpV88512"];
     const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
-const SPECIAL_SAVINGS_UID = "3Jm2fQfSnOhLF50WoeePNQg0ZFf2";
+const SPECIAL_SAVINGS_UID = "pmyu29TlC3QM7JIysmy2EmiHSWW2";
 const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
 
     function sanitizeInput(value, maxLength = 120){
