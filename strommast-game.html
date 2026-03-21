@@ -692,6 +692,10 @@ const firebaseApp = firebase.apps.length
   : firebase.initializeApp(firebaseConfig);
 const db = firebaseApp.firestore();
 const auth = firebaseApp.auth();
+const authReady = auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+  .catch((error) => {
+    console.error("Auth-Persistenz konnte nicht gesetzt werden:", error);
+  });
 
 const RANKING_KEY = "strommastRanking";
 const SCORE_COLLECTION = "strommastRanking";

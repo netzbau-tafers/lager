@@ -235,6 +235,10 @@
 
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
+const authReady = auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+  .catch((error) => {
+    console.error("Auth-Persistenz konnte nicht gesetzt werden:", error);
+  });
     const db = firebase.firestore();
     const usersCollection = db.collection("users");
     const LIMITED_ACCESS_UIDS = ["h8VfDCJ3eTb5GOwjgBzHVck3TEB3", "BVBSpAYOGaWKptCrQ81h8UtW13n2", "UIAvOHFf8QgqJ7UWkPV7CpV88512"];
