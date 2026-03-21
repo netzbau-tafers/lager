@@ -482,7 +482,7 @@ tr.total-row td{
   </div>
 
   <div class="info-panel">
-    Der Report zählt alle eingezogenen Meter aus den verfügbaren Kabellager-Logs zusammen. Rückbuchungen werden aus der Differenz zwischen vorheriger Länge und neuer Länge gerechnet. Vollständig gelöschte Bobinen werden zusätzlich mit ihrer gelöschten Länge gezählt, damit die im Boden liegenden Meter ebenfalls im Report erscheinen.
+    Der Report zählt alle eingezogenen Meter aus den verfügbaren Kabellager-Logs zusammen. Für abgeschlossene Monate werden automatisch gespeicherte Monats-Snapshots aus Firestore verwendet. Rückbuchungen werden aus der Differenz zwischen vorheriger Länge und neuer Länge gerechnet. Vollständig gelöschte Bobinen werden zusätzlich mit ihrer gelöschten Länge gezählt, damit die im Boden liegenden Meter ebenfalls im Report erscheinen.
   </div>
 
   <div id="reportNotice" class="info-panel warning-panel" style="display:none;"></div>
@@ -550,6 +550,7 @@ const authReady = auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
     console.error("Auth-Persistenz konnte nicht gesetzt werden:", error);
   });
 const logsCollection = db.collection("logs");
+const reportSnapshotsCollection = db.collection("kabel_report_snapshots");
 const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "pmyu29TlC3QM7JIysmy2EmiHSWW2", "Q33pfDjhxyQcmlnZjrq8tekvioB2", "hwZEme8xvkasSAGrmOtQRLOnnXn1", "PKDpb7Cb7ig8ZKZRMm23FOKnCHQ2", "T05YzzSRN2aUMkTTwGB2N1OqPgA2", "DSMERv7Uu4b4eEYQx5SKbjvdher2"];
 const LIMITED_ACCESS_UIDS = ["h8VfDCJ3eTb5GOwjgBzHVck3TEB3", "BVBSpAYOGaWKptCrQ81h8UtW13n2", "UIAvOHFf8QgqJ7UWkPV7CpV88512"];
 const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
@@ -559,7 +560,13 @@ const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
 const MONTH_NAMES = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
 let unsubscribeLogs = null;
+let unsubscribeSnapshots = null;
 let allLogs = [];
+let allSnapshots = [];
+let hasLoadedLogs = false;
+let hasLoadedSnapshots = false;
+let isEnsuringSnapshot = false;
+const SNAPSHOT_STATUS_READY = "ready";
 
 function escapeHtml(value){
   return String(value || "")
@@ -669,6 +676,240 @@ function getMonthKey(date){
 
 function getMonthLabel(monthIndex){
   return MONTH_NAMES[monthIndex] || "";
+}
+
+function getSnapshotDocumentId(year, monthIndex){
+  return year + "-" + String(monthIndex + 1).padStart(2, "0");
+}
+
+function getSnapshotByMonth(year, monthIndex){
+  const snapshotId = getSnapshotDocumentId(year, monthIndex);
+  return allSnapshots.find(snapshot => snapshot.id === snapshotId && snapshot.status === SNAPSHOT_STATUS_READY) || null;
+}
+
+function createEmptySnapshotPayload(year, monthIndex, sourceLogCount = 0){
+  return {
+    periodKey: getSnapshotDocumentId(year, monthIndex),
+    year: year,
+    month: monthIndex + 1,
+    monthIndex: monthIndex,
+    status: SNAPSHOT_STATUS_READY,
+    rows: [],
+    totalMeters: 0,
+    totalBookings: 0,
+    totalReturns: 0,
+    totalDeletes: 0,
+    sourceLogCount: sourceLogCount
+  };
+}
+
+function buildSnapshotPayload(year, monthIndex, entries, sourceLogCount = 0){
+  const groupedByType = new Map();
+  let totalMeters = 0;
+  let totalReturns = 0;
+  let totalDeletes = 0;
+
+  entries.forEach(entry => {
+    totalMeters += Number(entry.meter || 0);
+
+    const row = groupedByType.get(entry.typ) || {
+      typ: entry.typ,
+      meter: 0,
+      count: 0,
+      returnsCount: 0,
+      deletesCount: 0
+    };
+
+    row.meter += Number(entry.meter || 0);
+    row.count += 1;
+
+    if(entry.source === "Rückbuchung"){
+      row.returnsCount += 1;
+      totalReturns += 1;
+    }else if(entry.source === "Komplett gelöscht"){
+      row.deletesCount += 1;
+      totalDeletes += 1;
+    }
+
+    groupedByType.set(entry.typ, row);
+  });
+
+  const rows = Array.from(groupedByType.values())
+    .map(row => ({
+      typ: row.typ,
+      meter: roundMeters(row.meter),
+      count: row.count,
+      returnsCount: row.returnsCount,
+      deletesCount: row.deletesCount
+    }))
+    .sort((a, b) => b.meter - a.meter || a.typ.localeCompare(b.typ, "de", { sensitivity: "base" }));
+
+  return {
+    periodKey: getSnapshotDocumentId(year, monthIndex),
+    year: year,
+    month: monthIndex + 1,
+    monthIndex: monthIndex,
+    status: SNAPSHOT_STATUS_READY,
+    rows: rows,
+    totalMeters: roundMeters(totalMeters),
+    totalBookings: entries.length,
+    totalReturns: totalReturns,
+    totalDeletes: totalDeletes,
+    sourceLogCount: sourceLogCount
+  };
+}
+
+function buildSnapshotReportData(snapshotDocs, searchTerm){
+  const term = String(searchTerm || "").trim().toLowerCase();
+  const annualByType = new Map();
+  const monthlyRows = Array.from({ length: 12 }, () => ({ rows: [], total: 0 }));
+  let totalMeters = 0;
+  let totalReturns = 0;
+  let totalDeletes = 0;
+  let totalBookings = 0;
+
+  snapshotDocs.forEach(snapshot => {
+    const monthIndex = Number(snapshot.monthIndex);
+    if(!Number.isInteger(monthIndex) || monthIndex < 0 || monthIndex > 11){
+      return;
+    }
+
+    const monthMap = new Map();
+
+    (Array.isArray(snapshot.rows) ? snapshot.rows : []).forEach(sourceRow => {
+      const typ = sanitizeInput(sourceRow.typ || "Unbekannter Typ", 200) || "Unbekannter Typ";
+      if(term && !typ.toLowerCase().includes(term)){
+        return;
+      }
+
+      const meter = roundMeters(sourceRow.meter || 0);
+      const count = Number(sourceRow.count || 0);
+      const returnsCount = Number(sourceRow.returnsCount || 0);
+      const deletesCount = Number(sourceRow.deletesCount || 0);
+
+      totalMeters += meter;
+      totalBookings += count;
+      totalReturns += returnsCount;
+      totalDeletes += deletesCount;
+
+      const annualRow = annualByType.get(typ) || {
+        typ: typ,
+        meter: 0,
+        count: 0
+      };
+      annualRow.meter += meter;
+      annualRow.count += count;
+      annualByType.set(typ, annualRow);
+
+      const monthRow = monthMap.get(typ) || {
+        typ: typ,
+        meter: 0,
+        count: 0
+      };
+      monthRow.meter += meter;
+      monthRow.count += count;
+      monthMap.set(typ, monthRow);
+    });
+
+    const rows = Array.from(monthMap.values())
+      .map(row => ({
+        typ: row.typ,
+        meter: roundMeters(row.meter),
+        count: row.count
+      }))
+      .sort((a, b) => b.meter - a.meter || a.typ.localeCompare(b.typ, "de", { sensitivity: "base" }));
+
+    monthlyRows[monthIndex] = {
+      rows: rows,
+      total: roundMeters(rows.reduce((sum, row) => sum + row.meter, 0))
+    };
+  });
+
+  const annualRows = Array.from(annualByType.values())
+    .map(row => ({
+      typ: row.typ,
+      meter: roundMeters(row.meter),
+      count: row.count
+    }))
+    .sort((a, b) => b.meter - a.meter || a.typ.localeCompare(b.typ, "de", { sensitivity: "base" }));
+
+  return {
+    annualRows: annualRows,
+    monthlyRows: monthlyRows,
+    totalMeters: roundMeters(totalMeters),
+    totalReturns: totalReturns,
+    totalDeletes: totalDeletes,
+    totalBookings: totalBookings
+  };
+}
+
+function mergeReportData(parts){
+  const annualByType = new Map();
+  const monthlyMaps = Array.from({ length: 12 }, () => new Map());
+  let totalMeters = 0;
+  let totalReturns = 0;
+  let totalDeletes = 0;
+  let totalBookings = 0;
+
+  parts.forEach(part => {
+    if(!part){
+      return;
+    }
+
+    totalMeters += Number(part.totalMeters || 0);
+    totalReturns += Number(part.totalReturns || 0);
+    totalDeletes += Number(part.totalDeletes || 0);
+    totalBookings += Number(part.totalBookings || 0);
+
+    (Array.isArray(part.annualRows) ? part.annualRows : []).forEach(row => {
+      const annualRow = annualByType.get(row.typ) || { typ: row.typ, meter: 0, count: 0 };
+      annualRow.meter += Number(row.meter || 0);
+      annualRow.count += Number(row.count || 0);
+      annualByType.set(row.typ, annualRow);
+    });
+
+    (Array.isArray(part.monthlyRows) ? part.monthlyRows : []).forEach((monthData, monthIndex) => {
+      const monthMap = monthlyMaps[monthIndex];
+      (Array.isArray(monthData.rows) ? monthData.rows : []).forEach(row => {
+        const monthRow = monthMap.get(row.typ) || { typ: row.typ, meter: 0, count: 0 };
+        monthRow.meter += Number(row.meter || 0);
+        monthRow.count += Number(row.count || 0);
+        monthMap.set(row.typ, monthRow);
+      });
+    });
+  });
+
+  const annualRows = Array.from(annualByType.values())
+    .map(row => ({
+      typ: row.typ,
+      meter: roundMeters(row.meter),
+      count: row.count
+    }))
+    .sort((a, b) => b.meter - a.meter || a.typ.localeCompare(b.typ, "de", { sensitivity: "base" }));
+
+  const monthlyRows = monthlyMaps.map(monthMap => {
+    const rows = Array.from(monthMap.values())
+      .map(row => ({
+        typ: row.typ,
+        meter: roundMeters(row.meter),
+        count: row.count
+      }))
+      .sort((a, b) => b.meter - a.meter || a.typ.localeCompare(b.typ, "de", { sensitivity: "base" }));
+
+    return {
+      rows: rows,
+      total: roundMeters(rows.reduce((sum, row) => sum + row.meter, 0))
+    };
+  });
+
+  return {
+    annualRows: annualRows,
+    monthlyRows: monthlyRows,
+    totalMeters: roundMeters(totalMeters),
+    totalReturns: totalReturns,
+    totalDeletes: totalDeletes,
+    totalBookings: totalBookings
+  };
 }
 
 function toggleMenu(event){
@@ -814,6 +1055,11 @@ function stopListeners(){
     unsubscribeLogs = null;
   }
 
+  if(unsubscribeSnapshots){
+    unsubscribeSnapshots();
+    unsubscribeSnapshots = null;
+  }
+
 }
 
 function setNavigationVisibility(user){
@@ -854,6 +1100,12 @@ function buildYearOptions(){
     const date = getDate(log.createdAt);
     if(date){
       years.add(date.getFullYear());
+    }
+  });
+
+  allSnapshots.forEach(snapshot => {
+    if(Number.isInteger(snapshot.year)){
+      years.add(snapshot.year);
     }
   });
 
@@ -960,6 +1212,14 @@ function buildReportEntries(year){
   return { reportEntries, earliestLogDate };
 }
 
+function buildReportEntriesForMonth(year, monthIndex){
+  const baseData = buildReportEntries(year);
+  return {
+    reportEntries: baseData.reportEntries.filter(entry => entry.month === monthIndex),
+    earliestLogDate: baseData.earliestLogDate
+  };
+}
+
 function groupEntries(entries, searchTerm){
   const term = String(searchTerm || "").trim().toLowerCase();
   const filteredEntries = entries.filter(entry => {
@@ -1013,12 +1273,12 @@ function groupEntries(entries, searchTerm){
   });
 
   return {
-    entries: filteredEntries,
     annualRows,
     monthlyRows,
     totalMeters: roundMeters(totalMeters),
     totalReturns,
-    totalDeletes
+    totalDeletes,
+    totalBookings: filteredEntries.length
   };
 }
 
@@ -1048,7 +1308,7 @@ function renderAnnualTable(data){
       <td>Total alle Kabel</td>
       <td class="number-cell">${escapeHtml(formatMeters(data.totalMeters))}</td>
       <td class="number-cell">100 %</td>
-      <td class="number-cell">${escapeHtml(formatCount(data.entries.length))}</td>
+      <td class="number-cell">${escapeHtml(formatCount(data.totalBookings))}</td>
     </tr>
   `;
 }
@@ -1094,18 +1354,28 @@ function renderMonths(data){
 
 function renderSummary(data){
   document.getElementById("summaryTotal").textContent = formatMeters(data.totalMeters);
-  document.getElementById("summaryBookings").textContent = formatCount(data.entries.length) + " Buchungen im Report";
+  document.getElementById("summaryBookings").textContent = formatCount(data.totalBookings) + " Buchungen im Report";
   document.getElementById("summaryTypes").textContent = formatCount(data.annualRows.length);
   document.getElementById("summaryReturns").textContent = formatCount(data.totalReturns);
   document.getElementById("summaryDeletes").textContent = formatCount(data.totalDeletes);
 }
 
-function renderNotice(earliestLogDate, year){
+function renderNotice(earliestLogDate, year, snapshotDocs = []){
   const notice = document.getElementById("reportNotice");
   const startOfYear = new Date(year, 0, 1);
+  const snapshotCount = Array.isArray(snapshotDocs) ? snapshotDocs.length : 0;
+  const messages = [];
 
-  if(earliestLogDate && earliestLogDate > startOfYear){
-    notice.innerHTML = `Für ${escapeHtml(String(year))} sind Logs erst ab <strong>${escapeHtml(earliestLogDate.toLocaleDateString("de-CH"))}</strong> verfügbar. Ältere Einzüge aus diesem Jahr können deshalb fehlen.`;
+  if(snapshotCount > 0){
+    messages.push(`Für abgeschlossene Monate werden <strong>${escapeHtml(formatCount(snapshotCount))} Monats-Snapshots</strong> aus Firestore verwendet.`);
+  }
+
+  if(earliestLogDate && earliestLogDate > startOfYear && snapshotCount === 0){
+    messages.push(`Für ${escapeHtml(String(year))} sind Logs erst ab <strong>${escapeHtml(earliestLogDate.toLocaleDateString("de-CH"))}</strong> verfügbar. Ältere Einzüge aus diesem Jahr können deshalb fehlen.`);
+  }
+
+  if(messages.length){
+    notice.innerHTML = messages.join(" ");
     notice.style.display = "block";
   }else{
     notice.style.display = "none";
@@ -1125,17 +1395,99 @@ function showError(message){
   errorBox.style.display = "block";
 }
 
+function getPreviousMonthReference(){
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth() - 1, 1);
+}
+
+function getHistoricalSnapshotDocs(year){
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonthIndex = currentDate.getMonth();
+
+  return allSnapshots.filter(snapshot => {
+    if(snapshot.status !== SNAPSHOT_STATUS_READY || snapshot.year !== year){
+      return false;
+    }
+
+    if(year < currentYear){
+      return true;
+    }
+
+    return Number(snapshot.monthIndex) < currentMonthIndex;
+  });
+}
+
+async function ensurePreviousMonthSnapshot(){
+  const user = auth.currentUser;
+  if(!user || !isAdminUid(user.uid) || isEnsuringSnapshot || !hasLoadedLogs || !hasLoadedSnapshots){
+    return;
+  }
+
+  const previousMonthDate = getPreviousMonthReference();
+  const year = previousMonthDate.getFullYear();
+  const monthIndex = previousMonthDate.getMonth();
+  const snapshotId = getSnapshotDocumentId(year, monthIndex);
+
+  if(getSnapshotByMonth(year, monthIndex)){
+    return;
+  }
+
+  isEnsuringSnapshot = true;
+
+  try{
+    const monthData = buildReportEntriesForMonth(year, monthIndex);
+    const payload = monthData.reportEntries.length
+      ? buildSnapshotPayload(year, monthIndex, monthData.reportEntries, monthData.reportEntries.length)
+      : createEmptySnapshotPayload(year, monthIndex, 0);
+
+    payload.generatedAt = firebase.firestore.FieldValue.serverTimestamp();
+    payload.generatedByUid = user.uid || "";
+    payload.generatedByEmail = user.email || "";
+
+    await reportSnapshotsCollection.doc(snapshotId).set(payload, { merge: true });
+  }catch(error){
+    console.error("Monats-Snapshot konnte nicht erstellt werden:", error);
+    showError("Der Monats-Snapshot für den Kabel Report konnte nicht erstellt werden.");
+  }finally{
+    isEnsuringSnapshot = false;
+  }
+}
+
 function renderReport(){
   clearError();
   const year = Number(document.getElementById("yearFilter").value || new Date().getFullYear());
   const searchTerm = document.getElementById("typeSearch").value;
   const baseData = buildReportEntries(year);
-  const reportData = groupEntries(baseData.reportEntries, searchTerm);
+  const historicalSnapshots = getHistoricalSnapshotDocs(year);
+  const snapshotMonthKeys = new Set(historicalSnapshots.map(snapshot => getSnapshotDocumentId(snapshot.year, snapshot.monthIndex)));
+  const liveEntries = baseData.reportEntries.filter(entry => !snapshotMonthKeys.has(getSnapshotDocumentId(year, entry.month)));
+  const reportData = mergeReportData([
+    buildSnapshotReportData(historicalSnapshots, searchTerm),
+    groupEntries(liveEntries, searchTerm)
+  ]);
 
-  renderNotice(baseData.earliestLogDate, year);
+  renderNotice(baseData.earliestLogDate, year, historicalSnapshots);
   renderSummary(reportData);
   renderAnnualTable(reportData);
   renderMonths(reportData);
+}
+
+function startSnapshotListener(){
+  if(unsubscribeSnapshots){
+    return;
+  }
+
+  unsubscribeSnapshots = reportSnapshotsCollection.orderBy("periodKey", "asc").onSnapshot(snapshot => {
+    allSnapshots = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    hasLoadedSnapshots = true;
+    buildYearOptions();
+    ensurePreviousMonthSnapshot();
+    renderReport();
+  }, error => {
+    console.error("Fehler beim Laden der Kabel-Report-Snapshots:", error);
+    showError("Die Monats-Snapshots des Kabel Reports konnten nicht geladen werden.");
+  });
 }
 
 function startLogsListener(){
@@ -1145,7 +1497,9 @@ function startLogsListener(){
 
   unsubscribeLogs = logsCollection.orderBy("createdAt", "asc").onSnapshot(snapshot => {
     allLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    hasLoadedLogs = true;
     buildYearOptions();
+    ensurePreviousMonthSnapshot();
     renderReport();
   }, error => {
     console.error("Fehler beim Laden des Kabel-Reports:", error);
@@ -1158,6 +1512,7 @@ auth.onAuthStateChanged((user) => {
     setNavigationVisibility(user);
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
+    startSnapshotListener();
     startLogsListener();
   }else{
     stopListeners();
