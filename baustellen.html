@@ -469,6 +469,11 @@ label{
   margin-bottom:4px;
 }
 
+.material-row.spaced-from-barcode,
+.card-meta.spaced-from-barcode{
+  margin-top:12px;
+}
+
 .spontis-link{
   color:#1b66d1;
   text-decoration:underline;
@@ -1886,11 +1891,11 @@ function renderVorlagen(){
       card.innerHTML = `
         <h3>${escapeHtml(v.material || "")}</h3>
         ${renderSpontisBlock("Neue Spontis Nummer", v.spontis || "", v.link || "", isAdminUser, isAdminUser)}
-        ${renderBarcodeBlock(getBarcodeValueFromSpontis(v.spontis || ""), "Neue Spontis Barcode")}
-        ${renderSpontisBlock("Alte Spontis Nummer", v.alteSpontis || "", "", false, false)}
-        ${renderBarcodeBlock(getBarcodeValueFromSpontis(v.alteSpontis || ""), "Alte Spontis Barcode")}
+        ${renderBarcodeBlock(getBarcodeValueFromSpontis(v.spontis || ""), "Neuer Barcode")}
+        ${renderSpontisBlock("Alte Spontis Nummer", v.alteSpontis || "", "", false, false, "spaced-from-barcode")}
+        ${renderBarcodeBlock(getBarcodeValueFromSpontis(v.alteSpontis || ""), "Alter Barcode")}
         ${canManageSavingsTemplateSelection(auth.currentUser && auth.currentUser.uid ? auth.currentUser.uid : "") ? `
-        <div class="card-meta"><strong>Gespart:</strong> ${v.inGespart ? "Ja" : "Nein"}</div>
+        <div class="card-meta spaced-from-barcode"><strong>Gespart:</strong> ${v.inGespart ? "Ja" : "Nein"}</div>
         ` : ""}
         ${isAdminUser ? `
         <div class="card-actions">
@@ -2077,13 +2082,14 @@ function getVorlageAlteSpontisBySpontis(spontisNummer){
   return vorlage ? sanitizeInput(vorlage.alteSpontis || "", 60) : "";
 }
 
-function renderSpontisBlock(label, spontisNummer, link, darfKlicken, userIstAdmin){
+function renderSpontisBlock(label, spontisNummer, link, darfKlicken, userIstAdmin, extraClass = ""){
   const sanitizedSpontis = sanitizeInput(spontisNummer || "", 60);
   if(sanitizedSpontis === ""){
     return "";
   }
 
-  return `<div class="material-row"><strong>${escapeHtml(label)}:</strong> ${renderSpontisFeld(sanitizedSpontis, link || "", darfKlicken, userIstAdmin)}</div>`;
+  const rowClassName = ["material-row", extraClass].filter(Boolean).join(" ");
+  return `<div class="${rowClassName}"><strong>${escapeHtml(label)}:</strong> ${renderSpontisFeld(sanitizedSpontis, link || "", darfKlicken, userIstAdmin)}</div>`;
 }
 
 function renderSpontisBarcodePair(label, spontisNummer){
@@ -2092,9 +2098,11 @@ function renderSpontisBarcodePair(label, spontisNummer){
     return "";
   }
 
+  const barcodeLabel = label === "Alte Spontis Nummer" ? "Alter Barcode" : "Neuer Barcode";
+
   return `
-    ${renderSpontisBlock(label, sanitizedSpontis, "", false, false)}
-    ${renderBarcodeBlock(getBarcodeValueFromSpontis(sanitizedSpontis), label + " Barcode")}
+    ${renderSpontisBlock(label, sanitizedSpontis, "", false, false, "spaced-from-barcode")}
+    ${renderBarcodeBlock(getBarcodeValueFromSpontis(sanitizedSpontis), barcodeLabel)}
   `;
 }
 
@@ -2152,7 +2160,7 @@ function createBaustelleCard(baustelle){
           <div class="material-row"><strong>Material:</strong> ${escapeHtml(m.material || "")}</div>
           <div class="material-row"><strong>Anzahl:</strong> ${escapeHtml(m.anzahl || "")}</div>
           ${renderSpontisBlock("Neue Spontis Nummer", m.spontis || "", getVorlageLinkBySpontis(m.spontis || ""), baustelle.status === "rausschreiben", isAdminUser)}
-          ${baustelle.status !== "aktiv" ? renderBarcodeBlock(getVorlageBarcodeBySpontis(m.spontis || ""), "Neue Spontis Barcode") : ""}
+          ${baustelle.status !== "aktiv" ? renderBarcodeBlock(getVorlageBarcodeBySpontis(m.spontis || ""), "Neuer Barcode") : ""}
           ${baustelle.status !== "aktiv" ? renderSpontisBarcodePair("Alte Spontis Nummer", getVorlageAlteSpontisBySpontis(m.spontis || "")) : ""}
 
           ${darfMaterialBearbeiten ? `
@@ -2892,8 +2900,8 @@ function printBaustelle(id){
         <tr>
           <td>${escapeHtml(m.material || "")}</td>
           <td>${escapeHtml(m.anzahl || "")}</td>
-          <td>${escapeHtml(m.spontis || "")}${renderBarcodeBlock(getVorlageBarcodeBySpontis(m.spontis || ""), "Neue Spontis Barcode")}</td>
-          <td>${escapeHtml(alteSpontis || "-")}${alteSpontis ? renderBarcodeBlock(getBarcodeValueFromSpontis(alteSpontis), "Alte Spontis Barcode") : ""}</td>
+          <td>${escapeHtml(m.spontis || "")}${renderBarcodeBlock(getVorlageBarcodeBySpontis(m.spontis || ""), "Neuer Barcode")}</td>
+          <td>${escapeHtml(alteSpontis || "-")}${alteSpontis ? renderBarcodeBlock(getBarcodeValueFromSpontis(alteSpontis), "Alter Barcode") : ""}</td>
         </tr>
       `;
     });
