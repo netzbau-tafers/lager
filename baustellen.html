@@ -2907,13 +2907,6 @@ function printBaustelle(id){
     });
   }
 
-  const printWindow = window.open("", "_blank", "width=900,height=700");
-
-  if(!printWindow){
-    alert("Das Druckfenster konnte nicht geöffnet werden. Bitte Popups erlauben.");
-    return;
-  }
-
   const html = `
     <!DOCTYPE html>
     <html lang="de">
@@ -3057,14 +3050,21 @@ function printBaustelle(id){
     </html>
   `;
 
+  const printWindow = window.open("", "_blank", "width=900,height=700");
+
+  if(!printWindow){
+    alert("Das Druckfenster konnte nicht geöffnet werden. Bitte Popups erlauben.");
+    return;
+  }
+
   printWindow.document.open();
   printWindow.document.write(html);
   printWindow.document.close();
 
-  printWindow.addEventListener("load", function(){
+  printWindow.onload = function(){
     printWindow.focus();
     printWindow.print();
-  });
+  };
 }
 
 function deleteBaustelle(id){
