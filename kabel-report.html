@@ -494,7 +494,7 @@ tr.total-row td{
     <div class="filters-grid">
       <div>
         <label for="yearFilter">Jahr</label>
-        <select id="yearFilter" onchange="renderReport()"></select>
+        <select id="yearFilter" onchange="handleYearFilterChange()"></select>
       </div>
       <div>
         <label for="typeSearch">Kabeltyp filtern</label>
@@ -594,6 +594,7 @@ let isEnsuringSnapshot = false;
 let currentUser = null;
 let savingSnapshotKeys = new Set();
 const SNAPSHOT_STATUS_READY = "ready";
+let activeLogYear = null;
 
 function escapeHtml(value){
   return String(value || "")
@@ -1090,6 +1091,9 @@ function stopListeners(){
     unsubscribeLogs();
     unsubscribeLogs = null;
   }
+  allLogs = [];
+  hasLoadedLogs = false;
+  activeLogYear = null;
 
   if(unsubscribeSnapshots){
     unsubscribeSnapshots();
@@ -1151,10 +1155,21 @@ function buildYearOptions(){
   select.value = sortedYears.includes(Number(currentValue)) ? currentValue : String(currentYear);
 }
 
+function getSelectedYear(){
+  return Number(document.getElementById("yearFilter").value || new Date().getFullYear());
+}
+
+function getYearBoundaries(year){
+  return {
+    start: new Date(year, 0, 1),
+    end: new Date(year + 1, 0, 1)
+  };
+}
+
 function resetFilters(){
   document.getElementById("typeSearch").value = "";
   buildYearOptions();
-  renderReport();
+  handleYearFilterChange();
 }
 
 function buildReportEntries(year){
@@ -1568,6 +1583,9 @@ async function ensurePreviousMonthSnapshot(){
   const previousMonthDate = getPreviousMonthReference();
   const year = previousMonthDate.getFullYear();
   const monthIndex = previousMonthDate.getMonth();
+  if(activeLogYear !== year){
+    return;
+  }
   const snapshotId = getSnapshotDocumentId(year, monthIndex);
 
   if(getSnapshotByMonth(year, monthIndex)){
@@ -1630,20 +1648,40 @@ function startSnapshotListener(){
 }
 
 function startLogsListener(){
-  if(unsubscribeLogs){
+  const year = getSelectedYear();
+  if(unsubscribeLogs && activeLogYear === year){
     return;
   }
 
-  unsubscribeLogs = logsCollection.orderBy("createdAt", "asc").onSnapshot(snapshot => {
+  if(unsubscribeLogs){
+    unsubscribeLogs();
+    unsubscribeLogs = null;
+  }
+
+  hasLoadedLogs = false;
+  allLogs = [];
+  activeLogYear = year;
+  const yearBoundaries = getYearBoundaries(year);
+
+  unsubscribeLogs = logsCollection
+    .where("createdAt", ">=", yearBoundaries.start)
+    .where("createdAt", "<", yearBoundaries.end)
+    .orderBy("createdAt", "asc")
+    .onSnapshot(snapshot => {
     allLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     hasLoadedLogs = true;
     buildYearOptions();
     ensurePreviousMonthSnapshot();
     renderReport();
   }, error => {
-    console.error("Fehler beim Laden des Kabel-Reports:", error);
-    showError("Der Kabel Report konnte nicht geladen werden. Bitte prüfe die Berechtigungen oder versuche es erneut.");
+      console.error("Fehler beim Laden des Kabel-Reports:", error);
+      showError("Der Kabel Report konnte nicht geladen werden. Bitte prüfe die Berechtigungen oder versuche es erneut.");
   });
+}
+
+function handleYearFilterChange(){
+  startLogsListener();
+  renderReport();
 }
 
 auth.onAuthStateChanged((user) => {
@@ -1659,6 +1697,18 @@ auth.onAuthStateChanged((user) => {
     stopListeners();
     closeMenu();
     window.location.href = "home.html";
+  }
+});
+
+window.addEventListener("focus", () => {
+  if(auth.currentUser){
+    startLogsListener();
+  }
+});
+
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState === "visible" && auth.currentUser){
+    startLogsListener();
   }
 });
 
