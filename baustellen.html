@@ -777,11 +777,11 @@ label{
     <input id="loginEmail" type="email" placeholder="E-Mail" maxlength="120" autocomplete="username">
     <div style="position:relative; margin-top:10px;">
       <input id="loginPassword" type="password" placeholder="Passwort" maxlength="120" autocomplete="current-password" style="margin:0; padding-right:44px;">
-      <button type="button" onclick="toggleLoginPasswordVisibility()" aria-label="Passwort anzeigen oder ausblenden" title="Passwort anzeigen oder ausblenden" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:transparent; color:#666; box-shadow:none; padding:6px; margin:0; min-width:auto;">
+      <button id="loginPasswordToggleButton" type="button" aria-label="Passwort anzeigen oder ausblenden" title="Passwort anzeigen oder ausblenden" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:transparent; color:#666; box-shadow:none; padding:6px; margin:0; min-width:auto;">
         <i id="loginPasswordToggleIcon" class="fa-regular fa-eye"></i>
       </button>
     </div>
-    <button onclick="login()"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
+    <button id="loginButton" type="button"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
     <p id="loginError" class="login-error">Login fehlgeschlagen. Bitte Daten prüfen.</p>
   </div>
 </div>
@@ -792,43 +792,43 @@ label{
   <h1>Baustellenmaterial</h1>
 
   <div class="menu-wrap">
-    <button class="menu-button" onclick="toggleMenu(event)" title="Menü öffnen">
+    <button id="menuButton" class="menu-button" type="button" title="Menü öffnen">
       <i class="fa-solid fa-bars"></i>
     </button>
 <div id="dropdownMenu" class="dropdown-menu">
-  <button onclick="goToHome()" data-page="home">
+  <button id="goHomeButton" type="button" data-page="home">
     <i class="fa-solid fa-house"></i> Startseite
   </button>
 
-  <button onclick="goToKabellager()" data-page="index">
+  <button id="goKabellagerButton" type="button" data-page="index">
     <i class="fa-solid fa-warehouse"></i> Kabellager
   </button>
 
-  <button onclick="goToKabelReport()" data-page="kabelreport">
+  <button id="goKabelReportButton" type="button" data-page="kabelreport">
     <i class="fa-solid fa-chart-column"></i> Kabel Report
   </button>
 
-  <button onclick="closeMenu()" data-page="baustellen">
+  <button id="closeMenuButton" type="button" data-page="baustellen">
     <i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial
   </button>
 
-  <button id="archivMenuButton" onclick="goToArchiv()" data-page="archiv" style="display:none;">
+  <button id="archivMenuButton" type="button" data-page="archiv" style="display:none;">
     <i class="fa-solid fa-box-archive"></i> Archiv
   </button>
 
-  <button id="logsMenuButton" onclick="goToLogs()" data-page="logs" style="display:none;">
+  <button id="logsMenuButton" type="button" data-page="logs" style="display:none;">
     <i class="fa-solid fa-clipboard-list"></i> Logs
   </button>
 
-  <button id="gespartMenuButton" onclick="goToGespart()" data-page="gespart" style="display:none;">
+  <button id="gespartMenuButton" type="button" data-page="gespart" style="display:none;">
     <i class="fa-solid fa-piggy-bank"></i> Kosten gespart
   </button>
 
-  <button onclick="goToProfile()">
+  <button id="goProfileButton" type="button">
     <i class="fa-solid fa-user"></i> Profil
   </button>
 
-  <button class="logout-safe" onclick="logout()">
+  <button id="logoutButton" class="logout-safe" type="button">
     <i class="fa-solid fa-right-from-bracket"></i> Logout
   </button>
 </div>
@@ -839,19 +839,19 @@ label{
   <div class="search-title">Suche</div>
 
   <div class="search-row">
-    <input id="searchInput" type="text" placeholder="Nach Baustellenname, Nummer, Verantwortlicher oder Material suchen" oninput="renderAll()" maxlength="120">
-    <button class="back" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
+    <input id="searchInput" type="text" placeholder="Nach Baustellenname, Nummer, Verantwortlicher oder Material suchen" maxlength="120">
+    <button id="resetSearchButton" class="back" type="button"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
   </div>
 
   <div class="search-row" style="margin-top:10px;">
-    <select id="creatorFilterMode" onchange="onCreatorFilterChanged()">
+    <select id="creatorFilterMode">
       <option value="all">Alle Ersteller anzeigen</option>
       <option value="mine">Nur von mir erstellt</option>
     </select>
   </div>
 
   <div style="margin-top:15px;">
-    <button onclick="openBaustelleModal()"><i class="fa-solid fa-plus"></i> Neue Baustelle erstellen</button>
+    <button id="openBaustelleModalButton" type="button"><i class="fa-solid fa-plus"></i> Neue Baustelle erstellen</button>
   </div>
 </div>
 
@@ -950,7 +950,7 @@ label{
 
 <div class="section">
   <div class="section-header">
-    <button class="material-toggle" onclick="toggleBeendeteBereich()">
+    <button id="toggleBeendeteBereichButton" class="material-toggle" type="button">
       <span><i class="fa-solid fa-list-check"></i> Beendete Baustellen (<span id="beendeteCount">0</span>)</span>
       <span class="arrow" id="beendeteArrow">▼</span>
     </button>
@@ -959,7 +959,7 @@ label{
 </div>
 
 <div class="section">
-  <button class="material-toggle" onclick="toggleVorlagenBereich()">
+  <button id="toggleVorlagenBereichButton" class="material-toggle" type="button">
     <span><i class="fa-solid fa-layer-group"></i> Materialvorlagen verwalten</span>
     <span class="arrow" id="vorlagenArrow">▼</span>
   </button>
@@ -972,12 +972,12 @@ label{
     <div class="search-box">
       <div class="search-title">Vorlagen suchen</div>
       <div class="search-row">
-        <input id="vorlagenSearchInput" type="text" placeholder="Nach Material oder Spontis Nummer suchen" oninput="renderVorlagen()" maxlength="120">
-        <button class="back" onclick="resetVorlagenSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
+        <input id="vorlagenSearchInput" type="text" placeholder="Nach Material oder Spontis Nummer suchen" maxlength="120">
+        <button id="resetVorlagenSearchButton" class="back" type="button"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
       </div>
 
       <div id="neueVorlageWrap" style="margin-top:15px; display:none;">
-        <button onclick="openVorlageModal()"><i class="fa-solid fa-plus"></i> Neue Vorlage</button>
+        <button id="openVorlageModalButton" type="button"><i class="fa-solid fa-plus"></i> Neue Vorlage</button>
       </div>
     </div>
 
@@ -992,8 +992,8 @@ label{
     <input id="baustelleName" placeholder="Baustellen Name" maxlength="120">
     <input id="baustelleNummer" placeholder="Baustellen Nummer" maxlength="60">
     <input id="baustelleVerantwortlicher" placeholder="Verantwortlicher" maxlength="120">
-    <button onclick="saveBaustelle()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
-    <button class="back" onclick="closeModals()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
+    <button id="saveBaustelleButton" type="button"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
+    <button class="back js-close-modals" type="button"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
   </div>
 </div>
 
@@ -1002,7 +1002,7 @@ label{
     <h3 id="materialModalTitle">Material hinzufügen</h3>
 
     <label for="materialVorlageSuche">Materialvorlage suchen</label>
-    <input id="materialVorlageSuche" type="text" placeholder="Nach Material oder Spontis Nummer suchen" oninput="renderMaterialVorlagenTreffer()" maxlength="120">
+    <input id="materialVorlageSuche" type="text" placeholder="Nach Material oder Spontis Nummer suchen" maxlength="120">
 
     <div class="helper-text">Treffer anklicken, dann werden Material und Spontis Nummer automatisch übernommen.</div>
 
@@ -1013,8 +1013,8 @@ label{
     <input id="materialName" placeholder="Material" maxlength="120">
     <input id="materialAnzahl" placeholder="Anzahl" maxlength="40">
     <input id="materialSpontis" placeholder="Neue Spontis Nummer (optional)" maxlength="60">
-    <button onclick="saveMaterial()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
-    <button class="back" onclick="closeModals()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
+    <button id="saveMaterialButton" type="button"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
+    <button class="back js-close-modals" type="button"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
   </div>
 </div>
 
@@ -1030,12 +1030,12 @@ label{
     </label>
     <div class="input-with-action">
       <input id="vorlageLink" placeholder="URL Link (optional)" maxlength="600">
-      <button type="button" class="inline-icon-btn" onclick="clearVorlageLinkInput()" title="URL-Link löschen" aria-label="URL-Link löschen">
+      <button id="clearVorlageLinkButton" type="button" class="inline-icon-btn" title="URL-Link löschen" aria-label="URL-Link löschen">
         <i class="fa-solid fa-trash"></i>
       </button>
     </div>
-    <button onclick="saveVorlage()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
-    <button class="back" onclick="closeModals()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
+    <button id="saveVorlageButton" type="button"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
+    <button class="back js-close-modals" type="button"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
   </div>
 </div>
 
@@ -1944,9 +1944,9 @@ function renderMaterialVorlagenTreffer(){
     const button = document.createElement("button");
     button.type = "button";
     button.className = "vorlagen-treffer" + (selectedVorlageId === v.id ? " active" : "");
-    button.onclick = function(){
+    button.addEventListener("click", function(){
       waehleMaterialVorlage(v.id);
-    };
+    });
 
     button.innerHTML = `
       <div class="vorlagen-treffer-title">${escapeHtml(v.material || "")}</div>
@@ -3030,10 +3030,10 @@ function printBaustelle(id){
   printWindow.document.write(html);
   printWindow.document.close();
 
-  printWindow.onload = function(){
+  printWindow.addEventListener("load", function(){
     printWindow.focus();
     printWindow.print();
-  };
+  });
 }
 
 function deleteBaustelle(id){
@@ -3200,9 +3200,72 @@ function markActiveMenu(){
   });
 }
 
+function bindClickById(id, handler){
+  const element = document.getElementById(id);
+  if(!element){
+    return;
+  }
+
+  element.addEventListener("click", handler);
+}
+
+function setupStaticEventBindings(){
+  bindClickById("loginPasswordToggleButton", toggleLoginPasswordVisibility);
+  bindClickById("loginButton", login);
+  bindClickById("menuButton", function(event){
+    toggleMenu(event);
+  });
+  bindClickById("goHomeButton", goToHome);
+  bindClickById("goKabellagerButton", goToKabellager);
+  bindClickById("goKabelReportButton", goToKabelReport);
+  bindClickById("closeMenuButton", closeMenu);
+  bindClickById("archivMenuButton", goToArchiv);
+  bindClickById("logsMenuButton", goToLogs);
+  bindClickById("gespartMenuButton", goToGespart);
+  bindClickById("goProfileButton", goToProfile);
+  bindClickById("logoutButton", logout);
+  bindClickById("resetSearchButton", resetSearch);
+  bindClickById("openBaustelleModalButton", openBaustelleModal);
+  bindClickById("toggleBeendeteBereichButton", toggleBeendeteBereich);
+  bindClickById("toggleVorlagenBereichButton", toggleVorlagenBereich);
+  bindClickById("resetVorlagenSearchButton", resetVorlagenSearch);
+  bindClickById("openVorlageModalButton", function(){
+    openVorlageModal();
+  });
+  bindClickById("saveBaustelleButton", saveBaustelle);
+  bindClickById("saveMaterialButton", saveMaterial);
+  bindClickById("clearVorlageLinkButton", clearVorlageLinkInput);
+  bindClickById("saveVorlageButton", saveVorlage);
+
+  const searchInput = document.getElementById("searchInput");
+  if(searchInput){
+    searchInput.addEventListener("input", renderAll);
+  }
+
+  const creatorFilterMode = document.getElementById("creatorFilterMode");
+  if(creatorFilterMode){
+    creatorFilterMode.addEventListener("change", onCreatorFilterChanged);
+  }
+
+  const vorlagenSearchInput = document.getElementById("vorlagenSearchInput");
+  if(vorlagenSearchInput){
+    vorlagenSearchInput.addEventListener("input", renderVorlagen);
+  }
+
+  const materialVorlageSuche = document.getElementById("materialVorlageSuche");
+  if(materialVorlageSuche){
+    materialVorlageSuche.addEventListener("input", renderMaterialVorlagenTreffer);
+  }
+
+  document.querySelectorAll(".js-close-modals").forEach(button => {
+    button.addEventListener("click", closeModals);
+  });
+}
+
 document.addEventListener("DOMContentLoaded", function(){
   markActiveMenu();
   updateAdminVisibility();
+  setupStaticEventBindings();
 });
 
 function closeModals(){
