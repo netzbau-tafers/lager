@@ -320,6 +320,10 @@ const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
       return sanitizeInput(user && user.email ? user.email : "", 120).toLowerCase();
     }
 
+    function getSanitizedPendingEmail(data){
+      return sanitizeInput(data && data.pendingEmail ? data.pendingEmail : "", 120).toLowerCase();
+    }
+
     function syncUserEmail(user, options = {}){
       if(!user || !user.uid){
         return Promise.resolve("");
@@ -346,11 +350,34 @@ const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
             return currentEmail;
           }
 
-          return usersCollection.doc(currentUser.uid).set({
-            email: currentEmail,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-          }, { merge: true })
-            .then(() => currentEmail);
+          return usersCollection.doc(currentUser.uid).get()
+            .then((doc) => {
+              const data = doc.exists ? (doc.data() || {}) : {};
+              const storedEmail = sanitizeInput(data.email || "", 120).toLowerCase();
+              const pendingEmail = getSanitizedPendingEmail(data);
+              const updates = {
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+              };
+
+              if(pendingEmail){
+                if(currentEmail === pendingEmail){
+                  updates.email = currentEmail;
+                  updates.pendingEmail = firebase.firestore.FieldValue.delete();
+                  updates.pendingEmailRequestedAt = firebase.firestore.FieldValue.delete();
+                }else if(!storedEmail){
+                  updates.email = currentEmail;
+                }
+              }else if(storedEmail !== currentEmail){
+                updates.email = currentEmail;
+              }
+
+              if(Object.keys(updates).length === 1 && !updates.email && !updates.pendingEmail && !updates.pendingEmailRequestedAt){
+                return currentEmail;
+              }
+
+              return usersCollection.doc(currentUser.uid).set(updates, { merge: true })
+                .then(() => currentEmail);
+            });
         });
     }
 
@@ -447,8 +474,15 @@ const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
 
       user.verifyBeforeUpdateEmail(newEmail, actionCodeSettings)
         .then(() => {
+          return usersCollection.doc(user.uid).set({
+            pendingEmail: newEmail,
+            pendingEmailRequestedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+        })
+        .then(() => {
           setInfo(`Bestätigungslink wurde an ${newEmail} gesendet. Die Änderung wird nach Bestätigung übernommen.`);
-          emailInput.value = "";
+          emailInput.value = getSanitizedUserEmail(auth.currentUser || user);
         })
         .catch((error) => {
           console.error("E-Mail ändern Fehler:", error);
@@ -488,6 +522,13 @@ const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
         const data = doc.exists ? (doc.data() || {}) : {};
         document.getElementById("usernameInput").value = sanitizeInput(data.username || "", 120);
         document.getElementById("emailChangeInput").value = getSanitizedUserEmail(auth.currentUser || user);
+
+        const pendingEmail = getSanitizedPendingEmail(data);
+        if(pendingEmail){
+          setInfo(`E-Mail-Wechsel offen: Bitte bestätige den Link in ${pendingEmail}.`);
+        }else{
+          setInfo("");
+        }
       });
     });
 
