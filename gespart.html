@@ -597,6 +597,7 @@ const authReady = auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
   });
 const logsCollection = db.collection("logs");
 const baustellenCollection = db.collection("baustellen");
+const vorlagenCollection = db.collection("material_vorlagen");
 const tarifeCollection = db.collection("gespart_tarife");
 
 const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "3Jm2fQfSnOhLF50WoeePNQg0ZFf2", "Q33pfDjhxyQcmlnZjrq8tekvioB2", "hwZEme8xvkasSAGrmOtQRLOnnXn1", "PKDpb7Cb7ig8ZKZRMm23FOKnCHQ2", "T05YzzSRN2aUMkTTwGB2N1OqPgA2", "DSMERv7Uu4b4eEYQx5SKbjvdher2"];
@@ -608,9 +609,11 @@ const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
 
 let unsubscribeLogs = null;
 let unsubscribeBaustellen = null;
+let unsubscribeVorlagen = null;
 let unsubscribeTarife = null;
 let alleLogs = [];
 let alleBaustellen = [];
+let alleVorlagen = [];
 let alleTarife = [];
 let editTarifId = null;
 
@@ -811,8 +814,27 @@ function getBaustellenStatusMap(){
   return map;
 }
 
+function getSavingsVorlagenMap(){
+  const map = new Map();
+
+  alleVorlagen.forEach(vorlage => {
+    const spontisKey = normalizeKey(vorlage.spontis || "");
+    const materialKey = normalizeKey((vorlage.material || "") + "__" + (vorlage.spontis || ""));
+
+    if(spontisKey){
+      map.set("spontis__" + spontisKey, !!vorlage.inGespart);
+    }
+    if(materialKey){
+      map.set("material__" + materialKey, !!vorlage.inGespart);
+    }
+  });
+
+  return map;
+}
+
 function buildReturnedEntries(){
   const baustellenStatus = getBaustellenStatusMap();
+  const savingsVorlagenMap = getSavingsVorlagenMap();
   const rowsMap = new Map();
 
   [...alleLogs]
@@ -870,9 +892,16 @@ function buildReturnedEntries(){
       const ruecktragTarif = getTarifForDate(row.ruecktragDatum);
       const austrageBetrag = verrechneteAnzahl * Number(austragTarif && austragTarif.austrageBetrag ? austragTarif.austrageBetrag : 0);
       const zuruecktrageBetrag = verrechneteAnzahl * Number(ruecktragTarif && ruecktragTarif.zuruecktrageBetrag ? ruecktragTarif.zuruecktrageBetrag : 0);
+      const spontisKey = normalizeKey(row.spontis || "");
+      const materialKey = normalizeKey((row.material || "") + "__" + (row.spontis || ""));
+      const isIncludedInSavings = (
+        (spontisKey && savingsVorlagenMap.get("spontis__" + spontisKey) === true) ||
+        (materialKey && savingsVorlagenMap.get("material__" + materialKey) === true)
+      );
 
       return {
         ...row,
+        isIncludedInSavings: isIncludedInSavings,
         verrechneteAnzahl: verrechneteAnzahl,
         austragTarif: austragTarif ? Number(austragTarif.austrageBetrag || 0) : 0,
         ruecktragTarif: ruecktragTarif ? Number(ruecktragTarif.zuruecktrageBetrag || 0) : 0,
@@ -882,7 +911,7 @@ function buildReturnedEntries(){
         monatKey: getMonthKey(row.ruecktragDatum)
       };
     })
-    .filter(row => row.verrechneteAnzahl > 0 && getMillis(row.ruecktragDatum) > 0)
+    .filter(row => row.verrechneteAnzahl > 0 && getMillis(row.ruecktragDatum) > 0 && row.isIncludedInSavings)
     .sort((a, b) => getMillis(b.ruecktragDatum) - getMillis(a.ruecktragDatum));
 }
 
@@ -1460,6 +1489,10 @@ function stopListeners(){
     unsubscribeBaustellen();
     unsubscribeBaustellen = null;
   }
+  if(unsubscribeVorlagen){
+    unsubscribeVorlagen();
+    unsubscribeVorlagen = null;
+  }
   if(unsubscribeTarife){
     unsubscribeTarife();
     unsubscribeTarife = null;
@@ -1484,6 +1517,24 @@ function startListeners(){
     }, error => {
       console.error("Fehler Baustellen:", error);
       alert("Fehler beim Laden der Baustellen.");
+    });
+  }
+
+  if(!unsubscribeVorlagen){
+    unsubscribeVorlagen = vorlagenCollection.onSnapshot(snapshot => {
+      alleVorlagen = snapshot.docs.map(doc => {
+        const data = doc.data() || {};
+        return {
+          id: doc.id,
+          material: sanitizeInput(data.material || "", 120),
+          spontis: sanitizeInput(data.spontis || "", 60),
+          inGespart: !!data.inGespart
+        };
+      });
+      renderAll();
+    }, error => {
+      console.error("Fehler Materialvorlagen:", error);
+      alert("Fehler beim Laden der Materialvorlagen.");
     });
   }
 

@@ -230,6 +230,26 @@ label{
   color:#333;
 }
 
+.checkbox-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:0;
+  font-weight:normal;
+  color:#333;
+}
+
+.checkbox-row input[type="checkbox"]{
+  width:auto;
+  margin:0;
+}
+
+.checkbox-label-text{
+  font-size:14px;
+  font-weight:normal;
+  color:#333;
+}
+
 .input-with-action{
   display:flex;
   align-items:center;
@@ -1004,6 +1024,10 @@ label{
     <input id="vorlageMaterial" placeholder="Material" maxlength="120">
     <input id="vorlageSpontis" placeholder="Neue Spontis Nummer" maxlength="60">
     <input id="vorlageAlteSpontis" placeholder="Alte Spontis Nummer (optional)" maxlength="60">
+    <label id="vorlageGespartCheckboxWrap" class="checkbox-row" style="display:none; margin:10px 0;">
+      <input id="vorlageInGespart" type="checkbox">
+      <span class="checkbox-label-text">In Kosten gespart berücksichtigen</span>
+    </label>
     <div class="input-with-action">
       <input id="vorlageLink" placeholder="URL Link (optional)" maxlength="600">
       <button type="button" class="inline-icon-btn" onclick="clearVorlageLinkInput()" title="URL-Link löschen" aria-label="URL-Link löschen">
@@ -1050,6 +1074,7 @@ const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
 const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
 const SPECIAL_SAVINGS_UID = "3Jm2fQfSnOhLF50WoeePNQg0ZFf2";
 const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
+const canManageSavingsTemplateSelection = (uid) => uid === SPECIAL_SAVINGS_UID;
 
 let unsubscribeBaustellen = null;
 let unsubscribeMaterial = null;
@@ -1605,7 +1630,8 @@ function loadVorlagen(forceRefresh = false){
         material: sanitizeInput(data.material || "", 120),
         spontis: sanitizeInput(data.spontis || "", 60),
         alteSpontis: sanitizeInput(data.alteSpontis || "", 60),
-        link: parseAndNormalizeUrl(data.link || "") || ""
+        link: parseAndNormalizeUrl(data.link || "") || "",
+        inGespart: !!data.inGespart
       };
     });
 
@@ -1840,6 +1866,9 @@ function renderVorlagen(){
         ${renderBarcodeBlock(getBarcodeValueFromSpontis(v.spontis || ""), "Neue Spontis Barcode")}
         ${renderSpontisBlock("Alte Spontis Nummer", v.alteSpontis || "", "", false, false)}
         ${renderBarcodeBlock(getBarcodeValueFromSpontis(v.alteSpontis || ""), "Alte Spontis Barcode")}
+        ${canManageSavingsTemplateSelection(auth.currentUser && auth.currentUser.uid ? auth.currentUser.uid : "") ? `
+        <div class="card-meta"><strong>Gespart:</strong> ${v.inGespart ? "Ja" : "Nein"}</div>
+        ` : ""}
         ${isAdminUser ? `
         <div class="card-actions">
           <div class="card-menu-wrap">
@@ -2500,6 +2529,15 @@ function openVorlageModal(id = null){
 
   editVorlageId = id;
 
+  const currentUid = auth.currentUser && auth.currentUser.uid ? auth.currentUser.uid : "";
+  const savingsCheckboxWrap = document.getElementById("vorlageGespartCheckboxWrap");
+  const savingsCheckbox = document.getElementById("vorlageInGespart");
+  const canSeeSavingsCheckbox = canManageSavingsTemplateSelection(currentUid);
+
+  if(savingsCheckboxWrap){
+    savingsCheckboxWrap.style.display = canSeeSavingsCheckbox ? "flex" : "none";
+  }
+
   if(id){
     const v = alleVorlagen.find(x => x.id === id);
     if(!v){
@@ -2512,12 +2550,18 @@ function openVorlageModal(id = null){
     document.getElementById("vorlageSpontis").value = sanitizeInput(v.spontis || "", 60);
     document.getElementById("vorlageAlteSpontis").value = sanitizeInput(v.alteSpontis || "", 60);
     document.getElementById("vorlageLink").value = sanitizeInput(v.link || "", 600);
+    if(savingsCheckbox){
+      savingsCheckbox.checked = !!v.inGespart;
+    }
   }else{
     document.getElementById("vorlageModalTitle").innerText = "Neue Materialvorlage";
     document.getElementById("vorlageMaterial").value = "";
     document.getElementById("vorlageSpontis").value = "";
     document.getElementById("vorlageAlteSpontis").value = "";
     document.getElementById("vorlageLink").value = "";
+    if(savingsCheckbox){
+      savingsCheckbox.checked = false;
+    }
   }
 
   document.getElementById("vorlageModal").style.display = "block";
@@ -2536,6 +2580,13 @@ function saveVorlage(){
   const normalizedLink = parseAndNormalizeUrl(linkInput);
   const barcode = getBarcodeValueFromSpontis(spontis);
   const alteBarcode = getBarcodeValueFromSpontis(alteSpontis);
+  const currentUid = auth.currentUser && auth.currentUser.uid ? auth.currentUser.uid : "";
+  const savingsCheckbox = document.getElementById("vorlageInGespart");
+  const canSetSavingsCheckbox = canManageSavingsTemplateSelection(currentUid);
+  const existingVorlage = editVorlageId ? alleVorlagen.find(v => v.id === editVorlageId) : null;
+  const inGespart = canSetSavingsCheckbox && savingsCheckbox
+    ? !!savingsCheckbox.checked
+    : !!(existingVorlage && existingVorlage.inGespart);
 
   document.getElementById("vorlageMaterial").value = material;
   document.getElementById("vorlageSpontis").value = spontis;
@@ -2568,6 +2619,7 @@ function saveVorlage(){
       spontis: spontis,
       alteSpontis: alteSpontis,
       link: normalizedLink || "",
+      inGespart: inGespart,
       barcode: firebase.firestore.FieldValue.delete()
     }).then(() => {
       writeLog(
@@ -2579,6 +2631,7 @@ function saveVorlage(){
         " | Neue Spontis Nummer: " + spontis +
         " | Alte Spontis Nummer: " + (alteSpontis || "-") +
         " | Link: " + (normalizedLink || "-") +
+        " | Gespart: " + (inGespart ? "Ja" : "Nein") +
         " | Neuer Barcode: " + (barcode || "-") +
         " | Alter Barcode: " + (alteBarcode || "-")
       );
@@ -2594,6 +2647,7 @@ function saveVorlage(){
       spontis: spontis,
       alteSpontis: alteSpontis,
       link: normalizedLink || "",
+      inGespart: inGespart,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then((docRef) => {
       writeLog(
@@ -2605,6 +2659,7 @@ function saveVorlage(){
         " | Neue Spontis Nummer: " + spontis +
         " | Alte Spontis Nummer: " + (alteSpontis || "-") +
         " | Link: " + (normalizedLink || "-") +
+        " | Gespart: " + (inGespart ? "Ja" : "Nein") +
         " | Neuer Barcode: " + (barcode || "-") +
         " | Alter Barcode: " + (alteBarcode || "-")
       );
