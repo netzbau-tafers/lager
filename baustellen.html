@@ -1094,6 +1094,9 @@ let editMaterialId = null;
 let editVorlageId = null;
 let openMaterialLists = {};
 let vorlagenBereichOffen = false;
+let vorlagenCacheHydrated = false;
+let vorlagenLoadedFromServer = false;
+let vorlagenLoadingPromise = null;
 let beendeteBereichOffen = false;
 let selectedVorlageId = null;
 let isAdminUser = false;
@@ -1637,19 +1640,26 @@ function startListeners(){
       alert("Fehler beim Laden der Materialien.");
     });
   }
-
-  loadVorlagen();
 }
 
 function loadVorlagen(forceRefresh = false){
-  if(!forceRefresh){
+  if(!forceRefresh && !vorlagenCacheHydrated){
+    vorlagenCacheHydrated = true;
     const cachedVorlagen = getVorlagenFromCache();
     if(cachedVorlagen && cachedVorlagen.length > 0){
       setVorlagen(cachedVorlagen);
     }
   }
 
-  vorlagenCollection.get().then(snapshot => {
+  if(!forceRefresh && vorlagenLoadedFromServer){
+    return Promise.resolve(alleVorlagen);
+  }
+
+  if(!forceRefresh && vorlagenLoadingPromise){
+    return vorlagenLoadingPromise;
+  }
+
+  vorlagenLoadingPromise = vorlagenCollection.get().then(snapshot => {
     const loadedVorlagen = snapshot.docs.map(doc => {
       const data = doc.data() || {};
       return {
@@ -1662,14 +1672,21 @@ function loadVorlagen(forceRefresh = false){
       };
     });
 
+    vorlagenLoadedFromServer = true;
     setVorlagen(loadedVorlagen);
     saveVorlagenToCache(loadedVorlagen);
+    return loadedVorlagen;
   }).catch(error => {
     console.error("Fehler Materialvorlagen:", error);
     if(alleVorlagen.length === 0){
       alert("Fehler beim Laden der Materialvorlagen.");
     }
+    return alleVorlagen;
+  }).finally(() => {
+    vorlagenLoadingPromise = null;
   });
+
+  return vorlagenLoadingPromise;
 }
 
 function resetSearch(){
@@ -2286,6 +2303,7 @@ function toggleVorlagenBereich(){
     arrow.innerText = "▼";
   }else{
     vorlagenBereichOffen = true;
+    loadVorlagen();
     content.style.display = "block";
     arrow.innerText = "▲";
   }
@@ -2464,6 +2482,7 @@ function openMaterialModal(baustelleId, materialId = null){
     document.getElementById("materialSpontis").value = "";
   }
 
+  loadVorlagen();
   renderMaterialVorlagenTreffer();
   updateAusgewaehlteVorlageInfo();
   document.getElementById("materialModal").style.display = "block";
