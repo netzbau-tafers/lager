@@ -1463,11 +1463,30 @@ function getPreviousMonthReference(){
   return new Date(now.getFullYear(), now.getMonth() - 1, 1);
 }
 
+function getReportEntryBoundsByMonth(reportEntries = []){
+  const boundsByMonth = new Map();
+
+  (Array.isArray(reportEntries) ? reportEntries : []).forEach(entry => {
+    const month = Number(entry.month);
+    const timestamp = Number(entry.timestamp);
+
+    if(!Number.isInteger(month) || month < 0 || month > 11 || !Number.isFinite(timestamp)){
+      return;
+    }
+
+    const currentBounds = boundsByMonth.get(month) || { earliestTimestamp: timestamp };
+    currentBounds.earliestTimestamp = Math.min(currentBounds.earliestTimestamp, timestamp);
+    boundsByMonth.set(month, currentBounds);
+  });
+
+  return boundsByMonth;
+}
+
 function getDisplaySnapshotDocs(year, reportEntries = []){
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
   const currentMonthIndex = currentDate.getMonth();
-  const liveEntryMonths = new Set((Array.isArray(reportEntries) ? reportEntries : []).map(entry => Number(entry.month)).filter(month => Number.isInteger(month) && month >= 0 && month <= 11));
+  const liveEntryBoundsByMonth = getReportEntryBoundsByMonth(reportEntries);
 
   return allSnapshots.filter(snapshot => {
     if(snapshot.status !== SNAPSHOT_STATUS_READY || snapshot.year !== year){
@@ -1487,7 +1506,18 @@ function getDisplaySnapshotDocs(year, reportEntries = []){
       return true;
     }
 
-    return !liveEntryMonths.has(snapshotMonthIndex);
+    if(!liveEntryBoundsByMonth.has(snapshotMonthIndex)){
+      return true;
+    }
+
+    const snapshotTimestamp = getMillis(snapshot.generatedAt || snapshot.updatedAt || snapshot.createdAt);
+    const monthBounds = liveEntryBoundsByMonth.get(snapshotMonthIndex);
+
+    if(snapshotTimestamp !== 0 && monthBounds && monthBounds.earliestTimestamp > snapshotTimestamp){
+      return true;
+    }
+
+    return false;
   });
 }
 
@@ -1571,11 +1601,9 @@ function renderReport(){
   const searchTerm = document.getElementById("typeSearch").value;
   const baseData = buildReportEntries(year);
   const historicalSnapshots = getDisplaySnapshotDocs(year, baseData.reportEntries);
-  const snapshotMonthKeys = new Set(historicalSnapshots.map(snapshot => getSnapshotDocumentId(snapshot.year, snapshot.monthIndex)));
-  const liveEntries = baseData.reportEntries.filter(entry => !snapshotMonthKeys.has(getSnapshotDocumentId(year, entry.month)));
   const reportData = mergeReportData([
     buildSnapshotReportData(historicalSnapshots, searchTerm),
-    groupEntries(liveEntries, searchTerm)
+    groupEntries(baseData.reportEntries, searchTerm)
   ]);
 
   renderNotice(baseData.earliestLogDate, year, historicalSnapshots);
