@@ -738,6 +738,15 @@ function parseLogDetails(details){
   return result;
 }
 
+function getLogSpontis(details){
+  return sanitizeInput(
+    details["Neue Spontis Nummer"]
+    || details["Spontis Nummer"]
+    || "",
+    60
+  );
+}
+
 function getStatusLabel(status){
   if(status === "aktiv"){
     return "Aktiv";
@@ -842,11 +851,12 @@ function buildReturnedEntries(){
     .sort((a, b) => getMillis(a.createdAt) - getMillis(b.createdAt))
     .forEach(log => {
       const details = parseLogDetails(log.details || "");
+      const logSpontis = getLogSpontis(details);
       const fallbackKey = normalizeKey(
         (details.Baustelle || "") + "__" +
         (details["Baustellen Nummer"] || "") + "__" +
         (details.Material || "") + "__" +
-        (details["Spontis Nummer"] || "") + "__" +
+        logSpontis + "__" +
         String(getMillis(log.createdAt))
       );
       const key = sanitizeInput(log.objektId || fallbackKey, 220);
@@ -870,7 +880,7 @@ function buildReturnedEntries(){
       row.baustelle = details.Baustelle || row.baustelle;
       row.baustellenNummer = details["Baustellen Nummer"] || row.baustellenNummer;
       row.material = details.Material || row.material;
-      row.spontis = details["Spontis Nummer"] || row.spontis;
+      row.spontis = logSpontis || row.spontis;
 
       if(log.aktion === "Material hinzugefügt"){
         row.ausgetragenAnzahl += parseQuantity(details.Anzahl || 0);
