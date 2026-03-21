@@ -230,26 +230,6 @@ label{
   color:#333;
 }
 
-.checkbox-row{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  margin-top:0;
-  font-weight:normal;
-  color:#333;
-}
-
-.checkbox-row input[type="checkbox"]{
-  width:auto;
-  margin:0;
-}
-
-.checkbox-label-text{
-  font-size:14px;
-  font-weight:normal;
-  color:#333;
-}
-
 .input-with-action{
   display:flex;
   align-items:center;
@@ -467,11 +447,6 @@ label{
 
 .material-row{
   margin-bottom:4px;
-}
-
-.material-row.spaced-from-barcode,
-.card-meta.spaced-from-barcode{
-  margin-top:12px;
 }
 
 .spontis-link{
@@ -782,11 +757,11 @@ label{
     <input id="loginEmail" type="email" placeholder="E-Mail" maxlength="120" autocomplete="username">
     <div style="position:relative; margin-top:10px;">
       <input id="loginPassword" type="password" placeholder="Passwort" maxlength="120" autocomplete="current-password" style="margin:0; padding-right:44px;">
-      <button id="loginPasswordToggleButton" type="button" aria-label="Passwort anzeigen oder ausblenden" title="Passwort anzeigen oder ausblenden" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:transparent; color:#666; box-shadow:none; padding:6px; margin:0; min-width:auto;">
+      <button type="button" onclick="toggleLoginPasswordVisibility()" aria-label="Passwort anzeigen oder ausblenden" title="Passwort anzeigen oder ausblenden" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:transparent; color:#666; box-shadow:none; padding:6px; margin:0; min-width:auto;">
         <i id="loginPasswordToggleIcon" class="fa-regular fa-eye"></i>
       </button>
     </div>
-    <button id="loginButton" type="button"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
+    <button onclick="login()"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
     <p id="loginError" class="login-error">Login fehlgeschlagen. Bitte Daten prüfen.</p>
   </div>
 </div>
@@ -797,43 +772,43 @@ label{
   <h1>Baustellenmaterial</h1>
 
   <div class="menu-wrap">
-    <button id="menuButton" class="menu-button" type="button" title="Menü öffnen">
+    <button class="menu-button" onclick="toggleMenu(event)" title="Menü öffnen">
       <i class="fa-solid fa-bars"></i>
     </button>
 <div id="dropdownMenu" class="dropdown-menu">
-  <button id="goHomeButton" type="button" data-page="home">
+  <button onclick="goToHome()" data-page="home">
     <i class="fa-solid fa-house"></i> Startseite
   </button>
 
-  <button id="goKabellagerButton" type="button" data-page="index">
+  <button onclick="goToKabellager()" data-page="index">
     <i class="fa-solid fa-warehouse"></i> Kabellager
   </button>
 
-  <button id="goKabelReportButton" type="button" data-page="kabelreport">
+  <button onclick="goToKabelReport()" data-page="kabelreport">
     <i class="fa-solid fa-chart-column"></i> Kabel Report
   </button>
 
-  <button id="closeMenuButton" type="button" data-page="baustellen">
+  <button onclick="closeMenu()" data-page="baustellen">
     <i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial
   </button>
 
-  <button id="archivMenuButton" type="button" data-page="archiv" style="display:none;">
+  <button id="archivMenuButton" onclick="goToArchiv()" data-page="archiv" style="display:none;">
     <i class="fa-solid fa-box-archive"></i> Archiv
   </button>
 
-  <button id="logsMenuButton" type="button" data-page="logs" style="display:none;">
+  <button id="logsMenuButton" onclick="goToLogs()" data-page="logs" style="display:none;">
     <i class="fa-solid fa-clipboard-list"></i> Logs
   </button>
 
-  <button id="gespartMenuButton" type="button" data-page="gespart" style="display:none;">
+  <button id="gespartMenuButton" onclick="goToGespart()" data-page="gespart" style="display:none;">
     <i class="fa-solid fa-piggy-bank"></i> Kosten gespart
   </button>
 
-  <button id="goProfileButton" type="button">
+  <button onclick="goToProfile()">
     <i class="fa-solid fa-user"></i> Profil
   </button>
 
-  <button id="logoutButton" class="logout-safe" type="button">
+  <button class="logout-safe" onclick="logout()">
     <i class="fa-solid fa-right-from-bracket"></i> Logout
   </button>
 </div>
@@ -844,19 +819,19 @@ label{
   <div class="search-title">Suche</div>
 
   <div class="search-row">
-    <input id="searchInput" type="text" placeholder="Nach Baustellenname, Nummer, Verantwortlicher oder Material suchen" maxlength="120">
-    <button id="resetSearchButton" class="back" type="button"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
+    <input id="searchInput" type="text" placeholder="Nach Baustellenname, Nummer, Verantwortlicher oder Material suchen" oninput="renderAll()" maxlength="120">
+    <button class="back" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
   </div>
 
   <div class="search-row" style="margin-top:10px;">
-    <select id="creatorFilterMode">
+    <select id="creatorFilterMode" onchange="onCreatorFilterChanged()">
       <option value="all">Alle Ersteller anzeigen</option>
       <option value="mine">Nur von mir erstellt</option>
     </select>
   </div>
 
   <div style="margin-top:15px;">
-    <button id="openBaustelleModalButton" type="button"><i class="fa-solid fa-plus"></i> Neue Baustelle erstellen</button>
+    <button onclick="openBaustelleModal()"><i class="fa-solid fa-plus"></i> Neue Baustelle erstellen</button>
   </div>
 </div>
 
@@ -955,7 +930,7 @@ label{
 
 <div class="section">
   <div class="section-header">
-    <button id="toggleBeendeteBereichButton" class="material-toggle" type="button">
+    <button class="material-toggle" onclick="toggleBeendeteBereich()">
       <span><i class="fa-solid fa-list-check"></i> Beendete Baustellen (<span id="beendeteCount">0</span>)</span>
       <span class="arrow" id="beendeteArrow">▼</span>
     </button>
@@ -964,7 +939,7 @@ label{
 </div>
 
 <div class="section">
-  <button id="toggleVorlagenBereichButton" class="material-toggle" type="button">
+  <button class="material-toggle" onclick="toggleVorlagenBereich()">
     <span><i class="fa-solid fa-layer-group"></i> Materialvorlagen verwalten</span>
     <span class="arrow" id="vorlagenArrow">▼</span>
   </button>
@@ -977,12 +952,12 @@ label{
     <div class="search-box">
       <div class="search-title">Vorlagen suchen</div>
       <div class="search-row">
-        <input id="vorlagenSearchInput" type="text" placeholder="Nach Material oder Spontis Nummer suchen" maxlength="120">
-        <button id="resetVorlagenSearchButton" class="back" type="button"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
+        <input id="vorlagenSearchInput" type="text" placeholder="Nach Material oder Spontis Nummer suchen" oninput="renderVorlagen()" maxlength="120">
+        <button class="back" onclick="resetVorlagenSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
       </div>
 
       <div id="neueVorlageWrap" style="margin-top:15px; display:none;">
-        <button id="openVorlageModalButton" type="button"><i class="fa-solid fa-plus"></i> Neue Vorlage</button>
+        <button onclick="openVorlageModal()"><i class="fa-solid fa-plus"></i> Neue Vorlage</button>
       </div>
     </div>
 
@@ -997,8 +972,8 @@ label{
     <input id="baustelleName" placeholder="Baustellen Name" maxlength="120">
     <input id="baustelleNummer" placeholder="Baustellen Nummer" maxlength="60">
     <input id="baustelleVerantwortlicher" placeholder="Verantwortlicher" maxlength="120">
-    <button id="saveBaustelleButton" type="button"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
-    <button class="back js-close-modals" type="button"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
+    <button onclick="saveBaustelle()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
+    <button class="back" onclick="closeModals()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
   </div>
 </div>
 
@@ -1007,7 +982,7 @@ label{
     <h3 id="materialModalTitle">Material hinzufügen</h3>
 
     <label for="materialVorlageSuche">Materialvorlage suchen</label>
-    <input id="materialVorlageSuche" type="text" placeholder="Nach Material oder Spontis Nummer suchen" maxlength="120">
+    <input id="materialVorlageSuche" type="text" placeholder="Nach Material oder Spontis Nummer suchen" oninput="renderMaterialVorlagenTreffer()" maxlength="120">
 
     <div class="helper-text">Treffer anklicken, dann werden Material und Spontis Nummer automatisch übernommen.</div>
 
@@ -1018,8 +993,8 @@ label{
     <input id="materialName" placeholder="Material" maxlength="120">
     <input id="materialAnzahl" placeholder="Anzahl" maxlength="40">
     <input id="materialSpontis" placeholder="Neue Spontis Nummer (optional)" maxlength="60">
-    <button id="saveMaterialButton" type="button"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
-    <button class="back js-close-modals" type="button"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
+    <button onclick="saveMaterial()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
+    <button class="back" onclick="closeModals()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
   </div>
 </div>
 
@@ -1031,16 +1006,12 @@ label{
     <input id="vorlageAlteSpontis" placeholder="Alte Spontis Nummer (optional)" maxlength="60">
     <div class="input-with-action">
       <input id="vorlageLink" placeholder="URL Link (optional)" maxlength="600">
-      <button id="clearVorlageLinkButton" type="button" class="inline-icon-btn" title="URL-Link löschen" aria-label="URL-Link löschen">
+      <button type="button" class="inline-icon-btn" onclick="clearVorlageLinkInput()" title="URL-Link löschen" aria-label="URL-Link löschen">
         <i class="fa-solid fa-trash"></i>
       </button>
     </div>
-    <label id="vorlageGespartCheckboxWrap" class="checkbox-row" style="display:none; margin:10px 0;">
-      <input id="vorlageInGespart" type="checkbox">
-      <span class="checkbox-label-text">In Kosten gespart berücksichtigen</span>
-    </label>
-    <button id="saveVorlageButton" type="button"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
-    <button class="back js-close-modals" type="button"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
+    <button onclick="saveVorlage()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
+    <button class="back" onclick="closeModals()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
   </div>
 </div>
 
@@ -1062,10 +1033,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
-const authReady = auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-  .catch((error) => {
-    console.error("Auth-Persistenz konnte nicht gesetzt werden:", error);
-  });
 
 const baustellenCollection = db.collection("baustellen");
 const materialCollection = db.collection("baustellen_material");
@@ -1079,7 +1046,6 @@ const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
 const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
 const SPECIAL_SAVINGS_UID = "3Jm2fQfSnOhLF50WoeePNQg0ZFf2";
 const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
-const canManageSavingsTemplateSelection = (uid) => uid === SPECIAL_SAVINGS_UID;
 
 let unsubscribeBaustellen = null;
 let unsubscribeMaterial = null;
@@ -1246,41 +1212,29 @@ function getVorlagenFromCache(){
       return null;
     }
 
-    return parsed.vorlagen.map(normalizeVorlage).filter(Boolean);
+    return parsed.vorlagen.map(v => ({
+      id: sanitizeInput(v.id || "", 160),
+      material: sanitizeInput(v.material || "", 120),
+      spontis: sanitizeInput(v.spontis || "", 60),
+      alteSpontis: sanitizeInput(v.alteSpontis || "", 60),
+      link: parseAndNormalizeUrl(v.link || "") || ""
+    })).filter(v => v.id);
   }catch(error){
     return null;
   }
 }
 
-function normalizeVorlage(vorlage){
-  if(!vorlage || typeof vorlage !== "object"){
-    return null;
-  }
-
-  const normalizedId = sanitizeInput(vorlage.id || "", 160);
-  if(normalizedId === ""){
-    return null;
-  }
-
-  return {
-    id: normalizedId,
-    material: sanitizeInput(vorlage.material || "", 120),
-    spontis: sanitizeInput(vorlage.spontis || "", 60),
-    alteSpontis: sanitizeInput(vorlage.alteSpontis || "", 60),
-    link: parseAndNormalizeUrl(vorlage.link || "") || "",
-    inGespart: !!vorlage.inGespart
-  };
-}
-
 function saveVorlagenToCache(vorlagen){
   try{
-    const normalizedVorlagen = Array.isArray(vorlagen)
-      ? vorlagen.map(normalizeVorlage).filter(Boolean)
-      : [];
-
     localStorage.setItem(VORLAGEN_CACHE_KEY, JSON.stringify({
       savedAt: Date.now(),
-      vorlagen: normalizedVorlagen
+      vorlagen: vorlagen.map(v => ({
+        id: v.id || "",
+        material: sanitizeInput(v.material || "", 120),
+        spontis: sanitizeInput(v.spontis || "", 60),
+        alteSpontis: sanitizeInput(v.alteSpontis || "", 60),
+        link: parseAndNormalizeUrl(v.link || "") || ""
+      }))
     }));
   }catch(error){
     console.warn("Vorlagen Cache konnte nicht gespeichert werden:", error);
@@ -1288,10 +1242,7 @@ function saveVorlagenToCache(vorlagen){
 }
 
 function setVorlagen(vorlagen){
-  alleVorlagen = Array.isArray(vorlagen)
-    ? vorlagen.map(normalizeVorlage).filter(Boolean)
-    : [];
-  renderAll();
+  alleVorlagen = vorlagen;
   renderVorlagen();
   renderMaterialVorlagenTreffer();
   updateAusgewaehlteVorlageInfo();
@@ -1518,7 +1469,7 @@ function login(){
   const email = document.getElementById("loginEmail").value.trim();
   const password = document.getElementById("loginPassword").value;
 
-  authReady.then(() => auth.signInWithEmailAndPassword(email, password))
+  auth.signInWithEmailAndPassword(email, password)
     .then(() => {
       document.getElementById("loginError").style.display = "none";
       document.getElementById("loginPassword").value = "";
@@ -1649,8 +1600,7 @@ function loadVorlagen(forceRefresh = false){
         material: sanitizeInput(data.material || "", 120),
         spontis: sanitizeInput(data.spontis || "", 60),
         alteSpontis: sanitizeInput(data.alteSpontis || "", 60),
-        link: parseAndNormalizeUrl(data.link || "") || "",
-        inGespart: !!data.inGespart
+        link: parseAndNormalizeUrl(data.link || "") || ""
       };
     });
 
@@ -1692,8 +1642,7 @@ function getErstellerFilterModus(){
 }
 
 function getVorlagenSuchbegriff(){
-  const input = document.getElementById("vorlagenSearchInput");
-  return input ? input.value.trim().toLowerCase() : "";
+  return document.getElementById("vorlagenSearchInput").value.trim().toLowerCase();
 }
 
 function getMaterialVorlageSuchbegriff(){
@@ -1770,10 +1719,6 @@ function baustellePasstZumErstellerFilter(baustelle){
 }
 
 function vorlagePasstZurSuche(vorlage){
-  if(!vorlage || typeof vorlage !== "object"){
-    return false;
-  }
-
   const suchbegriff = getVorlagenSuchbegriff();
 
   if(suchbegriff === ""){
@@ -1788,10 +1733,6 @@ function vorlagePasstZurSuche(vorlage){
 }
 
 function materialVorlagePasstZurSuche(vorlage){
-  if(!vorlage || typeof vorlage !== "object"){
-    return false;
-  }
-
   const suchbegriff = getMaterialVorlageSuchbegriff();
 
   if(suchbegriff === ""){
@@ -1891,24 +1832,21 @@ function renderVorlagen(){
       card.innerHTML = `
         <h3>${escapeHtml(v.material || "")}</h3>
         ${renderSpontisBlock("Neue Spontis Nummer", v.spontis || "", v.link || "", isAdminUser, isAdminUser)}
-        ${renderBarcodeBlock(getBarcodeValueFromSpontis(v.spontis || ""), "Neuer Barcode")}
-        ${renderSpontisBlock("Alte Spontis Nummer", v.alteSpontis || "", "", false, false, "spaced-from-barcode")}
-        ${renderBarcodeBlock(getBarcodeValueFromSpontis(v.alteSpontis || ""), "Alter Barcode")}
-        ${canManageSavingsTemplateSelection(auth.currentUser && auth.currentUser.uid ? auth.currentUser.uid : "") ? `
-        <div class="card-meta spaced-from-barcode"><strong>Gespart:</strong> ${v.inGespart ? "Ja" : "Nein"}</div>
-        ` : ""}
+        ${renderBarcodeBlock(getBarcodeValueFromSpontis(v.spontis || ""), "Neue Spontis Barcode")}
+        ${renderSpontisBlock("Alte Spontis Nummer", v.alteSpontis || "", "", false, false)}
+        ${renderBarcodeBlock(getBarcodeValueFromSpontis(v.alteSpontis || ""), "Alte Spontis Barcode")}
         ${isAdminUser ? `
         <div class="card-actions">
           <div class="card-menu-wrap">
-            <button type="button" class="card-menu-button js-toggle-card-menu" data-menu-id="${escapeHtml(`vorlage-${v.id}`)}" title="Weitere Aktionen">
+            <button class="card-menu-button" onclick="toggleCardMenu(event, 'vorlage-${v.id}')" title="Weitere Aktionen">
               <i class="fa-solid fa-ellipsis-vertical"></i>
             </button>
 
             <div id="cardMenu-vorlage-${v.id}" class="card-dropdown">
-              <button type="button" class="edit js-edit-vorlage">
+              <button class="edit" onclick="openVorlageModal('${v.id}'); closeAllCardMenus();">
                 <i class="fa-solid fa-pen"></i> Bearbeiten
               </button>
-              <button type="button" class="delete js-delete-vorlage">
+              <button class="delete" onclick="deleteVorlage('${v.id}'); closeAllCardMenus();">
                 <i class="fa-solid fa-trash"></i> Löschen
               </button>
             </div>
@@ -1916,32 +1854,6 @@ function renderVorlagen(){
         </div>
         ` : ""}
       `;
-
-      const menuButton = card.querySelector(".js-toggle-card-menu");
-      if(menuButton){
-        menuButton.addEventListener("click", function(event){
-          toggleCardMenu(event, menuButton.dataset.menuId || "");
-        });
-      }
-      const editButton = card.querySelector(".js-edit-vorlage");
-      if(editButton){
-        editButton.addEventListener("click", function(){
-          openVorlageModal(v.id);
-          closeAllCardMenus();
-        });
-      }
-      const deleteButton = card.querySelector(".js-delete-vorlage");
-      if(deleteButton){
-        deleteButton.addEventListener("click", function(){
-          deleteVorlage(v.id);
-          closeAllCardMenus();
-        });
-      }
-      card.querySelectorAll(".spontis-link[data-encoded-url]").forEach(function(linkElement){
-        linkElement.addEventListener("click", function(){
-          openSpontisLink(linkElement.dataset.encodedUrl || "");
-        });
-      });
 
       container.appendChild(card);
     });
@@ -1972,9 +1884,9 @@ function renderMaterialVorlagenTreffer(){
     const button = document.createElement("button");
     button.type = "button";
     button.className = "vorlagen-treffer" + (selectedVorlageId === v.id ? " active" : "");
-    button.addEventListener("click", function(){
+    button.onclick = function(){
       waehleMaterialVorlage(v.id);
-    });
+    };
 
     button.innerHTML = `
       <div class="vorlagen-treffer-title">${escapeHtml(v.material || "")}</div>
@@ -2082,14 +1994,13 @@ function getVorlageAlteSpontisBySpontis(spontisNummer){
   return vorlage ? sanitizeInput(vorlage.alteSpontis || "", 60) : "";
 }
 
-function renderSpontisBlock(label, spontisNummer, link, darfKlicken, userIstAdmin, extraClass = ""){
+function renderSpontisBlock(label, spontisNummer, link, darfKlicken, userIstAdmin){
   const sanitizedSpontis = sanitizeInput(spontisNummer || "", 60);
   if(sanitizedSpontis === ""){
     return "";
   }
 
-  const rowClassName = ["material-row", extraClass].filter(Boolean).join(" ");
-  return `<div class="${rowClassName}"><strong>${escapeHtml(label)}:</strong> ${renderSpontisFeld(sanitizedSpontis, link || "", darfKlicken, userIstAdmin)}</div>`;
+  return `<div class="material-row"><strong>${escapeHtml(label)}:</strong> ${renderSpontisFeld(sanitizedSpontis, link || "", darfKlicken, userIstAdmin)}</div>`;
 }
 
 function renderSpontisBarcodePair(label, spontisNummer){
@@ -2098,11 +2009,9 @@ function renderSpontisBarcodePair(label, spontisNummer){
     return "";
   }
 
-  const barcodeLabel = label === "Alte Spontis Nummer" ? "Alter Barcode" : "Neuer Barcode";
-
   return `
-    ${renderSpontisBlock(label, sanitizedSpontis, "", false, false, "spaced-from-barcode")}
-    ${renderBarcodeBlock(getBarcodeValueFromSpontis(sanitizedSpontis), barcodeLabel)}
+    ${renderSpontisBlock(label, sanitizedSpontis, "", false, false)}
+    ${renderBarcodeBlock(getBarcodeValueFromSpontis(sanitizedSpontis), label + " Barcode")}
   `;
 }
 
@@ -2120,7 +2029,7 @@ function renderSpontisFeld(spontisNummer, link, darfKlicken, userIstAdmin){
   }
 
   const encodedUrl = encodeURIComponent(normalizedLink);
-  return `<span class="spontis-link" data-encoded-url="${escapeHtml(encodedUrl)}">${spontis}</span>`;
+  return `<span class="spontis-link" onclick="openSpontisLink('${encodedUrl}')">${spontis}</span>`;
 }
 
 function openSpontisLink(encodedUrl){
@@ -2160,21 +2069,21 @@ function createBaustelleCard(baustelle){
           <div class="material-row"><strong>Material:</strong> ${escapeHtml(m.material || "")}</div>
           <div class="material-row"><strong>Anzahl:</strong> ${escapeHtml(m.anzahl || "")}</div>
           ${renderSpontisBlock("Neue Spontis Nummer", m.spontis || "", getVorlageLinkBySpontis(m.spontis || ""), baustelle.status === "rausschreiben", isAdminUser)}
-          ${baustelle.status !== "aktiv" ? renderBarcodeBlock(getVorlageBarcodeBySpontis(m.spontis || ""), "Neuer Barcode") : ""}
+          ${baustelle.status !== "aktiv" ? renderBarcodeBlock(getVorlageBarcodeBySpontis(m.spontis || ""), "Neue Spontis Barcode") : ""}
           ${baustelle.status !== "aktiv" ? renderSpontisBarcodePair("Alte Spontis Nummer", getVorlageAlteSpontisBySpontis(m.spontis || "")) : ""}
 
           ${darfMaterialBearbeiten ? `
           <div class="material-actions">
             <div class="card-menu-wrap">
-              <button type="button" class="card-menu-button js-toggle-material-menu" data-menu-id="${escapeHtml(`material-${m.id}`)}" title="Weitere Aktionen">
+              <button class="card-menu-button" onclick="toggleCardMenu(event, 'material-${m.id}')" title="Weitere Aktionen">
                 <i class="fa-solid fa-ellipsis-vertical"></i>
               </button>
 
               <div id="cardMenu-material-${m.id}" class="card-dropdown">
-                <button type="button" class="edit js-edit-material" data-material-id="${escapeHtml(m.id)}">
+                <button class="edit" onclick="openMaterialModal('${baustelle.id}','${m.id}'); closeAllCardMenus();">
                   <i class="fa-solid fa-pen"></i> Bearbeiten
                 </button>
-                <button type="button" class="delete js-delete-material" data-material-id="${escapeHtml(m.id)}">
+                <button class="delete" onclick="deleteMaterial('${m.id}'); closeAllCardMenus();">
                   <i class="fa-solid fa-trash"></i> Löschen
                 </button>
               </div>
@@ -2191,19 +2100,19 @@ function createBaustelleCard(baustelle){
   if(baustelle.status === "aktiv"){
     actionsHtml = `
       <div class="card-actions">
-        <button type="button" class="js-add-material"><i class="fa-solid fa-plus"></i> Material hinzufügen</button>
-        <button type="button" class="finish js-finish-baustelle"><i class="fa-solid fa-check"></i> Baustelle beenden</button>
+        <button onclick="openMaterialModal('${baustelle.id}')"><i class="fa-solid fa-plus"></i> Material hinzufügen</button>
+        <button class="finish" onclick="finishBaustelle('${baustelle.id}')"><i class="fa-solid fa-check"></i> Baustelle beenden</button>
 
         <div class="card-menu-wrap">
-          <button type="button" class="card-menu-button js-toggle-baustelle-menu" data-menu-id="${escapeHtml(baustelle.id)}" title="Weitere Aktionen">
+          <button class="card-menu-button" onclick="toggleCardMenu(event, '${baustelle.id}')" title="Weitere Aktionen">
             <i class="fa-solid fa-ellipsis-vertical"></i>
           </button>
 
           <div id="cardMenu-${baustelle.id}" class="card-dropdown">
-            <button type="button" class="edit js-edit-baustelle">
+            <button class="edit" onclick="editBaustelle('${baustelle.id}'); closeAllCardMenus();">
               <i class="fa-solid fa-pen"></i> Bearbeiten
             </button>
-            <button type="button" class="delete js-delete-baustelle">
+            <button class="delete" onclick="deleteBaustelle('${baustelle.id}'); closeAllCardMenus();">
               <i class="fa-solid fa-trash"></i> Löschen
             </button>
           </div>
@@ -2213,20 +2122,20 @@ function createBaustelleCard(baustelle){
   }else if(baustelle.status === "rausschreiben"){
     actionsHtml = `
       <div class="card-actions">
-        <button type="button" class="print-btn js-print-baustelle"><i class="fa-solid fa-print"></i> Drucken</button>
-        ${isAdminUser ? `<button type="button" class="archive js-archive-baustelle"><i class="fa-solid fa-box-archive"></i> Archivieren</button>` : ""}
+        <button class="print-btn" onclick="printBaustelle('${baustelle.id}')"><i class="fa-solid fa-print"></i> Drucken</button>
+        ${isAdminUser ? `<button class="archive" onclick="archiveBaustelle('${baustelle.id}')"><i class="fa-solid fa-box-archive"></i> Archivieren</button>` : ""}
 
         ${isAdminUser ? `
         <div class="card-menu-wrap">
-          <button type="button" class="card-menu-button js-toggle-baustelle-menu" data-menu-id="${escapeHtml(baustelle.id)}" title="Weitere Aktionen">
+          <button class="card-menu-button" onclick="toggleCardMenu(event, '${baustelle.id}')" title="Weitere Aktionen">
             <i class="fa-solid fa-ellipsis-vertical"></i>
           </button>
 
           <div id="cardMenu-${baustelle.id}" class="card-dropdown">
-            <button type="button" class="edit js-edit-baustelle">
+            <button class="edit" onclick="editBaustelle('${baustelle.id}'); closeAllCardMenus();">
               <i class="fa-solid fa-pen"></i> Bearbeiten
             </button>
-            <button type="button" class="delete js-delete-baustelle">
+            <button class="delete" onclick="deleteBaustelle('${baustelle.id}'); closeAllCardMenus();">
               <i class="fa-solid fa-trash"></i> Löschen
             </button>
           </div>
@@ -2248,7 +2157,7 @@ function createBaustelleCard(baustelle){
     ${actionsHtml}
 
     <div class="material-box">
-      <button type="button" class="material-toggle js-toggle-material-list">
+      <button class="material-toggle" onclick="toggleMaterialList('${baustelle.id}')">
         <span><i class="fa-solid fa-list-check"></i> Materialliste</span>
         <span class="arrow" id="materialArrow_${baustelle.id}">${isOpen ? "▲" : "▼"}</span>
       </button>
@@ -2260,76 +2169,6 @@ function createBaustelleCard(baustelle){
       </div>
     </div>
   `;
-
-  card.querySelectorAll(".spontis-link[data-encoded-url]").forEach(function(linkElement){
-    linkElement.addEventListener("click", function(){
-      openSpontisLink(linkElement.dataset.encodedUrl || "");
-    });
-  });
-  card.querySelectorAll(".js-toggle-material-menu").forEach(function(menuButton){
-    menuButton.addEventListener("click", function(event){
-      toggleCardMenu(event, menuButton.dataset.menuId || "");
-    });
-  });
-  card.querySelectorAll(".js-edit-material").forEach(function(editButton){
-    editButton.addEventListener("click", function(){
-      openMaterialModal(baustelle.id, editButton.dataset.materialId || "");
-      closeAllCardMenus();
-    });
-  });
-  card.querySelectorAll(".js-delete-material").forEach(function(deleteButton){
-    deleteButton.addEventListener("click", function(){
-      deleteMaterial(deleteButton.dataset.materialId || "");
-      closeAllCardMenus();
-    });
-  });
-  const addMaterialButton = card.querySelector(".js-add-material");
-  if(addMaterialButton){
-    addMaterialButton.addEventListener("click", function(){
-      openMaterialModal(baustelle.id);
-    });
-  }
-  const finishButton = card.querySelector(".js-finish-baustelle");
-  if(finishButton){
-    finishButton.addEventListener("click", function(){
-      finishBaustelle(baustelle.id);
-    });
-  }
-  card.querySelectorAll(".js-toggle-baustelle-menu").forEach(function(menuButton){
-    menuButton.addEventListener("click", function(event){
-      toggleCardMenu(event, menuButton.dataset.menuId || "");
-    });
-  });
-  card.querySelectorAll(".js-edit-baustelle").forEach(function(editButton){
-    editButton.addEventListener("click", function(){
-      editBaustelle(baustelle.id);
-      closeAllCardMenus();
-    });
-  });
-  card.querySelectorAll(".js-delete-baustelle").forEach(function(deleteButton){
-    deleteButton.addEventListener("click", function(){
-      deleteBaustelle(baustelle.id);
-      closeAllCardMenus();
-    });
-  });
-  const printButton = card.querySelector(".js-print-baustelle");
-  if(printButton){
-    printButton.addEventListener("click", function(){
-      printBaustelle(baustelle.id);
-    });
-  }
-  const archiveButton = card.querySelector(".js-archive-baustelle");
-  if(archiveButton){
-    archiveButton.addEventListener("click", function(){
-      archiveBaustelle(baustelle.id);
-    });
-  }
-  const materialToggleButton = card.querySelector(".js-toggle-material-list");
-  if(materialToggleButton){
-    materialToggleButton.addEventListener("click", function(){
-      toggleMaterialList(baustelle.id);
-    });
-  }
 
   return card;
 }
@@ -2656,15 +2495,6 @@ function openVorlageModal(id = null){
 
   editVorlageId = id;
 
-  const currentUid = auth.currentUser && auth.currentUser.uid ? auth.currentUser.uid : "";
-  const savingsCheckboxWrap = document.getElementById("vorlageGespartCheckboxWrap");
-  const savingsCheckbox = document.getElementById("vorlageInGespart");
-  const canSeeSavingsCheckbox = canManageSavingsTemplateSelection(currentUid);
-
-  if(savingsCheckboxWrap){
-    savingsCheckboxWrap.style.display = canSeeSavingsCheckbox ? "flex" : "none";
-  }
-
   if(id){
     const v = alleVorlagen.find(x => x.id === id);
     if(!v){
@@ -2677,18 +2507,12 @@ function openVorlageModal(id = null){
     document.getElementById("vorlageSpontis").value = sanitizeInput(v.spontis || "", 60);
     document.getElementById("vorlageAlteSpontis").value = sanitizeInput(v.alteSpontis || "", 60);
     document.getElementById("vorlageLink").value = sanitizeInput(v.link || "", 600);
-    if(savingsCheckbox){
-      savingsCheckbox.checked = !!v.inGespart;
-    }
   }else{
     document.getElementById("vorlageModalTitle").innerText = "Neue Materialvorlage";
     document.getElementById("vorlageMaterial").value = "";
     document.getElementById("vorlageSpontis").value = "";
     document.getElementById("vorlageAlteSpontis").value = "";
     document.getElementById("vorlageLink").value = "";
-    if(savingsCheckbox){
-      savingsCheckbox.checked = false;
-    }
   }
 
   document.getElementById("vorlageModal").style.display = "block";
@@ -2707,13 +2531,6 @@ function saveVorlage(){
   const normalizedLink = parseAndNormalizeUrl(linkInput);
   const barcode = getBarcodeValueFromSpontis(spontis);
   const alteBarcode = getBarcodeValueFromSpontis(alteSpontis);
-  const currentUid = auth.currentUser && auth.currentUser.uid ? auth.currentUser.uid : "";
-  const savingsCheckbox = document.getElementById("vorlageInGespart");
-  const canSetSavingsCheckbox = canManageSavingsTemplateSelection(currentUid);
-  const existingVorlage = editVorlageId ? alleVorlagen.find(v => v.id === editVorlageId) : null;
-  const inGespart = canSetSavingsCheckbox && savingsCheckbox
-    ? !!savingsCheckbox.checked
-    : !!(existingVorlage && existingVorlage.inGespart);
 
   document.getElementById("vorlageMaterial").value = material;
   document.getElementById("vorlageSpontis").value = spontis;
@@ -2746,7 +2563,6 @@ function saveVorlage(){
       spontis: spontis,
       alteSpontis: alteSpontis,
       link: normalizedLink || "",
-      inGespart: inGespart,
       barcode: firebase.firestore.FieldValue.delete()
     }).then(() => {
       writeLog(
@@ -2758,7 +2574,6 @@ function saveVorlage(){
         " | Neue Spontis Nummer: " + spontis +
         " | Alte Spontis Nummer: " + (alteSpontis || "-") +
         " | Link: " + (normalizedLink || "-") +
-        " | Gespart: " + (inGespart ? "Ja" : "Nein") +
         " | Neuer Barcode: " + (barcode || "-") +
         " | Alter Barcode: " + (alteBarcode || "-")
       );
@@ -2774,7 +2589,6 @@ function saveVorlage(){
       spontis: spontis,
       alteSpontis: alteSpontis,
       link: normalizedLink || "",
-      inGespart: inGespart,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then((docRef) => {
       writeLog(
@@ -2786,7 +2600,6 @@ function saveVorlage(){
         " | Neue Spontis Nummer: " + spontis +
         " | Alte Spontis Nummer: " + (alteSpontis || "-") +
         " | Link: " + (normalizedLink || "-") +
-        " | Gespart: " + (inGespart ? "Ja" : "Nein") +
         " | Neuer Barcode: " + (barcode || "-") +
         " | Alter Barcode: " + (alteBarcode || "-")
       );
@@ -2900,11 +2713,18 @@ function printBaustelle(id){
         <tr>
           <td>${escapeHtml(m.material || "")}</td>
           <td>${escapeHtml(m.anzahl || "")}</td>
-          <td>${escapeHtml(m.spontis || "")}${renderBarcodeBlock(getVorlageBarcodeBySpontis(m.spontis || ""), "Neuer Barcode")}</td>
-          <td>${escapeHtml(alteSpontis || "-")}${alteSpontis ? renderBarcodeBlock(getBarcodeValueFromSpontis(alteSpontis), "Alter Barcode") : ""}</td>
+          <td>${escapeHtml(m.spontis || "")}${renderBarcodeBlock(getVorlageBarcodeBySpontis(m.spontis || ""), "Neue Spontis Barcode")}</td>
+          <td>${escapeHtml(alteSpontis || "-")}${alteSpontis ? renderBarcodeBlock(getBarcodeValueFromSpontis(alteSpontis), "Alte Spontis Barcode") : ""}</td>
         </tr>
       `;
     });
+  }
+
+  const printWindow = window.open("", "_blank", "width=900,height=700");
+
+  if(!printWindow){
+    alert("Das Druckfenster konnte nicht geöffnet werden. Bitte Popups erlauben.");
+    return;
   }
 
   const html = `
@@ -3050,19 +2870,6 @@ function printBaustelle(id){
     </html>
   `;
 
-  const isSmallScreen = window.matchMedia && window.matchMedia("(max-width: 900px)").matches;
-  if(isSmallScreen){
-    printBaustelleMobile(html);
-    return;
-  }
-
-  const printWindow = window.open("", "_blank", "width=900,height=700");
-
-  if(!printWindow){
-    alert("Das Druckfenster konnte nicht geöffnet werden. Bitte Popups erlauben.");
-    return;
-  }
-
   printWindow.document.open();
   printWindow.document.write(html);
   printWindow.document.close();
@@ -3071,53 +2878,6 @@ function printBaustelle(id){
     printWindow.focus();
     printWindow.print();
   };
-}
-
-function printBaustelleMobile(html){
-  const existingFrame = document.getElementById("baustellePrintFrame");
-  if(existingFrame){
-    existingFrame.remove();
-  }
-
-  const printFrame = document.createElement("iframe");
-  printFrame.id = "baustellePrintFrame";
-  printFrame.title = "Baustelle drucken";
-  printFrame.style.position = "fixed";
-  printFrame.style.right = "0";
-  printFrame.style.bottom = "0";
-  printFrame.style.width = "1px";
-  printFrame.style.height = "1px";
-  printFrame.style.border = "0";
-  printFrame.style.opacity = "0";
-  printFrame.setAttribute("aria-hidden", "true");
-  document.body.appendChild(printFrame);
-
-  const cleanup = () => {
-    window.removeEventListener("afterprint", cleanup);
-    setTimeout(() => {
-      if(printFrame.parentNode){
-        printFrame.parentNode.removeChild(printFrame);
-      }
-    }, 300);
-  };
-
-  const frameWindow = printFrame.contentWindow;
-  if(!frameWindow){
-    cleanup();
-    alert("Die Druckansicht konnte auf diesem Gerät nicht geöffnet werden.");
-    return;
-  }
-
-  printFrame.onload = function(){
-    window.addEventListener("afterprint", cleanup, { once: true });
-    frameWindow.focus();
-    frameWindow.print();
-    setTimeout(cleanup, 1500);
-  };
-
-  frameWindow.document.open();
-  frameWindow.document.write(html);
-  frameWindow.document.close();
 }
 
 function deleteBaustelle(id){
@@ -3284,72 +3044,9 @@ function markActiveMenu(){
   });
 }
 
-function bindClickById(id, handler){
-  const element = document.getElementById(id);
-  if(!element){
-    return;
-  }
-
-  element.addEventListener("click", handler);
-}
-
-function setupStaticEventBindings(){
-  bindClickById("loginPasswordToggleButton", toggleLoginPasswordVisibility);
-  bindClickById("loginButton", login);
-  bindClickById("menuButton", function(event){
-    toggleMenu(event);
-  });
-  bindClickById("goHomeButton", goToHome);
-  bindClickById("goKabellagerButton", goToKabellager);
-  bindClickById("goKabelReportButton", goToKabelReport);
-  bindClickById("closeMenuButton", closeMenu);
-  bindClickById("archivMenuButton", goToArchiv);
-  bindClickById("logsMenuButton", goToLogs);
-  bindClickById("gespartMenuButton", goToGespart);
-  bindClickById("goProfileButton", goToProfile);
-  bindClickById("logoutButton", logout);
-  bindClickById("resetSearchButton", resetSearch);
-  bindClickById("openBaustelleModalButton", openBaustelleModal);
-  bindClickById("toggleBeendeteBereichButton", toggleBeendeteBereich);
-  bindClickById("toggleVorlagenBereichButton", toggleVorlagenBereich);
-  bindClickById("resetVorlagenSearchButton", resetVorlagenSearch);
-  bindClickById("openVorlageModalButton", function(){
-    openVorlageModal();
-  });
-  bindClickById("saveBaustelleButton", saveBaustelle);
-  bindClickById("saveMaterialButton", saveMaterial);
-  bindClickById("clearVorlageLinkButton", clearVorlageLinkInput);
-  bindClickById("saveVorlageButton", saveVorlage);
-
-  const searchInput = document.getElementById("searchInput");
-  if(searchInput){
-    searchInput.addEventListener("input", renderAll);
-  }
-
-  const creatorFilterMode = document.getElementById("creatorFilterMode");
-  if(creatorFilterMode){
-    creatorFilterMode.addEventListener("change", onCreatorFilterChanged);
-  }
-
-  const vorlagenSearchInput = document.getElementById("vorlagenSearchInput");
-  if(vorlagenSearchInput){
-    vorlagenSearchInput.addEventListener("input", renderVorlagen);
-  }
-
-  const materialVorlageSuche = document.getElementById("materialVorlageSuche");
-  if(materialVorlageSuche){
-    materialVorlageSuche.addEventListener("input", renderMaterialVorlagenTreffer);
-  }
-
-  document.querySelectorAll(".js-close-modals").forEach(button => {
-    button.addEventListener("click", closeModals);
-  });
-}
-
 document.addEventListener("DOMContentLoaded", function(){
   markActiveMenu();
   updateAdminVisibility();
-  setupStaticEventBindings();
 });
 
 function closeModals(){
