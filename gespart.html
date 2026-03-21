@@ -753,6 +753,7 @@ let alleMonatsarchive = [];
 let editTarifId = null;
 let staticRefreshIntervalId = null;
 let refreshStaticDataPromise = null;
+let pendingArchiveSelection = "";
 const STATIC_REFRESH_INTERVAL_MS = 1000 * 60 * 5;
 
 function escapeHtml(value){
@@ -1192,7 +1193,10 @@ function populateMonthFilters(monthlyReports, monthlyArchives){
   }else if(!currentMonthValue && monthOptions.length > 0){
     monthFilter.value = monthOptions[0];
   }
-  if(archiveOptions.includes(currentArchiveValue)){
+  if(pendingArchiveSelection && archiveOptions.includes(pendingArchiveSelection)){
+    archiveFilter.value = pendingArchiveSelection;
+    pendingArchiveSelection = "";
+  }else if(archiveOptions.includes(currentArchiveValue)){
     archiveFilter.value = currentArchiveValue;
   }
 }
@@ -1270,10 +1274,22 @@ function normalizeVorlagenSnapshot(snapshot){
   });
 }
 
+function sortArchivesDescending(archives){
+  return [...archives].sort((a, b) => String(b.monthKey || "").localeCompare(String(a.monthKey || "")));
+}
+
 function normalizeArchiveSnapshot(snapshot){
-  return snapshot.docs
-    .map(doc => ({ id: doc.id, ...doc.data() }))
-    .sort((a, b) => String(b.monthKey || "").localeCompare(String(a.monthKey || "")));
+  return sortArchivesDescending(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+}
+
+function upsertMonthlyArchiveLocal(archive){
+  const archiveId = archive.id || archive.monthKey;
+  const nextArchives = alleMonatsarchive.filter(item => (item.id || item.monthKey) !== archiveId);
+  nextArchives.push({
+    ...archive,
+    id: archiveId
+  });
+  alleMonatsarchive = sortArchivesDescending(nextArchives);
 }
 
 function applyStaticSnapshots({ baustellenSnapshot, vorlagenSnapshot, tarifeSnapshot, monthlyArchiveSnapshot }, shouldRender = true){
@@ -1353,11 +1369,20 @@ function saveMonthlyArchive(monthKey){
   }
 
   const payload = buildArchivePayload(report);
+  const existingArchive = alleMonatsarchive.find(item => item.id === monthKey || item.monthKey === monthKey);
   monthlyArchiveCollection.doc(monthKey).set({
     ...payload,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    createdAt: existingArchive && existingArchive.createdAt ? existingArchive.createdAt : firebase.firestore.FieldValue.serverTimestamp()
   }, { merge: true }).then(() => {
-    refreshStaticData({ shouldRender: true, force: true });
+    pendingArchiveSelection = monthKey;
+    upsertMonthlyArchiveLocal({
+      ...existingArchive,
+      ...payload,
+      id: monthKey,
+      createdAt: existingArchive && existingArchive.createdAt ? existingArchive.createdAt : Date.now(),
+      updatedAt: Date.now()
+    });
+    renderAll();
     alert("Monatsarchiv wurde gesichert.");
   }).catch(error => {
     console.error("Fehler beim Sichern des Monatsarchivs:", error);
@@ -1370,11 +1395,15 @@ function deleteMonthlyArchive(monthKey){
     return;
   }
 
-  monthlyArchiveCollection.doc(monthKey).delete().catch(error => {
+  monthlyArchiveCollection.doc(monthKey).delete().then(() => {
+    alleMonatsarchive = alleMonatsarchive.filter(item => item.id !== monthKey && item.monthKey !== monthKey);
+    if(pendingArchiveSelection === monthKey){
+      pendingArchiveSelection = "";
+    }
+    renderAll();
+  }).catch(error => {
     console.error("Fehler beim Löschen des Monatsarchivs:", error);
     alert("Gesichertes Monatsarchiv konnte nicht gelöscht werden.");
-  }).finally(() => {
-    refreshStaticData({ shouldRender: true, force: true });
   });
 }
 
