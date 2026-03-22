@@ -1905,12 +1905,13 @@ function renderVorlagen(){
   }else{
     gefilterteVorlagen.forEach(v => {
       const card = document.createElement("div");
+      const hasAlteSpontis = hasAlteSpontisNummer(v.alteSpontis);
       card.className = "baustelle-card";
 
       card.innerHTML = `
         <h3>${escapeHtml(v.material || "")}</h3>
-        ${renderSpontisBlock("Neue Spontis Nummer", v.spontis || "", v.link || "", isAdminUser, isAdminUser)}
-        ${renderBarcodeBlock(getBarcodeValueFromSpontis(v.spontis || ""), "Neuer Barcode")}
+        ${renderSpontisBlock(getSpontisLabel(hasAlteSpontis), v.spontis || "", v.link || "", isAdminUser, isAdminUser)}
+        ${renderBarcodeBlock(getBarcodeValueFromSpontis(v.spontis || ""), getBarcodeLabel(hasAlteSpontis))}
         ${renderSpontisBlock("Alte Spontis Nummer", v.alteSpontis || "", "", false, false, "barcode-spacing")}
         ${renderBarcodeBlock(getBarcodeValueFromSpontis(v.alteSpontis || ""), "Alter Barcode")}
         ${isAdminUser ? `
@@ -1960,6 +1961,7 @@ function renderMaterialVorlagenTreffer(){
 
   gefilterteVorlagen.forEach(v => {
     const button = document.createElement("button");
+    const hasAlteSpontis = hasAlteSpontisNummer(v.alteSpontis);
     button.type = "button";
     button.className = "vorlagen-treffer" + (selectedVorlageId === v.id ? " active" : "");
     button.onclick = function(){
@@ -1968,8 +1970,8 @@ function renderMaterialVorlagenTreffer(){
 
     button.innerHTML = `
       <div class="vorlagen-treffer-title">${escapeHtml(v.material || "")}</div>
-      <div class="vorlagen-treffer-sub">Neue Spontis Nummer: ${escapeHtml(v.spontis || "")}</div>
-      ${v.alteSpontis ? `<div class="vorlagen-treffer-sub">Alte Spontis Nummer: ${escapeHtml(v.alteSpontis || "")}</div>` : ""}
+      <div class="vorlagen-treffer-sub">${escapeHtml(getSpontisLabel(hasAlteSpontis))}: ${escapeHtml(v.spontis || "")}</div>
+      ${hasAlteSpontis ? `<div class="vorlagen-treffer-sub">Alte Spontis Nummer: ${escapeHtml(v.alteSpontis || "")}</div>` : ""}
     `;
 
     container.appendChild(button);
@@ -2003,13 +2005,15 @@ function updateAusgewaehlteVorlageInfo(){
     return;
   }
 
+  const hasAlteSpontis = hasAlteSpontisNummer(vorlage.alteSpontis);
+
   info.style.display = "block";
   info.innerHTML =
     "<strong>Ausgewählte Vorlage:</strong> " +
     escapeHtml(vorlage.material || "") +
-    " | <strong>Neue Spontis Nummer:</strong> " +
+    " | <strong>" + escapeHtml(getSpontisLabel(hasAlteSpontis)) + ":</strong> " +
     escapeHtml(vorlage.spontis || "") +
-    (vorlage.alteSpontis ? " | <strong>Alte Spontis Nummer:</strong> " + escapeHtml(vorlage.alteSpontis || "") : "");
+    (hasAlteSpontis ? " | <strong>Alte Spontis Nummer:</strong> " + escapeHtml(vorlage.alteSpontis || "") : "");
 }
 
 function getVorlageBarcodeBySpontis(spontisNummer){
@@ -2078,6 +2082,18 @@ function getMaterialAlteSpontisValue(material){
     getVorlageAlteSpontisBySpontis(material && material.spontis ? material.spontis : ""),
     60
   );
+}
+
+function hasAlteSpontisNummer(spontisNummer){
+  return sanitizeInput(spontisNummer || "", 60) !== "";
+}
+
+function getSpontisLabel(hasAlteSpontis){
+  return hasAlteSpontis ? "Neue Spontis Nummer" : "Spontis Nummer";
+}
+
+function getBarcodeLabel(hasAlteSpontis){
+  return hasAlteSpontis ? "Neuer Barcode" : "Barcode";
 }
 
 function renderSpontisBlock(label, spontisNummer, link, darfKlicken, userIstAdmin, extraClass = ""){
@@ -2150,14 +2166,16 @@ function createBaustelleCard(baustelle){
   }else{
     materialien.forEach(m => {
       const darfMaterialBearbeiten = canManageMaterial(baustelle);
+      const alteSpontis = getMaterialAlteSpontisValue(m);
+      const hasAlteSpontis = hasAlteSpontisNummer(alteSpontis);
 
       materialHtml += `
         <div class="material-item">
           <div class="material-row"><strong>Material:</strong> ${escapeHtml(m.material || "")}</div>
           <div class="material-row"><strong>Anzahl:</strong> ${escapeHtml(m.anzahl || "")}</div>
-          ${renderSpontisBlock("Neue Spontis Nummer", m.spontis || "", getVorlageLinkBySpontis(m.spontis || ""), baustelle.status === "rausschreiben", isAdminUser)}
-          ${baustelle.status !== "aktiv" ? renderBarcodeBlock(getVorlageBarcodeBySpontis(m.spontis || ""), "Neuer Barcode") : ""}
-          ${baustelle.status !== "aktiv" ? renderSpontisBarcodePair("Alte Spontis Nummer", getMaterialAlteSpontisValue(m)) : ""}
+          ${renderSpontisBlock(getSpontisLabel(hasAlteSpontis), m.spontis || "", getVorlageLinkBySpontis(m.spontis || ""), baustelle.status === "rausschreiben", isAdminUser)}
+          ${baustelle.status !== "aktiv" ? renderBarcodeBlock(getVorlageBarcodeBySpontis(m.spontis || ""), getBarcodeLabel(hasAlteSpontis)) : ""}
+          ${baustelle.status !== "aktiv" ? renderSpontisBarcodePair("Alte Spontis Nummer", alteSpontis) : ""}
 
           ${darfMaterialBearbeiten ? `
           <div class="material-actions">
@@ -2825,7 +2843,7 @@ function printBaustelle(id){
         <tr>
           <td>${escapeHtml(m.material || "")}</td>
           <td>${escapeHtml(m.anzahl || "")}</td>
-          <td>${escapeHtml(m.spontis || "")}${renderBarcodeBlock(getVorlageBarcodeBySpontis(m.spontis || ""), "Neuer Barcode")}</td>
+          <td>${escapeHtml(m.spontis || "")}${renderBarcodeBlock(getVorlageBarcodeBySpontis(m.spontis || ""), getBarcodeLabel(hasAlteSpontisNummer(alteSpontis)))}</td>
           <td>${escapeHtml(alteSpontis || "-")}${alteSpontis ? renderBarcodeBlock(getBarcodeValueFromSpontis(alteSpontis), "Alter Barcode") : ""}</td>
         </tr>
       `;
