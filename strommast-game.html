@@ -669,7 +669,8 @@ const SPAWN_DISTANCE_MIN = 250;
 const SPAWN_DISTANCE_MAX = 520;
 const SPAWN_DISTANCE_SHRINK_RATE = 0.04;
 const SAFE_OBSTACLE_CLEARANCE_MIN = 150;
-const SAFE_OBSTACLE_CLEARANCE_SPEED_FACTOR = 10;
+const SAFE_OBSTACLE_CLEARANCE_SPEED_FACTOR = 24;
+const SAFE_OBSTACLE_CLEARANCE_SPEED_CURVE = 10;
 let gameSpeed = BASE_GAME_SPEED;
 let gravity = BASE_GRAVITY;
 let score = 0;
@@ -757,9 +758,11 @@ function getMinimumObstacleDistance(previousObstacle){
     return 0;
   }
 
-  const speedBuffer = Math.max(0, gameSpeed - BASE_GAME_SPEED) * SAFE_OBSTACLE_CLEARANCE_SPEED_FACTOR;
+  const extraSpeed = Math.max(0, gameSpeed - BASE_GAME_SPEED);
+  const speedBuffer = extraSpeed * SAFE_OBSTACLE_CLEARANCE_SPEED_FACTOR;
+  const speedCurveBuffer = extraSpeed * extraSpeed * SAFE_OBSTACLE_CLEARANCE_SPEED_CURVE;
   const sizeBuffer = Math.max(previousObstacle.width - 34, 0) * 0.55;
-  return previousObstacle.width + SAFE_OBSTACLE_CLEARANCE_MIN + speedBuffer + sizeBuffer;
+  return previousObstacle.width + SAFE_OBSTACLE_CLEARANCE_MIN + speedBuffer + speedCurveBuffer + sizeBuffer;
 }
 
 function getNextObstacleDistance(previousObstacle = null){
