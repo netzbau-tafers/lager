@@ -194,24 +194,80 @@ canvas{
 
 .character-select{
   display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+.game-dashboard{
+  display:grid;
+  grid-template-columns:minmax(0, 1.1fr) minmax(300px, 0.9fr);
+  gap:16px;
+  padding:18px 16px 20px 16px;
+  align-items:start;
+}
+
+.dashboard-panel{
+  background:var(--card-soft);
+  border:1px solid #dbe3ec;
+  border-radius:16px;
+  padding:16px;
+}
+
+.dashboard-panel h3{
+  margin:0 0 8px 0;
+  color:#1f476f;
+  font-size:20px;
+}
+
+.dashboard-panel p{
+  margin:0;
+  color:var(--text-soft);
+  line-height:1.45;
+}
+
+.control-tips{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:10px;
+  margin-bottom:14px;
+}
+
+.tip-card{
+  padding:12px;
+  border-radius:14px;
+  background:#fff;
+  border:1px solid #dbe3ec;
+}
+
+.tip-card strong{
+  display:block;
+  margin-bottom:4px;
+  color:#1f476f;
+}
+
+.character-header{
+  display:flex;
+  justify-content:space-between;
   align-items:flex-start;
   gap:12px;
-  flex-wrap:wrap;
-  padding:18px 16px 6px 16px;
 }
 
 .character-label{
   font-weight:bold;
   color:#1f476f;
-  min-width:92px;
-  padding-top:10px;
+}
+
+.character-subtext{
+  margin-top:4px;
+  font-size:14px;
+  color:var(--text-soft);
 }
 
 .character-buttons{
-  display:flex;
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));
   gap:10px;
-  flex-wrap:wrap;
-  flex:1;
+  width:100%;
 }
 
 .character-button{
@@ -219,6 +275,33 @@ canvas{
   background:#eff6ff;
   color:#1f476f;
   box-shadow:none;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  gap:4px;
+  min-height:86px;
+  padding:14px;
+  text-align:left;
+}
+
+.character-button:hover{
+  background:#e3f1ff;
+}
+
+.character-button-icon{
+  font-size:26px;
+  line-height:1;
+}
+
+.character-button-name{
+  font-size:15px;
+  font-weight:bold;
+}
+
+.character-button-role{
+  font-size:12px;
+  color:#51789e;
 }
 
 .character-button.active{
@@ -266,11 +349,7 @@ canvas{
 }
 
 .live-ranking{
-  margin:12px 16px 18px;
-  background:var(--card-soft);
-  border:1px solid #dbe3ec;
-  border-radius:14px;
-  padding:14px 16px;
+  height:100%;
 }
 
 .live-ranking h3{
@@ -290,12 +369,14 @@ canvas{
   word-break:break-word;
 }
 
-.character-hint{
+.character-select .character-hint{
   margin:2px 16px 14px 16px;
   color:#8b2b2b;
   font-size:14px;
   font-weight:bold;
   width:100%;
+  align-self:center;
+  text-align:right;
 }
 
 .hidden-message{
@@ -483,39 +564,56 @@ canvas{
   }
 
   .character-select{
-    padding:16px 14px 6px 14px;
-    gap:8px;
+    gap:12px;
+  }
+
+  .game-dashboard{
+    grid-template-columns:1fr;
+    gap:14px;
+    padding:14px 14px 18px 14px;
+  }
+
+  .dashboard-panel{
+    padding:14px;
+    border-radius:18px;
+  }
+
+  .control-tips{
+    grid-template-columns:1fr;
+  }
+
+  .character-header{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:6px;
   }
 
   .character-label{
-    min-width:100%;
-    padding-top:0;
     font-size:18px;
   }
 
+  .character-subtext{
+    font-size:15px;
+  }
+
   .character-buttons{
-    width:100%;
-    display:grid;
     grid-template-columns:1fr 1fr;
     gap:10px;
   }
 
   .character-button{
-    width:100%;
-    min-height:54px;
+    min-height:92px;
     font-size:15px;
-    border-radius:14px;
+    border-radius:16px;
   }
 
   .character-hint{
-    margin:4px 14px 10px 14px;
+    margin:0;
     font-size:14px;
   }
 
   .live-ranking{
-    margin:12px 14px 18px 14px;
-    padding:14px;
-    border-radius:16px;
+    margin:0;
   }
 
   .live-ranking h3{
@@ -617,25 +715,44 @@ canvas{
       </button>
     </div>
 
-    <div class="character-select">
-      <span class="character-label">Charakter:</span>
+    <div class="game-dashboard">
+      <div class="dashboard-panel">
+        <div class="control-tips">
+          <div class="tip-card">
+            <strong>Steuerung</strong>
+            <span>Tippe auf das Spielfeld oder drücke Leertaste / Pfeil nach oben zum Springen.</span>
+          </div>
+          <div class="tip-card">
+            <strong>Ziel</strong>
+            <span>Weiche Hindernissen aus und knacke die Top&nbsp;10 der Bestenliste.</span>
+          </div>
+        </div>
 
-      <div class="character-buttons">
-        <button type="button" class="character-button" data-character="worker">👷 Lehrling</button>
-        <button type="button" class="character-button" data-character="frog">🐸 Santivastler</button>
-        <button type="button" class="character-button" data-character="donkey">🫏 Düdinger</button>
-        <button type="button" class="character-button" data-character="unimog">🚛 Unimog</button>
-        <button type="button" class="character-button" data-character="sprinter">🚐 Käta</button>
-        <button type="button" class="character-button" data-character="chef">👑 Chef</button>
-        <button type="button" class="character-button" data-character="buezer">💪 Büezer</button>
+        <div class="character-select">
+          <div class="character-header">
+            <div>
+              <div class="character-label">Charakter wählen</div>
+              <div class="character-subtext">Jede Figur ist sofort spielbereit – wähle einfach deinen Favoriten.</div>
+            </div>
+            <p id="characterHint" class="character-hint hidden-message">Bitte zuerst einen Charakter auswählen.</p>
+          </div>
+
+          <div class="character-buttons">
+            <button type="button" class="character-button" data-character="worker"><span class="character-button-icon">👷</span><span class="character-button-name">Lehrling</span><span class="character-button-role">Klassischer Starter</span></button>
+            <button type="button" class="character-button" data-character="frog"><span class="character-button-icon">🐸</span><span class="character-button-name">Santivastler</span><span class="character-button-role">Sprungfreudig</span></button>
+            <button type="button" class="character-button" data-character="donkey"><span class="character-button-icon">🫏</span><span class="character-button-name">Düdinger</span><span class="character-button-role">Hart im Nehmen</span></button>
+            <button type="button" class="character-button" data-character="unimog"><span class="character-button-icon">🚛</span><span class="character-button-name">Unimog</span><span class="character-button-role">Breit gebaut</span></button>
+            <button type="button" class="character-button" data-character="sprinter"><span class="character-button-icon">🚐</span><span class="character-button-name">Käta</span><span class="character-button-role">Flacher Trefferbereich</span></button>
+            <button type="button" class="character-button" data-character="chef"><span class="character-button-icon">👑</span><span class="character-button-name">Chef</span><span class="character-button-role">Mit Stil unterwegs</span></button>
+            <button type="button" class="character-button" data-character="buezer"><span class="character-button-icon">💪</span><span class="character-button-name">Büezer</span><span class="character-button-role">Volle Energie</span></button>
+          </div>
+        </div>
       </div>
 
-      <p id="characterHint" class="character-hint hidden-message">Bitte zuerst einen Charakter auswählen.</p>
-    </div>
-
-    <div class="live-ranking">
-      <h3>Live-Bestenliste (Top 20)</h3>
-      <ol id="liveRankingList"></ol>
+      <div class="dashboard-panel live-ranking">
+        <h3>Live-Bestenliste (Top 10)</h3>
+        <ol id="liveRankingList"></ol>
+      </div>
     </div>
   </div>
 
@@ -702,7 +819,7 @@ const authReady = auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
 
 const RANKING_KEY = "strommastRanking";
 const SCORE_COLLECTION = "strommastRanking";
-const RANKING_LIMIT = 20;
+const RANKING_LIMIT = 10;
 const groundY = 250;
 let cloudRanking = [];
 
@@ -883,6 +1000,21 @@ function renderRanking(){
   liveRankingList.innerHTML = html;
 }
 
+function canScoreReachLeaderboard(scoreValue, ranking = cloudRanking.length ? cloudRanking : loadRanking()){
+  const numericScore = Math.floor(Number(scoreValue) || 0);
+
+  if(numericScore <= 0){
+    return false;
+  }
+
+  if(ranking.length < RANKING_LIMIT){
+    return true;
+  }
+
+  const lastVisibleScore = Number(ranking[RANKING_LIMIT - 1]?.score || 0);
+  return numericScore > lastVisibleScore;
+}
+
 async function fetchRankingFromFirestore(){
   try{
     const snapshot = await db.collection(SCORE_COLLECTION)
@@ -964,7 +1096,7 @@ async function cleanupRanking(){
 }
 
 async function saveScore(){
-  if(gameOverSaved){
+  if(gameOverSaved || !canScoreReachLeaderboard(score)){
     return;
   }
 
@@ -1175,6 +1307,7 @@ function resetGameState(){
   finalScoreEl.textContent = "0";
   saveStatusEl.textContent = "";
   scoreNameInput.value = "";
+  scoreNameInput.classList.remove("hidden");
   saveScoreButton.classList.remove("hidden");
   newGameButton.classList.remove("hidden");
   startOverlay.classList.add("hidden");
@@ -1239,7 +1372,10 @@ function releaseJump(){
 
 function endGame(){
   gameRunning = false;
-  finalScoreEl.textContent = Math.floor(score);
+  const finalScore = Math.floor(score);
+  const qualifiesForLeaderboard = canScoreReachLeaderboard(finalScore);
+
+  finalScoreEl.textContent = finalScore;
   scoreNameInput.value = getScoreUsername();
   saveStatusEl.textContent = "";
 
@@ -1251,8 +1387,19 @@ function endGame(){
 
   gameOverOverlay.classList.remove("hidden");
   setCharacterSelectionLocked(false);
-  scoreNameInput.focus();
-  scoreNameInput.select();
+
+  if(qualifiesForLeaderboard){
+    scoreNameInput.classList.remove("hidden");
+    saveScoreButton.classList.remove("hidden");
+    saveStatusEl.textContent = "Top-10 geschafft! Du kannst deinen Punktestand speichern.";
+    scoreNameInput.focus();
+    scoreNameInput.select();
+  }else{
+    scoreNameInput.classList.add("hidden");
+    saveScoreButton.classList.add("hidden");
+    saveStatusEl.textContent = "Nicht genug Punkte für die Top 10 – versuch's gleich noch einmal.";
+    newGameButton.focus();
+  }
 }
 
 function setCharacterSelectionLocked(locked){
