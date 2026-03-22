@@ -668,6 +668,8 @@ const BASE_GRAVITY = 0.47;
 const SPAWN_DISTANCE_MIN = 250;
 const SPAWN_DISTANCE_MAX = 520;
 const SPAWN_DISTANCE_SHRINK_RATE = 0.04;
+const SAFE_OBSTACLE_CLEARANCE_MIN = 150;
+const SAFE_OBSTACLE_CLEARANCE_SPEED_FACTOR = 10;
 let gameSpeed = BASE_GAME_SPEED;
 let gravity = BASE_GRAVITY;
 let score = 0;
@@ -726,11 +728,48 @@ let gameInitialized = false;
 
 const obstacleTypes = ["mast", "wind", "solar", "tree", "house", "bagger"];
 
-function getNextObstacleDistance(){
+function getObstacleDimensions(type){
+  let width = 26;
+  let height = 78;
+
+  if(type === "wind"){
+    width = 34;
+    height = 104;
+  }else if(type === "solar"){
+    width = 44;
+    height = 38;
+  }else if(type === "tree"){
+    width = 34;
+    height = 58;
+  }else if(type === "house"){
+    width = 54;
+    height = 64;
+  }else if(type === "bagger"){
+    width = 68;
+    height = 42;
+  }
+
+  return { width, height };
+}
+
+function getMinimumObstacleDistance(previousObstacle){
+  if(!previousObstacle){
+    return 0;
+  }
+
+  const speedBuffer = Math.max(0, gameSpeed - BASE_GAME_SPEED) * SAFE_OBSTACLE_CLEARANCE_SPEED_FACTOR;
+  const sizeBuffer = Math.max(previousObstacle.width - 34, 0) * 0.55;
+  return previousObstacle.width + SAFE_OBSTACLE_CLEARANCE_MIN + speedBuffer + sizeBuffer;
+}
+
+function getNextObstacleDistance(previousObstacle = null){
   const difficultyOffset = Math.min(140, Math.floor(frameCount * SPAWN_DISTANCE_SHRINK_RATE));
   const minDistance = Math.max(150, SPAWN_DISTANCE_MIN - difficultyOffset);
   const maxDistance = Math.max(minDistance + 90, SPAWN_DISTANCE_MAX - difficultyOffset);
-  return minDistance + Math.random() * (maxDistance - minDistance);
+  const safeMinimumDistance = getMinimumObstacleDistance(previousObstacle);
+  const adjustedMinDistance = Math.max(minDistance, safeMinimumDistance);
+  const adjustedMaxDistance = Math.max(maxDistance, adjustedMinDistance + 90);
+  return adjustedMinDistance + Math.random() * (adjustedMaxDistance - adjustedMinDistance);
 }
 
 function loadRanking(){
@@ -1222,34 +1261,18 @@ function setCharacterSelectionLocked(locked){
 function createObstacle(){
   const unlockedTypes = Math.min(obstacleTypes.length, 1 + Math.floor(frameCount / 1000));
   const type = obstacleTypes[Math.floor(Math.random() * unlockedTypes)];
+  const { width, height } = getObstacleDimensions(type);
 
-  let width = 26;
-  let height = 78;
-
-  if(type === "wind"){
-    width = 34;
-    height = 104;
-  }else if(type === "solar"){
-    width = 44;
-    height = 38;
-  }else if(type === "tree"){
-    width = 34;
-    height = 58;
-  }else if(type === "house"){
-    width = 54;
-    height = 64;
-  }else if(type === "bagger"){
-    width = 68;
-    height = 42;
-  }
-
-  obstacles.push({
+  const obstacle = {
     type,
     x: canvas.width + 20,
     y: groundY + player.height - height,
     width,
     height
-  });
+  };
+
+  obstacles.push(obstacle);
+  return obstacle;
 }
 
 function updateDifficulty(){
@@ -1297,8 +1320,8 @@ function update(){
   distanceUntilNextObstacle -= gameSpeed;
 
   if(distanceUntilNextObstacle <= 0){
-    createObstacle();
-    distanceUntilNextObstacle = getNextObstacleDistance();
+    const createdObstacle = createObstacle();
+    distanceUntilNextObstacle = getNextObstacleDistance(createdObstacle);
   }
 
   for(let i = obstacles.length - 1; i >= 0; i--){
