@@ -171,10 +171,10 @@ button i{
 
 .report-toolbar{
   display:flex;
-  justify-content:space-between;
+  justify-content:flex-end;
   align-items:center;
   gap:12px;
-  margin:0 0 18px 0;
+  margin:0 0 14px 0;
 }
 
 .print-button{
@@ -185,10 +185,6 @@ button i{
   background:#17603d;
 }
 
-.print-hint{
-  color:#5b6570;
-  font-size:14px;
-}
 
 .print-meta{
   display:none;
@@ -640,15 +636,11 @@ tr.total-row td{
   </div>
 
   <div class="report-toolbar">
-    <div class="print-hint">Druckansicht blendet Menüs und Filter aus und optimiert Tabellen für Papier.</div>
-    <button type="button" class="print-button" onclick="printReport()"><i class="fa-solid fa-print"></i> Drucken</button>
+    <button type="button" class="print-button" onclick="printReport()"><i class="fa-solid fa-print"></i> Druckansicht</button>
   </div>
 
   <div id="printMeta" class="print-meta"></div>
 
-  <div class="info-panel">
-    Der Report zählt alle eingezogenen Meter aus den verfügbaren Kabellager-Logs zusammen. Für abgeschlossene Monate werden automatisch gespeicherte Monats-Snapshots aus Firestore verwendet. Rückbuchungen werden aus der Differenz zwischen vorheriger Länge und neuer Länge gerechnet. Vollständig gelöschte Bobinen werden zusätzlich mit ihrer gelöschten Länge gezählt, damit die eingezogenen Meter ebenfalls im Report erscheinen.
-  </div>
 
   <div id="reportNotice" class="info-panel warning-panel" style="display:none;"></div>
   <div id="reportError" class="info-panel error-panel" style="display:none;"></div>
@@ -1575,13 +1567,10 @@ function updatePrintMeta(year, searchTerm, data){
   const printMeta = document.getElementById("printMeta");
   const normalizedSearchTerm = sanitizeInput(searchTerm || "", 120);
   const generatedAt = new Date().toLocaleString("de-CH");
-  const searchInfo = normalizedSearchTerm ? `Aktiver Kabeltyp-Filter: <strong>${escapeHtml(normalizedSearchTerm)}</strong>.` : "Aktiver Kabeltyp-Filter: <strong>Kein Filter</strong>.";
+  const searchInfo = normalizedSearchTerm ? `Filter: <strong>${escapeHtml(normalizedSearchTerm)}</strong> ·` : "Filter: <strong>Kein Filter</strong> ·";
 
   printMeta.innerHTML = `
-    <strong>Druckübersicht ${escapeHtml(String(year))}</strong><br>
-    Erstellt am ${escapeHtml(generatedAt)}.<br>
-    ${searchInfo}<br>
-    Gesamt im Report: <strong>${escapeHtml(formatMeters(data.totalMeters))}</strong> bei <strong>${escapeHtml(formatCount(data.totalBookings))}</strong> Buchungen.
+    <strong>Druckübersicht ${escapeHtml(String(year))}</strong> · erstellt am ${escapeHtml(generatedAt)} · ${searchInfo} Gesamt: <strong>${escapeHtml(formatMeters(data.totalMeters))}</strong> · <strong>${escapeHtml(formatCount(data.totalBookings))}</strong> Buchungen.
   `;
 }
 
@@ -1604,9 +1593,6 @@ function renderNotice(earliestLogDate, year, snapshotDocs = []){
   const snapshotCount = Array.isArray(snapshotDocs) ? snapshotDocs.length : 0;
   const messages = [];
 
-  if(snapshotCount > 0){
-    messages.push(`Für abgeschlossene Monate und Monate ohne verfügbare Live-Logs werden <strong>${escapeHtml(formatCount(snapshotCount))} Monats-Snapshots</strong> aus Firestore verwendet.`);
-  }
 
   if(earliestLogDate && earliestLogDate > startOfYear && snapshotCount === 0){
     messages.push(`Für ${escapeHtml(String(year))} sind Logs erst ab <strong>${escapeHtml(earliestLogDate.toLocaleDateString("de-CH"))}</strong> verfügbar. Ältere Einzüge aus diesem Jahr können deshalb fehlen.`);
