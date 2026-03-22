@@ -651,21 +651,6 @@ tr.total-row td{
       <div id="summaryTotal" class="summary-value">0 m</div>
       <div id="summaryBookings" class="summary-sub">0 Buchungen</div>
     </div>
-    <div class="summary-card">
-      <div class="summary-label">Kabeltypen mit Einzug</div>
-      <div id="summaryTypes" class="summary-value">0</div>
-      <div class="summary-sub">Typen mit mindestens 1 m im gewählten Jahr</div>
-    </div>
-    <div class="summary-card">
-      <div class="summary-label">Rückbuchungen</div>
-      <div id="summaryReturns" class="summary-value">0</div>
-      <div class="summary-sub">Differenzen aus manueller Länge oder Nummern-Erfassung</div>
-    </div>
-    <div class="summary-card">
-      <div class="summary-label">Komplett gelöscht</div>
-      <div id="summaryDeletes" class="summary-value">0</div>
-      <div class="summary-sub">Gelöschte Bobinen, die ebenfalls zum Report zählen</div>
-    </div>
   </div>
 
   <h2 class="section-title">Jahresübersicht nach Kabeltyp</h2>
@@ -1582,9 +1567,6 @@ function printReport(){
 function renderSummary(data){
   document.getElementById("summaryTotal").textContent = formatMeters(data.totalMeters);
   document.getElementById("summaryBookings").textContent = formatCount(data.totalBookings) + " Buchungen im Report";
-  document.getElementById("summaryTypes").textContent = formatCount(data.annualRows.length);
-  document.getElementById("summaryReturns").textContent = formatCount(data.totalReturns);
-  document.getElementById("summaryDeletes").textContent = formatCount(data.totalDeletes);
 }
 
 function renderNotice(earliestLogDate, year, snapshotDocs = []){
