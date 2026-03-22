@@ -204,10 +204,23 @@ button i{
 
 .filter-row{
   display:grid;
-  grid-template-columns:1fr;
+  grid-template-columns:1fr auto;
   gap:10px;
   align-items:center;
   margin-top:12px;
+}
+
+.filter-actions{
+  display:flex;
+  justify-content:flex-end;
+}
+
+.print-btn{
+  background:#6b4f2a;
+}
+
+.print-btn:hover{
+  background:#523b1f;
 }
 
 #searchInput{
@@ -870,6 +883,97 @@ textarea{
   background:#563a7a;
 }
 
+.print-report{
+  display:none;
+}
+
+.print-report-header{
+  margin-bottom:20px;
+}
+
+.print-report-title{
+  font-size:28px;
+  font-weight:bold;
+  margin:0 0 8px 0;
+}
+
+.print-report-subtitle{
+  margin:0;
+  color:#475569;
+  font-size:14px;
+}
+
+.print-report-summary{
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+  gap:12px;
+  margin-bottom:24px;
+}
+
+.print-summary-card{
+  border:1px solid #cbd5e1;
+  border-radius:10px;
+  padding:12px;
+  background:#f8fafc;
+}
+
+.print-summary-label{
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+  color:#64748b;
+  margin-bottom:6px;
+}
+
+.print-summary-value{
+  font-size:24px;
+  font-weight:bold;
+  color:#0f172a;
+}
+
+.print-report-section{
+  margin-bottom:26px;
+  break-inside:avoid;
+}
+
+.print-report-section h2{
+  margin:0 0 10px 0;
+  font-size:20px;
+}
+
+.print-empty{
+  margin:0;
+  padding:12px 14px;
+  border:1px dashed #cbd5e1;
+  border-radius:10px;
+  color:#64748b;
+  background:#f8fafc;
+}
+
+.print-report-table{
+  width:100%;
+  border-collapse:collapse;
+  margin:0;
+  box-shadow:none;
+}
+
+.print-report-table th,
+.print-report-table td{
+  border:1px solid #cbd5e1;
+  padding:8px 10px;
+  text-align:left;
+  vertical-align:top;
+}
+
+.print-report-table th{
+  background:#e2e8f0;
+  color:#0f172a;
+}
+
+.print-report-table td{
+  background:white;
+}
+
 @media (max-width: 900px){
   body{
     margin:15px;
@@ -899,6 +1003,18 @@ textarea{
 
   .search-row{
     grid-template-columns:1fr;
+  }
+
+  .filter-row{
+    grid-template-columns:1fr;
+  }
+
+  .filter-actions{
+    justify-content:stretch;
+  }
+
+  .filter-actions button{
+    width:100%;
   }
 
   .desktop-table-wrap{
@@ -970,6 +1086,37 @@ textarea{
     margin-top:24px;
     padding:12px 10px;
     font-size:13px;
+  }
+}
+
+@media print{
+  body{
+    margin:0;
+    background:white;
+    color:black;
+    font-size:11pt;
+  }
+
+  #appContent > *:not(#printReport),
+  .app-footer,
+  #loginScreen{
+    display:none !important;
+  }
+
+  #printReport{
+    display:block !important;
+  }
+
+  .print-report-section{
+    page-break-inside:avoid;
+  }
+
+  .print-report-table{
+    page-break-inside:auto;
+  }
+
+  .print-report-table tr{
+    page-break-inside:avoid;
   }
 }
 </style>
@@ -1057,6 +1204,12 @@ textarea{
         <option value="Reserviert">Reserviert</option>
         <option value="In Gebrauch">In Gebrauch</option>
       </select>
+
+      <div class="filter-actions">
+        <button type="button" class="print-btn" onclick="printInventoryReport()">
+          <i class="fa-solid fa-print"></i> Kabellager drucken
+        </button>
+      </div>
     </div>
 
     <div style="margin-top:15px;">
@@ -1164,6 +1317,47 @@ wie <b>Bearbeiten</b> oder <b>Löschen</b>.
   <div id="noResults" class="no-results" style="display:none;">
     Keine passenden Bobinen gefunden.
   </div>
+
+  <section id="printReport" class="print-report" aria-hidden="true">
+    <div class="print-report-header">
+      <h2 class="print-report-title">Kabellager Übersicht</h2>
+      <p id="printReportMeta" class="print-report-subtitle"></p>
+    </div>
+
+    <div class="print-report-summary">
+      <div class="print-summary-card">
+        <div class="print-summary-label">Alle Bobinen</div>
+        <div id="printCountTotal" class="print-summary-value">0</div>
+      </div>
+      <div class="print-summary-card">
+        <div class="print-summary-label">Im Lager</div>
+        <div id="printCountLager" class="print-summary-value">0</div>
+      </div>
+      <div class="print-summary-card">
+        <div class="print-summary-label">Reserviert</div>
+        <div id="printCountReserviert" class="print-summary-value">0</div>
+      </div>
+      <div class="print-summary-card">
+        <div class="print-summary-label">In Gebrauch</div>
+        <div id="printCountInUse" class="print-summary-value">0</div>
+      </div>
+    </div>
+
+    <div class="print-report-section">
+      <h2>Im Lager</h2>
+      <div id="printTableLager"></div>
+    </div>
+
+    <div class="print-report-section">
+      <h2>Reserviert</h2>
+      <div id="printTableReserviert"></div>
+    </div>
+
+    <div class="print-report-section">
+      <h2>In Gebrauch</h2>
+      <div id="printTableInUse"></div>
+    </div>
+  </section>
 
   <div id="modal" class="modal">
     <div class="modal-content">
@@ -2596,6 +2790,143 @@ function renderMobileCards(data){
   });
 }
 
+function compareBobinenByNummer(a, b){
+  const aNummer = String(a.data().nummer || "").trim();
+  const bNummer = String(b.data().nummer || "").trim();
+
+  const aNummerWert = Number(aNummer);
+  const bNummerWert = Number(bNummer);
+
+  const aIstZahl = Number.isFinite(aNummerWert) && aNummer !== "";
+  const bIstZahl = Number.isFinite(bNummerWert) && bNummer !== "";
+
+  if(aIstZahl && bIstZahl){
+    return aNummerWert - bNummerWert;
+  }
+
+  return aNummer.localeCompare(bNummer, "de", { numeric: true, sensitivity: "base" });
+}
+
+function createPrintTableMarkup(items){
+  if(!items.length){
+    return '<p class="print-empty">Keine Bobinen in diesem Bereich vorhanden.</p>';
+  }
+
+  return `
+    <table class="print-report-table">
+      <thead>
+        <tr>
+          <th>Nummer</th>
+          <th>Kabeltyp</th>
+          <th>Länge</th>
+          <th>Status</th>
+          <th>Baustelle / Reservierung</th>
+          <th>Hersteller</th>
+          <th>Infos</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${items.map(docItem => {
+          const bobine = docItem.data();
+          const statusText = String(bobine.status || "Lager");
+          const badgeParts = [];
+
+          if(bobine.istDreiBobinen){
+            badgeParts.push("3 Bobinen");
+          }
+
+          if(bobine.mehrereKabelAufBobine){
+            badgeParts.push("Mehrere Kabel");
+          }
+
+          const nummerMitHinweis = [sanitizeInput(bobine.nummer || "", 60), ...badgeParts].filter(Boolean).join(" · ");
+
+          let standortInfo = sanitizeInput(bobine.baustelle || "", 120);
+          if(statusText === "Lager" && bobine.reserviert){
+            const reserviertVon = sanitizeInput(bobine.reserviertVon || "", 120);
+            standortInfo = reserviertVon ? ("Reserviert für: " + reserviertVon) : "Reserviert";
+          }else if(statusText === "In Gebrauch"){
+            const inGebrauchVon = sanitizeInput(bobine.inGebrauchVonName || bobine.inGebrauchVonEmail || "", 120);
+            standortInfo = [standortInfo, inGebrauchVon ? ("In Gebrauch von: " + inGebrauchVon) : ""].filter(Boolean).join(" | ");
+          }
+
+          return `
+            <tr>
+              <td>${escapeHtml(nummerMitHinweis)}</td>
+              <td>${escapeHtml(bobine.typ || "")}</td>
+              <td>${escapeHtml(bobine.laenge || "")}</td>
+              <td>${escapeHtml(statusText)}</td>
+              <td>${formatMultilineText(standortInfo || "–")}</td>
+              <td>${escapeHtml(bobine.hersteller || "–")}</td>
+              <td>${formatMultilineText(bobine.infos || "–")}</td>
+            </tr>
+          `;
+        }).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function renderPrintReport(){
+  const sortierteBobinen = [...alleBobinen].sort(compareBobinenByNummer);
+  const lagerBobinen = sortierteBobinen.filter(docItem => {
+    const bobine = docItem.data();
+    return String(bobine.status || "Lager") === "Lager" && !bobine.reserviert;
+  });
+  const reservierteBobinen = sortierteBobinen.filter(docItem => {
+    const bobine = docItem.data();
+    return String(bobine.status || "Lager") === "Lager" && !!bobine.reserviert;
+  });
+  const inUseBobinen = sortierteBobinen.filter(docItem => String(docItem.data().status || "") === "In Gebrauch");
+
+  const now = new Date();
+  const meta = document.getElementById("printReportMeta");
+  const countTotal = document.getElementById("printCountTotal");
+  const countLager = document.getElementById("printCountLager");
+  const countReserviert = document.getElementById("printCountReserviert");
+  const countInUse = document.getElementById("printCountInUse");
+  const tableLager = document.getElementById("printTableLager");
+  const tableReserviert = document.getElementById("printTableReserviert");
+  const tableInUse = document.getElementById("printTableInUse");
+
+  if(meta){
+    meta.textContent = "Stand: " + now.toLocaleString("de-CH") + " | Gesamte Übersicht aller Bobinen im Kabellager";
+  }
+
+  if(countTotal){
+    countTotal.textContent = String(sortierteBobinen.length);
+  }
+
+  if(countLager){
+    countLager.textContent = String(lagerBobinen.length);
+  }
+
+  if(countReserviert){
+    countReserviert.textContent = String(reservierteBobinen.length);
+  }
+
+  if(countInUse){
+    countInUse.textContent = String(inUseBobinen.length);
+  }
+
+  if(tableLager){
+    tableLager.innerHTML = createPrintTableMarkup(lagerBobinen);
+  }
+
+  if(tableReserviert){
+    tableReserviert.innerHTML = createPrintTableMarkup(reservierteBobinen);
+  }
+
+  if(tableInUse){
+    tableInUse.innerHTML = createPrintTableMarkup(inUseBobinen);
+  }
+}
+
+function printInventoryReport(){
+  renderPrintReport();
+  window.print();
+}
+
 function renderFilteredTable(){
   const suchbegriff = document.getElementById("searchInput").value.trim().toLowerCase();
   const statusFilter = document.getElementById("statusFilter").value;
@@ -2627,22 +2958,7 @@ function renderFilteredTable(){
     return textPasst && statusPasst;
   });
 
-  gefiltert.sort((a, b) => {
-    const aNummer = String(a.data().nummer || "").trim();
-    const bNummer = String(b.data().nummer || "").trim();
-
-    const aNummerWert = Number(aNummer);
-    const bNummerWert = Number(bNummer);
-
-    const aIstZahl = Number.isFinite(aNummerWert) && aNummer !== "";
-    const bIstZahl = Number.isFinite(bNummerWert) && bNummer !== "";
-
-    if(aIstZahl && bIstZahl){
-      return aNummerWert - bNummerWert;
-    }
-
-    return aNummer.localeCompare(bNummer, "de", { numeric: true, sensitivity: "base" });
-  });
+  gefiltert.sort(compareBobinenByNummer);
 
   const noResults = document.getElementById("noResults");
   if(gefiltert.length === 0){
@@ -2664,6 +2980,8 @@ function renderFilteredTable(){
     "Angezeigte Bobinen: " + gefiltert.length +
     " | Ausgeschrieben: " + ausgeschriebenAnzahl +
     " | Reserviert: " + reserviertAnzahl;
+
+  renderPrintReport();
 }
 
 function resetSearch(){
