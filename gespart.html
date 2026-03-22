@@ -650,22 +650,28 @@ label{
 
 <div id="appContent" style="display:none;">
   <div class="header">
-    <h1>Kosten gespart</h1>
+    <div>
+      <h1>Kosten gespart</h1>
+      <div id="refreshInfo" class="helper-text" style="margin-top:6px;">Seite aktualisiert nur manuell über den Button.</div>
+    </div>
 
-    <div class="menu-wrap">
-      <button class="menu-button" onclick="toggleMenu(event)" title="Menü öffnen">
-        <i class="fa-solid fa-bars"></i>
-      </button>
-      <div id="dropdownMenu" class="dropdown-menu">
-        <button onclick="goToHome()" data-page="home"><i class="fa-solid fa-house"></i> Startseite</button>
-        <button onclick="goToKabellager()" data-page="index"><i class="fa-solid fa-warehouse"></i> Kabellager</button>
-        <button onclick="goToKabelReport()" data-page="kabelreport"><i class="fa-solid fa-chart-column"></i> Kabel Report</button>
-        <button onclick="goToBaustellen()" data-page="baustellen"><i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial</button>
-        <button onclick="goToArchiv()" data-page="archiv"><i class="fa-solid fa-box-archive"></i> Archiv</button>
-        <button onclick="goToLogs()" data-page="logs"><i class="fa-solid fa-clipboard-list"></i> Logs</button>
-        <button onclick="closeMenu()" data-page="gespart"><i class="fa-solid fa-piggy-bank"></i> Kosten gespart</button>
-        <button onclick="goToProfile()"><i class="fa-solid fa-user"></i> Profil</button>
-        <button class="logout-safe" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end;">
+      <button type="button" class="secondary" id="manualRefreshButton" onclick="manualRefresh()"><i class="fa-solid fa-rotate"></i> Jetzt aktualisieren</button>
+      <div class="menu-wrap">
+        <button class="menu-button" onclick="toggleMenu(event)" title="Menü öffnen">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div id="dropdownMenu" class="dropdown-menu">
+          <button onclick="goToHome()" data-page="home"><i class="fa-solid fa-house"></i> Startseite</button>
+          <button onclick="goToKabellager()" data-page="index"><i class="fa-solid fa-warehouse"></i> Kabellager</button>
+          <button onclick="goToKabelReport()" data-page="kabelreport"><i class="fa-solid fa-chart-column"></i> Kabel Report</button>
+          <button onclick="goToBaustellen()" data-page="baustellen"><i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial</button>
+          <button onclick="goToArchiv()" data-page="archiv"><i class="fa-solid fa-box-archive"></i> Archiv</button>
+          <button onclick="goToLogs()" data-page="logs"><i class="fa-solid fa-clipboard-list"></i> Logs</button>
+          <button onclick="closeMenu()" data-page="gespart"><i class="fa-solid fa-piggy-bank"></i> Kosten gespart</button>
+          <button onclick="goToProfile()"><i class="fa-solid fa-user"></i> Profil</button>
+          <button class="logout-safe" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+        </div>
       </div>
     </div>
   </div>
@@ -813,17 +819,15 @@ const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
 const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
 const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
 
-let unsubscribeLogs = null;
 let alleLogs = [];
 let alleBaustellen = [];
 let alleVorlagen = [];
 let alleTarife = [];
 let alleMonatsarchive = [];
 let editTarifId = null;
-let staticRefreshIntervalId = null;
-let refreshStaticDataPromise = null;
+let manualRefreshPromise = null;
+let lastRefreshLabel = "Noch nicht geladen";
 let pendingArchiveSelection = "";
-const STATIC_REFRESH_INTERVAL_MS = 1000 * 60 * 5;
 
 function escapeHtml(value){
   return String(value || "")
@@ -1356,54 +1360,69 @@ function applyStaticSnapshots({ baustellenSnapshot, vorlagenSnapshot, tarifeSnap
   }
 }
 
-function refreshStaticData({ shouldRender = true, force = false, silent = false } = {}){
-  if(refreshStaticDataPromise && !force){
-    return refreshStaticDataPromise;
+function setRefreshInfo(message, isError = false){
+  const refreshInfo = document.getElementById("refreshInfo");
+  if(!refreshInfo){
+    return;
+  }
+  refreshInfo.innerText = message;
+  refreshInfo.style.color = isError ? "#b42318" : "#555";
+}
+
+function setManualRefreshLoading(isLoading){
+  const button = document.getElementById("manualRefreshButton");
+  if(!button){
+    return;
+  }
+  button.disabled = isLoading;
+  button.innerHTML = isLoading
+    ? '<i class="fa-solid fa-spinner fa-spin"></i> Lädt...'
+    : '<i class="fa-solid fa-rotate"></i> Jetzt aktualisieren';
+}
+
+function loadSavingsData({ shouldRender = true, silent = false } = {}){
+  if(manualRefreshPromise){
+    return manualRefreshPromise;
   }
 
-  refreshStaticDataPromise = Promise.all([
+  setManualRefreshLoading(true);
+  setRefreshInfo("Lade Daten manuell aus Firestore …");
+
+  manualRefreshPromise = Promise.all([
+    logsCollection.where("bereich", "==", "Baustellenmaterial").get(),
     baustellenCollection.get(),
     vorlagenCollection.get(),
     tarifeCollection.get(),
     monthlyArchiveCollection.get()
-  ]).then(([baustellenSnapshot, vorlagenSnapshot, tarifeSnapshot, monthlyArchiveSnapshot]) => {
+  ]).then(([logsSnapshot, baustellenSnapshot, vorlagenSnapshot, tarifeSnapshot, monthlyArchiveSnapshot]) => {
+    alleLogs = logsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     applyStaticSnapshots({
       baustellenSnapshot,
       vorlagenSnapshot,
       tarifeSnapshot,
       monthlyArchiveSnapshot
-    }, shouldRender);
+    }, false);
+    lastRefreshLabel = new Date().toLocaleString("de-CH");
+    setRefreshInfo("Letzte manuelle Aktualisierung: " + lastRefreshLabel);
+    if(shouldRender){
+      renderAll();
+    }
   }).catch(error => {
-    console.error("Fehler beim Aktualisieren der Gespart-Stammdaten:", error);
+    console.error("Fehler beim manuellen Aktualisieren der Gespart-Daten:", error);
+    setRefreshInfo("Manuelle Aktualisierung fehlgeschlagen. Bitte erneut versuchen.", true);
     if(!silent){
-      alert("Die Stammdaten für Gespart konnten nicht geladen werden.");
+      alert("Die Daten für Kosten gespart konnten nicht geladen werden.");
     }
   }).finally(() => {
-    refreshStaticDataPromise = null;
+    setManualRefreshLoading(false);
+    manualRefreshPromise = null;
   });
 
-  return refreshStaticDataPromise;
+  return manualRefreshPromise;
 }
 
-function startStaticRefresh(){
-  if(staticRefreshIntervalId){
-    return;
-  }
-
-  staticRefreshIntervalId = window.setInterval(() => {
-    if(document.visibilityState === "visible"){
-      refreshStaticData({ shouldRender: true, silent: true });
-    }
-  }, STATIC_REFRESH_INTERVAL_MS);
-}
-
-function stopStaticRefresh(){
-  if(!staticRefreshIntervalId){
-    return;
-  }
-
-  window.clearInterval(staticRefreshIntervalId);
-  staticRefreshIntervalId = null;
+function manualRefresh(){
+  return loadSavingsData({ shouldRender: true, silent: false });
 }
 
 function saveMonthlyArchive(monthKey){
@@ -1899,16 +1918,31 @@ function saveTarif(){
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
 
+  const now = Date.now();
+
   const action = editTarifId
-    ? tarifeCollection.doc(editTarifId).update(payload)
+    ? tarifeCollection.doc(editTarifId).update(payload).then(() => {
+        alleTarife = alleTarife.map(item => item.id === editTarifId ? {
+          ...item,
+          ...payload,
+          updatedAt: now
+        } : item);
+      })
     : tarifeCollection.add({
         ...payload,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(docRef => {
+        alleTarife = [{
+          id: docRef.id,
+          ...payload,
+          createdAt: now,
+          updatedAt: now
+        }, ...alleTarife];
       });
 
   action.then(() => {
     resetTarifForm();
-    refreshStaticData({ shouldRender: true, force: true });
+    renderAll();
   }).catch(error => {
     console.error("Fehler beim Speichern des Tarifs:", error);
     alert("Tarif konnte nicht gespeichert werden.");
@@ -1924,7 +1958,8 @@ function deleteTarif(id){
     if(editTarifId === id){
       resetTarifForm();
     }
-    refreshStaticData({ shouldRender: true, force: true });
+    alleTarife = alleTarife.filter(item => item.id !== id);
+    renderAll();
   }).catch(error => {
     console.error("Fehler beim Löschen des Tarifs:", error);
     alert("Tarif konnte nicht gelöscht werden.");
@@ -2060,30 +2095,19 @@ function logout(){
 }
 
 function stopListeners(){
-  if(unsubscribeLogs){
-    unsubscribeLogs();
-    unsubscribeLogs = null;
-  }
-  stopStaticRefresh();
-  refreshStaticDataPromise = null;
+  manualRefreshPromise = null;
+  alleLogs = [];
+  alleBaustellen = [];
+  alleVorlagen = [];
+  alleTarife = [];
+  alleMonatsarchive = [];
+  lastRefreshLabel = "Noch nicht geladen";
 }
 
 function startListeners(){
-  if(!unsubscribeLogs){
-    unsubscribeLogs = logsCollection
-      .where("bereich", "==", "Baustellenmaterial")
-      .onSnapshot(snapshot => {
-      alleLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      renderAll();
-    }, error => {
-      console.error("Fehler Logs:", error);
-      alert("Fehler beim Laden der Logs.");
-    });
-  }
-  refreshStaticData({ shouldRender: false, force: true }).then(() => {
-    renderAll();
-  });
-  startStaticRefresh();
+  setRefreshInfo('Noch nicht geladen. Bitte auf "Jetzt aktualisieren" drücken.');
+  setManualRefreshLoading(false);
+  renderAll();
 }
 
 auth.onAuthStateChanged(user => {
@@ -2112,17 +2136,6 @@ auth.onAuthStateChanged(user => {
   }
 });
 
-window.addEventListener("focus", () => {
-  if(auth.currentUser){
-    refreshStaticData({ shouldRender: true, silent: true });
-  }
-});
-
-document.addEventListener("visibilitychange", () => {
-  if(document.visibilityState === "visible" && auth.currentUser){
-    refreshStaticData({ shouldRender: true, silent: true });
-  }
-});
 </script>
 
 <footer class="app-footer">© 2026 Martin Gross. Alle Rechte vorbehalten.</footer>
