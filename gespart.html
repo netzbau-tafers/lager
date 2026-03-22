@@ -432,6 +432,92 @@ label{
   color:#256029;
 }
 
+.tarif-accordion{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.tarif-item{
+  border:1px solid #d7dce2;
+  border-radius:12px;
+  background:#fff;
+  box-shadow:0 2px 8px rgba(0,0,0,0.06);
+  overflow:hidden;
+}
+
+.tarif-item summary{
+  list-style:none;
+  cursor:pointer;
+  padding:16px 18px;
+  background:#f7f9fb;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+
+.tarif-item summary::-webkit-details-marker{
+  display:none;
+}
+
+.tarif-item[open] summary{
+  border-bottom:1px solid #e5e7eb;
+}
+
+.tarif-summary-main{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  min-width:0;
+}
+
+.tarif-summary-title{
+  font-size:18px;
+  font-weight:bold;
+  color:#111827;
+}
+
+.tarif-summary-meta{
+  color:#4b5563;
+  font-size:14px;
+}
+
+.tarif-summary-values{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  justify-content:flex-end;
+}
+
+.tarif-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 10px;
+  border-radius:999px;
+  background:#eef2f7;
+  color:#334155;
+  font-size:13px;
+  font-weight:bold;
+  white-space:nowrap;
+}
+
+.tarif-item-body{
+  padding:18px;
+}
+
+.tarif-item-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:12px;
+}
+
+.tarif-item-actions button{
+  margin:0;
+}
+
 .table-wrap{
   overflow:auto;
 }
@@ -521,6 +607,15 @@ label{
   .search-row,
   .amount-grid{
     grid-template-columns:1fr;
+  }
+
+  .tarif-item summary{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .tarif-summary-values{
+    justify-content:flex-start;
   }
 
   button{
@@ -1550,10 +1645,12 @@ function renderTarife(){
 
   const sortedTarife = [...alleTarife].sort((a, b) => getTarifTime(b) - getTarifTime(a));
 
+  list.className = sortedTarife.length === 0 ? "" : "tarif-accordion";
+
   if(info){
     info.innerText = sortedTarife.length === 0
       ? "Noch keine Tarife gespeichert. Ohne Tarif werden 0 CHF verrechnet."
-      : "Tarifperioden: " + sortedTarife.length;
+      : "Tarifperioden: " + sortedTarife.length + " · Neuester Tarif ist standardmässig geöffnet.";
   }
 
   if(sortedTarife.length === 0){
@@ -1561,32 +1658,46 @@ function renderTarife(){
     return;
   }
 
-  sortedTarife.forEach(tarif => {
-    const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `
-      <div class="badge badge-config">Gültig ab ${escapeHtml(formatDate(tarif.gueltigAbMs || tarif.gueltigAb))}</div>
-      <div class="card-title">Tarifperiode</div>
-      <div class="card-meta"><strong>Austrage Betrag:</strong> ${escapeHtml(formatCurrency(tarif.austrageBetrag || 0))}</div>
-      <div class="card-meta"><strong>Zurücktrage Betrag:</strong> ${escapeHtml(formatCurrency(tarif.zuruecktrageBetrag || 0))}</div>
-      <div style="margin-top:12px;">
-        <button type="button" class="js-edit-tarif"><i class="fa-solid fa-pen"></i> Bearbeiten</button>
-        <button type="button" class="danger js-delete-tarif"><i class="fa-solid fa-trash"></i> Löschen</button>
+  sortedTarife.forEach((tarif, index) => {
+    const item = document.createElement("details");
+    item.className = "tarif-item";
+    if(index === 0){
+      item.open = true;
+    }
+    item.innerHTML = `
+      <summary>
+        <div class="tarif-summary-main">
+          <div class="badge badge-config">Gültig ab ${escapeHtml(formatDate(tarif.gueltigAbMs || tarif.gueltigAb))}</div>
+          <div class="tarif-summary-title">Tarifperiode</div>
+          <div class="tarif-summary-meta">Zum Überblick zuerst Datum wählen, Details erst bei Bedarf aufklappen.</div>
+        </div>
+        <div class="tarif-summary-values">
+          <span class="tarif-chip"><i class="fa-solid fa-arrow-up-right-dots"></i> Austragen ${escapeHtml(formatCurrency(tarif.austrageBetrag || 0))}</span>
+          <span class="tarif-chip"><i class="fa-solid fa-arrow-rotate-left"></i> Zurücktragen ${escapeHtml(formatCurrency(tarif.zuruecktrageBetrag || 0))}</span>
+        </div>
+      </summary>
+      <div class="tarif-item-body">
+        <div class="card-meta"><strong>Austrage Betrag:</strong> ${escapeHtml(formatCurrency(tarif.austrageBetrag || 0))}</div>
+        <div class="card-meta"><strong>Zurücktrage Betrag:</strong> ${escapeHtml(formatCurrency(tarif.zuruecktrageBetrag || 0))}</div>
+        <div class="tarif-item-actions">
+          <button type="button" class="js-edit-tarif"><i class="fa-solid fa-pen"></i> Bearbeiten</button>
+          <button type="button" class="danger js-delete-tarif"><i class="fa-solid fa-trash"></i> Löschen</button>
+        </div>
       </div>
     `;
-    const editButton = card.querySelector(".js-edit-tarif");
+    const editButton = item.querySelector(".js-edit-tarif");
     if(editButton){
       editButton.addEventListener("click", function(){
         editTarif(tarif.id);
       });
     }
-    const deleteButton = card.querySelector(".js-delete-tarif");
+    const deleteButton = item.querySelector(".js-delete-tarif");
     if(deleteButton){
       deleteButton.addEventListener("click", function(){
         deleteTarif(tarif.id);
       });
     }
-    list.appendChild(card);
+    list.appendChild(item);
   });
 }
 
