@@ -24,6 +24,11 @@ body{
   color:#222;
 }
 
+.report-shell{
+  max-width:1400px;
+  margin:0 auto;
+}
+
 .header{
   display:flex;
   justify-content:space-between;
@@ -162,6 +167,42 @@ button i{
 
 .filters-box{
   margin-bottom:18px;
+}
+
+.report-toolbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin:0 0 18px 0;
+}
+
+.print-button{
+  background:#1f7a4f;
+}
+
+.print-button:hover{
+  background:#17603d;
+}
+
+.print-hint{
+  color:#5b6570;
+  font-size:14px;
+}
+
+.print-meta{
+  display:none;
+  margin:0 0 18px 0;
+  padding:14px 18px;
+  background:white;
+  border:1px solid #d7dde4;
+  border-radius:14px;
+  color:#43505c;
+  line-height:1.5;
+}
+
+.print-meta strong{
+  color:#1c2f41;
 }
 
 .filters-title{
@@ -411,6 +452,11 @@ tr.total-row td{
     grid-template-columns:1fr;
   }
 
+  .report-toolbar{
+    flex-direction:column;
+    align-items:stretch;
+  }
+
   button{
     font-size:16px;
     padding:12px 16px;
@@ -419,6 +465,92 @@ tr.total-row td{
   .menu-button{
     font-size:22px;
     padding:12px 16px;
+  }
+}
+
+@media print{
+  @page{
+    size:auto;
+    margin:12mm;
+  }
+
+  body{
+    margin:0;
+    background:white;
+    color:#111;
+    font-size:11pt;
+  }
+
+  .report-shell{
+    max-width:none;
+  }
+
+  .menu-wrap,
+  .filters-box,
+  .report-toolbar,
+  .app-footer,
+  .login-screen,
+  .month-card-actions{
+    display:none !important;
+  }
+
+  .header{
+    margin-bottom:14px;
+    padding-bottom:10px;
+    border-bottom:2px solid #cfd7df;
+  }
+
+  .header h1{
+    font-size:22pt;
+  }
+
+  .print-meta{
+    display:block;
+  }
+
+  .filters-box,
+  .info-panel,
+  .table-card,
+  .month-card,
+  .empty-box,
+  .summary-card,
+  .print-meta{
+    box-shadow:none;
+    border:1px solid #cfd7df;
+    break-inside:avoid;
+    page-break-inside:avoid;
+  }
+
+  .summary-grid,
+  .months-grid{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:12px;
+  }
+
+  .section-title{
+    margin:22px 0 10px 0;
+    font-size:16pt;
+    break-after:avoid;
+  }
+
+  .table-card{
+    overflow:visible;
+  }
+
+  th{
+    position:static;
+    background:#eef2f6 !important;
+  }
+
+  tr,
+  td,
+  th{
+    break-inside:avoid;
+    page-break-inside:avoid;
+  }
+
+  a[href]:after{
+    content:none !important;
   }
 }
 </style>
@@ -442,6 +574,7 @@ tr.total-row td{
 </div>
 
 <div id="appContent" style="display:none;">
+  <div class="report-shell">
   <div class="header">
     <h1>Kabel Report</h1>
 
@@ -506,6 +639,13 @@ tr.total-row td{
     </div>
   </div>
 
+  <div class="report-toolbar">
+    <div class="print-hint">Druckansicht blendet Menüs und Filter aus und optimiert Tabellen für Papier.</div>
+    <button type="button" class="print-button" onclick="printReport()"><i class="fa-solid fa-print"></i> Drucken</button>
+  </div>
+
+  <div id="printMeta" class="print-meta"></div>
+
   <div class="info-panel">
     Der Report zählt alle eingezogenen Meter aus den verfügbaren Kabellager-Logs zusammen. Für abgeschlossene Monate werden automatisch gespeicherte Monats-Snapshots aus Firestore verwendet. Rückbuchungen werden aus der Differenz zwischen vorheriger Länge und neuer Länge gerechnet. Vollständig gelöschte Bobinen werden zusätzlich mit ihrer gelöschten Länge gezählt, damit die eingezogenen Meter ebenfalls im Report erscheinen.
   </div>
@@ -554,6 +694,7 @@ tr.total-row td{
 
   <h2 class="section-title">Monatsübersicht</h2>
   <div id="monthsContainer" class="months-grid"></div>
+</div>
 </div>
 
 <script>
@@ -1430,6 +1571,25 @@ function renderMonths(data){
   }
 }
 
+function updatePrintMeta(year, searchTerm, data){
+  const printMeta = document.getElementById("printMeta");
+  const normalizedSearchTerm = sanitizeInput(searchTerm || "", 120);
+  const generatedAt = new Date().toLocaleString("de-CH");
+  const searchInfo = normalizedSearchTerm ? `Aktiver Kabeltyp-Filter: <strong>${escapeHtml(normalizedSearchTerm)}</strong>.` : "Aktiver Kabeltyp-Filter: <strong>Kein Filter</strong>.";
+
+  printMeta.innerHTML = `
+    <strong>Druckübersicht ${escapeHtml(String(year))}</strong><br>
+    Erstellt am ${escapeHtml(generatedAt)}.<br>
+    ${searchInfo}<br>
+    Gesamt im Report: <strong>${escapeHtml(formatMeters(data.totalMeters))}</strong> bei <strong>${escapeHtml(formatCount(data.totalBookings))}</strong> Buchungen.
+  `;
+}
+
+function printReport(){
+  renderReport();
+  window.print();
+}
+
 function renderSummary(data){
   document.getElementById("summaryTotal").textContent = formatMeters(data.totalMeters);
   document.getElementById("summaryBookings").textContent = formatCount(data.totalBookings) + " Buchungen im Report";
@@ -1625,6 +1785,7 @@ function renderReport(){
   ]);
 
   renderNotice(baseData.earliestLogDate, year, historicalSnapshots);
+  updatePrintMeta(year, searchTerm, reportData);
   renderSummary(reportData);
   renderAnnualTable(reportData);
   renderMonths(reportData);
