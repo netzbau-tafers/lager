@@ -629,21 +629,6 @@ label{
         </select>
       </div>
       <div>
-        <label for="detailMode">Detailansicht</label>
-        <select id="detailMode" onchange="renderAll()">
-          <option value="selected">Nur gewählter Monat</option>
-          <option value="all">Alle Monate</option>
-        </select>
-      </div>
-      <div>
-        <label for="sortMode">Sortierung Materialübersicht</label>
-        <select id="sortMode" onchange="renderAll()">
-          <option value="savings">Nach gespartem Betrag</option>
-          <option value="quantity">Nach Anzahl</option>
-          <option value="name">Nach Materialname</option>
-        </select>
-      </div>
-      <div>
         <label for="savedArchiveFilter">Gesicherte Monatsdatei</label>
         <select id="savedArchiveFilter" onchange="renderAll()">
           <option value="">Alle gesicherten Reports</option>
@@ -700,17 +685,6 @@ label{
     <div id="monthlyArchiveList" class="grid-two"></div>
   </div>
 
-  <div class="panel">
-    <h2>Materialübersicht</h2>
-    <div class="helper-text" style="margin-bottom:12px;">Die Übersicht zeigt nur den aktuell gefilterten Monat oder alle Monate, je nach gewählter Detailansicht.</div>
-    <div id="materialSummaryTable" class="table-wrap"></div>
-  </div>
-
-  <div class="panel">
-    <h2>Einzelne Rückträge mit Datum</h2>
-    <div class="helper-text" style="margin-bottom:12px;">Die Rückträge werden monatlich gruppiert, damit lange Listen übersichtlicher bleiben.</div>
-    <div id="entryList" class="grid-two"></div>
-  </div>
 </div>
 
 <script>
@@ -1136,36 +1110,12 @@ function buildMonthlyReports(entries){
 }
 
 function sortMaterialSummaryRows(rows){
-  const sortModeElement = document.getElementById("sortMode");
-  const sortMode = sortModeElement ? sortModeElement.value : "savings";
-  const sorted = [...rows];
-
-  if(sortMode === "quantity"){
-    return sorted.sort((a, b) => b.zurueckgetragenAnzahl - a.zurueckgetragenAnzahl || b.gespartBetrag - a.gespartBetrag);
-  }
-
-  if(sortMode === "name"){
-    return sorted.sort((a, b) => String(a.material || "").localeCompare(String(b.material || ""), "de"));
-  }
-
-  return sorted.sort((a, b) => b.gespartBetrag - a.gespartBetrag || b.zurueckgetragenAnzahl - a.zurueckgetragenAnzahl);
+  return [...rows].sort((a, b) => b.gespartBetrag - a.gespartBetrag || b.zurueckgetragenAnzahl - a.zurueckgetragenAnzahl);
 }
 
 function getSelectedMonth(){
   const element = document.getElementById("monthFilter");
   return element ? element.value : "";
-}
-
-function getDetailEntries(entries){
-  const selectedMonth = getSelectedMonth();
-  const detailModeElement = document.getElementById("detailMode");
-  const detailMode = detailModeElement ? detailModeElement.value : "selected";
-
-  if(detailMode === "all" || !selectedMonth){
-    return entries;
-  }
-
-  return entries.filter(entry => entry.monatKey === selectedMonth);
 }
 
 function populateMonthFilters(monthlyReports, monthlyArchives){
@@ -1774,111 +1724,6 @@ function renderMonthlyArchives(archives){
   });
 }
 
-function renderMaterialSummary(summaryRows){
-  const container = document.getElementById("materialSummaryTable");
-  const sortedRows = sortMaterialSummaryRows(summaryRows);
-
-  if(sortedRows.length === 0){
-    container.innerHTML = '<div class="empty-box">Keine Materialdaten für die Übersicht vorhanden.</div>';
-    return;
-  }
-
-  const rowsHtml = sortedRows.map(row => `
-    <tr>
-      <td>${escapeHtml(row.material)}</td>
-      <td>${escapeHtml(row.spontis || "-")}</td>
-      <td>${escapeHtml(formatQuantity(row.ausgetragenAnzahl))}</td>
-      <td>${escapeHtml(formatQuantity(row.zurueckgetragenAnzahl))}</td>
-      <td>${escapeHtml(formatCurrency(row.austrageBetrag))}</td>
-      <td>${escapeHtml(formatCurrency(row.zuruecktrageBetrag))}</td>
-      <td>${escapeHtml(formatCurrency(row.gespartBetrag))}</td>
-    </tr>
-  `).join("");
-
-  container.innerHTML = `
-    <table>
-      <thead>
-        <tr>
-          <th>Material</th>
-          <th>Spontis</th>
-          <th>Ausgetragen</th>
-          <th>Zurückgetragen</th>
-          <th>Austrage Betrag</th>
-          <th>Zurücktrage Betrag</th>
-          <th>Gespart</th>
-        </tr>
-      </thead>
-      <tbody>${rowsHtml}</tbody>
-    </table>
-  `;
-}
-
-function renderEntries(entries){
-  const container = document.getElementById("entryList");
-  container.innerHTML = "";
-
-  if(entries.length === 0){
-    container.innerHTML = '<div class="empty-box">Keine passenden Rückträge gefunden.</div>';
-    return;
-  }
-
-  const monthGroups = buildMonthlyReports(entries);
-  monthGroups.forEach((report, index) => {
-    const group = document.createElement("details");
-    group.className = "month-group";
-    if(index === 0){
-      group.open = true;
-    }
-
-    const monthEntriesHtml = report.entries.map(entry => `
-      <div class="card" style="margin-bottom:12px;">
-        <div class="${getStatusBadgeClass(entry.status)}">${escapeHtml(getStatusLabel(entry.status))}</div>
-        <div class="card-title">${escapeHtml(entry.material || "Unbekanntes Material")}</div>
-        <div class="card-meta"><strong>Baustelle:</strong> ${escapeHtml(entry.baustelle || "-")}</div>
-        <div class="card-meta"><strong>Baustellen Nummer:</strong> ${escapeHtml(entry.baustellenNummer || "-")}</div>
-        <div class="card-meta"><strong>Spontis Nummer:</strong> ${escapeHtml(entry.spontis || "-")}</div>
-        <div class="card-meta"><strong>Austrag Datum:</strong> ${escapeHtml(formatDateTime(entry.austragDatum))}</div>
-        <div class="card-meta"><strong>Rücktrag Datum:</strong> ${escapeHtml(formatDateTime(entry.ruecktragDatum))}</div>
-        <div class="amount-grid">
-          <div class="amount-item">
-            <div class="amount-label">Ausgetragen</div>
-            <div class="amount-value">${escapeHtml(formatQuantity(entry.ausgetragenAnzahl))}</div>
-          </div>
-          <div class="amount-item">
-            <div class="amount-label">Zurückgetragen</div>
-            <div class="amount-value">${escapeHtml(formatQuantity(entry.zurueckgetragenAnzahl))}</div>
-          </div>
-          <div class="amount-item">
-            <div class="amount-label">Gespart</div>
-            <div class="amount-value">${escapeHtml(formatCurrency(entry.gespartBetrag))}</div>
-          </div>
-        </div>
-      </div>
-    `).join("");
-
-    group.innerHTML = `
-      <summary>
-        <div>
-          <div class="card-title" style="margin-bottom:6px;">${escapeHtml(formatMonthLabel(report.monthKey))}</div>
-          <div class="card-meta">${escapeHtml(String(report.entries.length))} Rückträge in diesem Monat</div>
-        </div>
-        <div class="month-group-meta">
-          <div class="month-stat">
-            <div class="month-stat-label">Anzahl</div>
-            <div class="month-stat-value">${escapeHtml(formatQuantity(report.anzahl))}</div>
-          </div>
-          <div class="month-stat">
-            <div class="month-stat-label">Gespart</div>
-            <div class="month-stat-value">${escapeHtml(formatCurrency(report.gespartBetrag))}</div>
-          </div>
-        </div>
-      </summary>
-      <div class="month-group-body stack">${monthEntriesHtml}</div>
-    `;
-    container.appendChild(group);
-  });
-}
-
 function renderAll(){
   renderTarife();
 
@@ -1886,18 +1731,13 @@ function renderAll(){
   const monthlyReports = buildMonthlyReports(allEntries);
   populateMonthFilters(monthlyReports, alleMonatsarchive);
 
-  const detailEntries = getDetailEntries(allEntries);
-  const materialSummary = buildMaterialSummary(detailEntries);
-
   renderSummary(allEntries, monthlyReports);
   renderMonthlyReports(monthlyReports);
   renderMonthlyArchives(alleMonatsarchive);
-  renderMaterialSummary(materialSummary);
-  renderEntries(detailEntries);
 
   const selectedMonth = getSelectedMonth();
   const scopeLabel = selectedMonth ? " im Monat " + formatMonthLabel(selectedMonth) : "";
-  document.getElementById("resultInfo").innerText = "Angezeigte Rückträge" + scopeLabel + ": " + detailEntries.length + " | Monate gesamt: " + monthlyReports.length;
+  document.getElementById("resultInfo").innerText = "Berücksichtigte Rückträge" + scopeLabel + ": " + allEntries.length + " | Monate gesamt: " + monthlyReports.length;
 }
 
 function editTarif(id){
@@ -1984,15 +1824,11 @@ function resetSearch(){
   document.getElementById("searchInput").value = "";
   const monthFilter = document.getElementById("monthFilter");
   const archiveFilter = document.getElementById("savedArchiveFilter");
-  const detailMode = document.getElementById("detailMode");
   if(monthFilter){
     monthFilter.value = "";
   }
   if(archiveFilter){
     archiveFilter.value = "";
-  }
-  if(detailMode){
-    detailMode.value = "selected";
   }
   renderAll();
 }
