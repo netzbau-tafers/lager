@@ -842,6 +842,29 @@ function formatTimestamp(value){
   return date ? date.toLocaleString("de-CH") : "";
 }
 
+function buildSnapshotEntryKey(entry){
+  const typ = sanitizeInput(entry && entry.typ ? entry.typ : "Unbekannter Typ", 200) || "Unbekannter Typ";
+  const nummer = sanitizeInput(entry && entry.nummer ? entry.nummer : "", 200) || "";
+  const meter = roundMeters(Number(entry && entry.meter || 0));
+  const source = sanitizeInput(entry && entry.source ? entry.source : "", 100) || "";
+  const month = Number(entry && entry.month || 0);
+  const timestamp = Number(entry && entry.timestamp || 0);
+  return [typ, nummer, meter, source, month, timestamp].join("|");
+}
+
+function normalizeSnapshotSourceKeys(sourceKeys = []){
+  const uniqueKeys = new Set();
+
+  (Array.isArray(sourceKeys) ? sourceKeys : []).forEach(sourceKey => {
+    const key = sanitizeInput(sourceKey, 500);
+    if(key){
+      uniqueKeys.add(key);
+    }
+  });
+
+  return Array.from(uniqueKeys.values()).sort();
+}
+
 function createEmptySnapshotPayload(year, monthIndex, sourceLogCount = 0){
   return {
     periodKey: getSnapshotDocumentId(year, monthIndex),
@@ -854,7 +877,8 @@ function createEmptySnapshotPayload(year, monthIndex, sourceLogCount = 0){
     totalBookings: 0,
     totalReturns: 0,
     totalDeletes: 0,
-    sourceLogCount: sourceLogCount
+    sourceLogCount: sourceLogCount,
+    sourceKeys: []
   };
 }
 
@@ -910,7 +934,8 @@ function buildSnapshotPayload(year, monthIndex, entries, sourceLogCount = 0){
     totalBookings: entries.length,
     totalReturns: totalReturns,
     totalDeletes: totalDeletes,
-    sourceLogCount: sourceLogCount
+    sourceLogCount: sourceLogCount,
+    sourceKeys: normalizeSnapshotSourceKeys(entries.map(entry => buildSnapshotEntryKey(entry)))
   };
 }
 
@@ -970,12 +995,29 @@ function mergeSnapshotRows(snapshotRows = [], entries = []){
 }
 
 function buildMergedSnapshotPayload(existingSnapshot, year, monthIndex, monthEntries){
+  const existingSourceKeys = normalizeSnapshotSourceKeys(existingSnapshot && existingSnapshot.sourceKeys);
+  const existingSourceKeySet = new Set(existingSourceKeys);
   const snapshotTimestamp = getMillis(
     existingSnapshot && (existingSnapshot.generatedAt || existingSnapshot.updatedAt || existingSnapshot.createdAt)
   );
-  const entriesToMerge = snapshotTimestamp
-    ? monthEntries.filter(entry => Number(entry.timestamp || 0) > snapshotTimestamp)
-    : monthEntries.slice();
+
+  const entriesToMerge = monthEntries.filter(entry => {
+    const entryKey = buildSnapshotEntryKey(entry);
+    if(existingSourceKeySet.has(entryKey)){
+      return false;
+    }
+
+    if(existingSourceKeys.length > 0){
+      return true;
+    }
+
+    return snapshotTimestamp ? Number(entry.timestamp || 0) > snapshotTimestamp : true;
+  });
+
+  const mergedSourceKeys = normalizeSnapshotSourceKeys([
+    ...existingSourceKeys,
+    ...entriesToMerge.map(entry => buildSnapshotEntryKey(entry))
+  ]);
   const rows = mergeSnapshotRows(existingSnapshot ? existingSnapshot.rows : [], entriesToMerge);
 
   return {
@@ -989,7 +1031,8 @@ function buildMergedSnapshotPayload(existingSnapshot, year, monthIndex, monthEnt
     totalBookings: rows.reduce((sum, row) => sum + Number(row.count || 0), 0),
     totalReturns: rows.reduce((sum, row) => sum + Number(row.returnsCount || 0), 0),
     totalDeletes: rows.reduce((sum, row) => sum + Number(row.deletesCount || 0), 0),
-    sourceLogCount: Number(existingSnapshot && existingSnapshot.sourceLogCount || 0) + entriesToMerge.length
+    sourceLogCount: mergedSourceKeys.length,
+    sourceKeys: mergedSourceKeys
   };
 }
 
@@ -1752,8 +1795,9 @@ async function saveSnapshotForMonth(year, monthIndex){
 
   const snapshotId = getSnapshotDocumentId(year, monthIndex);
   const monthLabel = getMonthLabel(monthIndex);
-  const existingSnapshot = getSnapshotByMonth(year, monthIndex);
-  if(existingSnapshot && !confirm(`Snapshot für ${monthLabel} ${year} aktualisieren?`)){
+  const snapshotRef = reportSnapshotsCollection.doc(snapshotId);
+  const localSnapshot = getSnapshotByMonth(year, monthIndex);
+  if(localSnapshot && !confirm(`Snapshot für ${monthLabel} ${year} aktualisieren?`)){
     return;
   }
 
@@ -1761,6 +1805,10 @@ async function saveSnapshotForMonth(year, monthIndex){
   renderReport();
 
   try{
+    const existingSnapshotDoc = await snapshotRef.get();
+    const existingSnapshot = existingSnapshotDoc.exists
+      ? { id: existingSnapshotDoc.id, ...existingSnapshotDoc.data() }
+      : localSnapshot;
     const monthData = buildReportEntriesForMonth(year, monthIndex);
     let payload = monthData.reportEntries.length
       ? buildSnapshotPayload(year, monthIndex, monthData.reportEntries, monthData.reportEntries.length)
@@ -1774,7 +1822,7 @@ async function saveSnapshotForMonth(year, monthIndex){
     payload.generatedByUid = user.uid || "";
     payload.generatedByEmail = user.email || "";
 
-    await reportSnapshotsCollection.doc(snapshotId).set(payload, { merge: true });
+    await snapshotRef.set(payload, { merge: true });
     alert(`Snapshot für ${monthLabel} ${year} wurde gespeichert.`);
   }catch(error){
     console.error("Monats-Snapshot konnte nicht gespeichert werden:", error);
