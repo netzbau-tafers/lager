@@ -1859,7 +1859,8 @@ function renderAll(){
   beendeteContainer.innerHTML = "";
 
   const aktive = [...alleBaustellen]
-    .filter(b => b.status === "aktiv" && baustellePasstZurSuche(b) && baustellePasstZumErstellerFilter(b));
+    .filter(b => b.status === "aktiv" && baustellePasstZurSuche(b) && baustellePasstZumErstellerFilter(b))
+    .sort((a, b) => getFirestoreTime(b.createdAt) - getFirestoreTime(a.createdAt));
 
   const beendete = [...alleBaustellen]
     .filter(b => b.status === "rausschreiben" && baustellePasstZurSuche(b) && baustellePasstZumErstellerFilter(b))
