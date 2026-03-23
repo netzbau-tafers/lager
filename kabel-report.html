@@ -914,6 +914,85 @@ function buildSnapshotPayload(year, monthIndex, entries, sourceLogCount = 0){
   };
 }
 
+function mergeSnapshotRows(snapshotRows = [], entries = []){
+  const mergedByType = new Map();
+
+  (Array.isArray(snapshotRows) ? snapshotRows : []).forEach(sourceRow => {
+    const typ = sanitizeInput(sourceRow.typ || "Unbekannter Typ", 200) || "Unbekannter Typ";
+    const existingRow = mergedByType.get(typ) || {
+      typ: typ,
+      meter: 0,
+      count: 0,
+      returnsCount: 0,
+      deletesCount: 0
+    };
+
+    existingRow.meter += Number(sourceRow.meter || 0);
+    existingRow.count += Number(sourceRow.count || 0);
+    existingRow.returnsCount += Number(sourceRow.returnsCount || 0);
+    existingRow.deletesCount += Number(sourceRow.deletesCount || 0);
+    mergedByType.set(typ, existingRow);
+  });
+
+  entries.forEach(entry => {
+    const typ = sanitizeInput(entry.typ || "Unbekannter Typ", 200) || "Unbekannter Typ";
+    const existingRow = mergedByType.get(typ) || {
+      typ: typ,
+      meter: 0,
+      count: 0,
+      returnsCount: 0,
+      deletesCount: 0
+    };
+
+    existingRow.meter += Number(entry.meter || 0);
+    existingRow.count += 1;
+
+    if(entry.source === "Rückbuchung"){
+      existingRow.returnsCount += 1;
+    }else if(entry.source === "Komplett gelöscht"){
+      existingRow.deletesCount += 1;
+    }
+
+    mergedByType.set(typ, existingRow);
+  });
+
+  const rows = Array.from(mergedByType.values())
+    .map(row => ({
+      typ: row.typ,
+      meter: roundMeters(row.meter),
+      count: row.count,
+      returnsCount: row.returnsCount,
+      deletesCount: row.deletesCount
+    }))
+    .sort((a, b) => b.meter - a.meter || a.typ.localeCompare(b.typ, "de", { sensitivity: "base" }));
+
+  return rows;
+}
+
+function buildMergedSnapshotPayload(existingSnapshot, year, monthIndex, monthEntries){
+  const snapshotTimestamp = getMillis(
+    existingSnapshot && (existingSnapshot.generatedAt || existingSnapshot.updatedAt || existingSnapshot.createdAt)
+  );
+  const entriesToMerge = snapshotTimestamp
+    ? monthEntries.filter(entry => Number(entry.timestamp || 0) > snapshotTimestamp)
+    : monthEntries.slice();
+  const rows = mergeSnapshotRows(existingSnapshot ? existingSnapshot.rows : [], entriesToMerge);
+
+  return {
+    periodKey: getSnapshotDocumentId(year, monthIndex),
+    year: year,
+    month: monthIndex + 1,
+    monthIndex: monthIndex,
+    status: SNAPSHOT_STATUS_READY,
+    rows: rows,
+    totalMeters: roundMeters(rows.reduce((sum, row) => sum + Number(row.meter || 0), 0)),
+    totalBookings: rows.reduce((sum, row) => sum + Number(row.count || 0), 0),
+    totalReturns: rows.reduce((sum, row) => sum + Number(row.returnsCount || 0), 0),
+    totalDeletes: rows.reduce((sum, row) => sum + Number(row.deletesCount || 0), 0),
+    sourceLogCount: Number(existingSnapshot && existingSnapshot.sourceLogCount || 0) + entriesToMerge.length
+  };
+}
+
 function buildSnapshotReportData(snapshotDocs, searchTerm){
   const term = String(searchTerm || "").trim().toLowerCase();
   const annualByType = new Map();
@@ -1683,9 +1762,13 @@ async function saveSnapshotForMonth(year, monthIndex){
 
   try{
     const monthData = buildReportEntriesForMonth(year, monthIndex);
-    const payload = monthData.reportEntries.length
+    let payload = monthData.reportEntries.length
       ? buildSnapshotPayload(year, monthIndex, monthData.reportEntries, monthData.reportEntries.length)
       : createEmptySnapshotPayload(year, monthIndex, 0);
+
+    if(existingSnapshot){
+      payload = buildMergedSnapshotPayload(existingSnapshot, year, monthIndex, monthData.reportEntries);
+    }
 
     payload.generatedAt = firebase.firestore.FieldValue.serverTimestamp();
     payload.generatedByUid = user.uid || "";
