@@ -1728,61 +1728,44 @@ function getPreviousMonthReference(){
   return new Date(now.getFullYear(), now.getMonth() - 1, 1);
 }
 
-function getReportEntryBoundsByMonth(reportEntries = []){
-  const boundsByMonth = new Map();
-
-  (Array.isArray(reportEntries) ? reportEntries : []).forEach(entry => {
-    const month = Number(entry.month);
-    const timestamp = Number(entry.timestamp);
-
-    if(!Number.isInteger(month) || month < 0 || month > 11 || !Number.isFinite(timestamp)){
-      return;
-    }
-
-    const currentBounds = boundsByMonth.get(month) || { earliestTimestamp: timestamp };
-    currentBounds.earliestTimestamp = Math.min(currentBounds.earliestTimestamp, timestamp);
-    boundsByMonth.set(month, currentBounds);
-  });
-
-  return boundsByMonth;
-}
-
-function getDisplaySnapshotDocs(year, reportEntries = []){
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear();
-  const currentMonthIndex = currentDate.getMonth();
-  const liveEntryBoundsByMonth = getReportEntryBoundsByMonth(reportEntries);
-
+function getDisplaySnapshotDocs(year){
   return allSnapshots.filter(snapshot => {
     if(snapshot.status !== SNAPSHOT_STATUS_READY || snapshot.year !== year){
       return false;
     }
 
     const snapshotMonthIndex = Number(snapshot.monthIndex);
-    if(!Number.isInteger(snapshotMonthIndex) || snapshotMonthIndex < 0 || snapshotMonthIndex > 11){
+    return Number.isInteger(snapshotMonthIndex) && snapshotMonthIndex >= 0 && snapshotMonthIndex <= 11;
+  });
+}
+
+function filterLiveEntriesAgainstSnapshots(year, reportEntries = []){
+  const snapshotsByMonth = new Map();
+
+  getDisplaySnapshotDocs(year).forEach(snapshot => {
+    snapshotsByMonth.set(Number(snapshot.monthIndex), {
+      sourceKeySet: new Set(normalizeSnapshotSourceKeys(snapshot.sourceKeys)),
+      timestamp: getMillis(snapshot.generatedAt || snapshot.updatedAt || snapshot.createdAt)
+    });
+  });
+
+  return (Array.isArray(reportEntries) ? reportEntries : []).filter(entry => {
+    const monthIndex = Number(entry.month);
+    const snapshotMeta = snapshotsByMonth.get(monthIndex);
+
+    if(!snapshotMeta){
+      return true;
+    }
+
+    if(snapshotMeta.sourceKeySet.size > 0){
+      return !snapshotMeta.sourceKeySet.has(buildSnapshotEntryKey(entry));
+    }
+
+    if(snapshotMeta.timestamp === 0){
       return false;
     }
 
-    if(year < currentYear){
-      return true;
-    }
-
-    if(snapshotMonthIndex < currentMonthIndex){
-      return true;
-    }
-
-    if(!liveEntryBoundsByMonth.has(snapshotMonthIndex)){
-      return true;
-    }
-
-    const snapshotTimestamp = getMillis(snapshot.generatedAt || snapshot.updatedAt || snapshot.createdAt);
-    const monthBounds = liveEntryBoundsByMonth.get(snapshotMonthIndex);
-
-    if(snapshotTimestamp !== 0 && monthBounds && monthBounds.earliestTimestamp > snapshotTimestamp){
-      return true;
-    }
-
-    return false;
+    return Number(entry.timestamp || 0) > snapshotMeta.timestamp;
   });
 }
 
@@ -1877,10 +1860,11 @@ function renderReport(){
   const year = Number(document.getElementById("yearFilter").value || new Date().getFullYear());
   const searchTerm = document.getElementById("typeSearch").value;
   const baseData = buildReportEntries(year);
-  const historicalSnapshots = getDisplaySnapshotDocs(year, baseData.reportEntries);
+  const historicalSnapshots = getDisplaySnapshotDocs(year);
+  const liveEntries = filterLiveEntriesAgainstSnapshots(year, baseData.reportEntries);
   const reportData = mergeReportData([
     buildSnapshotReportData(historicalSnapshots, searchTerm),
-    groupEntries(baseData.reportEntries, searchTerm)
+    groupEntries(liveEntries, searchTerm)
   ]);
 
   renderNotice(baseData.earliestLogDate, year, historicalSnapshots);
