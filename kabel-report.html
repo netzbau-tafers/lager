@@ -177,6 +177,55 @@ button i{
   margin:0 0 14px 0;
 }
 
+.calc-info{
+  margin:0 0 14px 0;
+  padding:0;
+  overflow:hidden;
+}
+
+.calc-info summary{
+  list-style:none;
+  cursor:pointer;
+  font-weight:bold;
+  padding:14px 18px;
+  color:#1c2f41;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.calc-info summary::-webkit-details-marker{
+  display:none;
+}
+
+.calc-info summary::after{
+  content:"\f078";
+  font-family:"Font Awesome 6 Free";
+  font-weight:900;
+  color:#4b5d70;
+  transition:transform 0.2s ease;
+}
+
+.calc-info[open] summary::after{
+  transform:rotate(180deg);
+}
+
+.calc-info-content{
+  border-top:1px solid #d7dde4;
+  padding:14px 18px 18px;
+  color:#43505c;
+  line-height:1.55;
+}
+
+.calc-info-content p{
+  margin:0 0 10px 0;
+}
+
+.calc-info-content p:last-child{
+  margin-bottom:0;
+}
+
 .print-button{
   background:#2d7d46;
 }
@@ -634,6 +683,15 @@ tr.total-row td{
       </div>
     </div>
   </div>
+
+  <details class="info-panel calc-info">
+    <summary>Wie wird gerechnet?</summary>
+    <div class="calc-info-content">
+      <p>Der Kabel Report berücksichtigt nur dokumentierte Einzüge. Wird ein Kabel ausgetragen und anschließend ins Lager zurückgeschrieben, werden ausschließlich die dabei als eingezogen erfassten Meter gerechnet.</p>
+      <p>Beim vollständigen Löschen einer Bobine werden die zugehörigen Meter ebenfalls als eingezogen gewertet – sowohl wenn die Bobine zuvor ausgetragen wurde als auch wenn sie ohne vorherige Austragung gelöscht wird.</p>
+      <p>Wichtig: Einzüge von Kabeln, die nicht im Kabellager gespeichert sind, können im Kabel Report nicht berücksichtigt werden.</p>
+    </div>
+  </details>
 
   <div class="report-toolbar">
     <button type="button" class="print-button" onclick="printReport()"><i class="fa-solid fa-print"></i> Drucken</button>
