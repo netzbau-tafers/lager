@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Datenschutz | Lagermanager</title>
+
+<link rel="icon" type="image/png" sizes="any" href="favicon.png">
+<link rel="shortcut icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" sizes="180x180" href="favicon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#e6eaef">
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+<style>
+body{
+  font-family:Arial, sans-serif;
+  background:#e6eaef;
+  margin:40px;
+  color:#222;
+}
+
+.card{
+  max-width:900px;
+  margin:0 auto;
+  background:white;
+  border:1px solid #d5dbe3;
+  border-radius:14px;
+  box-shadow:0 8px 22px rgba(0,0,0,0.08);
+  padding:24px;
+  line-height:1.55;
+}
+
+.app-footer{
+  margin:32px auto 0;
+  max-width:900px;
+  padding:14px 18px;
+  text-align:center;
+  color:#5b6570;
+  font-size:14px;
+}
+
+@media (max-width: 680px){
+  body{
+    margin:18px;
+  }
+
+  .card{
+    padding:18px;
+  }
+
+  .app-footer{
+    margin-top:24px;
+    padding:12px 10px;
+    font-size:13px;
+  }
+}
+</style>
+</head>
+<body>
+  <main id="content" class="card" style="display:none;">
+    <h2>Datenschutz</h2>
+    <p>
+    Diese Anwendung wird intern vom Netzbau Team Tafers genutzt.
+    Es werden folgende Daten gespeichert:
+    </p>
+
+    <ul>
+      <li>E-Mail-Adresse zur Anmeldung (Firebase Authentication)</li>
+      <li>Benutzeraktionen (Logs zur Nachverfolgung)</li>
+      <li>Baustellen- und Materialdaten</li>
+    </ul>
+
+    <p>
+    Die Daten werden ausschliesslich für betriebliche Zwecke verwendet
+    und nicht an Dritte weitergegeben.
+    </p>
+
+    <p>
+    Verantwortlich: Martin Gross
+    </p>
+  </main>
+
+  <script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",
+    authDomain: "netzbau-tafers.firebaseapp.com",
+    projectId: "netzbau-tafers",
+    storageBucket: "netzbau-tafers.appspot.com",
+    messagingSenderId: "389541837675",
+    appId: "1:389541837675:web:db580ce67c57a9a16dea2e",
+    measurementId: "G-B5MJGD3108"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+
+  auth.onAuthStateChanged((user) => {
+    if(user){
+      document.getElementById("content").style.display = "block";
+      return;
+    }
+
+    window.location.href = "home.html";
+  });
+  </script>
+
+  <footer class="app-footer">© 2026 Martin Gross. Alle Rechte vorbehalten. · <a href="datenschutz.html">Datenschutz</a></footer>
+</body>
+</html>
