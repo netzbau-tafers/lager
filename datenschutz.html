@@ -20,6 +20,7 @@ body{
   background:#e6eaef;
   margin:40px;
   color:#222;
+  display:none; /* 🔥 verhindert Aufblitzen */
 }
 
 .card{
@@ -59,54 +60,69 @@ body{
 }
 </style>
 </head>
+
 <body>
-  <main id="content" class="card" style="display:none;">
-    <h2>Datenschutz</h2>
-    <p>
-    Diese Anwendung wird intern vom Netzbau Team Tafers genutzt.
-    Es werden folgende Daten gespeichert:
-    </p>
 
-    <ul>
-      <li>E-Mail-Adresse zur Anmeldung (Firebase Authentication)</li>
-      <li>Benutzeraktionen (Logs zur Nachverfolgung)</li>
-      <li>Baustellen- und Materialdaten</li>
-    </ul>
+<main class="card">
+  <h2>Datenschutz</h2>
+  <p>
+  Diese Anwendung wird intern vom Netzbau Team Tafers genutzt.
+  Es werden folgende Daten gespeichert:
+  </p>
 
-    <p>
-    Die Daten werden ausschliesslich für betriebliche Zwecke verwendet
-    und nicht an Dritte weitergegeben.
-    </p>
+  <ul>
+    <li>E-Mail-Adresse zur Anmeldung (Firebase Authentication)</li>
+    <li>Benutzeraktionen (Logs zur Nachverfolgung)</li>
+    <li>Baustellen- und Materialdaten</li>
+  </ul>
 
-    <p>
-    Verantwortlich: Martin Gross
-    </p>
-  </main>
+  <p>
+  Die Daten werden ausschliesslich für betriebliche Zwecke verwendet
+  und nicht an Dritte weitergegeben.
+  </p>
 
-  <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",
-    authDomain: "netzbau-tafers.firebaseapp.com",
-    projectId: "netzbau-tafers",
-    storageBucket: "netzbau-tafers.appspot.com",
-    messagingSenderId: "389541837675",
-    appId: "1:389541837675:web:db580ce67c57a9a16dea2e",
-    measurementId: "G-B5MJGD3108"
-  };
+  <p>
+  Verantwortlich: Martin Gross
+  </p>
+</main>
 
+<footer class="app-footer">
+  © 2026 Martin Gross. Alle Rechte vorbehalten.
+</footer>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",
+  authDomain: "netzbau-tafers.firebaseapp.com",
+  projectId: "netzbau-tafers",
+  storageBucket: "netzbau-tafers.appspot.com",
+  messagingSenderId: "389541837675",
+  appId: "1:389541837675:web:db580ce67c57a9a16dea2e",
+  measurementId: "G-B5MJGD3108"
+};
+
+// 🔥 verhindert doppelte Initialisierung (wichtig bei mehreren Seiten)
+if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
+}
 
-  auth.onAuthStateChanged((user) => {
-    if(user){
-      document.getElementById("content").style.display = "block";
-      return;
-    }
+const auth = firebase.auth();
 
+// 🔥 kleine Timeout-Sicherheit (optional aber gut)
+let timeout = setTimeout(() => {
+  window.location.href = "home.html";
+}, 4000);
+
+auth.onAuthStateChanged((user) => {
+  clearTimeout(timeout);
+
+  if (user) {
+    document.body.style.display = "block";
+  } else {
     window.location.href = "home.html";
-  });
-  </script>
+  }
+});
+</script>
 
-  <footer class="app-footer">© 2026 Martin Gross. Alle Rechte vorbehalten. · <a href="datenschutz.html">Datenschutz</a></footer>
 </body>
 </html>
