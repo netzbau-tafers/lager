@@ -215,6 +215,17 @@ button i{
   justify-content:flex-end;
 }
 
+.result-bar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+
+.result-bar .info-box{
+  margin:0;
+}
+
 .print-btn{
   background:#2d7d46;
 }
@@ -1017,6 +1028,15 @@ textarea{
     width:100%;
   }
 
+  .result-bar{
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .result-bar .print-btn{
+    width:100%;
+  }
+
   .desktop-table-wrap{
     display:none;
   }
@@ -1204,12 +1224,6 @@ textarea{
         <option value="Reserviert">Reserviert</option>
         <option value="In Gebrauch">In Gebrauch</option>
       </select>
-
-      <div class="filter-actions">
-        <button type="button" class="print-btn" onclick="printInventoryReport()">
-          <i class="fa-solid fa-print"></i> Drucken
-        </button>
-      </div>
     </div>
 
     <div style="margin-top:15px;">
@@ -1294,7 +1308,12 @@ wie <b>Bearbeiten</b> oder <b>Löschen</b>.
 </div>
 </details>
 
-  <div class="info-box" id="resultInfo"></div>
+  <div class="result-bar">
+    <div class="info-box" id="resultInfo"></div>
+    <button type="button" class="print-btn" onclick="printInventoryReport()">
+      <i class="fa-solid fa-print"></i> Drucken
+    </button>
+  </div>
 
   <div class="desktop-table-wrap">
     <table>
