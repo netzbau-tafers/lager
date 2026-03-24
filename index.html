@@ -1753,7 +1753,10 @@ function formatDatum(value){
 }
 
 function parsePositiveNumber(value){
-  const cleaned = String(value || "").replace(/,/g, ".").trim();
+  let cleaned = String(value || "").trim();
+
+  cleaned = cleaned.replace(/\s*(m|meter)\s*\.?$/i, "");
+  cleaned = cleaned.replace(/,/g, ".");
 
   if(cleaned === ""){
     return null;
