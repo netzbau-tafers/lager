@@ -217,7 +217,7 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
     const usersCollection = db.collection("users");
-    const LIMITED_ACCESS_UIDS = ["POSB6W7xeDZ8Dlba03ZP3J02dMC3", "AX08qKp7lte6vslQMFn76FVqxw53", "grkH9K5WprQ8TUhvgWvTyEHgwch1"];
+    const LIMITED_ACCESS_UIDS = ["POSB6W7xeDZ8Dlba03ZP3J02dMC3", "AX08qKp7lte6vslQMFn76FVqxw53", "KYqiqNKTmkQQYVWAa6bp6vSvTlV2"];
     const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
 const SPECIAL_SAVINGS_UID = "pmyu29TlC3QM7JIysmy2EmiHSWW2";
 const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
