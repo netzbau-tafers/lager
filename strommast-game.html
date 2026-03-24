@@ -692,11 +692,9 @@ canvas{
         <div class="overlay-box">
           <h2>Game Over</h2>
           <p>Punkte: <span id="finalScore">0</span></p>
-          <input id="scoreNameInput" class="name-input" type="text" maxlength="20" placeholder="Dein Name für die Rangliste" autocomplete="nickname">
           <p id="saveStatus"></p>
 
           <div class="overlay-actions">
-            <button id="saveScoreButton" type="button" onclick="saveScore()">Punkte speichern</button>
             <button id="newGameButton" type="button" onclick="startGame()">Neues Spiel</button>
           </div>
         </div>
@@ -769,10 +767,8 @@ const finalScoreEl = document.getElementById("finalScore");
 const startOverlay = document.getElementById("startOverlay");
 const gameOverOverlay = document.getElementById("gameOverOverlay");
 const saveStatusEl = document.getElementById("saveStatus");
-const saveScoreButton = document.getElementById("saveScoreButton");
 const newGameButton = document.getElementById("newGameButton");
 const liveRankingList = document.getElementById("liveRankingList");
-const scoreNameInput = document.getElementById("scoreNameInput");
 const characterButtons = document.querySelectorAll(".character-button");
 const characterHint = document.getElementById("characterHint");
 
@@ -913,19 +909,14 @@ function getStoredUsername(){
 }
 
 function getScoreUsername(){
-  const enteredName = sanitizeInput(scoreNameInput.value || "", 20);
-  if(enteredName){
-    return enteredName;
-  }
-
   const storedUsername = getStoredUsername();
   if(storedUsername){
-    return storedUsername;
+    return storedUsername.slice(0, 20);
   }
 
   const user = auth.currentUser;
   if(user && user.email){
-    return sanitizeInput(user.email, 120);
+    return sanitizeInput(user.email, 120).slice(0, 20);
   }
 
   return "Unbekannt";
@@ -1152,8 +1143,6 @@ async function saveScore(){
 
   gameOverSaved = true;
   saveStatusEl.textContent = `Punkte wurden für ${name} gespeichert.`;
-  saveScoreButton.classList.add("hidden");
-  newGameButton.classList.remove("hidden");
   renderRanking();
 }
 
@@ -1306,9 +1295,6 @@ function resetGameState(){
   scoreEl.textContent = "0";
   finalScoreEl.textContent = "0";
   saveStatusEl.textContent = "";
-  scoreNameInput.value = "";
-  scoreNameInput.classList.remove("hidden");
-  saveScoreButton.classList.remove("hidden");
   newGameButton.classList.remove("hidden");
   startOverlay.classList.add("hidden");
   gameOverOverlay.classList.add("hidden");
@@ -1376,7 +1362,6 @@ function endGame(){
   const qualifiesForLeaderboard = canScoreReachLeaderboard(finalScore);
 
   finalScoreEl.textContent = finalScore;
-  scoreNameInput.value = getScoreUsername();
   saveStatusEl.textContent = "";
 
   if(score > bestScore){
@@ -1389,14 +1374,13 @@ function endGame(){
   setCharacterSelectionLocked(false);
 
   if(qualifiesForLeaderboard){
-    scoreNameInput.classList.remove("hidden");
-    saveScoreButton.classList.remove("hidden");
-    saveStatusEl.textContent = "Top-10 geschafft! Du kannst deinen Punktestand speichern.";
-    scoreNameInput.focus();
-    scoreNameInput.select();
+    saveStatusEl.textContent = "Top-10 geschafft! Speichere automatisch …";
+    saveScore()
+      .catch((error) => {
+        console.error("Automatisches Speichern fehlgeschlagen:", error);
+        saveStatusEl.textContent = "Automatisches Speichern fehlgeschlagen. Bitte erneut spielen.";
+      });
   }else{
-    scoreNameInput.classList.add("hidden");
-    saveScoreButton.classList.add("hidden");
     saveStatusEl.textContent = "Nicht genug Punkte für die Top 10 – versuch's gleich noch einmal.";
     newGameButton.focus();
   }
