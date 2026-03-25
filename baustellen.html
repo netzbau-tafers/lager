@@ -3455,13 +3455,14 @@ function deleteVorlage(id){
     return;
   }
 
-  const text =
-    "Materialvorlage wirklich löschen?\n\n" +
+  const bestaetigung = prompt(
+    "Zum Löschen bitte \"löschen\" eingeben.\n\n" +
     "Material: " + sanitizeInput(v.material || "", 120) + "\n" +
     "Neue Spontis Nummer: " + sanitizeInput(v.spontis || "", 60) +
-    (v.alteSpontis ? "\nAlte Spontis Nummer: " + sanitizeInput(v.alteSpontis || "", 60) : "");
+    (v.alteSpontis ? "\nAlte Spontis Nummer: " + sanitizeInput(v.alteSpontis || "", 60) : "")
+  );
 
-  if(confirm(text)){
+  if(bestaetigung && bestaetigung.trim().toLowerCase() === "löschen"){
     vorlagenCollection.doc(id).delete().then(() => {
       writeLog(
         "Baustellenmaterial",
@@ -3477,6 +3478,8 @@ function deleteVorlage(id){
       console.error("Fehler beim Löschen der Vorlage:", error);
       alert("Fehler beim Löschen.");
     });
+  }else if(bestaetigung !== null){
+    alert("Löschen abgebrochen: Bitte exakt \"löschen\" eingeben.");
   }
 }
 
