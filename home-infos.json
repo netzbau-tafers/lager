@@ -2,8 +2,8 @@
   "title": "Aktuelle Infos",
   "updatedAt": "2026-03-25",
   "items": [
-    "Willkommen im Lagermanager.",
-    "Diese Infos kannst du direkt in der Datei home-infos.json auf GitHub ändern.",
-    "Nach dem Speichern werden die Inhalte auf home.html automatisch angezeigt."
+    "Neue Funktion: Bilder in Materialvorlagen
+Administratoren haben ab sofort die Möglichkeit, in den Materialvorlagen optional ein Bild pro Material zu hinterlegen. Diese Funktion dient als visuelle Unterstützung und erleichtert die eindeutige Zuordnung von Materialien, insbesondere wenn der Materialname nicht sofort eindeutig erkannt wird.
+Die hinterlegten Bilder können aktuell ausschliesslich innerhalb der Materialvorlagen eingesehen werden und sind nicht in anderen Bereichen der Anwendung sichtbar."
   ]
 }
