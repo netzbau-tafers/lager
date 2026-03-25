@@ -340,6 +340,23 @@ label{
   cursor:pointer;
 }
 
+.vorlage-saving-status{
+  display:none;
+  align-items:center;
+  gap:8px;
+  margin:-4px 0 14px 0;
+  padding:10px 12px;
+  border-radius:8px;
+  border:1px solid #d7dee6;
+  background:#f7f9fb;
+  color:#22303c;
+  font-weight:bold;
+}
+
+.vorlage-saving-status.active{
+  display:flex;
+}
+
 #searchInput,
 #vorlagenSearchInput{
   margin:0;
@@ -1119,8 +1136,12 @@ label{
       <input id="vorlageInGespart" type="checkbox">
       <label for="vorlageInGespart" class="vorlage-checkbox-label">In gespart.html berücksichtigen</label>
     </div>
-    <button onclick="saveVorlage()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
-    <button class="back" onclick="closeModals()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
+    <div id="vorlageSavingStatus" class="vorlage-saving-status" role="status" aria-live="polite">
+      <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
+      <span>Wird gespeichert… Bitte warten.</span>
+    </div>
+    <button id="saveVorlageBtn" onclick="saveVorlage()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
+    <button id="cancelVorlageBtn" class="back" onclick="closeModals()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
   </div>
 </div>
 
@@ -1181,6 +1202,7 @@ let selectedVorlageImagePreviewUrl = "";
 let selectedVorlageImageExistingPath = "";
 let selectedVorlageImageExistingUrl = "";
 let removeExistingVorlageImage = false;
+let isSavingVorlage = false;
 const VORLAGE_IMAGE_MAX_WIDTH = 1280;
 const VORLAGE_IMAGE_MAX_HEIGHT = 1280;
 const VORLAGE_IMAGE_QUALITY = 0.85;
@@ -1201,6 +1223,25 @@ function updateSavingsCheckboxVisibility(){
   checkboxWrap.style.display = visible ? "flex" : "none";
   if(!visible){
     checkbox.checked = false;
+  }
+}
+
+function setVorlageSavingState(isSaving){
+  isSavingVorlage = !!isSaving;
+  const saveBtn = document.getElementById("saveVorlageBtn");
+  const cancelBtn = document.getElementById("cancelVorlageBtn");
+  const status = document.getElementById("vorlageSavingStatus");
+  if(saveBtn){
+    saveBtn.disabled = isSavingVorlage;
+    saveBtn.innerHTML = isSavingVorlage
+      ? '<i class="fa-solid fa-spinner fa-spin"></i> Speichern...'
+      : '<i class="fa-solid fa-floppy-disk"></i> Speichern';
+  }
+  if(cancelBtn){
+    cancelBtn.disabled = isSavingVorlage;
+  }
+  if(status){
+    status.classList.toggle("active", isSavingVorlage);
   }
 }
 
@@ -2864,6 +2905,7 @@ function openVorlageModal(id = null){
 
   editVorlageId = id;
   clearVorlageImageState();
+  setVorlageSavingState(false);
 
   if(id){
     const v = alleVorlagen.find(x => x.id === id);
@@ -2897,6 +2939,9 @@ function openVorlageModal(id = null){
 async function saveVorlage(){
   if(!isAdminUser){
     alert("Nur Admins dürfen Materialvorlagen speichern.");
+    return;
+  }
+  if(isSavingVorlage){
     return;
   }
 
@@ -2945,6 +2990,7 @@ async function saveVorlage(){
     vorlagePayload.inGespart = includeInSavings;
   }
 
+  setVorlageSavingState(true);
   try{
     const vorlageId = editVorlageId || vorlagenCollection.doc().id;
     let imagePath = selectedVorlageImageExistingPath;
@@ -2999,7 +3045,7 @@ async function saveVorlage(){
         " | Neuer Barcode: " + (barcode || "-") +
         " | Alter Barcode: " + (alteBarcode || "-")
       );
-      loadVorlagen(true);
+      await loadVorlagen(true);
       closeModals();
     }else{
       await vorlagenCollection.doc(vorlageId).set({
@@ -3024,12 +3070,14 @@ async function saveVorlage(){
         " | Neuer Barcode: " + (barcode || "-") +
         " | Alter Barcode: " + (alteBarcode || "-")
       );
-      loadVorlagen(true);
+      await loadVorlagen(true);
       closeModals();
     }
   }catch(error){
     console.error("Fehler beim Speichern der Vorlage:", error);
     alert("Fehler beim Speichern.");
+  }finally{
+    setVorlageSavingState(false);
   }
 }
 
@@ -3471,6 +3519,7 @@ document.addEventListener("DOMContentLoaded", function(){
 });
 
 function closeModals(){
+  setVorlageSavingState(false);
   clearVorlageImageState();
   document.getElementById("baustelleModal").style.display = "none";
   document.getElementById("materialModal").style.display = "none";
