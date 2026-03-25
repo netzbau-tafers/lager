@@ -14,6 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
@@ -252,6 +253,65 @@ label{
 
 .inline-icon-btn:hover{
   background:#636e72;
+}
+
+.vorlage-image-picker{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px;
+  margin:-2px 0 12px 0;
+}
+
+.vorlage-image-input{
+  display:none;
+}
+
+.vorlage-image-preview-wrap{
+  margin:-2px 0 12px 0;
+}
+
+.vorlage-image-preview{
+  width:100%;
+  max-height:220px;
+  object-fit:contain;
+  border:1px solid #d5dce4;
+  border-radius:8px;
+  background:#f9fbfd;
+}
+
+.vorlage-image-actions{
+  margin-top:8px;
+  display:flex;
+  justify-content:flex-end;
+}
+
+.vorlage-image-accordion{
+  margin-top:10px;
+  border:1px solid #d6dde5;
+  border-radius:10px;
+  overflow:hidden;
+  background:#fafcfe;
+}
+
+.vorlage-image-accordion summary{
+  cursor:pointer;
+  padding:10px 12px;
+  font-weight:bold;
+  color:#2c3e50;
+}
+
+.vorlage-image-accordion-content{
+  padding:0 12px 12px 12px;
+}
+
+.vorlage-image-accordion-content img{
+  width:100%;
+  max-height:280px;
+  object-fit:contain;
+  border-radius:8px;
+  border:1px solid #d5dce4;
+  background:white;
 }
 
 .vorlage-checkbox-wrap{
@@ -1040,6 +1100,21 @@ label{
         <i class="fa-solid fa-trash"></i>
       </button>
     </div>
+    <div class="vorlage-image-picker">
+      <input id="vorlageBildInput" class="vorlage-image-input" type="file" accept="image/*" capture="environment" onchange="handleVorlageImageSelection(event)">
+      <button type="button" class="inline-icon-btn" onclick="openVorlageImagePicker()" title="Bild auswählen" aria-label="Bild auswählen">
+        <i class="fa-solid fa-camera"></i>
+      </button>
+      <span id="vorlageBildInfo" class="baustelle-meta">Kein Bild ausgewählt.</span>
+    </div>
+    <div id="vorlageBildPreviewWrap" class="vorlage-image-preview-wrap" style="display:none;">
+      <img id="vorlageBildPreview" class="vorlage-image-preview" alt="Vorschau Materialbild">
+      <div class="vorlage-image-actions">
+        <button type="button" class="delete" onclick="removeSelectedVorlageImage()">
+          <i class="fa-solid fa-trash"></i> Bild entfernen
+        </button>
+      </div>
+    </div>
     <div id="vorlageSavingsCheckboxWrap" class="vorlage-checkbox-wrap">
       <input id="vorlageInGespart" type="checkbox">
       <label for="vorlageInGespart" class="vorlage-checkbox-label">In gespart.html berücksichtigen</label>
@@ -1067,6 +1142,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
+const storage = firebase.storage();
 
 const baustellenCollection = db.collection("baustellen");
 const materialCollection = db.collection("baustellen_material");
@@ -1100,6 +1176,14 @@ let vorlagenLoadingPromise = null;
 let beendeteBereichOffen = false;
 let selectedVorlageId = null;
 let isAdminUser = false;
+let selectedVorlageImageFile = null;
+let selectedVorlageImagePreviewUrl = "";
+let selectedVorlageImageExistingPath = "";
+let selectedVorlageImageExistingUrl = "";
+let removeExistingVorlageImage = false;
+const VORLAGE_IMAGE_MAX_WIDTH = 1280;
+const VORLAGE_IMAGE_MAX_HEIGHT = 1280;
+const VORLAGE_IMAGE_QUALITY = 0.85;
 
 function canManageSavingsCheckbox(){
   const user = auth.currentUser;
@@ -1274,6 +1358,8 @@ function getVorlagenFromCache(){
       spontis: sanitizeInput(v.spontis || "", 60),
       alteSpontis: sanitizeInput(v.alteSpontis || "", 60),
       link: parseAndNormalizeUrl(v.link || "") || "",
+      imagePath: sanitizeInput(v.imagePath || "", 260),
+      imageUrl: parseAndNormalizeUrl(v.imageUrl || "") || "",
       inGespart: !!v.inGespart
     })).filter(v => v.id);
   }catch(error){
@@ -1291,6 +1377,8 @@ function saveVorlagenToCache(vorlagen){
         spontis: sanitizeInput(v.spontis || "", 60),
         alteSpontis: sanitizeInput(v.alteSpontis || "", 60),
         link: parseAndNormalizeUrl(v.link || "") || "",
+        imagePath: sanitizeInput(v.imagePath || "", 260),
+        imageUrl: parseAndNormalizeUrl(v.imageUrl || "") || "",
         inGespart: !!v.inGespart
       }))
     }));
@@ -1671,6 +1759,8 @@ function loadVorlagen(forceRefresh = false){
         spontis: sanitizeInput(data.spontis || "", 60),
         alteSpontis: sanitizeInput(data.alteSpontis || "", 60),
         link: parseAndNormalizeUrl(data.link || "") || "",
+        imagePath: sanitizeInput(data.imagePath || "", 260),
+        imageUrl: parseAndNormalizeUrl(data.imageUrl || "") || "",
         inGespart: !!data.inGespart
       };
     });
@@ -1913,6 +2003,7 @@ function renderVorlagen(){
         <h3>${escapeHtml(v.material || "")}</h3>
         ${renderSpontisBlock(getSpontisLabel(hasAlteSpontis), v.spontis || "", v.link || "", isAdminUser, isAdminUser)}
         ${renderBarcodeBlock(getBarcodeValueFromSpontis(v.spontis || ""), getBarcodeLabel(hasAlteSpontis))}
+        ${renderVorlageImageAccordion(v.imageUrl || "")}
         ${renderSpontisBlock("Alte Spontis Nummer", v.alteSpontis || "", "", false, false, "barcode-spacing")}
         ${renderBarcodeBlock(getBarcodeValueFromSpontis(v.alteSpontis || ""), "Alter Barcode")}
         ${isAdminUser ? `
@@ -2061,6 +2152,165 @@ function renderBarcodeBlock(barcodeValue, label = "Barcode"){
       <div class="barcode-number">${escapeHtml(barcode)}</div>
     </div>
   `;
+}
+
+function renderVorlageImageAccordion(imageUrl){
+  const normalizedUrl = parseAndNormalizeUrl(imageUrl || "");
+  if(!normalizedUrl){
+    return "";
+  }
+
+  return `
+    <details class="vorlage-image-accordion">
+      <summary><i class="fa-solid fa-image"></i> Bild anzeigen</summary>
+      <div class="vorlage-image-accordion-content">
+        <img src="${escapeHtml(normalizedUrl)}" alt="Materialbild">
+      </div>
+    </details>
+  `;
+}
+
+function clearVorlageImageState(){
+  if(selectedVorlageImagePreviewUrl){
+    URL.revokeObjectURL(selectedVorlageImagePreviewUrl);
+  }
+  selectedVorlageImagePreviewUrl = "";
+  selectedVorlageImageFile = null;
+  selectedVorlageImageExistingPath = "";
+  selectedVorlageImageExistingUrl = "";
+  removeExistingVorlageImage = false;
+
+  const imageInput = document.getElementById("vorlageBildInput");
+  if(imageInput){
+    imageInput.value = "";
+  }
+
+  updateVorlageImagePreview();
+}
+
+function updateVorlageImagePreview(){
+  const previewWrap = document.getElementById("vorlageBildPreviewWrap");
+  const previewImage = document.getElementById("vorlageBildPreview");
+  const info = document.getElementById("vorlageBildInfo");
+  if(!previewWrap || !previewImage || !info){
+    return;
+  }
+
+  const activePreview = selectedVorlageImagePreviewUrl || ((!removeExistingVorlageImage && !selectedVorlageImageFile) ? selectedVorlageImageExistingUrl : "");
+  if(activePreview){
+    previewWrap.style.display = "block";
+    previewImage.src = activePreview;
+    info.textContent = selectedVorlageImageFile
+      ? "Neues Bild ausgewählt (optimiert auf max. " + VORLAGE_IMAGE_MAX_WIDTH + "×" + VORLAGE_IMAGE_MAX_HEIGHT + ")."
+      : "Gespeichertes Bild vorhanden.";
+  }else{
+    previewWrap.style.display = "none";
+    previewImage.removeAttribute("src");
+    info.textContent = "Kein Bild ausgewählt.";
+  }
+}
+
+function openVorlageImagePicker(){
+  const input = document.getElementById("vorlageBildInput");
+  if(input){
+    input.click();
+  }
+}
+
+function normalizeVorlageImageFile(file){
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+
+    image.onload = () => {
+      const originalWidth = image.naturalWidth || image.width || 1;
+      const originalHeight = image.naturalHeight || image.height || 1;
+      const scale = Math.min(1, VORLAGE_IMAGE_MAX_WIDTH / originalWidth, VORLAGE_IMAGE_MAX_HEIGHT / originalHeight);
+      const targetWidth = Math.max(1, Math.round(originalWidth * scale));
+      const targetHeight = Math.max(1, Math.round(originalHeight * scale));
+
+      const canvas = document.createElement("canvas");
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+      const ctx = canvas.getContext("2d");
+      if(!ctx){
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error("Canvas Kontext nicht verfügbar"));
+        return;
+      }
+
+      ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
+      canvas.toBlob((blob) => {
+        URL.revokeObjectURL(objectUrl);
+        if(!blob){
+          reject(new Error("Bild konnte nicht verarbeitet werden"));
+          return;
+        }
+
+        const normalizedFileNameBase = sanitizeInput(String(file.name || "vorlage-bild"), 120).replace(/\.[^/.]+$/, "") || "vorlage-bild";
+        const normalizedFile = new File([blob], normalizedFileNameBase + ".jpg", { type: "image/jpeg" });
+        resolve(normalizedFile);
+      }, "image/jpeg", VORLAGE_IMAGE_QUALITY);
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Bild konnte nicht geladen werden"));
+    };
+
+    image.src = objectUrl;
+  });
+}
+
+async function handleVorlageImageSelection(event){
+  const input = event && event.target ? event.target : null;
+  const file = input && input.files ? input.files[0] : null;
+  if(!file){
+    return;
+  }
+
+  if(!String(file.type || "").startsWith("image/")){
+    alert("Bitte eine Bilddatei auswählen.");
+    input.value = "";
+    return;
+  }
+
+  if(selectedVorlageImagePreviewUrl){
+    URL.revokeObjectURL(selectedVorlageImagePreviewUrl);
+  }
+
+  try{
+    const normalizedFile = await normalizeVorlageImageFile(file);
+    selectedVorlageImageFile = normalizedFile;
+    selectedVorlageImagePreviewUrl = URL.createObjectURL(normalizedFile);
+    removeExistingVorlageImage = false;
+    updateVorlageImagePreview();
+  }catch(error){
+    console.error("Fehler bei der Bildverarbeitung:", error);
+    alert("Das Bild konnte nicht verarbeitet werden.");
+    input.value = "";
+  }
+}
+
+function removeSelectedVorlageImage(){
+  const hadExistingImage = !!selectedVorlageImageExistingPath;
+  if(selectedVorlageImagePreviewUrl){
+    URL.revokeObjectURL(selectedVorlageImagePreviewUrl);
+  }
+  selectedVorlageImagePreviewUrl = "";
+  selectedVorlageImageFile = null;
+  removeExistingVorlageImage = hadExistingImage;
+
+  const imageInput = document.getElementById("vorlageBildInput");
+  if(imageInput){
+    imageInput.value = "";
+  }
+
+  if(hadExistingImage){
+    selectedVorlageImageExistingUrl = "";
+  }
+
+  updateVorlageImagePreview();
 }
 
 function getVorlageBySpontis(spontisNummer){
@@ -2613,6 +2863,7 @@ function openVorlageModal(id = null){
   }
 
   editVorlageId = id;
+  clearVorlageImageState();
 
   if(id){
     const v = alleVorlagen.find(x => x.id === id);
@@ -2627,6 +2878,8 @@ function openVorlageModal(id = null){
     document.getElementById("vorlageAlteSpontis").value = sanitizeInput(v.alteSpontis || "", 60);
     document.getElementById("vorlageLink").value = sanitizeInput(v.link || "", 600);
     document.getElementById("vorlageInGespart").checked = !!v.inGespart;
+    selectedVorlageImageExistingPath = sanitizeInput(v.imagePath || "", 260);
+    selectedVorlageImageExistingUrl = parseAndNormalizeUrl(v.imageUrl || "") || "";
   }else{
     document.getElementById("vorlageModalTitle").innerText = "Neue Materialvorlage";
     document.getElementById("vorlageMaterial").value = "";
@@ -2636,11 +2889,12 @@ function openVorlageModal(id = null){
     document.getElementById("vorlageInGespart").checked = false;
   }
 
+  updateVorlageImagePreview();
   updateSavingsCheckboxVisibility();
   document.getElementById("vorlageModal").style.display = "block";
 }
 
-function saveVorlage(){
+async function saveVorlage(){
   if(!isAdminUser){
     alert("Nur Admins dürfen Materialvorlagen speichern.");
     return;
@@ -2691,11 +2945,46 @@ function saveVorlage(){
     vorlagePayload.inGespart = includeInSavings;
   }
 
-  if(editVorlageId){
-    vorlagenCollection.doc(editVorlageId).update({
-      ...vorlagePayload,
-      barcode: firebase.firestore.FieldValue.delete()
-    }).then(() => {
+  try{
+    const vorlageId = editVorlageId || vorlagenCollection.doc().id;
+    let imagePath = selectedVorlageImageExistingPath;
+    let imageUrl = selectedVorlageImageExistingUrl;
+    let storagePathToDelete = "";
+
+    if(selectedVorlageImageFile){
+      storagePathToDelete = selectedVorlageImageExistingPath || "";
+      const imageExt = String(selectedVorlageImageFile.name || "").includes(".")
+        ? String(selectedVorlageImageFile.name).split(".").pop().toLowerCase()
+        : "jpg";
+      imagePath = "material_vorlagen/" + vorlageId + "/bild_" + Date.now() + "." + sanitizeInput(imageExt, 10);
+      const uploadRef = storage.ref().child(imagePath);
+      await uploadRef.put(selectedVorlageImageFile, {
+        contentType: selectedVorlageImageFile.type || "image/jpeg"
+      });
+      imageUrl = await uploadRef.getDownloadURL();
+      removeExistingVorlageImage = false;
+    }else if(removeExistingVorlageImage){
+      storagePathToDelete = selectedVorlageImageExistingPath || "";
+      imagePath = "";
+      imageUrl = "";
+    }
+
+    if(editVorlageId){
+      await vorlagenCollection.doc(editVorlageId).update({
+        ...vorlagePayload,
+        imagePath: imagePath || "",
+        imageUrl: imageUrl || "",
+        barcode: firebase.firestore.FieldValue.delete()
+      });
+
+      if(storagePathToDelete){
+        try{
+          await storage.ref().child(storagePathToDelete).delete();
+        }catch(deleteError){
+          console.warn("Konnte altes Vorlagenbild nicht löschen:", deleteError);
+        }
+      }
+
       writeLog(
         "Baustellenmaterial",
         "Materialvorlage bearbeitet",
@@ -2706,40 +2995,41 @@ function saveVorlage(){
         " | Alte Spontis Nummer: " + (alteSpontis || "-") +
         " | Link: " + (normalizedLink || "-") +
         " | In gespart.html: " + (canManageSavingsCheckbox() ? (includeInSavings ? "Ja" : "Nein") : "unveraendert") +
+        " | Bild: " + (imageUrl ? "vorhanden" : "kein Bild") +
         " | Neuer Barcode: " + (barcode || "-") +
         " | Alter Barcode: " + (alteBarcode || "-")
       );
       loadVorlagen(true);
       closeModals();
-    }).catch(error => {
-      console.error("Fehler beim Bearbeiten der Vorlage:", error);
-      alert("Fehler beim Speichern.");
-    });
-  }else{
-    vorlagenCollection.add({
-      ...vorlagePayload,
-      inGespart: canManageSavingsCheckbox() ? includeInSavings : false,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then((docRef) => {
+    }else{
+      await vorlagenCollection.doc(vorlageId).set({
+        ...vorlagePayload,
+        imagePath: imagePath || "",
+        imageUrl: imageUrl || "",
+        inGespart: canManageSavingsCheckbox() ? includeInSavings : false,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
       writeLog(
         "Baustellenmaterial",
         "Materialvorlage erstellt",
         "vorlage",
-        docRef.id,
+        vorlageId,
         "Material: " + material +
         " | Neue Spontis Nummer: " + spontis +
         " | Alte Spontis Nummer: " + (alteSpontis || "-") +
         " | Link: " + (normalizedLink || "-") +
         " | In gespart.html: " + (canManageSavingsCheckbox() ? (includeInSavings ? "Ja" : "Nein") : "Nein") +
+        " | Bild: " + (imageUrl ? "vorhanden" : "kein Bild") +
         " | Neuer Barcode: " + (barcode || "-") +
         " | Alter Barcode: " + (alteBarcode || "-")
       );
       loadVorlagen(true);
       closeModals();
-    }).catch(error => {
-      console.error("Fehler beim Erstellen der Vorlage:", error);
-      alert("Fehler beim Speichern.");
-    });
+    }
+  }catch(error){
+    console.error("Fehler beim Speichern der Vorlage:", error);
+    alert("Fehler beim Speichern.");
   }
 }
 
@@ -3181,6 +3471,7 @@ document.addEventListener("DOMContentLoaded", function(){
 });
 
 function closeModals(){
+  clearVorlageImageState();
   document.getElementById("baustelleModal").style.display = "none";
   document.getElementById("materialModal").style.display = "none";
   document.getElementById("vorlageModal").style.display = "none";
