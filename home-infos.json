@@ -1,0 +1,9 @@
+{
+  "title": "Aktuelle Infos",
+  "updatedAt": "2026-03-25",
+  "items": [
+    "Willkommen im Lagermanager.",
+    "Diese Infos kannst du direkt in der Datei home-infos.json auf GitHub ändern.",
+    "Nach dem Speichern werden die Inhalte auf home.html automatisch angezeigt."
+  ]
+}

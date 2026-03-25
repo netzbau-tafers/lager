@@ -216,6 +216,43 @@ button:hover{
   display:block;
 }
 
+.home-infos{
+  padding:20px;
+  border-top:1px solid #e1e6ed;
+  background:#fcfdff;
+}
+
+.home-infos h2{
+  margin:0 0 6px 0;
+  font-size:22px;
+}
+
+.infos-meta{
+  margin:0 0 14px 0;
+  color:#66727f;
+  font-size:13px;
+}
+
+.infos-list{
+  margin:0;
+  padding-left:20px;
+  display:grid;
+  gap:8px;
+}
+
+.infos-list li{
+  line-height:1.4;
+}
+
+.infos-status{
+  color:#8a1f17;
+  background:#fdecea;
+  border:1px solid #f3c4bd;
+  border-radius:8px;
+  padding:10px 12px;
+  font-size:14px;
+}
+
 @media (max-width: 680px){
   body{
     margin:18px;
@@ -329,6 +366,13 @@ button:hover{
       <img src="ChatGPT Image 10. März 2026, 21_46_18.png" alt="Startseitenbild" class="hero-image">
       <a href="strommast-game.html" class="hero-game-link" aria-label="Mast Runner öffnen"></a>
     </div>
+
+    <section class="home-infos" aria-live="polite">
+      <h2 id="infosTitle">Aktuelle Infos</h2>
+      <p id="infosMeta" class="infos-meta"></p>
+      <ul id="infosList" class="infos-list"></ul>
+      <p id="infosStatus" class="infos-status" style="display:none;"></p>
+    </section>
   </section>
   </div>
 
@@ -355,6 +399,7 @@ const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
 const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
 const SPECIAL_SAVINGS_UID = "pmyu29TlC3QM7JIysmy2EmiHSWW2";
 const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
+const HOME_INFOS_URL = "home-infos.json";
 
 
 function setNavigationVisibility(user){
@@ -537,6 +582,80 @@ function markActiveMenu(){
   });
 }
 
+function formatInfoDate(dateString){
+  if(!dateString){
+    return "";
+  }
+
+  const date = new Date(dateString);
+  if(Number.isNaN(date.getTime())){
+    return "";
+  }
+
+  return date.toLocaleDateString("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  });
+}
+
+function renderInfoStatus(message){
+  const statusElement = document.getElementById("infosStatus");
+  if(!statusElement){
+    return;
+  }
+
+  statusElement.textContent = message;
+  statusElement.style.display = "block";
+}
+
+function renderHomeInfos(data){
+  const titleElement = document.getElementById("infosTitle");
+  const metaElement = document.getElementById("infosMeta");
+  const listElement = document.getElementById("infosList");
+  const statusElement = document.getElementById("infosStatus");
+
+  if(!titleElement || !metaElement || !listElement || !statusElement){
+    return;
+  }
+
+  statusElement.style.display = "none";
+  listElement.innerHTML = "";
+
+  titleElement.textContent = data.title || "Aktuelle Infos";
+  const formattedDate = formatInfoDate(data.updatedAt);
+  metaElement.textContent = formattedDate ? `Stand: ${formattedDate}` : "";
+
+  const items = Array.isArray(data.items) ? data.items : [];
+  if(items.length === 0){
+    renderInfoStatus("Noch keine Infos hinterlegt.");
+    return;
+  }
+
+  items.forEach((item) => {
+    const li = document.createElement("li");
+    li.textContent = item;
+    listElement.appendChild(li);
+  });
+}
+
+function loadHomeInfos(){
+  fetch(HOME_INFOS_URL, { cache: "no-store" })
+    .then((response) => {
+      if(!response.ok){
+        throw new Error(`Infos konnten nicht geladen werden (${response.status}).`);
+      }
+      return response.json();
+    })
+    .then((data) => {
+      renderHomeInfos(data);
+    })
+    .catch((error) => {
+      console.error("Fehler beim Laden der Infos:", error);
+      renderInfoStatus("Infos konnten gerade nicht geladen werden.");
+    });
+}
+
 document.addEventListener("click", (event) => {
   const menu = document.getElementById("dropdownMenu");
   const wrap = document.querySelector(".menu-wrap");
@@ -547,6 +666,7 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("DOMContentLoaded", markActiveMenu);
+document.addEventListener("DOMContentLoaded", loadHomeInfos);
 
 auth.onAuthStateChanged((user) => {
   if(user){
