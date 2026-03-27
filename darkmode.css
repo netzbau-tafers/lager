@@ -1,0 +1,131 @@
+:root {
+  --dm-bg: #0f172a;
+  --dm-surface: #1e293b;
+  --dm-surface-soft: #334155;
+  --dm-text: #e2e8f0;
+  --dm-text-muted: #cbd5e1;
+  --dm-border: #64748b;
+  --dm-link: #93c5fd;
+}
+
+html.darkmode {
+  color-scheme: dark;
+}
+
+html.darkmode body {
+  background: var(--dm-bg) !important;
+  color: var(--dm-text) !important;
+}
+
+html.darkmode h1,
+html.darkmode h2,
+html.darkmode h3,
+html.darkmode h4,
+html.darkmode h5,
+html.darkmode h6,
+html.darkmode p,
+html.darkmode span,
+html.darkmode label,
+html.darkmode strong,
+html.darkmode small,
+html.darkmode li,
+html.darkmode td,
+html.darkmode th,
+html.darkmode div {
+  color: var(--dm-text);
+}
+
+html.darkmode a {
+  color: var(--dm-link) !important;
+}
+
+html.darkmode .search-box,
+html.darkmode .dropdown-menu,
+html.darkmode .info-box,
+html.darkmode .stats,
+html.darkmode .card,
+html.darkmode .tile,
+html.darkmode .modal,
+html.darkmode .modal-content,
+html.darkmode .popup,
+html.darkmode .content,
+html.darkmode .container,
+html.darkmode .box,
+html.darkmode .panel,
+html.darkmode .list-item,
+html.darkmode .table-wrap,
+html.darkmode form,
+html.darkmode table,
+html.darkmode pre,
+html.darkmode code {
+  background: var(--dm-surface) !important;
+  color: var(--dm-text) !important;
+  border-color: var(--dm-border) !important;
+  box-shadow: 0 0 0 1px rgba(100, 116, 139, 0.35);
+}
+
+html.darkmode table th {
+  background: var(--dm-surface-soft) !important;
+  color: var(--dm-text) !important;
+  border-color: var(--dm-border) !important;
+}
+
+html.darkmode table td {
+  border-color: var(--dm-border) !important;
+}
+
+html.darkmode hr {
+  border-color: var(--dm-border) !important;
+}
+
+html.darkmode input,
+html.darkmode select,
+html.darkmode textarea {
+  background: #0b1220 !important;
+  color: var(--dm-text) !important;
+  border: 1px solid var(--dm-border) !important;
+}
+
+html.darkmode input::placeholder,
+html.darkmode textarea::placeholder {
+  color: var(--dm-text-muted);
+}
+
+html.darkmode .active-page {
+  background: var(--dm-surface-soft) !important;
+  color: var(--dm-text) !important;
+}
+
+.theme-toggle {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 10000;
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 20px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.24);
+  background: #1f2937;
+  color: #f8fafc;
+}
+
+.theme-toggle:hover {
+  transform: translateY(-1px);
+}
+
+html:not(.darkmode) .theme-toggle {
+  background: #334155;
+  color: #f8fafc;
+}
+
+@media (max-width: 640px) {
+  .theme-toggle {
+    width: 44px;
+    height: 44px;
+    right: 12px;
+    bottom: 12px;
+  }
+}
