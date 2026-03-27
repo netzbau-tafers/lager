@@ -3,7 +3,6 @@
   const DARK_CLASS = 'darkmode';
   const root = document.documentElement;
   const themeMeta = document.querySelector('meta[name="theme-color"]');
-  const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
   function getSavedTheme() {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -11,7 +10,7 @@
   }
 
   function resolveTheme() {
-    return getSavedTheme() || (darkQuery.matches ? 'dark' : 'light');
+    return getSavedTheme() || 'light';
   }
 
   function syncThemeColor(theme) {
@@ -57,11 +56,4 @@
     setupToggle();
   }
 
-  if (typeof darkQuery.addEventListener === 'function') {
-    darkQuery.addEventListener('change', function () {
-      if (!getSavedTheme()) {
-        applyTheme(resolveTheme());
-      }
-    });
-  }
 })();

@@ -86,9 +86,68 @@ html.darkmode textarea {
   border: 1px solid var(--dm-border) !important;
 }
 
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: #38bdf8;
+}
+
+html.darkmode input[type="checkbox"],
+html.darkmode input[type="radio"] {
+  accent-color: #38bdf8;
+}
+
 html.darkmode input::placeholder,
 html.darkmode textarea::placeholder {
   color: var(--dm-text-muted);
+}
+
+html.darkmode .checkbox-row,
+html.darkmode .vorlage-checkbox-wrap {
+  background: #1f2c42 !important;
+  border-color: var(--dm-border) !important;
+  color: var(--dm-text) !important;
+}
+
+html.darkmode .checkbox-label-text,
+html.darkmode .vorlage-checkbox-label {
+  color: var(--dm-text) !important;
+}
+
+html.darkmode .baustelle-card,
+html.darkmode .details-item,
+html.darkmode .no-results {
+  background: var(--dm-surface) !important;
+  border-color: var(--dm-border) !important;
+  color: var(--dm-text) !important;
+}
+
+html.darkmode .baustelle-meta,
+html.darkmode .details-label,
+html.darkmode .details-value,
+html.darkmode .mobile-details-label,
+html.darkmode .mobile-details-value {
+  color: var(--dm-text) !important;
+}
+
+html.darkmode .instock {
+  background: #1f4f2d !important;
+}
+
+html.darkmode .reserved {
+  background: #6b4f00 !important;
+}
+
+html.darkmode .inuse {
+  background: #5a1f1f !important;
+}
+
+html.darkmode div[style*="background:white"],
+html.darkmode div[style*="background: white"],
+html.darkmode div[style*="background:#fff"],
+html.darkmode div[style*="background: #fff"] {
+  background: var(--dm-surface) !important;
+  color: var(--dm-text) !important;
+  border-color: var(--dm-border) !important;
 }
 
 html.darkmode .active-page {
