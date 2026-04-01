@@ -3507,8 +3507,8 @@ function deleteBobine(id){
 
     const b = doc.data();
 
-    const text =
-      "Bobine wirklich löschen?\n\n" +
+    const bestaetigung = prompt(
+      "Zum Löschen bitte \"löschen\" eingeben.\n\n" +
       "Nummer: " + sanitizeInput(b.nummer || "", 60) + "\n" +
       "Kabeltyp: " + sanitizeInput(b.typ || "", 120) + "\n" +
       "3 Bobinen: " + (b.istDreiBobinen ? "Ja" : "Nein") + "\n" +
@@ -3516,9 +3516,10 @@ function deleteBobine(id){
       "Länge: " + sanitizeInput(b.laenge || "", 40) + "\n" +
       "Baustelle: " + sanitizeInput(b.baustelle || "", 120) + "\n" +
       "Infos: " + sanitizeInput(b.infos || "", 500) + "\n\n" +
-      "Diese Bobine wird endgültig aus dem Kabellager entfernt.";
+      "Diese Bobine wird endgültig aus dem Kabellager entfernt."
+    );
 
-    if(confirm(text)){
+    if(bestaetigung && bestaetigung.trim().toLowerCase() === "löschen"){
       bobinenCollection.doc(id).delete().then(() => {
         openDetailsRows.delete(id);
         writeLog(
@@ -3539,6 +3540,8 @@ function deleteBobine(id){
         console.error("Fehler beim Löschen:", error);
         alert(getFirebaseActionErrorMessage("Löschen", error));
       });
+    }else{
+      alert("Löschen abgebrochen: Bitte exakt \"löschen\" eingeben.");
     }
   }).catch(error => {
     console.error("Fehler beim Laden der Bobine:", error);
