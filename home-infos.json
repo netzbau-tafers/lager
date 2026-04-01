@@ -1,7 +1,10 @@
 {
   "title": "Aktuelle Infos",
-  "updatedAt": "2026-03-25",
+  "updatedAt": "2026-04-01",
   "items": [
-    "Neue Funktion: Administratoren haben ab sofort die Möglichkeit, in den Materialvorlagen optional ein Bild pro Material zu hinterlegen. Diese Funktion dient als visuelle Unterstützung und erleichtert die eindeutige Zuordnung von Materialien, insbesondere wenn der Materialname nicht sofort eindeutig erkannt wird.\n\nDie hinterlegten Bilder können aktuell ausschliesslich innerhalb der Materialvorlagen eingesehen werden und sind nicht in anderen Bereichen der Anwendung sichtbar."
+    "Ab sofort ist beim Löschen von Bobinen, Baustellen, Materialvorlagen und Archiv-Einträgen eine zusätzliche Bestätigung erforderlich.
+Zum endgültigen Löschen muss das Wort „löschen“ manuell eingegeben werden.
+
+Diese Massnahme dient dazu, versehentliches Löschen zu verhindern und die Datensicherheit zu erhöhen."
   ]
 }
