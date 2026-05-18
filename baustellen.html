@@ -2528,6 +2528,9 @@ function createBaustelleCard(baustelle){
           </button>
 
           <div id="cardMenu-${baustelle.id}" class="card-dropdown">
+            <button class="finish" onclick="reactivateBaustelle('${baustelle.id}'); closeAllCardMenus();">
+              <i class="fa-solid fa-rotate-left"></i> Wieder aktivieren
+            </button>
             <button class="edit" onclick="editBaustelle('${baustelle.id}'); closeAllCardMenus();">
               <i class="fa-solid fa-pen"></i> Bearbeiten
             </button>
@@ -3150,6 +3153,58 @@ function archiveBaustelle(id){
     }).catch(error => {
       console.error("Fehler beim Archivieren der Baustelle:", error);
       alert("Fehler beim Archivieren.");
+    });
+  }
+}
+
+function reactivateBaustelle(id){
+  if(!isAdminUser){
+    alert("Nur Admins dürfen beendete Baustellen wieder aktivieren.");
+    return;
+  }
+
+  const b = alleBaustellen.find(x => x.id === id);
+  if(!b){
+    alert("Baustelle nicht gefunden.");
+    return;
+  }
+
+  const vorhandeneAktive = alleBaustellen.find(x =>
+    String(x.nummer || "").trim().toLowerCase() === String(b.nummer || "").trim().toLowerCase() &&
+    x.status === "aktiv" &&
+    x.id !== id
+  );
+
+  if(vorhandeneAktive){
+    alert("Diese Baustellen Nummer ist bereits bei einer aktiven Baustelle vorhanden.");
+    return;
+  }
+
+  const text =
+    "Baustelle wieder aktivieren?\n\n" +
+    "Name: " + sanitizeInput(b.name || "", 120) + "\n" +
+    "Nummer: " + sanitizeInput(b.nummer || "", 60) + "\n\n" +
+    "Die Baustelle wird zurück zu den aktiven Baustellen verschoben.";
+
+  if(confirm(text)){
+    baustellenCollection.doc(id).update({
+      status: "aktiv",
+      abgeschlossenAm: firebase.firestore.FieldValue.delete(),
+      archiviertAm: firebase.firestore.FieldValue.delete()
+    }).then(() => {
+      writeLog(
+        "Baustellenmaterial",
+        "Baustelle reaktiviert",
+        "baustelle",
+        id,
+        "Name: " + (b.name || "") +
+        " | Nummer: " + (b.nummer || "") +
+        " | Verantwortlicher: " + (b.verantwortlicher || "") +
+        " | Neuer Status: Aktiv"
+      );
+    }).catch(error => {
+      console.error("Fehler beim Reaktivieren der Baustelle:", error);
+      alert("Fehler beim Reaktivieren.");
     });
   }
 }
