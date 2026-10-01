@@ -1139,6 +1139,23 @@ textarea{
     page-break-inside:avoid;
   }
 }
+.header-tools{ display:flex; align-items:center; gap:10px; }
+.help-button{ background:#fff; color:#344454; border:1px solid #cbd4de; }
+.help-button:hover{ background:#e4edf5; }
+
+[hidden]{ display:none !important; }
+@media(max-width:680px){
+  .header{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;
+    gap:10px;
+  }
+  .header h1{ font-size:25px; min-width:0; overflow-wrap:anywhere; }
+  .header-tools{ display:contents; }
+  .header-tools .menu-wrap{ grid-column:2; grid-row:1; justify-self:end; }
+  .header-tools .help-button{ grid-column:1 / -1; grid-row:2; justify-self:end; margin:0; }
+}
 </style>
 </head>
 
@@ -1165,6 +1182,8 @@ textarea{
   <div class="header">
     <h1>Kabellager</h1>
 
+    <div class="header-tools">
+      <button class="help-button" aria-expanded="false" aria-controls="workspaceHelp" onclick="toggleWorkspaceHelp(this)"><i class="fa-solid fa-circle-info"></i> Hilfe</button>
     <div class="menu-wrap">
       <button class="menu-button" onclick="toggleMenu(event)" title="Menü öffnen">
         <i class="fa-solid fa-bars"></i>
@@ -1204,31 +1223,10 @@ textarea{
         </button>
       </div>
     </div>
-  </div>
-
-  <div class="search-box">
-    <div class="search-title">Suche</div>
-
-    <div class="search-row">
-      <input id="searchInput" type="text" placeholder="Nach Nummer, Kabeltyp oder Baustelle suchen" oninput="renderFilteredTable()" maxlength="120">
-      <button class="reset" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
-    </div>
-
-    <div class="filter-row">
-      <select id="statusFilter" onchange="renderFilteredTable()">
-        <option value="Alle">Alle</option>
-        <option value="Lager">Lager</option>
-        <option value="Reserviert">Reserviert</option>
-        <option value="In Gebrauch">In Gebrauch</option>
-      </select>
-    </div>
-
-    <div style="margin-top:15px;">
-      <button onclick="openAdd()"><i class="fa-solid fa-plus"></i> Neue Bobine hinzufügen</button>
     </div>
   </div>
 
-<details class="help-accordion">
+  <details id="workspaceHelp" class="help-accordion" hidden>
   <summary>Hilfe anzeigen</summary>
   <div class="info-box" style="background:white; border:1px solid #ccc; border-radius:10px; padding:15px; margin-bottom:20px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
 
@@ -1304,6 +1302,30 @@ wie <b>Bearbeiten</b> oder <b>Löschen</b>.
 
 </div>
 </details>
+
+  <div class="search-box">
+    <div class="search-title">Suche</div>
+
+    <div class="search-row">
+      <input id="searchInput" type="text" placeholder="Nach Nummer, Kabeltyp oder Baustelle suchen" oninput="renderFilteredTable()" maxlength="120">
+      <button class="reset" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
+    </div>
+
+    <div class="filter-row">
+      <select id="statusFilter" onchange="renderFilteredTable()">
+        <option value="Alle">Alle</option>
+        <option value="Lager">Lager</option>
+        <option value="Reserviert">Reserviert</option>
+        <option value="In Gebrauch">In Gebrauch</option>
+      </select>
+    </div>
+
+    <div style="margin-top:15px;">
+      <button onclick="openAdd()"><i class="fa-solid fa-plus"></i> Neue Bobine hinzufügen</button>
+    </div>
+  </div>
+
+
 
   <div class="result-bar">
     <div class="info-box" id="resultInfo"></div>
@@ -3136,6 +3158,13 @@ function nummerSchonVorhanden(nummer, aktuelleId = null){
 
     return vorhanden;
   });
+}
+
+function toggleWorkspaceHelp(button){
+  const help = document.getElementById("workspaceHelp");
+  help.hidden = !help.hidden;
+  help.open = !help.hidden;
+  button.setAttribute("aria-expanded", String(!help.hidden));
 }
 
 function markActiveMenu(){
