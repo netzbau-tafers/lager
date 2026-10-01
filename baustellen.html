@@ -2485,6 +2485,9 @@ function createBaustelleCard(baustelle){
           </button>
 
           <div id="cardMenu-${baustelle.id}" class="card-dropdown">
+            <button class="print-btn" onclick="printBaustelle('${baustelle.id}'); closeAllCardMenus();">
+              <i class="fa-solid fa-print"></i> Drucken
+            </button>
             <button class="edit" onclick="editBaustelle('${baustelle.id}'); closeAllCardMenus();">
               <i class="fa-solid fa-pen"></i> Bearbeiten
             </button>
