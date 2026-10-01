@@ -337,9 +337,6 @@ button:hover{
           <i class="fa-solid fa-clipboard-list"></i> Logs
         </button>
 
-        <button id="gespartMenuButton" onclick="goToGespart()" data-page="gespart" style="display:none;">
-          <i class="fa-solid fa-piggy-bank"></i> Kosten gespart
-        </button>
 
         <button onclick="goToProfile()">
           <i class="fa-solid fa-user"></i> Profil
@@ -396,8 +393,6 @@ const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "pmyu29TlC3QM7JIysmy2EmiHSWW
 const LIMITED_ACCESS_UIDS = ["POSB6W7xeDZ8Dlba03ZP3J02dMC3", "AX08qKp7lte6vslQMFn76FVqxw53", "KYqiqNKTmkQQYVWAa6bp6vSvTlV2"];
 const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
 const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
-const SPECIAL_SAVINGS_UID = "pmyu29TlC3QM7JIysmy2EmiHSWW2";
-const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
 const HOME_INFOS_URL = "home-infos.json";
 
 
@@ -408,7 +403,6 @@ function setNavigationVisibility(user){
   const logsButton = document.getElementById("logsMenuButton");
   const baustellenButton = document.getElementById("baustellenMenuButton");
   const baustellenHeroLink = document.getElementById("baustellenHeroLink");
-  const gespartButton = document.getElementById("gespartMenuButton");
 
   if(archivButton){
     archivButton.style.display = isAdminUser && !isLimitedUser ? "inline-flex" : "none";
@@ -426,9 +420,6 @@ function setNavigationVisibility(user){
     baustellenHeroLink.style.display = isLimitedUser ? "none" : "inline-flex";
   }
 
-  if(gespartButton){
-    gespartButton.style.display = user && canAccessSavingsPage(user.uid) && !isLimitedUser ? "inline-flex" : "none";
-  }
 }
 
 function toggleMenu(event){
@@ -484,17 +475,6 @@ function goToLogs(){
 }
 
 
-function goToGespart(){
-  const user = auth.currentUser;
-  if(!user || !canAccessSavingsPage(user.uid)){
-    closeMenu();
-    alert("Diese Seite ist nur für den freigegebenen Benutzer sichtbar.");
-    return;
-  }
-
-  closeMenu();
-  window.location.href = "gespart.html";
-}
 
 function goToKabelReport(){
   closeMenu();

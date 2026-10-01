@@ -313,32 +313,6 @@ label{
   background:white;
 }
 
-.vorlage-checkbox-wrap{
-  display:none;
-  align-items:center;
-  gap:10px;
-  margin:-2px 0 14px 0;
-  padding:10px 12px;
-  border:1px solid #d7dee6;
-  border-radius:8px;
-  background:#f7f9fb;
-}
-
-.vorlage-checkbox-wrap input[type="checkbox"]{
-  width:18px;
-  height:18px;
-  margin:0;
-  flex:0 0 auto;
-}
-
-.vorlage-checkbox-label{
-  margin:0;
-  font-size:14px;
-  font-weight:bold;
-  color:#22303c;
-  cursor:pointer;
-}
-
 .vorlage-saving-status{
   display:none;
   align-items:center;
@@ -918,9 +892,6 @@ dialog.vorlage-duplicate-dialog::backdrop{
     <i class="fa-solid fa-clipboard-list"></i> Logs
   </button>
 
-  <button id="gespartMenuButton" onclick="goToGespart()" data-page="gespart" style="display:none;">
-    <i class="fa-solid fa-piggy-bank"></i> Kosten gespart
-  </button>
 
   <button onclick="goToProfile()">
     <i class="fa-solid fa-user"></i> Profil
@@ -1153,10 +1124,6 @@ dialog.vorlage-duplicate-dialog::backdrop{
         </button>
       </div>
     </div>
-    <div id="vorlageSavingsCheckboxWrap" class="vorlage-checkbox-wrap">
-      <input id="vorlageInGespart" type="checkbox">
-      <label for="vorlageInGespart" class="vorlage-checkbox-label">In gespart.html berücksichtigen</label>
-    </div>
     <div id="vorlageSavingStatus" class="vorlage-saving-status" role="status" aria-live="polite">
       <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
       <span>Wird gespeichert… Bitte warten.</span>
@@ -1196,8 +1163,6 @@ const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "pmyu29TlC3QM7JIysmy2EmiHSWW
 const LIMITED_ACCESS_UIDS = ["POSB6W7xeDZ8Dlba03ZP3J02dMC3", "AX08qKp7lte6vslQMFn76FVqxw53", "KYqiqNKTmkQQYVWAa6bp6vSvTlV2"];
 const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
 const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
-const SPECIAL_SAVINGS_UID = "pmyu29TlC3QM7JIysmy2EmiHSWW2";
-const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
 
 let unsubscribeBaustellen = null;
 let unsubscribeMaterial = null;
@@ -1227,25 +1192,6 @@ let isSavingVorlage = false;
 const VORLAGE_IMAGE_MAX_WIDTH = 1280;
 const VORLAGE_IMAGE_MAX_HEIGHT = 1280;
 const VORLAGE_IMAGE_QUALITY = 0.85;
-
-function canManageSavingsCheckbox(){
-  const user = auth.currentUser;
-  return !!(user && user.uid === SPECIAL_SAVINGS_UID);
-}
-
-function updateSavingsCheckboxVisibility(){
-  const checkboxWrap = document.getElementById("vorlageSavingsCheckboxWrap");
-  const checkbox = document.getElementById("vorlageInGespart");
-  if(!checkboxWrap || !checkbox){
-    return;
-  }
-
-  const visible = canManageSavingsCheckbox();
-  checkboxWrap.style.display = visible ? "flex" : "none";
-  if(!visible){
-    checkbox.checked = false;
-  }
-}
 
 function setVorlageSavingState(isSaving){
   isSavingVorlage = !!isSaving;
@@ -1304,7 +1250,6 @@ function syncUsernameFromFirestore(user){
 function setAdminMenuVisibility(isAdmin){
   const archivButton = document.getElementById("archivMenuButton");
   const logsButton = document.getElementById("logsMenuButton");
-  const gespartButton = document.getElementById("gespartMenuButton");
 
   if(archivButton){
     archivButton.style.display = isAdmin ? "inline-flex" : "none";
@@ -1314,10 +1259,6 @@ function setAdminMenuVisibility(isAdmin){
     logsButton.style.display = isAdmin ? "inline-flex" : "none";
   }
 
-  if(gespartButton){
-    const user = auth.currentUser;
-    gespartButton.style.display = user && canAccessSavingsPage(user.uid) ? "inline-flex" : "none";
-  }
 }
 
 const VORLAGEN_CACHE_KEY = "material_vorlagen_cache_v1";
@@ -1422,7 +1363,6 @@ function getVorlagenFromCache(){
       link: parseAndNormalizeUrl(v.link || "") || "",
       imagePath: sanitizeInput(v.imagePath || "", 260),
       imageUrl: parseAndNormalizeUrl(v.imageUrl || "") || "",
-      inGespart: !!v.inGespart
     })).filter(v => v.id);
   }catch(error){
     return null;
@@ -1441,7 +1381,6 @@ function saveVorlagenToCache(vorlagen){
         link: parseAndNormalizeUrl(v.link || "") || "",
         imagePath: sanitizeInput(v.imagePath || "", 260),
         imageUrl: parseAndNormalizeUrl(v.imageUrl || "") || "",
-        inGespart: !!v.inGespart
       }))
     }));
   }catch(error){
@@ -1583,17 +1522,6 @@ function goToLogs(){
 }
 
 
-function goToGespart(){
-  const user = auth.currentUser;
-  if(!user || !canAccessSavingsPage(user.uid)){
-    closeMenu();
-    alert("Diese Seite ist nur für den freigegebenen Benutzer sichtbar.");
-    return;
-  }
-
-  closeMenu();
-  window.location.href = "gespart.html";
-}
 
 function goToKabelReport(){
   closeMenu();
@@ -1753,7 +1681,6 @@ auth.onAuthStateChanged((user) => {
 
     isAdminUser = isAdminUid(user.uid);
     setAdminMenuVisibility(isAdminUser);
-    updateSavingsCheckboxVisibility();
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
     updateAdminVisibility();
@@ -1763,7 +1690,6 @@ auth.onAuthStateChanged((user) => {
   }else{
     isAdminUser = false;
     setAdminMenuVisibility(false);
-    updateSavingsCheckboxVisibility();
     stopListeners();
     closeMenu();
     closeAllCardMenus();
@@ -1823,7 +1749,6 @@ function loadVorlagen(forceRefresh = false){
         link: parseAndNormalizeUrl(data.link || "") || "",
         imagePath: sanitizeInput(data.imagePath || "", 260),
         imageUrl: parseAndNormalizeUrl(data.imageUrl || "") || "",
-        inGespart: !!data.inGespart
       };
     });
 
@@ -2943,7 +2868,6 @@ function openVorlageModal(id = null){
     document.getElementById("vorlageSpontis").value = sanitizeInput(v.spontis || "", 60);
     document.getElementById("vorlageAlteSpontis").value = sanitizeInput(v.alteSpontis || "", 60);
     document.getElementById("vorlageLink").value = sanitizeInput(v.link || "", 600);
-    document.getElementById("vorlageInGespart").checked = !!v.inGespart;
     selectedVorlageImageExistingPath = sanitizeInput(v.imagePath || "", 260);
     selectedVorlageImageExistingUrl = parseAndNormalizeUrl(v.imageUrl || "") || "";
   }else{
@@ -2952,11 +2876,9 @@ function openVorlageModal(id = null){
     document.getElementById("vorlageSpontis").value = "";
     document.getElementById("vorlageAlteSpontis").value = "";
     document.getElementById("vorlageLink").value = "";
-    document.getElementById("vorlageInGespart").checked = false;
   }
 
   updateVorlageImagePreview();
-  updateSavingsCheckboxVisibility();
   document.getElementById("vorlageModal").style.display = "block";
 }
 
@@ -2998,7 +2920,6 @@ async function saveVorlage(){
   const alteSpontis = sanitizeInput(document.getElementById("vorlageAlteSpontis").value, 60);
   const linkInput = document.getElementById("vorlageLink").value;
   const normalizedLink = parseAndNormalizeUrl(linkInput);
-  const includeInSavings = canManageSavingsCheckbox() ? !!document.getElementById("vorlageInGespart").checked : null;
   const barcode = getBarcodeValueFromSpontis(spontis);
   const alteBarcode = getBarcodeValueFromSpontis(alteSpontis);
 
@@ -3034,9 +2955,6 @@ async function saveVorlage(){
     link: normalizedLink || ""
   };
 
-  if(canManageSavingsCheckbox()){
-    vorlagePayload.inGespart = includeInSavings;
-  }
 
   setVorlageSavingState(true);
   document.getElementById("vorlageModal").inert = true;
@@ -3106,7 +3024,6 @@ async function saveVorlage(){
         " | Neue Spontis Nummer: " + spontis +
         " | Alte Spontis Nummer: " + (alteSpontis || "-") +
         " | Link: " + (normalizedLink || "-") +
-        " | In gespart.html: " + (canManageSavingsCheckbox() ? (includeInSavings ? "Ja" : "Nein") : "unveraendert") +
         " | Bild: " + (imageUrl ? "vorhanden" : "kein Bild") +
         " | Neuer Barcode: " + (barcode || "-") +
         " | Alter Barcode: " + (alteBarcode || "-")
@@ -3118,7 +3035,6 @@ async function saveVorlage(){
         ...vorlagePayload,
         imagePath: imagePath || "",
         imageUrl: imageUrl || "",
-        inGespart: canManageSavingsCheckbox() ? includeInSavings : false,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
 
@@ -3131,7 +3047,6 @@ async function saveVorlage(){
         " | Neue Spontis Nummer: " + spontis +
         " | Alte Spontis Nummer: " + (alteSpontis || "-") +
         " | Link: " + (normalizedLink || "-") +
-        " | In gespart.html: " + (canManageSavingsCheckbox() ? (includeInSavings ? "Ja" : "Nein") : "Nein") +
         " | Bild: " + (imageUrl ? "vorhanden" : "kein Bild") +
         " | Neuer Barcode: " + (barcode || "-") +
         " | Alter Barcode: " + (alteBarcode || "-")
@@ -3617,8 +3532,7 @@ function markActiveMenu(){
   }
   else if(path.includes("baustellen")){
     currentPage = "baustellen";
-  }else if(path.includes("gespart")){
-    currentPage = "gespart";
+  
   }
   else if(path.includes("archiv")){
     currentPage = "archiv";
@@ -3659,11 +3573,6 @@ function closeModals(){
   if(vorlageAlteSpontisInput){
     vorlageAlteSpontisInput.value = "";
   }
-  const vorlageInGespartInput = document.getElementById("vorlageInGespart");
-  if(vorlageInGespartInput){
-    vorlageInGespartInput.checked = false;
-  }
-  updateSavingsCheckboxVisibility();
   document.getElementById("ausgewaehlteVorlageInfo").style.display = "none";
   document.getElementById("ausgewaehlteVorlageInfo").innerHTML = "";
   currentBaustelleId = null;
