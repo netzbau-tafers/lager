@@ -184,16 +184,43 @@ button:hover{
 
 .hero-actions{
   display:flex;
-  gap:12px;
-  padding:16px;
-  justify-content:center;
-  background:#f5f7fa;
-  border-bottom:1px solid #e1e6ed;
-  flex-wrap:wrap;
+  gap:0;
+  padding:0;
+  background:#f7f9fb;
+  border-bottom:1px solid #cbd4de;
 }
 
 .hero-link{
+  display:flex;
+  flex:1;
+  min-width:0;
   text-decoration:none;
+}
+
+.hero-link + .hero-link{
+  border-left:1px solid #cbd4de;
+}
+
+.hero-actions button{
+  width:100%;
+  margin:0;
+  border-radius:0;
+  min-height:54px;
+  background:transparent;
+  color:#344454;
+  box-shadow:none;
+  font-size:16px;
+  padding:12px;
+  overflow-wrap:anywhere;
+}
+
+.hero-actions button:hover{
+  background:#e4edf5;
+}
+
+.hero-actions button:focus-visible{
+  outline:3px solid #174b78;
+  outline-offset:-4px;
 }
 
 .hero-image-wrap{
@@ -257,13 +284,10 @@ button:hover{
     margin:18px;
   }
 
-  .hero-actions{
-    flex-direction:column;
-    align-items:stretch;
-  }
-
   .hero-actions button{
-    width:100%;
+    font-size:13px;
+    padding:10px 5px;
+    min-height:60px;
   }
 }
 
