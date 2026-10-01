@@ -869,8 +869,16 @@ dialog.vorlage-duplicate-dialog::backdrop{
 .template-search{ grid-template-columns:minmax(0,1fr) auto; }
 .workspace-results{ margin:12px 0 0; color:#586778; }
 @media(max-width:680px){
-  .header{ flex-wrap:wrap; }
-  .header h1{ font-size:25px; }
+  .header{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;
+    gap:10px;
+  }
+  .header h1{ font-size:25px; min-width:0; overflow-wrap:anywhere; }
+  .header-tools{ display:contents; }
+  .header-tools .menu-wrap{ grid-column:2; grid-row:1; justify-self:end; }
+  .header-tools .help-button{ grid-column:1 / -1; grid-row:2; justify-self:end; margin:0; }
   .workspace-search,.template-search{ grid-template-columns:1fr; }
   .workspace-heading > div:last-child:not(:first-child){ width:100%; }
   .workspace-heading > div:last-child button{ width:100%; margin:0; }
