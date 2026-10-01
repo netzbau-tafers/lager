@@ -1753,7 +1753,7 @@ auth.onAuthStateChanged((user) => {
 });
 
 function startListeners(){
-  loadVorlagen();
+  // Materialvorlagen erst bei einer Aktion laden, die sie benötigt.
 
   if(!unsubscribeBaustellen){
     unsubscribeBaustellen = baustellenCollection.onSnapshot(snapshot => {
@@ -2707,6 +2707,7 @@ document.addEventListener("keydown", event => {
 });
 
 function openBaustelleModal(){
+  loadVorlagen();
   editBaustelleId = null;
   const user = auth.currentUser;
   const defaultVerantwortlicher = sanitizeInput(getCurrentUserDisplayName(user), 120);
