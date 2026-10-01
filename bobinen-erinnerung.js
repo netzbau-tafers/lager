@@ -32,9 +32,11 @@
     const b = record.data(), started = millis(b.inGebrauchAm);
     const element = document.createElement('div');
     element.id = 'bobinen-erinnerung';
-    element.innerHTML = '<section role="dialog" aria-modal="true" aria-labelledby="bobinen-erinnerung-title"><h2 id="bobinen-erinnerung-title">Bobine seit 2 Tagen in Gebrauch</h2><p>Diese Bobine ist seit mindestens 48 Stunden auf „In Gebrauch“ gesetzt. Ist das noch korrekt?</p><dl></dl><p>Falls nicht, schreibe sie zurück ins Lager. Wenn das Kabel komplett eingezogen wurde, lösche die Bobine.</p><a href="index.html">Zum Kabellager</a><br><button type="button">Als gelesen</button><p class="error" role="status"></p></section>';
+    element.innerHTML = '<section role="dialog" aria-modal="true" aria-labelledby="bobinen-erinnerung-title"><h2 id="bobinen-erinnerung-title">Erinnerung: Bobine noch in Gebrauch</h2><p class="reminder-intro"></p><dl></dl><p>Bitte prüfe, ob die Bobine noch benötigt wird. Wenn sie zurück im Lager ist, buche sie zurück. Ist das Kabel vollständig eingezogen, lösche die Bobine aus dem Kabellager.</p><a href="index.html">Zum Kabellager</a><br><button type="button">Gelesen und schliessen</button><p class="error" role="status"></p></section>';
+    const usedBy = b.inGebrauchVonName || b.inGebrauchVonEmail || (user && (user.displayName || user.email)) || 'Unbekannter Benutzer';
+    element.querySelector('.reminder-intro').textContent = 'Diese Bobine wurde von ' + usedBy + ' auf „In Gebrauch“ gesetzt und ist seit mindestens 48 Stunden in diesem Status.';
     const list = element.querySelector('dl');
-    for(const [label,value] of [['Nummer',b.nummer],['Kabeltyp',b.typ],['Länge',b.laenge ? b.laenge + ' m' : ''],['Baustelle',b.baustelle],['Herausgeschrieben am',new Date(started).toLocaleString('de-CH')]]) {
+    for(const [label,value] of [['Nummer',b.nummer],['Kabeltyp',b.typ],['Länge',b.laenge ? b.laenge + ' m' : ''],['Baustelle',b.baustelle],['In Gebrauch seit',new Date(started).toLocaleString('de-CH')]]) {
       const dt = document.createElement('dt'), dd = document.createElement('dd');
       dt.textContent = label; dd.textContent = value || 'Nicht erfasst'; list.append(dt,dd);
     }
@@ -60,7 +62,7 @@
         // Wait for fresh server state; do not redisplay from the old snapshot.
       } catch(error) {
         console.error('Bobinen-Erinnerung konnte nicht bestätigt werden:', error);
-        element.querySelector('.error').textContent = 'Nicht gespeichert. Bitte versuche es erneut.';
+        element.querySelector('.error').textContent = 'Die Bestätigung konnte nicht gespeichert werden. Bitte versuche es erneut.';
         button.disabled = false;
       }
     };
