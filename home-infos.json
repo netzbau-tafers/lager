@@ -1,7 +1,11 @@
 {
-  "title": "Willkommen bei der Lagerverwaltung",
-  "updatedAt": "2026-05-18",
+  "title": "Aktuelle Neuerungen im Lagermanager",
+  "updatedAt": "2026-10-01",
   "items": [
-    "Willkommen auf der digitalen Lagerverwaltung von Netzbau Tafers! Hier können Materialien und Lagerbestände einfach und übersichtlich verwaltet werden. So behalten wir jederzeit den Überblick über vorhandene Artikel, Mengen und Lagerbewegungen."
+    "Datum und Uhrzeit bei Bobinen: Wird eine Bobine auf «In Gebrauch» gesetzt, wird der Zeitpunkt nun in den Details angezeigt.",
+    "Erinnerung nach 48 Stunden: Ist ein Kabel länger als 48 Stunden auf «In Gebrauch» gesetzt, erhält die Person, die es herausgeschrieben hat, beim nächsten Aufrufen des Lagermanagers eine Erinnerung. Sie kann die Meldung als gelesen bestätigen und bei Bedarf das Kabel zurück ins Lager schreiben oder löschen, wenn es vollständig eingezogen wurde.",
+    "Übersichtlicheres Layout: Die Startseite und der Bereich «Baustellenmaterial» wurden neu angeordnet und übersichtlicher gestaltet.",
+    "Aktive Baustellen drucken: Auch bei aktiven Baustellen kann nun direkt über das Drei-Punkte-Menü ein Ausdruck der Baustelle mit ihrer Materialliste erstellt werden.",
+    "Prüfung auf doppelte Spontis Nummern: Beim Speichern einer Materialvorlage wird geprüft, ob die Spontis Nummer bereits vorhanden ist. Falls dieselbe Nummer schon existiert, erscheint ein Hinweis."
   ]
 }
