@@ -844,6 +844,8 @@ dialog.vorlage-duplicate-dialog::backdrop{
 .workspace-tabs button[aria-selected="true"]{ background:#3498db; color:white; font-weight:bold; }
 .workspace-tabs button:hover{ transform:none; background:#e4edf5; }
 .workspace-tabs button[aria-selected="true"]:hover{ background:#2980b9; }
+.workspace-tabs #tab-beendete{ flex-wrap:wrap; }
+.completed-tab-badge{ display:inline-flex; align-items:center; gap:5px; flex-shrink:0; padding:3px 7px; border-radius:999px; background:#ffe7bf; color:#914600; font-size:13px; font-weight:bold; line-height:1.3; }
 .workspace-tabs button:focus-visible{ outline:3px solid #174b78; outline-offset:-4px; }
 .baustelle-card h3{ overflow-wrap:anywhere; }
 @media(max-width:600px){
@@ -924,7 +926,7 @@ dialog.vorlage-duplicate-dialog::backdrop{
 
 <div class="workspace-tabs" role="tablist" aria-label="Bereiche">
   <button id="tab-baustellen" role="tab" aria-selected="true" aria-controls="panel-baustellen" tabindex="0" onclick="selectWorkspaceTab('baustellen')">Baustellen</button>
-  <button id="tab-beendete" role="tab" aria-selected="false" aria-controls="panel-beendete" tabindex="-1" onclick="selectWorkspaceTab('beendete')">Beendete Baustellen</button>
+  <button id="tab-beendete" role="tab" aria-selected="false" aria-controls="panel-beendete" tabindex="-1" onclick="selectWorkspaceTab('beendete')"><span>Beendete Baustellen</span><span id="beendeteTabBadge" class="completed-tab-badge" role="status" aria-label="0 beendete Baustellen"><i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i><span id="beendeteTabCount">0</span></span></button>
   <button id="tab-vorlagen" role="tab" aria-selected="false" aria-controls="panel-vorlagen" tabindex="-1" onclick="selectWorkspaceTab('vorlagen')">Materialvorlagen</button>
 </div>
 <div id="baustellenSearchBox" class="search-box">
@@ -1937,6 +1939,9 @@ function renderAll(){
   const aktiveContainer = document.getElementById("aktiveBaustellen");
   const beendeteContainer = document.getElementById("beendeteBaustellen");
   const beendeteCount = document.getElementById("beendeteCount");
+  const beendeteGesamt = alleBaustellen.filter(b => b.status === "rausschreiben").length;
+  document.getElementById("beendeteTabCount").textContent = String(beendeteGesamt);
+  document.getElementById("beendeteTabBadge").setAttribute("aria-label", beendeteGesamt + " beendete Baustellen");
 
   aktiveContainer.innerHTML = "";
   beendeteContainer.innerHTML = "";
