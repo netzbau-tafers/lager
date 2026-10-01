@@ -857,6 +857,24 @@ dialog.vorlage-duplicate-dialog::backdrop{
   .card-actions{ gap:6px; }
   .search-row, .search-row input, .search-row select{ min-width:0; }
 }
+.header-tools{ display:flex; align-items:center; gap:10px; }
+.help-button{ background:#fff; color:#344454; border:1px solid #cbd4de; }
+.help-button:hover{ background:#e4edf5; }
+.workspace-heading{ display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:18px; }
+.workspace-heading h2{ margin:0; font-size:22px; }
+.workspace-count{ margin-top:7px; color:#586778; font-size:14px; }
+.workspace-search{ display:grid; grid-template-columns:minmax(0,1fr) minmax(180px,240px) auto; align-items:center; gap:10px; }
+.workspace-search input,.workspace-search select{ margin:0; min-width:0; }
+.workspace-search button{ margin:0; }
+.template-search{ grid-template-columns:minmax(0,1fr) auto; }
+.workspace-results{ margin:12px 0 0; color:#586778; }
+@media(max-width:680px){
+  .header{ flex-wrap:wrap; }
+  .header h1{ font-size:25px; }
+  .workspace-search,.template-search{ grid-template-columns:1fr; }
+  .workspace-heading > div:last-child:not(:first-child){ width:100%; }
+  .workspace-heading > div:last-child button{ width:100%; margin:0; }
+}
 </style>
 </head>
 
@@ -883,6 +901,8 @@ dialog.vorlage-duplicate-dialog::backdrop{
 <div class="header">
   <h1>Baustellenmaterial</h1>
 
+  <div class="header-tools">
+    <button class="help-button" aria-expanded="false" aria-controls="workspaceHelp" onclick="toggleWorkspaceHelp(this)"><i class="fa-solid fa-circle-info"></i> Hilfe</button>
   <div class="menu-wrap">
     <button class="menu-button" onclick="toggleMenu(event)" title="Menü öffnen">
       <i class="fa-solid fa-bars"></i>
@@ -922,34 +942,10 @@ dialog.vorlage-duplicate-dialog::backdrop{
   </button>
 </div>
   </div>
-</div>
-
-<div class="workspace-tabs" role="tablist" aria-label="Bereiche">
-  <button id="tab-baustellen" role="tab" aria-selected="true" aria-controls="panel-baustellen" tabindex="0" onclick="selectWorkspaceTab('baustellen')">Baustellen</button>
-  <button id="tab-beendete" role="tab" aria-selected="false" aria-controls="panel-beendete" tabindex="-1" onclick="selectWorkspaceTab('beendete')"><span>Beendete Baustellen</span><span id="beendeteTabBadge" class="completed-tab-badge" role="status" aria-label="0 beendete Baustellen"><i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i><span id="beendeteTabCount">0</span></span></button>
-  <button id="tab-vorlagen" role="tab" aria-selected="false" aria-controls="panel-vorlagen" tabindex="-1" onclick="selectWorkspaceTab('vorlagen')">Materialvorlagen</button>
-</div>
-<div id="baustellenSearchBox" class="search-box">
-  <div class="search-title">Suche</div>
-
-  <div class="search-row">
-    <input id="searchInput" type="text" placeholder="Nach Baustellenname, Nummer, Verantwortlicher oder Material suchen" oninput="renderAll()" maxlength="120">
-    <button class="back" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
-  </div>
-
-  <div class="search-row" style="margin-top:10px;">
-    <select id="creatorFilterMode" onchange="onCreatorFilterChanged()">
-      <option value="all">Alle Ersteller anzeigen</option>
-      <option value="mine">Nur von mir erstellt</option>
-    </select>
-  </div>
-
-  <div id="neueBaustelleWrap" style="margin-top:15px;">
-    <button onclick="openBaustelleModal()"><i class="fa-solid fa-plus"></i> Neue Baustelle erstellen</button>
   </div>
 </div>
 
-  <details class="help-accordion">
+  <details id="workspaceHelp" class="help-accordion" hidden>
   <summary>Hilfe anzeigen</summary>
   <div class="info-box" style="background:white; border:1px solid #ccc; border-radius:10px; padding:15px; margin-bottom:20px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
     <h3 style="margin-top:0;">So benutzt du das Baustellenmaterial</h3>
@@ -1032,34 +1028,43 @@ dialog.vorlage-duplicate-dialog::backdrop{
     </p>
   </div>
 </details>
-  
-<div class="info-box" id="resultInfo"></div>
+<div class="workspace-tabs" role="tablist" aria-label="Bereiche">
+  <button id="tab-baustellen" role="tab" aria-selected="true" aria-controls="panel-baustellen" tabindex="0" onclick="selectWorkspaceTab('baustellen')">Baustellen</button>
+  <button id="tab-beendete" role="tab" aria-selected="false" aria-controls="panel-beendete" tabindex="-1" onclick="selectWorkspaceTab('beendete')"><span>Beendete Baustellen</span><span id="beendeteTabBadge" class="completed-tab-badge" role="status" aria-label="0 beendete Baustellen"><i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i><span id="beendeteTabCount">0</span></span></button>
+  <button id="tab-vorlagen" role="tab" aria-selected="false" aria-controls="panel-vorlagen" tabindex="-1" onclick="selectWorkspaceTab('vorlagen')">Materialvorlagen</button>
+</div>
+<div id="baustellenSearchBox" class="search-box workspace-toolbar">
+  <div class="workspace-heading">
+    <div><h2 id="workspaceSectionTitle">Baustellen</h2><div class="workspace-count" id="workspaceMaterialCount"></div></div>
+    <div id="neueBaustelleWrap"><button onclick="openBaustelleModal()"><i class="fa-solid fa-plus"></i> Neue Baustelle erstellen</button></div>
+  </div>
+  <div class="workspace-search">
+    <input id="searchInput" type="text" aria-label="Baustellen suchen" placeholder="Nach Baustellenname, Nummer, Verantwortlicher oder Material suchen" oninput="renderAll()" maxlength="120">
+    <select id="creatorFilterMode" aria-label="Nach Ersteller filtern" onchange="onCreatorFilterChanged()"><option value="all">Alle Ersteller anzeigen</option><option value="mine">Nur von mir erstellt</option></select>
+    <button class="back" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Zurücksetzen</button>
+  </div>
+  <div class="info-box workspace-results" id="resultInfo"></div>
+</div>
 <section id="panel-baustellen" class="section" role="tabpanel" aria-labelledby="tab-baustellen">
-  <div class="section-header"><h2>Aktive Baustellen</h2></div>
+  
   <div id="aktiveBaustellen" class="baustellen-grid"></div>
 </section>
 <section id="panel-beendete" class="section" role="tabpanel" aria-labelledby="tab-beendete" hidden>
-  <div class="section-header"><h2>Beendete Baustellen (<span id="beendeteCount">0</span>)</h2></div>
+  <span id="beendeteCount" hidden>0</span>
   <div id="beendeteBaustellen" class="baustellen-grid"></div>
 </section>
 <section id="panel-vorlagen" class="section" role="tabpanel" aria-labelledby="tab-vorlagen" hidden>
-    <div class="section-header" style="margin-top:12px;">
-      <h2>Materialvorlagen verwalten</h2>
-    </div>
-
-    <div class="search-box">
-      <div class="search-title">Vorlagen suchen</div>
-      <div class="search-row">
-        <input id="vorlagenSearchInput" type="text" placeholder="Nach Material oder Spontis Nummer suchen" oninput="renderVorlagen()" maxlength="120">
-        <button class="back" onclick="resetVorlagenSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
+    <div class="search-box workspace-toolbar">
+      <div class="workspace-heading">
+        <div><h2>Materialvorlagen</h2><div class="workspace-count" id="vorlagenTotalCount"></div></div>
+        <div id="neueVorlageWrap" style="display:none;"><button onclick="openVorlageModal()"><i class="fa-solid fa-plus"></i> Neue Vorlage</button></div>
       </div>
-
-      <div id="neueVorlageWrap" style="margin-top:15px; display:none;">
-        <button onclick="openVorlageModal()"><i class="fa-solid fa-plus"></i> Neue Vorlage</button>
+      <div class="workspace-search template-search">
+        <input id="vorlagenSearchInput" type="text" aria-label="Materialvorlagen suchen" placeholder="Nach Material oder Spontis Nummer suchen" oninput="renderVorlagen()" maxlength="120">
+        <button class="back" onclick="resetVorlagenSearch()"><i class="fa-solid fa-rotate-left"></i> Zurücksetzen</button>
       </div>
+      <div id="vorlagenInfo" class="info-box workspace-results"></div>
     </div>
-
-    <div id="vorlagenInfo" class="info-box"></div>
     <div id="vorlagenListe" class="baustellen-grid"></div>
 
 </section>
@@ -1966,6 +1971,13 @@ function renderAll(){
     beendete.forEach(b => beendeteContainer.appendChild(createBaustelleCard(b)));
   }
 
+  const shown = activeWorkspaceTab === "beendete" ? beendete : aktive;
+  const status = activeWorkspaceTab === "beendete" ? "rausschreiben" : "aktiv";
+  const total = alleBaustellen.filter(b => b.status === status && baustellePasstZumErstellerFilter(b)).length;
+  const positions = shown.reduce((sum, b) => sum + materialVonBaustelle(b.id).length, 0);
+  document.getElementById("workspaceSectionTitle").textContent = activeWorkspaceTab === "beendete" ? "Beendete Baustellen" : "Baustellen";
+  document.getElementById("workspaceMaterialCount").textContent = shown.length + " Baustellen · " + positions + " Materialpositionen";
+
   if(beendeteCount){
     beendeteCount.innerText = String(beendete.length);
   }
@@ -1973,8 +1985,8 @@ function renderAll(){
 
   document.getElementById("resultInfo").innerText =
     activeWorkspaceTab === "beendete"
-      ? "Beendete Baustellen: " + beendete.length
-      : "Aktive Baustellen: " + aktive.length;
+      ? beendete.length + " von " + total + " Baustellen"
+      : aktive.length + " von " + total + " Baustellen";
 }
 
 function renderVorlagen(){
@@ -1984,6 +1996,7 @@ function renderVorlagen(){
   }
 
   container.innerHTML = "";
+  document.getElementById("vorlagenTotalCount").textContent = alleVorlagen.length + " Vorlagen";
   updateAdminVisibility();
 
   const gefilterteVorlagen = [...alleVorlagen]
@@ -2030,7 +2043,7 @@ function renderVorlagen(){
   }
 
   document.getElementById("vorlagenInfo").innerText =
-    "Materialvorlagen: " + gefilterteVorlagen.length;
+    gefilterteVorlagen.length + " von " + alleVorlagen.length + " Vorlagen";
 }
 
 function renderMaterialVorlagenTreffer(){
@@ -2550,6 +2563,13 @@ function toggleMaterialList(baustelleId){
     content.style.display = "block";
     arrow.innerText = "▲";
   }
+}
+
+function toggleWorkspaceHelp(button){
+  const help = document.getElementById("workspaceHelp");
+  help.hidden = !help.hidden;
+  help.open = !help.hidden;
+  button.setAttribute("aria-expanded", String(!help.hidden));
 }
 
 function selectWorkspaceTab(tabName){
