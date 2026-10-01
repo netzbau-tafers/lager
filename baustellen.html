@@ -837,6 +837,24 @@ dialog.vorlage-duplicate-dialog{
 dialog.vorlage-duplicate-dialog::backdrop{
   background:rgba(0,0,0,0.45);
 }
+[hidden]{ display:none !important; }
+.workspace-tabs{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; margin-bottom:20px; border:1px solid #cbd4de; border-radius:10px; overflow:hidden; background:#f7f9fb; }
+.workspace-tabs button{ margin:0; border-radius:0; min-height:54px; background:transparent; color:#344454; box-shadow:none; font-size:16px; padding:12px; overflow-wrap:anywhere; }
+.workspace-tabs button + button{ border-left:1px solid #cbd4de; }
+.workspace-tabs button[aria-selected="true"]{ background:#3498db; color:white; font-weight:bold; }
+.workspace-tabs button:hover{ transform:none; background:#e4edf5; }
+.workspace-tabs button[aria-selected="true"]:hover{ background:#2980b9; }
+.workspace-tabs button:focus-visible{ outline:3px solid #174b78; outline-offset:-4px; }
+.baustelle-card h3{ overflow-wrap:anywhere; }
+@media(max-width:600px){
+  .header h1{ font-size:24px; overflow-wrap:anywhere; }
+  .header .menu-wrap{ flex-shrink:0; }
+  .workspace-tabs button{ font-size:13px; padding:10px 5px; min-height:60px; }
+  .baustellen-grid{ grid-template-columns:minmax(0,1fr); }
+  .baustelle-card{ min-width:0; padding:15px; }
+  .card-actions{ gap:6px; }
+  .search-row, .search-row input, .search-row select{ min-width:0; }
+}
 </style>
 </head>
 
@@ -904,7 +922,12 @@ dialog.vorlage-duplicate-dialog::backdrop{
   </div>
 </div>
 
-<div class="search-box">
+<div class="workspace-tabs" role="tablist" aria-label="Bereiche">
+  <button id="tab-baustellen" role="tab" aria-selected="true" aria-controls="panel-baustellen" tabindex="0" onclick="selectWorkspaceTab('baustellen')">Baustellen</button>
+  <button id="tab-beendete" role="tab" aria-selected="false" aria-controls="panel-beendete" tabindex="-1" onclick="selectWorkspaceTab('beendete')">Beendete Baustellen</button>
+  <button id="tab-vorlagen" role="tab" aria-selected="false" aria-controls="panel-vorlagen" tabindex="-1" onclick="selectWorkspaceTab('vorlagen')">Materialvorlagen</button>
+</div>
+<div id="baustellenSearchBox" class="search-box">
   <div class="search-title">Suche</div>
 
   <div class="search-row">
@@ -919,7 +942,7 @@ dialog.vorlage-duplicate-dialog::backdrop{
     </select>
   </div>
 
-  <div style="margin-top:15px;">
+  <div id="neueBaustelleWrap" style="margin-top:15px;">
     <button onclick="openBaustelleModal()"><i class="fa-solid fa-plus"></i> Neue Baustelle erstellen</button>
   </div>
 </div>
@@ -1009,31 +1032,15 @@ dialog.vorlage-duplicate-dialog::backdrop{
 </details>
   
 <div class="info-box" id="resultInfo"></div>
-
-<div class="section">
-  <div class="section-header">
-    <h2>Aktive Baustellen</h2>
-  </div>
+<section id="panel-baustellen" class="section" role="tabpanel" aria-labelledby="tab-baustellen">
+  <div class="section-header"><h2>Aktive Baustellen</h2></div>
   <div id="aktiveBaustellen" class="baustellen-grid"></div>
-</div>
-
-<div class="section">
-  <div class="section-header">
-    <button class="material-toggle" onclick="toggleBeendeteBereich()">
-      <span><i class="fa-solid fa-list-check"></i> Beendete Baustellen (<span id="beendeteCount">0</span>)</span>
-      <span class="arrow" id="beendeteArrow">▼</span>
-    </button>
-  </div>
-  <div id="beendeteBaustellen" class="baustellen-grid" style="display:none;"></div>
-</div>
-
-<div class="section">
-  <button class="material-toggle" onclick="toggleVorlagenBereich()">
-    <span><i class="fa-solid fa-layer-group"></i> Materialvorlagen verwalten</span>
-    <span class="arrow" id="vorlagenArrow">▼</span>
-  </button>
-
-  <div id="vorlagenContent" class="material-content" style="display:none;">
+</section>
+<section id="panel-beendete" class="section" role="tabpanel" aria-labelledby="tab-beendete" hidden>
+  <div class="section-header"><h2>Beendete Baustellen (<span id="beendeteCount">0</span>)</h2></div>
+  <div id="beendeteBaustellen" class="baustellen-grid"></div>
+</section>
+<section id="panel-vorlagen" class="section" role="tabpanel" aria-labelledby="tab-vorlagen" hidden>
     <div class="section-header" style="margin-top:12px;">
       <h2>Materialvorlagen verwalten</h2>
     </div>
@@ -1052,8 +1059,8 @@ dialog.vorlage-duplicate-dialog::backdrop{
 
     <div id="vorlagenInfo" class="info-box"></div>
     <div id="vorlagenListe" class="baustellen-grid"></div>
-  </div>
-</div>
+
+</section>
 
 <div id="baustelleModal" class="modal">
   <div class="modal-content">
@@ -1176,11 +1183,10 @@ let currentBaustelleId = null;
 let editMaterialId = null;
 let editVorlageId = null;
 let openMaterialLists = {};
-let vorlagenBereichOffen = false;
+let activeWorkspaceTab = "baustellen";
 let vorlagenCacheHydrated = false;
 let vorlagenLoadedFromServer = false;
 let vorlagenLoadingPromise = null;
-let beendeteBereichOffen = false;
 let selectedVorlageId = null;
 let isAdminUser = false;
 let selectedVorlageImageFile = null;
@@ -1959,10 +1965,11 @@ function renderAll(){
     beendeteCount.innerText = String(beendete.length);
   }
 
-  beendeteContainer.style.display = beendeteBereichOffen ? "grid" : "none";
 
   document.getElementById("resultInfo").innerText =
-    "Aktive Baustellen: " + aktive.length + " | Beendete Baustellen: " + beendete.length;
+    activeWorkspaceTab === "beendete"
+      ? "Beendete Baustellen: " + beendete.length
+      : "Aktive Baustellen: " + aktive.length;
 }
 
 function renderVorlagen(){
@@ -2540,44 +2547,34 @@ function toggleMaterialList(baustelleId){
   }
 }
 
-function toggleBeendeteBereich(){
-  const content = document.getElementById("beendeteBaustellen");
-  const arrow = document.getElementById("beendeteArrow");
-
-  if(!content || !arrow){
-    return;
-  }
-
-  if(beendeteBereichOffen){
-    beendeteBereichOffen = false;
-    content.style.display = "none";
-    arrow.innerText = "▼";
-  }else{
-    beendeteBereichOffen = true;
-    content.style.display = "grid";
-    arrow.innerText = "▲";
-  }
+function selectWorkspaceTab(tabName){
+  const tabs = ["baustellen", "beendete", "vorlagen"];
+  if(!tabs.includes(tabName)){ return; }
+  activeWorkspaceTab = tabName;
+  closeAllCardMenus();
+  tabs.forEach(name => {
+    const selected = name === tabName;
+    const tab = document.getElementById("tab-" + name);
+    tab.setAttribute("aria-selected", String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+    document.getElementById("panel-" + name).hidden = !selected;
+  });
+  document.getElementById("baustellenSearchBox").hidden = tabName === "vorlagen";
+  document.getElementById("resultInfo").hidden = tabName === "vorlagen";
+  document.getElementById("neueBaustelleWrap").hidden = tabName !== "baustellen";
+  if(tabName === "vorlagen"){ loadVorlagen(); }
+  renderAll();
 }
-
-function toggleVorlagenBereich(){
-  const content = document.getElementById("vorlagenContent");
-  const arrow = document.getElementById("vorlagenArrow");
-
-  if(!content || !arrow){
-    return;
-  }
-
-  if(vorlagenBereichOffen){
-    vorlagenBereichOffen = false;
-    content.style.display = "none";
-    arrow.innerText = "▼";
-  }else{
-    vorlagenBereichOffen = true;
-    loadVorlagen();
-    content.style.display = "block";
-    arrow.innerText = "▲";
-  }
-}
+document.addEventListener("keydown", event => {
+  const tabs = ["baustellen", "beendete", "vorlagen"];
+  const index = tabs.findIndex(name => event.target.id === "tab-" + name);
+  if(index < 0 || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)){ return; }
+  event.preventDefault();
+  const next = event.key === "Home" ? 0 : event.key === "End" ? 2
+    : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+  selectWorkspaceTab(tabs[next]);
+  document.getElementById("tab-" + tabs[next]).focus();
+});
 
 function openBaustelleModal(){
   editBaustelleId = null;
