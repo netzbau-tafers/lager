@@ -179,7 +179,6 @@
         <button onclick="goToKabellager()"><i class="fa-solid fa-warehouse"></i> Kabellager</button>
         <button onclick="goToKabelReport()"><i class="fa-solid fa-chart-column"></i> Kabel Report</button>
         <button id="baustellenMenuButton" onclick="goToBaustellen()"><i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial</button>
-        <button id="gespartMenuButton" onclick="goToGespart()" style="display:none;"><i class="fa-solid fa-piggy-bank"></i> Kosten gespart</button>
         <button class="active-page" onclick="closeMenu()"><i class="fa-solid fa-user"></i> Profil</button>
         <button class="logout-safe" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
       </div>
@@ -218,8 +217,6 @@
     const usersCollection = db.collection("users");
     const LIMITED_ACCESS_UIDS = ["POSB6W7xeDZ8Dlba03ZP3J02dMC3", "AX08qKp7lte6vslQMFn76FVqxw53", "KYqiqNKTmkQQYVWAa6bp6vSvTlV2"];
     const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
-const SPECIAL_SAVINGS_UID = "pmyu29TlC3QM7JIysmy2EmiHSWW2";
-const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
 
     function sanitizeInput(value, maxLength = 120){
       return String(value || "")
@@ -256,29 +253,14 @@ const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
 
     function updateNavigationVisibility(user){
       const baustellenButton = document.getElementById("baustellenMenuButton");
-      const gespartButton = document.getElementById("gespartMenuButton");
       const isLimitedUser = !!(user && hasLimitedAccess(user.uid));
 
       if(baustellenButton){
         baustellenButton.style.display = isLimitedUser ? "none" : "inline-flex";
       }
 
-      if(gespartButton){
-        gespartButton.style.display = user && canAccessSavingsPage(user.uid) && !isLimitedUser ? "inline-flex" : "none";
-      }
     }
 
-    function goToGespart(){
-      const user = auth.currentUser;
-      if(!user || !canAccessSavingsPage(user.uid)){
-        closeMenu();
-        alert("Diese Seite ist nur für den freigegebenen Benutzer sichtbar.");
-        return;
-      }
-
-      closeMenu();
-      window.location.href = "gespart.html";
-    }
 
     function logout(){
       closeMenu();
