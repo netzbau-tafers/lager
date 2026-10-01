@@ -3,10 +3,14 @@
   'use strict';
   const WAIT = 48 * 60 * 60 * 1000;
   const millis = value => value && typeof value.toMillis === 'function' ? value.toMillis() : NaN;
-  const eligible = (b, uid, now = Date.now()) => b.status === 'In Gebrauch' &&
-    b.inGebrauchVonUid === uid && Number.isFinite(millis(b.inGebrauchAm)) &&
-    now - millis(b.inGebrauchAm) >= WAIT &&
-    b.erinnerungGelesenFuer !== String(millis(b.inGebrauchAm));
+  const eligible = (b, uid, now = Date.now()) => {
+    const started = millis(b.inGebrauchAm);
+    if(b.status !== 'In Gebrauch' || b.inGebrauchVonUid !== uid || !Number.isFinite(started)) return false;
+    const acknowledged = b.erinnerungGelesenFuer === String(started) ? millis(b.erinnerungGelesenAm) : NaN;
+    if(b.erinnerungGelesenFuer === String(started) && !Number.isFinite(acknowledged)) return false;
+    const lastReminder = Number.isFinite(acknowledged) ? Math.max(started, acknowledged) : started;
+    return now - lastReminder >= WAIT;
+  };
   let user = null, unsubscribe = null, records = [], active = null, timer = null;
   const db = firebase.firestore();
   const style = document.createElement('style');
@@ -32,7 +36,7 @@
     const b = record.data(), started = millis(b.inGebrauchAm);
     const element = document.createElement('div');
     element.id = 'bobinen-erinnerung';
-    element.innerHTML = '<section role="dialog" aria-modal="true" aria-labelledby="bobinen-erinnerung-title"><h2 id="bobinen-erinnerung-title">Erinnerung: Bobine noch in Gebrauch</h2><p class="reminder-intro"></p><dl></dl><p>Bitte prüfe, ob die Bobine noch benötigt wird. Wenn sie zurück im Lager ist, buche sie zurück. Ist das Kabel vollständig eingezogen, lösche die Bobine aus dem Kabellager.</p><a href="index.html">Zum Kabellager</a><br><button type="button">Gelesen und schliessen</button><p class="error" role="status"></p></section>';
+    element.innerHTML = '<section role="dialog" aria-modal="true" aria-labelledby="bobinen-erinnerung-title"><h2 id="bobinen-erinnerung-title">Erinnerung: Bobine noch in Gebrauch</h2><p class="reminder-intro"></p><dl></dl><p>Bitte prüfe, ob die Bobine noch benötigt wird. Wenn sie zurück im Lager ist, buche sie zurück. Ist das Kabel vollständig eingezogen, lösche die Bobine aus dem Kabellager.</p><p>Solange die Bobine in Gebrauch bleibt, wirst du 48 Stunden nach dieser Bestätigung erneut erinnert.</p><a href="index.html">Zum Kabellager</a><br><button type="button">Gelesen und schliessen</button><p class="error" role="status"></p></section>';
     const usedBy = b.inGebrauchVonName || b.inGebrauchVonEmail || (user && (user.displayName || user.email)) || 'Unbekannter Benutzer';
     element.querySelector('.reminder-intro').textContent = 'Diese Bobine wurde von ' + usedBy + ' auf „In Gebrauch“ gesetzt und ist seit mindestens 48 Stunden in diesem Status.';
     const list = element.querySelector('dl');
@@ -56,10 +60,15 @@
             erinnerungGelesenAm: firebase.firestore.FieldValue.serverTimestamp()
           });
         });
-        records = records.filter(r => r.id !== record.id);
+        const acknowledgedAt = firebase.firestore.Timestamp.now();
+        records = records.map(r => {
+          if(r.id !== record.id || millis(r.data().inGebrauchAm) !== started) return r;
+          const data = {...r.data(), erinnerungGelesenFuer: String(started), erinnerungGelesenAm: acknowledgedAt};
+          return {id: r.id, ref: r.ref, data: () => data};
+        });
         remove();
         check();
-        // Wait for fresh server state; do not redisplay from the old snapshot.
+        // Keep the bobine available for the next reminder while awaiting the server snapshot.
       } catch(error) {
         console.error('Bobinen-Erinnerung konnte nicht bestätigt werden:', error);
         element.querySelector('.error').textContent = 'Die Bestätigung konnte nicht gespeichert werden. Bitte versuche es erneut.';
