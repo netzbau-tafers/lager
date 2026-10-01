@@ -313,32 +313,6 @@ label{
   background:white;
 }
 
-.vorlage-checkbox-wrap{
-  display:none;
-  align-items:center;
-  gap:10px;
-  margin:-2px 0 14px 0;
-  padding:10px 12px;
-  border:1px solid #d7dee6;
-  border-radius:8px;
-  background:#f7f9fb;
-}
-
-.vorlage-checkbox-wrap input[type="checkbox"]{
-  width:18px;
-  height:18px;
-  margin:0;
-  flex:0 0 auto;
-}
-
-.vorlage-checkbox-label{
-  margin:0;
-  font-size:14px;
-  font-weight:bold;
-  color:#22303c;
-  cursor:pointer;
-}
-
 .vorlage-saving-status{
   display:none;
   align-items:center;
@@ -863,6 +837,24 @@ dialog.vorlage-duplicate-dialog{
 dialog.vorlage-duplicate-dialog::backdrop{
   background:rgba(0,0,0,0.45);
 }
+[hidden]{ display:none !important; }
+.workspace-tabs{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; margin-bottom:20px; border:1px solid #cbd4de; border-radius:10px; overflow:hidden; background:#f7f9fb; }
+.workspace-tabs button{ margin:0; border-radius:0; min-height:54px; background:transparent; color:#344454; box-shadow:none; font-size:16px; padding:12px; overflow-wrap:anywhere; }
+.workspace-tabs button + button{ border-left:1px solid #cbd4de; }
+.workspace-tabs button[aria-selected="true"]{ background:#3498db; color:white; font-weight:bold; }
+.workspace-tabs button:hover{ transform:none; background:#e4edf5; }
+.workspace-tabs button[aria-selected="true"]:hover{ background:#2980b9; }
+.workspace-tabs button:focus-visible{ outline:3px solid #174b78; outline-offset:-4px; }
+.baustelle-card h3{ overflow-wrap:anywhere; }
+@media(max-width:600px){
+  .header h1{ font-size:24px; overflow-wrap:anywhere; }
+  .header .menu-wrap{ flex-shrink:0; }
+  .workspace-tabs button{ font-size:13px; padding:10px 5px; min-height:60px; }
+  .baustellen-grid{ grid-template-columns:minmax(0,1fr); }
+  .baustelle-card{ min-width:0; padding:15px; }
+  .card-actions{ gap:6px; }
+  .search-row, .search-row input, .search-row select{ min-width:0; }
+}
 </style>
 </head>
 
@@ -918,9 +910,6 @@ dialog.vorlage-duplicate-dialog::backdrop{
     <i class="fa-solid fa-clipboard-list"></i> Logs
   </button>
 
-  <button id="gespartMenuButton" onclick="goToGespart()" data-page="gespart" style="display:none;">
-    <i class="fa-solid fa-piggy-bank"></i> Kosten gespart
-  </button>
 
   <button onclick="goToProfile()">
     <i class="fa-solid fa-user"></i> Profil
@@ -933,7 +922,12 @@ dialog.vorlage-duplicate-dialog::backdrop{
   </div>
 </div>
 
-<div class="search-box">
+<div class="workspace-tabs" role="tablist" aria-label="Bereiche">
+  <button id="tab-baustellen" role="tab" aria-selected="true" aria-controls="panel-baustellen" tabindex="0" onclick="selectWorkspaceTab('baustellen')">Baustellen</button>
+  <button id="tab-beendete" role="tab" aria-selected="false" aria-controls="panel-beendete" tabindex="-1" onclick="selectWorkspaceTab('beendete')">Beendete Baustellen</button>
+  <button id="tab-vorlagen" role="tab" aria-selected="false" aria-controls="panel-vorlagen" tabindex="-1" onclick="selectWorkspaceTab('vorlagen')">Materialvorlagen</button>
+</div>
+<div id="baustellenSearchBox" class="search-box">
   <div class="search-title">Suche</div>
 
   <div class="search-row">
@@ -948,7 +942,7 @@ dialog.vorlage-duplicate-dialog::backdrop{
     </select>
   </div>
 
-  <div style="margin-top:15px;">
+  <div id="neueBaustelleWrap" style="margin-top:15px;">
     <button onclick="openBaustelleModal()"><i class="fa-solid fa-plus"></i> Neue Baustelle erstellen</button>
   </div>
 </div>
@@ -1038,31 +1032,15 @@ dialog.vorlage-duplicate-dialog::backdrop{
 </details>
   
 <div class="info-box" id="resultInfo"></div>
-
-<div class="section">
-  <div class="section-header">
-    <h2>Aktive Baustellen</h2>
-  </div>
+<section id="panel-baustellen" class="section" role="tabpanel" aria-labelledby="tab-baustellen">
+  <div class="section-header"><h2>Aktive Baustellen</h2></div>
   <div id="aktiveBaustellen" class="baustellen-grid"></div>
-</div>
-
-<div class="section">
-  <div class="section-header">
-    <button class="material-toggle" onclick="toggleBeendeteBereich()">
-      <span><i class="fa-solid fa-list-check"></i> Beendete Baustellen (<span id="beendeteCount">0</span>)</span>
-      <span class="arrow" id="beendeteArrow">▼</span>
-    </button>
-  </div>
-  <div id="beendeteBaustellen" class="baustellen-grid" style="display:none;"></div>
-</div>
-
-<div class="section">
-  <button class="material-toggle" onclick="toggleVorlagenBereich()">
-    <span><i class="fa-solid fa-layer-group"></i> Materialvorlagen verwalten</span>
-    <span class="arrow" id="vorlagenArrow">▼</span>
-  </button>
-
-  <div id="vorlagenContent" class="material-content" style="display:none;">
+</section>
+<section id="panel-beendete" class="section" role="tabpanel" aria-labelledby="tab-beendete" hidden>
+  <div class="section-header"><h2>Beendete Baustellen (<span id="beendeteCount">0</span>)</h2></div>
+  <div id="beendeteBaustellen" class="baustellen-grid"></div>
+</section>
+<section id="panel-vorlagen" class="section" role="tabpanel" aria-labelledby="tab-vorlagen" hidden>
     <div class="section-header" style="margin-top:12px;">
       <h2>Materialvorlagen verwalten</h2>
     </div>
@@ -1081,8 +1059,8 @@ dialog.vorlage-duplicate-dialog::backdrop{
 
     <div id="vorlagenInfo" class="info-box"></div>
     <div id="vorlagenListe" class="baustellen-grid"></div>
-  </div>
-</div>
+
+</section>
 
 <div id="baustelleModal" class="modal">
   <div class="modal-content">
@@ -1153,10 +1131,6 @@ dialog.vorlage-duplicate-dialog::backdrop{
         </button>
       </div>
     </div>
-    <div id="vorlageSavingsCheckboxWrap" class="vorlage-checkbox-wrap">
-      <input id="vorlageInGespart" type="checkbox">
-      <label for="vorlageInGespart" class="vorlage-checkbox-label">In gespart.html berücksichtigen</label>
-    </div>
     <div id="vorlageSavingStatus" class="vorlage-saving-status" role="status" aria-live="polite">
       <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
       <span>Wird gespeichert… Bitte warten.</span>
@@ -1196,8 +1170,6 @@ const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "pmyu29TlC3QM7JIysmy2EmiHSWW
 const LIMITED_ACCESS_UIDS = ["POSB6W7xeDZ8Dlba03ZP3J02dMC3", "AX08qKp7lte6vslQMFn76FVqxw53", "KYqiqNKTmkQQYVWAa6bp6vSvTlV2"];
 const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
 const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
-const SPECIAL_SAVINGS_UID = "pmyu29TlC3QM7JIysmy2EmiHSWW2";
-const canAccessSavingsPage = (uid) => uid === SPECIAL_SAVINGS_UID;
 
 let unsubscribeBaustellen = null;
 let unsubscribeMaterial = null;
@@ -1211,11 +1183,10 @@ let currentBaustelleId = null;
 let editMaterialId = null;
 let editVorlageId = null;
 let openMaterialLists = {};
-let vorlagenBereichOffen = false;
+let activeWorkspaceTab = "baustellen";
 let vorlagenCacheHydrated = false;
 let vorlagenLoadedFromServer = false;
 let vorlagenLoadingPromise = null;
-let beendeteBereichOffen = false;
 let selectedVorlageId = null;
 let isAdminUser = false;
 let selectedVorlageImageFile = null;
@@ -1227,25 +1198,6 @@ let isSavingVorlage = false;
 const VORLAGE_IMAGE_MAX_WIDTH = 1280;
 const VORLAGE_IMAGE_MAX_HEIGHT = 1280;
 const VORLAGE_IMAGE_QUALITY = 0.85;
-
-function canManageSavingsCheckbox(){
-  const user = auth.currentUser;
-  return !!(user && user.uid === SPECIAL_SAVINGS_UID);
-}
-
-function updateSavingsCheckboxVisibility(){
-  const checkboxWrap = document.getElementById("vorlageSavingsCheckboxWrap");
-  const checkbox = document.getElementById("vorlageInGespart");
-  if(!checkboxWrap || !checkbox){
-    return;
-  }
-
-  const visible = canManageSavingsCheckbox();
-  checkboxWrap.style.display = visible ? "flex" : "none";
-  if(!visible){
-    checkbox.checked = false;
-  }
-}
 
 function setVorlageSavingState(isSaving){
   isSavingVorlage = !!isSaving;
@@ -1304,7 +1256,6 @@ function syncUsernameFromFirestore(user){
 function setAdminMenuVisibility(isAdmin){
   const archivButton = document.getElementById("archivMenuButton");
   const logsButton = document.getElementById("logsMenuButton");
-  const gespartButton = document.getElementById("gespartMenuButton");
 
   if(archivButton){
     archivButton.style.display = isAdmin ? "inline-flex" : "none";
@@ -1314,10 +1265,6 @@ function setAdminMenuVisibility(isAdmin){
     logsButton.style.display = isAdmin ? "inline-flex" : "none";
   }
 
-  if(gespartButton){
-    const user = auth.currentUser;
-    gespartButton.style.display = user && canAccessSavingsPage(user.uid) ? "inline-flex" : "none";
-  }
 }
 
 const VORLAGEN_CACHE_KEY = "material_vorlagen_cache_v1";
@@ -1422,7 +1369,6 @@ function getVorlagenFromCache(){
       link: parseAndNormalizeUrl(v.link || "") || "",
       imagePath: sanitizeInput(v.imagePath || "", 260),
       imageUrl: parseAndNormalizeUrl(v.imageUrl || "") || "",
-      inGespart: !!v.inGespart
     })).filter(v => v.id);
   }catch(error){
     return null;
@@ -1441,7 +1387,6 @@ function saveVorlagenToCache(vorlagen){
         link: parseAndNormalizeUrl(v.link || "") || "",
         imagePath: sanitizeInput(v.imagePath || "", 260),
         imageUrl: parseAndNormalizeUrl(v.imageUrl || "") || "",
-        inGespart: !!v.inGespart
       }))
     }));
   }catch(error){
@@ -1583,17 +1528,6 @@ function goToLogs(){
 }
 
 
-function goToGespart(){
-  const user = auth.currentUser;
-  if(!user || !canAccessSavingsPage(user.uid)){
-    closeMenu();
-    alert("Diese Seite ist nur für den freigegebenen Benutzer sichtbar.");
-    return;
-  }
-
-  closeMenu();
-  window.location.href = "gespart.html";
-}
 
 function goToKabelReport(){
   closeMenu();
@@ -1753,7 +1687,6 @@ auth.onAuthStateChanged((user) => {
 
     isAdminUser = isAdminUid(user.uid);
     setAdminMenuVisibility(isAdminUser);
-    updateSavingsCheckboxVisibility();
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
     updateAdminVisibility();
@@ -1763,7 +1696,6 @@ auth.onAuthStateChanged((user) => {
   }else{
     isAdminUser = false;
     setAdminMenuVisibility(false);
-    updateSavingsCheckboxVisibility();
     stopListeners();
     closeMenu();
     closeAllCardMenus();
@@ -1823,7 +1755,6 @@ function loadVorlagen(forceRefresh = false){
         link: parseAndNormalizeUrl(data.link || "") || "",
         imagePath: sanitizeInput(data.imagePath || "", 260),
         imageUrl: parseAndNormalizeUrl(data.imageUrl || "") || "",
-        inGespart: !!data.inGespart
       };
     });
 
@@ -2034,10 +1965,11 @@ function renderAll(){
     beendeteCount.innerText = String(beendete.length);
   }
 
-  beendeteContainer.style.display = beendeteBereichOffen ? "grid" : "none";
 
   document.getElementById("resultInfo").innerText =
-    "Aktive Baustellen: " + aktive.length + " | Beendete Baustellen: " + beendete.length;
+    activeWorkspaceTab === "beendete"
+      ? "Beendete Baustellen: " + beendete.length
+      : "Aktive Baustellen: " + aktive.length;
 }
 
 function renderVorlagen(){
@@ -2615,44 +2547,34 @@ function toggleMaterialList(baustelleId){
   }
 }
 
-function toggleBeendeteBereich(){
-  const content = document.getElementById("beendeteBaustellen");
-  const arrow = document.getElementById("beendeteArrow");
-
-  if(!content || !arrow){
-    return;
-  }
-
-  if(beendeteBereichOffen){
-    beendeteBereichOffen = false;
-    content.style.display = "none";
-    arrow.innerText = "▼";
-  }else{
-    beendeteBereichOffen = true;
-    content.style.display = "grid";
-    arrow.innerText = "▲";
-  }
+function selectWorkspaceTab(tabName){
+  const tabs = ["baustellen", "beendete", "vorlagen"];
+  if(!tabs.includes(tabName)){ return; }
+  activeWorkspaceTab = tabName;
+  closeAllCardMenus();
+  tabs.forEach(name => {
+    const selected = name === tabName;
+    const tab = document.getElementById("tab-" + name);
+    tab.setAttribute("aria-selected", String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+    document.getElementById("panel-" + name).hidden = !selected;
+  });
+  document.getElementById("baustellenSearchBox").hidden = tabName === "vorlagen";
+  document.getElementById("resultInfo").hidden = tabName === "vorlagen";
+  document.getElementById("neueBaustelleWrap").hidden = tabName !== "baustellen";
+  if(tabName === "vorlagen"){ loadVorlagen(); }
+  renderAll();
 }
-
-function toggleVorlagenBereich(){
-  const content = document.getElementById("vorlagenContent");
-  const arrow = document.getElementById("vorlagenArrow");
-
-  if(!content || !arrow){
-    return;
-  }
-
-  if(vorlagenBereichOffen){
-    vorlagenBereichOffen = false;
-    content.style.display = "none";
-    arrow.innerText = "▼";
-  }else{
-    vorlagenBereichOffen = true;
-    loadVorlagen();
-    content.style.display = "block";
-    arrow.innerText = "▲";
-  }
-}
+document.addEventListener("keydown", event => {
+  const tabs = ["baustellen", "beendete", "vorlagen"];
+  const index = tabs.findIndex(name => event.target.id === "tab-" + name);
+  if(index < 0 || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)){ return; }
+  event.preventDefault();
+  const next = event.key === "Home" ? 0 : event.key === "End" ? 2
+    : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+  selectWorkspaceTab(tabs[next]);
+  document.getElementById("tab-" + tabs[next]).focus();
+});
 
 function openBaustelleModal(){
   editBaustelleId = null;
@@ -2943,7 +2865,6 @@ function openVorlageModal(id = null){
     document.getElementById("vorlageSpontis").value = sanitizeInput(v.spontis || "", 60);
     document.getElementById("vorlageAlteSpontis").value = sanitizeInput(v.alteSpontis || "", 60);
     document.getElementById("vorlageLink").value = sanitizeInput(v.link || "", 600);
-    document.getElementById("vorlageInGespart").checked = !!v.inGespart;
     selectedVorlageImageExistingPath = sanitizeInput(v.imagePath || "", 260);
     selectedVorlageImageExistingUrl = parseAndNormalizeUrl(v.imageUrl || "") || "";
   }else{
@@ -2952,11 +2873,9 @@ function openVorlageModal(id = null){
     document.getElementById("vorlageSpontis").value = "";
     document.getElementById("vorlageAlteSpontis").value = "";
     document.getElementById("vorlageLink").value = "";
-    document.getElementById("vorlageInGespart").checked = false;
   }
 
   updateVorlageImagePreview();
-  updateSavingsCheckboxVisibility();
   document.getElementById("vorlageModal").style.display = "block";
 }
 
@@ -2998,7 +2917,6 @@ async function saveVorlage(){
   const alteSpontis = sanitizeInput(document.getElementById("vorlageAlteSpontis").value, 60);
   const linkInput = document.getElementById("vorlageLink").value;
   const normalizedLink = parseAndNormalizeUrl(linkInput);
-  const includeInSavings = canManageSavingsCheckbox() ? !!document.getElementById("vorlageInGespart").checked : null;
   const barcode = getBarcodeValueFromSpontis(spontis);
   const alteBarcode = getBarcodeValueFromSpontis(alteSpontis);
 
@@ -3034,9 +2952,6 @@ async function saveVorlage(){
     link: normalizedLink || ""
   };
 
-  if(canManageSavingsCheckbox()){
-    vorlagePayload.inGespart = includeInSavings;
-  }
 
   setVorlageSavingState(true);
   document.getElementById("vorlageModal").inert = true;
@@ -3106,7 +3021,6 @@ async function saveVorlage(){
         " | Neue Spontis Nummer: " + spontis +
         " | Alte Spontis Nummer: " + (alteSpontis || "-") +
         " | Link: " + (normalizedLink || "-") +
-        " | In gespart.html: " + (canManageSavingsCheckbox() ? (includeInSavings ? "Ja" : "Nein") : "unveraendert") +
         " | Bild: " + (imageUrl ? "vorhanden" : "kein Bild") +
         " | Neuer Barcode: " + (barcode || "-") +
         " | Alter Barcode: " + (alteBarcode || "-")
@@ -3118,7 +3032,6 @@ async function saveVorlage(){
         ...vorlagePayload,
         imagePath: imagePath || "",
         imageUrl: imageUrl || "",
-        inGespart: canManageSavingsCheckbox() ? includeInSavings : false,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
 
@@ -3131,7 +3044,6 @@ async function saveVorlage(){
         " | Neue Spontis Nummer: " + spontis +
         " | Alte Spontis Nummer: " + (alteSpontis || "-") +
         " | Link: " + (normalizedLink || "-") +
-        " | In gespart.html: " + (canManageSavingsCheckbox() ? (includeInSavings ? "Ja" : "Nein") : "Nein") +
         " | Bild: " + (imageUrl ? "vorhanden" : "kein Bild") +
         " | Neuer Barcode: " + (barcode || "-") +
         " | Alter Barcode: " + (alteBarcode || "-")
@@ -3617,8 +3529,7 @@ function markActiveMenu(){
   }
   else if(path.includes("baustellen")){
     currentPage = "baustellen";
-  }else if(path.includes("gespart")){
-    currentPage = "gespart";
+  
   }
   else if(path.includes("archiv")){
     currentPage = "archiv";
@@ -3659,11 +3570,6 @@ function closeModals(){
   if(vorlageAlteSpontisInput){
     vorlageAlteSpontisInput.value = "";
   }
-  const vorlageInGespartInput = document.getElementById("vorlageInGespart");
-  if(vorlageInGespartInput){
-    vorlageInGespartInput.checked = false;
-  }
-  updateSavingsCheckboxVisibility();
   document.getElementById("ausgewaehlteVorlageInfo").style.display = "none";
   document.getElementById("ausgewaehlteVorlageInfo").innerHTML = "";
   currentBaustelleId = null;
