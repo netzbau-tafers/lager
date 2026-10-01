@@ -883,6 +883,25 @@ dialog.vorlage-duplicate-dialog::backdrop{
   .workspace-heading > div:last-child:not(:first-child){ width:100%; }
   .workspace-heading > div:last-child button{ width:100%; margin:0; }
 }
+
+/* Kartenmenü oben rechts; Menüs einzelner Materialpositionen bleiben an ihrem Platz. */
+.baustelle-card{
+  position:relative;
+}
+.baustelle-card > .card-actions > .card-menu-wrap{
+  position:absolute;
+  top:14px;
+  right:14px;
+}
+.baustelle-card:has(> .card-actions > .card-menu-wrap) > h3{
+  padding-right:58px;
+}
+.baustelle-card:has(> .card-actions > .card-menu-wrap) > .badge{
+  margin-right:58px;
+}
+.baustelle-card > .card-actions:has(> .card-menu-wrap:only-child){
+  margin:0;
+}
 </style>
 </head>
 
