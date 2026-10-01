@@ -851,6 +851,18 @@ label{
     font-size:13px;
   }
 }
+dialog.vorlage-duplicate-dialog{
+  width:420px;
+  max-width:calc(100vw - 30px);
+  box-sizing:border-box;
+  border:0;
+  border-radius:10px;
+  padding:20px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.2);
+}
+dialog.vorlage-duplicate-dialog::backdrop{
+  background:rgba(0,0,0,0.45);
+}
 </style>
 </head>
 
@@ -1103,6 +1115,16 @@ label{
     <button class="back" onclick="closeModals()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
   </div>
 </div>
+
+<dialog id="vorlageDuplicateDialog" class="vorlage-duplicate-dialog" aria-labelledby="vorlageDuplicateTitle" aria-describedby="vorlageDuplicateMessage vorlageDuplicateHint">
+  <h3 id="vorlageDuplicateTitle">Materialvorlage bereits vorhanden</h3>
+  <p id="vorlageDuplicateMessage"></p>
+  <p id="vorlageDuplicateHint">«Löschen» verwirft die neue Vorlage. Die bestehende Materialvorlage bleibt erhalten.</p>
+  <form method="dialog" class="card-actions">
+    <button value="save">Trotzdem speichern</button>
+    <button value="discard" class="delete" autofocus>Löschen</button>
+  </form>
+</dialog>
 
 <div id="vorlageModal" class="modal">
   <div class="modal-content">
@@ -2938,6 +2960,30 @@ function openVorlageModal(id = null){
   document.getElementById("vorlageModal").style.display = "block";
 }
 
+function findDuplicateSpontis(vorlagen, spontis, alteSpontis){
+  const nummern = [spontis, alteSpontis].map(value => String(value || "").trim()).filter(Boolean);
+  for(const vorlage of vorlagen){
+    const vorhandeneNummern = [vorlage.spontis, vorlage.alteSpontis]
+      .map(value => String(value || "").trim()).filter(Boolean);
+    const nummer = nummern.find(value => vorhandeneNummern.includes(value));
+    if(nummer){
+      return nummer;
+    }
+  }
+  return "";
+}
+
+function confirmDuplicateVorlage(nummer){
+  const dialog = document.getElementById("vorlageDuplicateDialog");
+  document.getElementById("vorlageDuplicateMessage").textContent =
+    "Es existiert bereits eine Materialvorlage mit dieser Spontisnummer: " + nummer + ".";
+  dialog.returnValue = "";
+  return new Promise(resolve => {
+    dialog.addEventListener("close", () => resolve(dialog.returnValue), { once: true });
+    dialog.showModal();
+  });
+}
+
 async function saveVorlage(){
   if(!isAdminUser){
     alert("Nur Admins dürfen Materialvorlagen speichern.");
@@ -2976,7 +3022,7 @@ async function saveVorlage(){
     v.id !== editVorlageId
   );
 
-  if(doppelt){
+  if(editVorlageId && doppelt){
     alert("Diese Materialvorlage ist bereits vorhanden.");
     return;
   }
@@ -2993,7 +3039,25 @@ async function saveVorlage(){
   }
 
   setVorlageSavingState(true);
+  document.getElementById("vorlageModal").inert = true;
   try{
+    if(!editVorlageId){
+      const snapshot = await vorlagenCollection.get({ source: "server" });
+      const duplicateNummer = findDuplicateSpontis(
+        snapshot.docs.map(doc => doc.data()), spontis, alteSpontis
+      );
+      if(duplicateNummer){
+        const decision = await confirmDuplicateVorlage(duplicateNummer);
+        if(decision !== "save"){
+          if(decision === "discard"){
+            closeModals();
+            document.getElementById("vorlageMaterial").value = "";
+            document.getElementById("vorlageSpontis").value = "";
+          }
+          return;
+        }
+      }
+    }
     const vorlageId = editVorlageId || vorlagenCollection.doc().id;
     let imagePath = selectedVorlageImageExistingPath;
     let imageUrl = selectedVorlageImageExistingUrl;
@@ -3079,6 +3143,7 @@ async function saveVorlage(){
     console.error("Fehler beim Speichern der Vorlage:", error);
     alert("Fehler beim Speichern.");
   }finally{
+    document.getElementById("vorlageModal").inert = false;
     setVorlageSavingState(false);
   }
 }
