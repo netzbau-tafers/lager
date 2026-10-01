@@ -498,7 +498,7 @@ input{
   <div class="search-box">
     <div class="search-title">Archiv durchsuchen</div>
     <div class="search-row">
-      <input id="searchInput" type="text" placeholder="Baustellen suchen · Material/Barcode nur in bereits geladenen Listen" oninput="handleArchivSearchInput()" maxlength="120">
+      <input id="searchInput" type="text" placeholder="Nach Baustellenname, Nummer, Verantwortlicher, Material oder Barcode suchen" oninput="handleArchivSearchInput()" maxlength="120">
       <button class="back" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
     </div>
   </div>
@@ -545,10 +545,7 @@ const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
 const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
 
 let unsubscribeBaustellen = null;
-const archivMaterialListeners = new Map();
-const archivMaterialLoads = new Map();
-const archivMaterialLoaded = new Set();
-let archivMaterialSession = 0;
+let unsubscribeMaterial = null;
 
 let alleBaustellen = [];
 let alleMaterialien = [];
@@ -573,7 +570,8 @@ function saveArchivCache(){
   try{
     const cachePayload = {
       savedAt: Date.now(),
-      baustellen: alleBaustellen
+      baustellen: alleBaustellen,
+      materialien: alleMaterialien
     };
 
     localStorage.setItem(ARCHIV_CACHE_KEY, JSON.stringify(cachePayload));
@@ -591,12 +589,12 @@ function loadArchivCache(){
 
     const parsed = JSON.parse(raw);
 
-    if(!parsed || !Array.isArray(parsed.baustellen)){
+    if(!parsed || !Array.isArray(parsed.baustellen) || !Array.isArray(parsed.materialien)){
       return;
     }
 
     alleBaustellen = parsed.baustellen;
-    // Materialpositionen werden ausschließlich pro geöffneter Liste geladen.
+    alleMaterialien = parsed.materialien;
     renderArchiv();
   }catch(error){
     console.warn("Archiv-Cache konnte nicht geladen werden:", error);
@@ -940,14 +938,10 @@ function stopListeners(){
     unsubscribeBaustellen = null;
   }
 
-  archivMaterialSession++;
-  archivMaterialListeners.forEach(unsubscribe => unsubscribe());
-  archivMaterialListeners.clear();
-  archivMaterialLoads.forEach(load => load.reject(new Error("Archiv-Sitzung beendet.")));
-  archivMaterialLoads.clear();
-  archivMaterialLoaded.clear();
-  alleMaterialien = [];
-  openMaterialLists = {};
+  if(unsubscribeMaterial){
+    unsubscribeMaterial();
+    unsubscribeMaterial = null;
+  }
 }
 
 auth.onAuthStateChanged((user) => {
@@ -995,38 +989,16 @@ function startListeners(){
     });
   }
 
-
-}
-
-
-function loadArchivMaterial(id){
-  if(archivMaterialLoaded.has(id)) return Promise.resolve();
-  if(archivMaterialLoads.has(id)) return archivMaterialLoads.get(id).promise;
-  const session = archivMaterialSession;
-  let resolveLoad, rejectLoad;
-  const promise = new Promise((resolve, reject) => {
-    resolveLoad = resolve;
-    rejectLoad = reject;
-  });
-  archivMaterialLoads.set(id, {promise, reject: rejectLoad});
-  const unsubscribe = materialCollection.where("baustelleId", "==", id).onSnapshot(snapshot => {
-    if(session !== archivMaterialSession) return;
-    alleMaterialien = alleMaterialien.filter(m => m.baustelleId !== id)
-      .concat(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
-    archivMaterialLoaded.add(id);
-    archivMaterialLoads.delete(id);
-    renderArchiv();
-    resolveLoad();
-  }, error => {
-    if(session !== archivMaterialSession) return;
-    archivMaterialListeners.get(id)?.();
-    archivMaterialListeners.delete(id);
-    archivMaterialLoads.delete(id);
-    archivMaterialLoaded.delete(id);
-    rejectLoad(error);
-  });
-  archivMaterialListeners.set(id, unsubscribe);
-  return promise;
+  if(!unsubscribeMaterial){
+    unsubscribeMaterial = materialCollection.onSnapshot(snapshot => {
+      alleMaterialien = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      saveArchivCache();
+      renderArchiv();
+    }, error => {
+      console.error("Fehler Material:", error);
+      alert("Fehler beim Laden der Materialien.");
+    });
+  }
 }
 
 function handleArchivSearchInput(){
@@ -1213,9 +1185,7 @@ function createBaustelleCard(baustelle){
   const archiviertText = formatFirestoreDate(baustelle.archiviertAm);
 
   let materialHtml = "";
-  if(!archivMaterialLoaded.has(baustelle.id)){
-    materialHtml = '<div class="empty-box">' + (isOpen ? 'Materialliste wird geladen …' : 'Materialliste wird beim Öffnen geladen.') + '</div>';
-  }else if(materialien.length === 0){
+  if(materialien.length === 0){
     materialHtml = '<div class="empty-box">Keine Materialdaten vorhanden.</div>';
   }else{
     materialien.forEach(m => {
@@ -1290,38 +1260,12 @@ function toggleMaterialList(baustelleId){
 
   openMaterialLists[baustelleId] = !openMaterialLists[baustelleId];
   renderArchiv();
-  if(openMaterialLists[baustelleId]){
-    loadArchivMaterial(baustelleId).catch(error => {
-      if(!auth.currentUser) return;
-      console.error("Fehler beim Laden der Archiv-Materialliste:", error);
-      openMaterialLists[baustelleId] = false;
-      renderArchiv();
-      alert("Materialliste konnte nicht geladen werden. Bitte erneut öffnen.");
-    });
-  }
 }
 
-async function printBaustelle(id){
+function printBaustelle(id){
   const baustelle = alleBaustellen.find(x => x.id === id);
   if(!baustelle){
     alert("Baustelle nicht gefunden.");
-    return;
-  }
-
-  const printWindow = window.open("", "_blank", "width=900,height=700");
-
-  if(!printWindow){
-    alert("Das Druckfenster konnte nicht geöffnet werden. Bitte Popups erlauben.");
-    return;
-  }
-
-  try{
-    await loadArchivMaterial(id);
-    if(!auth.currentUser || printWindow.closed) { printWindow.close(); return; }
-  }catch(error){
-    printWindow.close();
-    console.error("Fehler beim Laden der Druckdaten:", error);
-    if(auth.currentUser) alert("Druckdaten konnten nicht geladen werden. Bitte erneut versuchen.");
     return;
   }
 
@@ -1350,6 +1294,12 @@ async function printBaustelle(id){
     });
   }
 
+  const printWindow = window.open("", "_blank", "width=900,height=700");
+
+  if(!printWindow){
+    alert("Das Druckfenster konnte nicht geöffnet werden. Bitte Popups erlauben.");
+    return;
+  }
 
   const html = `
     <!DOCTYPE html>
@@ -1542,7 +1492,7 @@ function markActiveMenu(){
 }
 
 document.addEventListener("DOMContentLoaded", markActiveMenu);
-async function deleteBaustelle(id){
+function deleteBaustelle(id){
   if(!isAdminUser){
     alert("Nur Admins dürfen archivierte Baustellen löschen.");
     return;
@@ -1563,16 +1513,7 @@ async function deleteBaustelle(id){
   );
 
   if(bestaetigung && bestaetigung.trim().toLowerCase() === "löschen"){
-    let materialien;
-    try{
-      const snapshot = await materialCollection.where("baustelleId", "==", id).get({source: "server"});
-      if(!auth.currentUser || !isAdminUser) return;
-      materialien = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
-    }catch(error){
-      console.error("Fehler beim Laden der Materialliste zum Löschen:", error);
-      alert("Baustelle wurde nicht gelöscht: Materialliste konnte nicht geladen werden.");
-      return;
-    }
+    const materialien = materialVonBaustelle(id);
 
     if(materialien.length > 499){
       alert("Zu viele Materialeinträge für einen sicheren Sammel-Löschvorgang. Bitte zuerst Material reduzieren.");
