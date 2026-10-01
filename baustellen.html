@@ -1066,7 +1066,7 @@ dialog.vorlage-duplicate-dialog::backdrop{
     <div id="neueBaustelleWrap"><button onclick="openBaustelleModal()"><i class="fa-solid fa-plus"></i> Neue Baustelle erstellen</button></div>
   </div>
   <div class="workspace-search">
-    <input id="searchInput" type="text" aria-label="Baustellen suchen" placeholder="Nach Baustellenname, Nummer, Verantwortlicher oder Material suchen" oninput="renderAll()" maxlength="120">
+    <input id="searchInput" type="text" aria-label="Baustellen suchen" placeholder="Nach Baustellenname, Nummer, Verantwortlicher oder Material suchen" oninput="searchBaustellen()" maxlength="120">
     <select id="creatorFilterMode" aria-label="Nach Ersteller filtern" onchange="onCreatorFilterChanged()"><option value="all">Alle Ersteller anzeigen</option><option value="mine">Nur von mir erstellt</option></select>
     <button class="back" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Zurücksetzen</button>
   </div>
@@ -1207,6 +1207,12 @@ const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
 
 let unsubscribeBaustellen = null;
 let unsubscribeMaterial = null;
+const materialListeners = new Map();
+const materialLoads = new Map();
+const materialLoaded = new Set();
+let allMaterialLoaded = false;
+let materialSearchTimer = null;
+let materialSession = 0;
 
 let alleBaustellen = [];
 let alleMaterialien = [];
@@ -1698,6 +1704,15 @@ function logout(){
 }
 
 function stopListeners(){
+  materialSession++;
+  clearTimeout(materialSearchTimer);
+  materialListeners.forEach(unsubscribe => unsubscribe());
+  materialListeners.clear();
+  materialLoads.clear();
+  materialLoaded.clear();
+  allMaterialLoaded = false;
+  alleMaterialien = [];
+  openMaterialLists = {};
   if(unsubscribeBaustellen){
     unsubscribeBaustellen();
     unsubscribeBaustellen = null;
@@ -1750,15 +1765,6 @@ function startListeners(){
     });
   }
 
-  if(!unsubscribeMaterial){
-    unsubscribeMaterial = materialCollection.onSnapshot(snapshot => {
-      alleMaterialien = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      renderAll();
-    }, error => {
-      console.error("Fehler Material:", error);
-      alert("Fehler beim Laden der Materialien.");
-    });
-  }
 }
 
 function loadVorlagen(forceRefresh = false){
@@ -1847,6 +1853,64 @@ function getMaterialVorlageSuchbegriff(){
   }
 
   return input.value.trim().toLowerCase();
+}
+
+
+function loadBaustelleMaterial(id){
+  if(allMaterialLoaded || materialLoaded.has(id)) return Promise.resolve();
+  if(materialLoads.has(id)) return materialLoads.get(id);
+  const session = materialSession;
+  const promise = new Promise((resolve, reject) => {
+    const unsubscribe = materialCollection.where("baustelleId", "==", id).onSnapshot(snapshot => {
+      if(session !== materialSession) { resolve(); return; }
+      if(allMaterialLoaded){
+        materialListeners.get(id)?.();
+        materialListeners.delete(id);
+        resolve();
+        return;
+      }
+      alleMaterialien = alleMaterialien.filter(m => m.baustelleId !== id)
+        .concat(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
+      materialLoaded.add(id);
+      renderAll();
+      resolve();
+    }, error => {
+      materialListeners.get(id)?.();
+      materialListeners.delete(id);
+      materialLoads.delete(id);
+      reject(error);
+    });
+    materialListeners.set(id, unsubscribe);
+  });
+  materialLoads.set(id, promise);
+  return promise;
+}
+
+function searchBaustellen(){
+  renderAll();
+  clearTimeout(materialSearchTimer);
+  if(!getSuchbegriff() || unsubscribeMaterial) return;
+  materialSearchTimer = setTimeout(() => {
+    if(!getSuchbegriff() || unsubscribeMaterial || !auth.currentUser) return;
+    const session = materialSession;
+    unsubscribeMaterial = materialCollection.onSnapshot(snapshot => {
+      if(session !== materialSession) return;
+      alleMaterialien = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+      allMaterialLoaded = true;
+      materialListeners.forEach((unsubscribe, id) => {
+        if(materialLoaded.has(id)){
+          unsubscribe();
+          materialListeners.delete(id);
+        }
+      });
+      renderAll();
+    }, error => {
+      unsubscribeMaterial?.();
+      unsubscribeMaterial = null;
+      console.error("Fehler bei der Materialsuche:", error);
+      alert("Die Materialien konnten für die Suche nicht geladen werden. Bitte erneut suchen.");
+    });
+  }, 500);
 }
 
 function materialVonBaustelle(baustelleId){
@@ -2003,7 +2067,7 @@ function renderAll(){
   const total = alleBaustellen.filter(b => b.status === status && baustellePasstZumErstellerFilter(b)).length;
   const positions = shown.reduce((sum, b) => sum + materialVonBaustelle(b.id).length, 0);
   document.getElementById("workspaceSectionTitle").textContent = activeWorkspaceTab === "beendete" ? "Beendete Baustellen" : "Baustellen";
-  document.getElementById("workspaceMaterialCount").textContent = shown.length + " Baustellen · " + positions + " Materialpositionen";
+  document.getElementById("workspaceMaterialCount").textContent = shown.length + " Baustellen · " + positions + (allMaterialLoaded || shown.every(b => materialLoaded.has(b.id)) ? " Materialpositionen" : " geladene Materialpositionen");
 
   if(beendeteCount){
     beendeteCount.innerText = String(beendete.length);
@@ -2014,6 +2078,9 @@ function renderAll(){
     activeWorkspaceTab === "beendete"
       ? beendete.length + " von " + total + " Baustellen"
       : aktive.length + " von " + total + " Baustellen";
+  if(getSuchbegriff() && !allMaterialLoaded){
+    document.getElementById("resultInfo").innerText += " · Materialsuche wird geladen …";
+  }
 }
 
 function renderVorlagen(){
@@ -2451,7 +2518,9 @@ function createBaustelleCard(baustelle){
   const erstellungsText = formatFirestoreDate(baustelle.createdAt);
 
   let materialHtml = "";
-  if(materialien.length === 0){
+  if(!allMaterialLoaded && !materialLoaded.has(baustelle.id)){
+    materialHtml = '<div class="empty-box">' + (isOpen ? 'Materialliste wird geladen …' : 'Materialliste wird beim Öffnen geladen.') + '</div>';
+  }else if(materialien.length === 0){
     materialHtml = '<div class="empty-box">Noch kein Material erfasst.</div>';
   }else{
     materialien.forEach(m => {
@@ -2592,6 +2661,12 @@ function toggleMaterialList(baustelleId){
     openMaterialLists[baustelleId] = true;
     content.style.display = "block";
     arrow.innerText = "▲";
+    loadBaustelleMaterial(baustelleId).catch(error => {
+      console.error("Fehler beim Laden der Materialliste:", error);
+      openMaterialLists[baustelleId] = false;
+      renderAll();
+      alert("Materialliste konnte nicht geladen werden. Bitte erneut öffnen.");
+    });
   }
 }
 
@@ -3241,10 +3316,27 @@ function reactivateBaustelle(id){
   }
 }
 
-function printBaustelle(id){
+async function printBaustelle(id){
   const baustelle = alleBaustellen.find(x => x.id === id);
   if(!baustelle){
     alert("Baustelle nicht gefunden.");
+    return;
+  }
+
+  const printWindow = window.open("", "_blank", "width=900,height=700");
+
+  if(!printWindow){
+    alert("Das Druckfenster konnte nicht geöffnet werden. Bitte Popups erlauben.");
+    return;
+  }
+
+  try{
+    await Promise.all([loadBaustelleMaterial(id), loadVorlagen()]);
+    if(!auth.currentUser || printWindow.closed) { printWindow.close(); return; }
+  }catch(error){
+    printWindow.close();
+    console.error("Fehler beim Laden der Druckdaten:", error);
+    alert("Druckdaten konnten nicht geladen werden. Bitte erneut versuchen.");
     return;
   }
 
@@ -3275,12 +3367,6 @@ function printBaustelle(id){
     });
   }
 
-  const printWindow = window.open("", "_blank", "width=900,height=700");
-
-  if(!printWindow){
-    alert("Das Druckfenster konnte nicht geöffnet werden. Bitte Popups erlauben.");
-    return;
-  }
 
   const html = `
     <!DOCTYPE html>
@@ -3435,7 +3521,7 @@ function printBaustelle(id){
   };
 }
 
-function deleteBaustelle(id){
+async function deleteBaustelle(id){
   const b = alleBaustellen.find(x => x.id === id);
   if(!b){
     alert("Baustelle nicht gefunden.");
@@ -3456,7 +3542,9 @@ function deleteBaustelle(id){
   );
 
   if(bestaetigung && bestaetigung.trim().toLowerCase() === "löschen"){
-    const materialien = materialVonBaustelle(id);
+    try{
+      const snapshot = await materialCollection.where("baustelleId", "==", id).get({source: "server"});
+      const materialien = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
 
     if(materialien.length > 499){
       alert("Zu viele Materialeinträge für einen sicheren Sammel-Löschvorgang. Bitte zuerst Material reduzieren.");
@@ -3485,6 +3573,10 @@ function deleteBaustelle(id){
         console.error("Fehler beim Löschen der Baustelle:", error);
         alert("Fehler beim Löschen.");
       });
+    }catch(error){
+      console.error("Fehler beim Laden der Materialliste zum Löschen:", error);
+      alert("Baustelle wurde nicht gelöscht: Materialliste konnte nicht geladen werden.");
+    }
   }else{
     alert("Löschen abgebrochen: Bitte exakt \"löschen\" eingeben.");
   }
