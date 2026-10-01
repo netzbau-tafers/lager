@@ -11,6 +11,7 @@
 <link rel="manifest" href="site.webmanifest">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
@@ -283,6 +284,13 @@ button:hover{
     font-size:13px;
   }
 }
+.cable-reminder-dialog{width:540px;max-width:calc(100vw - 30px);max-height:85vh;box-sizing:border-box;overflow-y:auto;border:0;border-radius:12px;padding:22px;color:#222;box-shadow:0 10px 30px rgba(0,0,0,.25);}
+.cable-reminder-dialog::backdrop{background:rgba(0,0,0,.45);}
+.cable-reminder-dialog h2{font-size:22px;margin-top:0;}
+.cable-reminder-dialog p{line-height:1.5;}
+.cable-reminder-card{border:1px solid #d6dee6;border-radius:10px;background:#f7f9fb;padding:14px;margin:14px 0;overflow-wrap:anywhere;}
+.cable-reminder-card p{margin:4px 0;}
+.cable-reminder-link{display:inline-block;background:#3498db;color:white;text-decoration:none;border-radius:8px;padding:11px 14px;margin-top:10px;}
 </style>
 </head>
 <body>
@@ -662,5 +670,6 @@ auth.onAuthStateChanged((user) => {
 </script>
 
   <footer class="app-footer">© 2026 Martin Gross. Alle Rechte vorbehalten. · <a href="datenschutz.html">Datenschutz</a></footer>
+<script src="kabel-erinnerung.js"></script>
 </body>
 </html>

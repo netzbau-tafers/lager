@@ -1139,6 +1139,13 @@ textarea{
     page-break-inside:avoid;
   }
 }
+.cable-reminder-dialog{width:540px;max-width:calc(100vw - 30px);max-height:85vh;box-sizing:border-box;overflow-y:auto;border:0;border-radius:12px;padding:22px;color:#222;box-shadow:0 10px 30px rgba(0,0,0,.25);}
+.cable-reminder-dialog::backdrop{background:rgba(0,0,0,.45);}
+.cable-reminder-dialog h2{font-size:22px;margin-top:0;}
+.cable-reminder-dialog p{line-height:1.5;}
+.cable-reminder-card{border:1px solid #d6dee6;border-radius:10px;background:#f7f9fb;padding:14px;margin:14px 0;overflow-wrap:anywhere;}
+.cable-reminder-card p{margin:4px 0;}
+.cable-reminder-link{display:inline-block;background:#3498db;color:white;text-decoration:none;border-radius:8px;padding:11px 14px;margin-top:10px;}
 </style>
 </head>
 
@@ -3030,6 +3037,24 @@ function resetSearch(){
   renderFilteredTable();
 }
 
+let reminderCableOpened = false;
+function openReminderCable(){
+  if(reminderCableOpened){ return; }
+  const id = new URLSearchParams(window.location.search).get("kabel");
+  if(!id){ return; }
+  const doc = alleBobinen.find(item => item.id === id);
+  if(!doc){ return; }
+  reminderCableOpened = true;
+  document.getElementById("searchInput").value = String(doc.data().nummer || "");
+  document.getElementById("statusFilter").value = "Alle";
+  openDetailsRows.add(id);
+  renderFilteredTable();
+  const target = document.getElementById(
+    window.matchMedia("(max-width: 900px)").matches ? "mobileDetails-" + id : "details-" + id
+  );
+  if(target){ target.scrollIntoView({block:"center"}); }
+}
+
 function startDatabaseListener(){
   if(unsubscribeBobinen){
     return;
@@ -3038,6 +3063,7 @@ function startDatabaseListener(){
   unsubscribeBobinen = bobinenCollection.onSnapshot(snapshot => {
     alleBobinen = snapshot.docs;
     renderFilteredTable();
+    openReminderCable();
   }, error => {
     console.error("Fehler bei Live-Daten:", error);
     alert("Fehler beim Laden der Firebase-Daten.");
@@ -3630,5 +3656,6 @@ document.addEventListener("DOMContentLoaded", function(){
 
 
   <footer class="app-footer">© 2026 Martin Gross. Alle Rechte vorbehalten. · <a href="datenschutz.html">Datenschutz</a></footer>
+<script src="kabel-erinnerung.js"></script>
 </body>
 </html>
