@@ -13,7 +13,111 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
 <style>
+    .header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:25px;
+      gap:15px;
+    }
+
+    .header h1{
+      margin:0;
+      font-size:32px;
+    }
+
+    .menu-wrap{
+      position:relative;
+    }
+
+    .menu-button{
+      background:#555;
+      color:white;
+      border:none;
+      border-radius:10px;
+      padding:11px 15px;
+      font-size:20px;
+      line-height:1;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:48px;
+      min-height:44px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.10);
+      transition:background 0.2s ease;
+    }
+
+    .menu-button:hover{
+      background:#333;
+    }
+
+    .dropdown-menu{
+      display:none;
+      position:absolute;
+      top:52px;
+      right:0;
+      min-width:220px;
+      background:white;
+      border:1px solid #ccc;
+      border-radius:12px;
+      box-shadow:0 8px 20px rgba(0,0,0,0.12);
+      padding:8px;
+      z-index:3000;
+    }
+
+    .dropdown-menu.open{
+      display:block;
+    }
+
+    .dropdown-menu button{
+      width:100%;
+      text-align:left;
+      margin:0 0 8px 0;
+    }
+
+    .dropdown-menu button:last-child{
+      margin-bottom:0;
+    }
+
+    .active-page{
+      background:#e0e0e0 !important;
+      color:#333 !important;
+      cursor:default;
+    }
+
+    button{
+      padding:10px 14px;
+      cursor:pointer;
+      border:none;
+      border-radius:8px;
+      background:#3498db;
+      color:white;
+      margin:2px;
+      font-size:14px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      transition:background 0.2s ease;
+    }
+
+    button:hover{
+      background:#2980b9;
+    }
+
+    .logout-safe{
+      background:#777;
+    }
+
+    .logout-safe:hover{
+      background:#555;
+    }
+
+
 body{
   font-family:Arial, sans-serif;
   background:#e6eaef;
@@ -63,8 +167,23 @@ body{
 
 <body>
 
+  <div class="header">
+    <h1 style="margin:0;font-size:24px;">Datenschutz</h1>
+    <div class="menu-wrap">
+      <button id="menuButton" aria-label="Menü öffnen" aria-expanded="false" aria-controls="dropdownMenu" class="menu-button" onclick="toggleMenu(event)" title="Menü öffnen"><i class="fa-solid fa-bars"></i></button>
+      <div id="dropdownMenu" class="dropdown-menu">
+        <button onclick="goToHome()"><i class="fa-solid fa-house"></i> Startseite</button>
+        <button onclick="goToKabellager()"><i class="fa-solid fa-warehouse"></i> Kabellager</button>
+        <button onclick="goToKabelReport()"><i class="fa-solid fa-chart-column"></i> Kabel Report</button>
+        <button id="baustellenMenuButton" onclick="goToBaustellen()"><i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial</button>
+        <button onclick="goToProfil()"><i class="fa-solid fa-user"></i> Profil</button>
+        <button class="active-page" onclick="closeMenu()" aria-current="page"><i class="fa-solid fa-shield-halved"></i> Datenschutz</button>
+        <button class="logout-safe" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+      </div>
+    </div>
+  </div>
+
 <main class="card">
-  <h2>Datenschutz</h2>
   <p>
   Diese Anwendung wird intern vom Netzbau Team Tafers genutzt.
   Es werden folgende Daten gespeichert:
@@ -109,6 +228,69 @@ if (!firebase.apps.length) {
 }
 
 const auth = firebase.auth();
+    const LIMITED_ACCESS_UIDS = ["POSB6W7xeDZ8Dlba03ZP3J02dMC3", "AX08qKp7lte6vslQMFn76FVqxw53", "KYqiqNKTmkQQYVWAa6bp6vSvTlV2"];
+    const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
+
+    function toggleMenu(event){
+      event.stopPropagation();
+      const isOpen = document.getElementById("dropdownMenu").classList.toggle("open");
+      document.getElementById("menuButton").setAttribute("aria-expanded", String(isOpen));
+    }
+
+    function closeMenu(){
+      document.getElementById("dropdownMenu").classList.remove("open");
+      document.getElementById("menuButton").setAttribute("aria-expanded", "false");
+    }
+
+    function goToHome(){ closeMenu(); window.location.href = "home.html"; }
+    function goToKabellager(){ closeMenu(); window.location.href = "index.html"; }
+    function goToKabelReport(){ closeMenu(); window.location.href = "kabel-report.html"; }
+    function goToBaustellen(){
+      const user = auth.currentUser;
+      if(user && hasLimitedAccess(user.uid)){
+        closeMenu();
+        alert("Du hast nur Zugriff auf Startseite, Kabellager, Mast Runner und Profil.");
+        return;
+      }
+
+      closeMenu();
+      window.location.href = "baustellen.html";
+    }
+
+    function updateNavigationVisibility(user){
+      const baustellenButton = document.getElementById("baustellenMenuButton");
+      const isLimitedUser = !!(user && hasLimitedAccess(user.uid));
+
+      if(baustellenButton){
+        baustellenButton.style.display = isLimitedUser ? "none" : "inline-flex";
+      }
+
+    }
+
+
+    function logout(){
+      closeMenu();
+      if(!confirm("Wirklich ausloggen?")) return;
+      auth.signOut().then(() => {
+        localStorage.removeItem("lagerUsername");
+        window.location.href = "home.html";
+      });
+    }
+
+
+    function goToProfil(){ closeMenu(); window.location.href = "profil.html"; }
+    document.addEventListener("click", (event) => {
+      const menu = document.getElementById("dropdownMenu");
+      const wrap = document.querySelector(".menu-wrap");
+      if(menu.classList.contains("open") && !wrap.contains(event.target)){
+        closeMenu();
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if(event.key === "Escape") closeMenu();
+    });
+
 
 // 🔥 kleine Timeout-Sicherheit (optional aber gut)
 let timeout = setTimeout(() => {
@@ -119,6 +301,7 @@ auth.onAuthStateChanged((user) => {
   clearTimeout(timeout);
 
   if (user) {
+    updateNavigationVisibility(user);
     document.body.style.display = "block";
   } else {
     window.location.href = "home.html";
