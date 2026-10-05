@@ -40,6 +40,9 @@
     if(archive&&report)menu.insertBefore(archive,report);
     const section=document.createElement('div');section.className='nt-section';section.textContent='VERWALTUNG';
     const firstAdmin=report||menu.querySelector('[data-page="logs"], [data-page="profil"]');if(firstAdmin)menu.insertBefore(section,firstAdmin);
+    const overview=document.createElement('a');overview.href='meine-uebersicht.html';overview.append(icon('profil'),document.createTextNode('Meine Übersicht'));
+    if(current==='meine-uebersicht.html'){overview.classList.add('active-page');overview.setAttribute('aria-current','page')}
+    const profileButton=menu.querySelector('[data-page="profil"]');menu.insertBefore(overview,profileButton||menu.querySelector('.logout-safe'));
     const privacy=document.createElement('a');privacy.href='datenschutz.html';privacy.append(icon('datenschutz'),document.createTextNode('Datenschutz'));
     if(current==='datenschutz.html'){privacy.classList.add('active-page');privacy.setAttribute('aria-current','page')}
     const logout=menu.querySelector('.logout-safe');menu.insertBefore(privacy,logout);
@@ -73,4 +76,5 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
+
 
