@@ -5,6 +5,8 @@ body.nt-navigation{margin:0;padding:102px 32px 32px;background:#f1f5f9;--nt-side
 .nt-navigation.nt-profile{padding-left:calc(var(--nt-sidebar-width) + 32px)}
 .nt-navigation.nt-profile.nt-nav-collapsed{padding-left:32px}
 .nt-navigation .menu-wrap{display:none}
+/* Form overlays must sit above the fixed header and mobile navigation. */
+.nt-navigation .modal{z-index:4000}
 .nt-navigation .nt-topbar{box-sizing:border-box;position:fixed;inset:0 0 auto;height:var(--nt-header-height);z-index:3100;display:flex;align-items:center;gap:24px;padding:12px 24px;background:#153352;color:white;box-shadow:0 2px 8px #10263c18}
 .nt-brand{font-size:22px;font-weight:700;line-height:1.2}.nt-brand small{display:block;font-size:13px;font-weight:400;color:#c1d2e3;margin-top:3px}
 .nt-navigation .nt-toggle{display:inline-flex;align-items:center;gap:9px;min-height:44px;padding:10px 14px;margin:0;border:1px solid #ffffff40;border-radius:10px;background:#ffffff0d;color:white;font-size:15px;cursor:pointer}
