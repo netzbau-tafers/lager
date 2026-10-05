@@ -77,28 +77,39 @@ body{
 <button class="logout-safe" onclick="logout()">Abmelden</button>
 </div>
 <main class="card">
-  <h2>Datenschutz</h2>
-  <p>
-  Diese Anwendung wird intern vom Netzbau Team Tafers genutzt.
-  Es werden folgende Daten gespeichert:
-  </p>
-
+  <h2>Datenschutzerklärung</h2>
+  <p>Stand: 5. Oktober 2026</p>
+  <p>Der Lagermanager dient der internen Verwaltung von Kabeln, Baustellen und Material im Netzbau Team Tafers.</p>
+  <h3>1. Verantwortlicher und Kontakt</h3>
+  <p>Martin Gross<br>E-Mail: <a href="mailto:gross.martin1994@gmail.com">gross.martin1994@gmail.com</a></p>
+  <h3>2. Daten und Verwendungszwecke</h3>
   <ul>
-    <li>E-Mail-Adresse zur Anmeldung (Firebase Authentication)</li>
-    <li>Benutzeraktionen (Logs zur Nachverfolgung)</li>
-    <li>Baustellen- und Materialdaten</li>
+    <li><strong>Benutzerkonto:</strong> E-Mail-Adresse, Benutzer-ID und Benutzername für Anmeldung, Benutzerzuordnung und Zugriffsverwaltung. Die Anmeldung erfolgt über Firebase Authentication.</li>
+    <li><strong>Kabel und Baustellen:</strong> Kabel-, Baustellen- und Materialdaten sowie verantwortliche Personen, Ersteller und Benutzer, die Kabel in Gebrauch setzen. Dazu gehören Namen beziehungsweise E-Mail-Adressen, Benutzer-IDs und Zeitstempel.</li>
+    <li><strong>Protokoll:</strong> Benutzeraktionen mit Bereich, Aktion, betroffenem Objekt, Benutzerangaben, Details und Zeitpunkt zur betrieblichen Nachverfolgung.</li>
+    <li><strong>Reports und Archiv:</strong> Auswertungen und gespeicherte Kabelreports sowie abgeschlossene Baustellen und zugehöriges Material zur betrieblichen Dokumentation.</li>
+    <li><strong>Materialvorlagen:</strong> Materialangaben und gegebenenfalls hochgeladene Bilder. Bilder sollen keine unnötigen Personendaten enthalten.</li>
+    <li><strong>Mast Runner:</strong> Bei Nutzung des Spiels werden Spielstände und Ranking-Einträge mit Spielername und Punktzahl verarbeitet.</li>
   </ul>
-
-  <p>
-  Die Daten werden ausschliesslich für betriebliche Zwecke verwendet.
-  Für den technischen Betrieb nutzen wir Firebase (Google) sowie externe CDN-Dienste
-  (z. B. cdnjs/Cloudflare, jsDelivr) zum Laden von Bibliotheken.
-  Eine Weitergabe an unbeteiligte Dritte erfolgt nicht.
-  </p>
-
-  <p>
-  Verantwortlich: Martin Gross
-  </p>
+  <p>Die Anwendung zeigt berechtigten Teammitgliedern die für ihre Aufgaben vorgesehenen Angaben. Die persönliche Übersicht und Kabelerinnerungen verwenden bereits vorhandene Kabel- und Baustellendaten.</p>
+  <h3>3. Technische Dienstleister und E-Mails</h3>
+  <ul>
+    <li><strong>Google Firebase:</strong> Anmeldung, Datenbank, Bildspeicherung und serverseitige Funktionen.</li>
+    <li><strong>GitHub Pages:</strong> Bereitstellung der Website. GitHub protokolliert IP-Adressen von Besuchern zu Sicherheitszwecken.</li>
+    <li><strong>Cloudflare/cdnjs und jsDelivr:</strong> Bereitstellung von Symbolen und Programmbibliotheken. Beim Abruf werden technische Verbindungsdaten, insbesondere die IP-Adresse, an den jeweiligen Dienst übertragen.</li>
+    <li><strong>Brevo:</strong> Versand betrieblicher E-Mail-Benachrichtigungen beim Rausschreiben von Baustellen. Dabei werden Empfängeradressen und die für die Benachrichtigung verwendeten Baustellenangaben verarbeitet.</li>
+    <li><strong>Google Sheets:</strong> Sicherung und Wiederherstellung von Anwendungsdaten, einschliesslich Benutzerangaben und Protokollen.</li>
+  </ul>
+  <p>Technische Dienstleister verarbeiten Daten zur Bereitstellung dieser Funktionen. Es erfolgt keine Veröffentlichung der internen Betriebsdaten als Teil des Website-Quellcodes.</p>
+  <h3>4. Speicherung im Ausland</h3>
+  <p>Die Firestore-Datenbank des Projekts netzbau-tafers befindet sich in der Multi-Region <strong>nam5 in den Vereinigten Staaten</strong>. Dort werden auch die in der Datenbank enthaltenen Personendaten gespeichert. Dieser Standort legt nicht automatisch die Verarbeitungsorte aller anderen Dienste fest.</p>
+  <h3>5. Speicherung auf dem verwendeten Gerät</h3>
+  <p>Die Anwendung und die Anmeldung verwenden Browser-Speicher. Dort werden unter anderem Anmeldeinformationen für die Sitzung, der Benutzername, zwischengespeicherte Materialvorlagen, Menüeinstellungen sowie bei Nutzung des Spiels Spielstände gespeichert. Browser-Speicher kann über die Website-Daten in den Browser-Einstellungen gelöscht werden; dadurch kann eine erneute Anmeldung erforderlich werden.</p>
+  <h3>6. Aufbewahrung</h3>
+  <p>Benutzeraktionen im Protokoll (Logs) werden spätestens ein Jahr nach ihrer Erfassung gelöscht. Diese Frist ist auch bei Sicherungen zu berücksichtigen; eine Wiederherstellung darf die Frist nicht verlängern.</p>
+  <p>Für Benutzerkonten, Kabeldaten, Baustellen, Materialvorlagen, Archive und Reports ist hier keine feste einjährige Löschfrist festgelegt. Fragen zur Aufbewahrung oder zur Löschung dieser Daten können an den Verantwortlichen gerichtet werden.</p>
+  <h3>7. Auskunft und Berichtigung</h3>
+  <p>Sie können beim Verantwortlichen Auskunft über Ihre bearbeiteten Personendaten und deren Berichtigung verlangen. Anliegen zur Löschung oder zur weiteren Bearbeitung können ebenfalls an die oben genannte E-Mail-Adresse gerichtet werden. Gesetzliche und betriebliche Aufbewahrungspflichten werden dabei berücksichtigt.</p>
 </main>
 </div>
 
