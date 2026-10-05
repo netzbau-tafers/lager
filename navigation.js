@@ -40,6 +40,7 @@
     const section=document.createElement('div');section.className='nt-section';section.textContent='VERWALTUNG';
     const firstAdmin=report||menu.querySelector('[data-page="logs"], [data-page="profil"]');if(firstAdmin)menu.insertBefore(section,firstAdmin);
     const privacy=document.createElement('a');privacy.href='datenschutz.html';privacy.append(icon('datenschutz'),document.createTextNode('Datenschutz'));
+    if(current==='datenschutz.html'){privacy.classList.add('active-page');privacy.setAttribute('aria-current','page')}
     const logout=menu.querySelector('.logout-safe');menu.insertBefore(privacy,logout);
     const help=document.getElementById('workspaceHelp');
     if(help){const helpButton=document.createElement('button');helpButton.type='button';helpButton.append(icon('logs'),document.createTextNode('Hilfe'));helpButton.addEventListener('click',()=>{window.closeMenu();help.hidden=false;help.open=true;help.scrollIntoView({behavior:'auto',block:'start'});help.querySelector('summary')?.focus()});menu.insertBefore(helpButton,privacy)}

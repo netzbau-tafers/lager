@@ -59,10 +59,23 @@ body{
 }
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<link rel="stylesheet" href="navigation.css?v=20261005">
 </head>
 
 <body>
 
+<div id="appContent">
+<div class="header"><h1>Datenschutz</h1></div>
+<div id="dropdownMenu" class="dropdown-menu">
+<button data-page="home" onclick="closeMenu(); location.href='home.html'">Startseite</button>
+<button data-page="index" onclick="closeMenu(); location.href='index.html'">Kabellager</button>
+<button data-page="kabelreport" onclick="closeMenu(); location.href='kabel-report.html'">Kabel Report</button>
+<button id="baustellenMenuButton" data-page="baustellen" onclick="closeMenu(); location.href='baustellen.html'">Baustellenmaterial</button>
+<button id="archivMenuButton" data-page="archiv" style="display:none" onclick="closeMenu(); location.href='archiv.html'">Archiv</button>
+<button id="logsMenuButton" data-page="logs" style="display:none" onclick="closeMenu(); location.href='logs.html'">Protokoll</button>
+<button data-page="profil" onclick="closeMenu(); location.href='profil.html'">Profil</button>
+<button class="logout-safe" onclick="logout()">Abmelden</button>
+</div>
 <main class="card">
   <h2>Datenschutz</h2>
   <p>
@@ -87,6 +100,7 @@ body{
   Verantwortlich: Martin Gross
   </p>
 </main>
+</div>
 
 <footer class="app-footer">
   © 2026 Martin Gross. Alle Rechte vorbehalten.
@@ -109,6 +123,25 @@ if (!firebase.apps.length) {
 }
 
 const auth = firebase.auth();
+const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "pmyu29TlC3QM7JIysmy2EmiHSWW2", "Tgj9KT6C21XjeistBWRiSVYqTDC2", "hwZEme8xvkasSAGrmOtQRLOnnXn1", "PKDpb7Cb7ig8ZKZRMm23FOKnCHQ2", "PAtM8Lv1TBNLSiQzBLJK9Oda8KK2", "DSMERv7Uu4b4eEYQx5SKbjvdher2"];
+const LIMITED_ACCESS_UIDS = ["POSB6W7xeDZ8Dlba03ZP3J02dMC3", "AX08qKp7lte6vslQMFn76FVqxw53", "KYqiqNKTmkQQYVWAa6bp6vSvTlV2"];
+
+function closeMenu(){}
+function logout(){
+  closeMenu();
+  if(confirm("Wirklich ausloggen?")){
+    auth.signOut().then(() => { window.location.href = "home.html"; })
+      .catch(() => { alert("Fehler beim Logout."); });
+  }
+}
+function setNavigationVisibility(user){
+  const limited = LIMITED_ACCESS_UIDS.includes(user.uid);
+  const admin = ADMIN_UIDS.includes(user.uid) && !limited;
+  document.getElementById("baustellenMenuButton").style.display = limited ? "none" : "inline-flex";
+  document.getElementById("archivMenuButton").style.display = admin ? "inline-flex" : "none";
+  document.getElementById("logsMenuButton").style.display = admin ? "inline-flex" : "none";
+}
+
 
 // 🔥 kleine Timeout-Sicherheit (optional aber gut)
 let timeout = setTimeout(() => {
@@ -119,6 +152,7 @@ auth.onAuthStateChanged((user) => {
   clearTimeout(timeout);
 
   if (user) {
+    setNavigationVisibility(user);
     document.body.style.display = "block";
   } else {
     window.location.href = "home.html";
@@ -127,5 +161,7 @@ auth.onAuthStateChanged((user) => {
 </script>
 
 <script src="bobinen-erinnerung.js"></script>
+<script src="navigation.js?v=20261005-privacy"></script>
 </body>
 </html>
+
