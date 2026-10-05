@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hilfe | Lagermanager</title>
+
+<link rel="icon" type="image/png" sizes="any" href="favicon.png">
+<link rel="shortcut icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" sizes="180x180" href="favicon.png">
+<link rel="manifest" href="site.webmanifest">
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+<style>
+body{
+  font-family:Arial, sans-serif;
+  background:#e6eaef;
+  margin:40px;
+  color:#222;
+  display:none; /* 🔥 verhindert Aufblitzen */
+}
+
+.card{
+  max-width:900px;
+  margin:0 auto;
+  background:white;
+  border:1px solid #d5dbe3;
+  border-radius:14px;
+  box-shadow:0 8px 22px rgba(0,0,0,0.08);
+  padding:24px;
+  line-height:1.55;
+}
+
+.app-footer{
+  margin:32px auto 0;
+  max-width:900px;
+  padding:14px 18px;
+  text-align:center;
+  color:#5b6570;
+  font-size:14px;
+}
+
+@media (max-width: 680px){
+  body{
+    margin:18px;
+  }
+
+  .card{
+    padding:18px;
+  }
+
+  .app-footer{
+    margin-top:24px;
+    padding:12px 10px;
+    font-size:13px;
+  }
+}
+
+.help-intro{max-width:1100px;margin:0 auto 24px;color:#526478;line-height:1.6}.help-index{display:flex;flex-wrap:wrap;gap:12px;margin-top:18px}.help-index a{display:block;background:white;border:1px solid #d4e1ef;border-radius:12px;padding:16px 20px;color:#1263b7;text-decoration:none;font-weight:bold}.help-index a:hover{background:#e5f1ff}.help-section{max-width:1100px;margin:32px auto;scroll-margin-top:95px}.help-section h2{color:#19334f;font-size:25px}.help-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.help-topic{background:white;border:1px solid #dde5ee;border-radius:13px;padding:20px;box-shadow:0 3px 12px #18334e08;scroll-margin-top:95px}.help-topic h3{font-size:18px;color:#153352;margin:0 0 10px}.help-topic p{margin:0;line-height:1.65;color:#3e5063}.help-top{display:inline-block;margin-top:18px;color:#1263b7}.help-index a:focus-visible,.help-top:focus-visible{outline:3px solid #3788ea;outline-offset:3px}@media(max-width:680px){.help-grid{grid-template-columns:1fr}.help-topic{padding:18px}.help-index{flex-direction:column}}@media print{.help-index,.help-top{display:none}.help-grid{grid-template-columns:1fr}.help-topic{break-inside:avoid}}
+
+</style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<link rel="stylesheet" href="navigation.css?v=20261005">
+</head>
+
+<body>
+
+<div id="appContent">
+<div class="header"><h1>Hilfe</h1></div>
+<div id="dropdownMenu" class="dropdown-menu">
+<button data-page="home" onclick="closeMenu(); location.href='home.html'">Startseite</button>
+<button data-page="index" onclick="closeMenu(); location.href='index.html'">Kabellager</button>
+<button data-page="kabelreport" onclick="closeMenu(); location.href='kabel-report.html'">Kabel Report</button>
+<button id="baustellenMenuButton" data-page="baustellen" onclick="closeMenu(); location.href='baustellen.html'">Baustellenmaterial</button>
+<button id="archivMenuButton" data-page="archiv" style="display:none" onclick="closeMenu(); location.href='archiv.html'">Archiv</button>
+<button id="logsMenuButton" data-page="logs" style="display:none" onclick="closeMenu(); location.href='logs.html'">Protokoll</button>
+<button data-page="profil" onclick="closeMenu(); location.href='profil.html'">Profil</button>
+<button class="logout-safe" onclick="logout()">Abmelden</button>
+</div>
+<main id="hilfe-start"><div class="help-intro"><p>Hier findest du die vollständigen Anleitungen für Kabellager und Baustellenmaterial. Wähle einen Bereich oder lies die einzelnen Themen direkt darunter.</p><nav class="help-index" aria-label="Hilfebereiche"><a href="#kabellager">Kabellager · 10 Themen</a><a href="#baustellenmaterial">Baustellenmaterial · 13 Themen</a></nav></div><section class="help-section" id="kabellager" aria-labelledby="kabellager-title"><h2 id="kabellager-title">Kabellager</h2><div class="help-grid"><article class="help-topic" id="kabellager-1"><h3>Neue Bobine hinzufügen</h3><p>Wenn eine neue Kabelbobine ins Lager kommt, hier hinzufügen. Nummer, Kabeltyp und Länge eingeben und speichern.</p></article><article class="help-topic" id="kabellager-2"><h3>Reservieren</h3><p>Wenn eine Bobine für eine Baustelle vorgesehen ist, kann sie als <b>reserviert</b> markiert werden. Reservierte Bobinen werden im Lager <b>gelb</b> angezeigt.</p></article><article class="help-topic" id="kabellager-3"><h3>Kabel auf 3 Bobinen</h3><p>Wenn ein Kabel auf <b>3 Bobinen</b> verteilt ist, kann dies beim Erfassen angegeben werden. Dann wird bei der Bobine der Hinweis <b>„3 Bobinen“</b> angezeigt.</p></article><article class="help-topic" id="kabellager-4"><h3>Mehrere Kabel auf einer Bobine</h3><p>Wenn sich <b>mehrere Kabel auf einer Bobine</b> befinden, kann dies beim Erfassen angegeben werden. Dann wird bei der Bobine der Hinweis <b>„Mehrere Kabel“</b> angezeigt. Es kann dabei immer nur <b>ein Hinweis gleichzeitig</b> gewählt werden.</p></article><article class="help-topic" id="kabellager-5"><h3>In Gebrauch</h3><p>Drücke diesen Button, wenn du eine Bobine auf eine Baustelle mitnimmst. Die Bobine wird dann als <b>In Gebrauch</b> markiert und <b>rot</b> angezeigt.</p></article><article class="help-topic" id="kabellager-6"><h3>Nummern erfassen</h3><p>Wenn eine Bobine <b>In Gebrauch</b> ist, kannst du hier die <b>Anfangs- und Endnummern</b> der eingezogenen Kabelabschnitte erfassen. Bei mehreren Abschnitten können auch mehrere Einträge gespeichert werden. Beim Zurückbuchen ins Lager kann die neue Kabellänge dadurch automatisch berechnet werden.</p></article><article class="help-topic" id="kabellager-7"><h3>Bearbeiten</h3><p>Wenn eine Angabe falsch ist oder sich etwas geändert hat, kannst du die Bobine hier bearbeiten und korrigieren.</p></article><article class="help-topic" id="kabellager-8"><h3>Zurück ins Lager</h3><p>Wenn eine Bobine von der Baustelle zurückkommt: Neue Kabellänge (Meter) eingeben und Baustelle angeben. Danach erscheint die Bobine wieder im Lager.</p></article><article class="help-topic" id="kabellager-9"><h3>Details</h3><p>Hier kannst du zusätzliche Informationen zur Bobine anzeigen, zum Beispiel Hersteller, Infos oder Datum.</p></article><article class="help-topic" id="kabellager-10"><h3>Weitere Aktionen</h3><p>Im 3-Punkte Menü findest du zusätzliche Funktionen wie <b>Bearbeiten</b> oder <b>Löschen</b>.</p></article></div><a class="help-top" href="#hilfe-start">Zur Übersicht ↑</a></section><section class="help-section" id="baustellenmaterial" aria-labelledby="baustellenmaterial-title"><h2 id="baustellenmaterial-title">Baustellenmaterial</h2><div class="help-grid"><article class="help-topic" id="baustellenmaterial-1"><h3>Neue Baustelle erstellen</h3><p>Hier kannst du eine neue Baustelle anlegen. Baustellenname, Baustellen Nummer und Verantwortlicher eingeben und speichern.</p></article><article class="help-topic" id="baustellenmaterial-2"><h3>Suche</h3><p>Über die Suche kannst du nach Baustellenname, Baustellen Nummer, Verantwortlichem oder Material suchen.</p></article><article class="help-topic" id="baustellenmaterial-3"><h3>Material hinzufügen</h3><p>Bei einer aktiven Baustelle kannst du Material zur Materialliste hinzufügen. Material, Anzahl und wenn vorhanden die Spontis Nummer eintragen.</p></article><article class="help-topic" id="baustellenmaterial-4"><h3>Materialvorlage suchen</h3><p>Beim Erfassen von Material kannst du nach einer bestehenden Materialvorlage suchen. Wenn du eine Vorlage anklickst, werden Material und Spontis Nummer automatisch übernommen.</p></article><article class="help-topic" id="baustellenmaterial-5"><h3>Materialliste</h3><p>Über den Button <b>Materialliste</b> kannst du das erfasste Material einer Baustelle anzeigen oder wieder einklappen.</p></article><article class="help-topic" id="baustellenmaterial-6"><h3>Bearbeiten</h3><p>Wenn etwas falsch eingetragen wurde oder sich etwas geändert hat, kannst du Baustellen oder Materialeinträge bearbeiten.</p></article><article class="help-topic" id="baustellenmaterial-7"><h3>Baustelle beenden</h3><p>Wenn eine Baustelle fertig ist, kannst du sie beenden. Sie wird dann zu den <b>beendeten Baustellen</b> verschoben und erhält zuerst den Status <b>Ausbuchen</b>.</p></article><article class="help-topic" id="baustellenmaterial-8"><h3>Drucken</h3><p>Aktive und beendete Baustellen können über das 3-Punkte-Menü gedruckt werden. Dabei wird eine Übersicht mit Baustellendaten und Materialliste erstellt.</p></article><article class="help-topic" id="baustellenmaterial-9"><h3>Archivieren</h3><p>Beendete Baustellen können vom Administrator archiviert werden. Archivierte Baustellen bleiben erhalten, sind aber nicht mehr im normalen Bereich sichtbar.</p></article><article class="help-topic" id="baustellenmaterial-10"><h3>Materialvorlagen verwalten</h3><p>Im Bereich <b>Materialvorlagen verwalten</b> können Vorlagen gesucht, angelegt, bearbeitet und gelöscht werden. Diese helfen beim schnelleren Erfassen von Material.</p></article><article class="help-topic" id="baustellenmaterial-11"><h3>Spontis Link</h3><p>Bei Materialvorlagen kann ein Link hinterlegt werden. Admins können den Spontis Eintrag anklicken und direkt öffnen.</p></article><article class="help-topic" id="baustellenmaterial-12"><h3>Weitere Aktionen</h3><p>Im 3-Punkte-Menü findest du zusätzliche Funktionen wie <b>Bearbeiten</b> oder <b>Löschen</b>.</p></article><article class="help-topic" id="baustellenmaterial-13"><h3>Hinweis zu Admin-Rechten</h3><p>Gewisse Funktionen sind nur für Administratoren sichtbar oder erlaubt, zum Beispiel <b>Archiv</b>, <b>Logs</b> oder das Verwalten von Materialvorlagen.</p></article></div><a class="help-top" href="#hilfe-start">Zur Übersicht ↑</a></section></main>
+</div>
+
+<footer class="app-footer">
+  © 2026 Martin Gross. Alle Rechte vorbehalten.
+</footer>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",
+  authDomain: "netzbau-tafers.firebaseapp.com",
+  projectId: "netzbau-tafers",
+  storageBucket: "netzbau-tafers.appspot.com",
+  messagingSenderId: "389541837675",
+  appId: "1:389541837675:web:db580ce67c57a9a16dea2e",
+  measurementId: "G-B5MJGD3108"
+};
+
+// 🔥 verhindert doppelte Initialisierung (wichtig bei mehreren Seiten)
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+
+const auth = firebase.auth();
+const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "pmyu29TlC3QM7JIysmy2EmiHSWW2", "Tgj9KT6C21XjeistBWRiSVYqTDC2", "hwZEme8xvkasSAGrmOtQRLOnnXn1", "PKDpb7Cb7ig8ZKZRMm23FOKnCHQ2", "PAtM8Lv1TBNLSiQzBLJK9Oda8KK2", "DSMERv7Uu4b4eEYQx5SKbjvdher2"];
+const LIMITED_ACCESS_UIDS = ["POSB6W7xeDZ8Dlba03ZP3J02dMC3", "AX08qKp7lte6vslQMFn76FVqxw53", "KYqiqNKTmkQQYVWAa6bp6vSvTlV2"];
+
+function closeMenu(){}
+function logout(){
+  closeMenu();
+  if(confirm("Wirklich ausloggen?")){
+    auth.signOut().then(() => { window.location.href = "home.html"; })
+      .catch(() => { alert("Fehler beim Logout."); });
+  }
+}
+function setNavigationVisibility(user){
+  const limited = LIMITED_ACCESS_UIDS.includes(user.uid);
+  const admin = ADMIN_UIDS.includes(user.uid) && !limited;
+  document.getElementById("baustellenMenuButton").style.display = limited ? "none" : "inline-flex";
+  document.getElementById("archivMenuButton").style.display = admin ? "inline-flex" : "none";
+  document.getElementById("logsMenuButton").style.display = admin ? "inline-flex" : "none";
+}
+
+
+// 🔥 kleine Timeout-Sicherheit (optional aber gut)
+let timeout = setTimeout(() => {
+  window.location.href = "home.html";
+}, 4000);
+
+auth.onAuthStateChanged((user) => {
+  clearTimeout(timeout);
+
+  if (user) {
+    setNavigationVisibility(user);
+    document.body.style.display = "block";
+  } else {
+    window.location.href = "home.html";
+  }
+});
+</script>
+
+<script src="bobinen-erinnerung.js"></script>
+<script src="navigation.js?v=20261005-help"></script>
+</body>
+</html>
+
+

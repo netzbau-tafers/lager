@@ -257,31 +257,6 @@ select{
   color:#444;
 }
 
-.help-accordion{
-  margin-bottom:20px;
-}
-
-.help-accordion summary{
-  cursor:pointer;
-  font-weight:bold;
-  background:white;
-  border:1px solid #ccc;
-  border-radius:10px;
-  padding:12px 15px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.05);
-}
-
-.help-accordion[open] summary{
-  border-bottom-left-radius:0;
-  border-bottom-right-radius:0;
-}
-
-.help-accordion .info-box{
-  margin-top:0;
-  border-top-left-radius:0 !important;
-  border-top-right-radius:0 !important;
-}
-
 table{
   width:100%;
   border-collapse:collapse;
@@ -1140,9 +1115,6 @@ textarea{
   }
 }
 .header-tools{ display:flex; align-items:center; gap:10px; }
-.help-button{ background:#fff; color:#344454; border:1px solid #cbd4de; }
-.help-button:hover{ background:#e4edf5; }
-
 [hidden]{ display:none !important; }
 @media(max-width:680px){
   .header{
@@ -1154,7 +1126,6 @@ textarea{
   .header h1{ font-size:25px; min-width:0; overflow-wrap:anywhere; }
   .header-tools{ display:contents; }
   .header-tools .menu-wrap{ grid-column:2; grid-row:1; justify-self:end; }
-  .header-tools .help-button{ grid-column:1 / -1; grid-row:2; justify-self:end; margin:0; }
 }
 </style>
 <link rel="stylesheet" href="navigation.css?v=20261005">
@@ -1184,7 +1155,6 @@ textarea{
     <h1>Kabellager</h1>
 
     <div class="header-tools">
-      <button class="help-button" aria-expanded="false" aria-controls="workspaceHelp" onclick="toggleWorkspaceHelp(this)"><i class="fa-solid fa-circle-info"></i> Hilfe</button>
     <div class="menu-wrap">
       <button class="menu-button" onclick="toggleMenu(event)" title="Menü öffnen">
         <i class="fa-solid fa-bars"></i>
@@ -1227,82 +1197,7 @@ textarea{
     </div>
   </div>
 
-  <details id="workspaceHelp" class="help-accordion" hidden>
-  <summary>Hilfe anzeigen</summary>
-  <div class="info-box" style="background:white; border:1px solid #ccc; border-radius:10px; padding:15px; margin-bottom:20px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
-
-<h3 style="margin-top:0;">So benutzt du das Kabellager</h3>
-
-<p>
-<b><i class="fa-solid fa-plus"></i> Neue Bobine hinzufügen</b><br>
-Wenn eine neue Kabelbobine ins Lager kommt, hier hinzufügen.<br>
-Nummer, Kabeltyp und Länge eingeben und speichern.
-</p>
-
-<p>
-<b><i class="fa-solid fa-bookmark"></i> Reservieren</b><br>
-Wenn eine Bobine für eine Baustelle vorgesehen ist,<br>
-kann sie als <b>reserviert</b> markiert werden.<br>
-Reservierte Bobinen werden im Lager <b>gelb</b> angezeigt.
-</p>
-
-<p>
-<b><i class="fa-solid fa-circle-info"></i> Kabel auf 3 Bobinen</b><br>
-Wenn ein Kabel auf <b>3 Bobinen</b> verteilt ist,<br>
-kann dies beim Erfassen angegeben werden.<br>
-Dann wird bei der Bobine der Hinweis <b>„3 Bobinen“</b> angezeigt.
-</p>
-
-<p>
-<b><i class="fa-solid fa-layer-group"></i> Mehrere Kabel auf einer Bobine</b><br>
-Wenn sich <b>mehrere Kabel auf einer Bobine</b> befinden,<br>
-kann dies beim Erfassen angegeben werden.<br>
-Dann wird bei der Bobine der Hinweis <b>„Mehrere Kabel“</b> angezeigt.<br>
-Es kann dabei immer nur <b>ein Hinweis gleichzeitig</b> gewählt werden.
-</p>
-
-<p>
-<b><i class="fa-solid fa-arrow-right"></i> In Gebrauch</b><br>
-Drücke diesen Button, wenn du eine Bobine auf eine Baustelle mitnimmst.<br>
-Die Bobine wird dann als <b>In Gebrauch</b> markiert und <b>rot</b> angezeigt.
-</p>
-
-<p>
-<b><i class="fa-solid fa-ruler"></i> Nummern erfassen</b><br>
-Wenn eine Bobine <b>In Gebrauch</b> ist, kannst du hier<br>
-die <b>Anfangs- und Endnummern</b> der eingezogenen Kabelabschnitte erfassen.<br>
-Bei mehreren Abschnitten können auch mehrere Einträge gespeichert werden.<br>
-Beim Zurückbuchen ins Lager kann die neue Kabellänge dadurch<br>
-automatisch berechnet werden.
-</p>
-    
-<p>
-<b><i class="fa-solid fa-pen"></i> Bearbeiten</b><br>
-Wenn eine Angabe falsch ist oder sich etwas geändert hat,<br>
-kannst du die Bobine hier bearbeiten und korrigieren.
-</p>
-
-<p>
-<b><i class="fa-solid fa-rotate-left"></i> Zurück ins Lager</b><br>
-Wenn eine Bobine von der Baustelle zurückkommt:<br>
-Neue Kabellänge (Meter) eingeben und Baustelle angeben.<br>
-Danach erscheint die Bobine wieder im Lager.
-</p>
-
-<p>
-<b><i class="fa-solid fa-chevron-down"></i> Details</b><br>
-Hier kannst du zusätzliche Informationen zur Bobine anzeigen,<br>
-zum Beispiel Hersteller, Infos oder Datum.
-</p>
-
-<p>
-<b><i class="fa-solid fa-ellipsis-vertical"></i> Weitere Aktionen</b><br>
-Im 3-Punkte Menü findest du zusätzliche Funktionen<br>
-wie <b>Bearbeiten</b> oder <b>Löschen</b>.
-</p>
-
-</div>
-</details>
+  
 
   <div class="search-box">
     <div class="search-title">Suche</div>
@@ -3161,12 +3056,6 @@ function nummerSchonVorhanden(nummer, aktuelleId = null){
   });
 }
 
-function toggleWorkspaceHelp(button){
-  const help = document.getElementById("workspaceHelp");
-  help.hidden = !help.hidden;
-  help.open = !help.hidden;
-  button.setAttribute("aria-expanded", String(!help.hidden));
-}
 
 function markActiveMenu(){
   const path = window.location.pathname.toLowerCase();
@@ -3661,7 +3550,8 @@ document.addEventListener("DOMContentLoaded", function(){
 
   <footer class="app-footer">© 2026 Martin Gross. Alle Rechte vorbehalten. · <a href="datenschutz.html">Datenschutz</a></footer>
 <script src="bobinen-erinnerung.js?v=20261001-3"></script>
-<script src="navigation.js?v=20261005"></script>
+<script src="navigation.js?v=20261005-help"></script>
 </body>
 </html>
+
 
