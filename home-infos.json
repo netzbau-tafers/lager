@@ -1,11 +1,17 @@
 {
   "title": "Aktuelle Neuerungen im Lagermanager",
-  "updatedAt": "2026-10-01",
+  "updatedAt": "2026-10-05",
   "items": [
-    "Datum und Uhrzeit bei Bobinen: Wird eine Bobine auf «In Gebrauch» gesetzt, wird der Zeitpunkt nun in den Details angezeigt.",
-    "Erinnerung nach 48 Stunden: Ist ein Kabel länger als 48 Stunden auf «In Gebrauch» gesetzt, erhält die Person, die es herausgeschrieben hat, beim nächsten Aufrufen des Lagermanagers eine Erinnerung. Sie kann die Meldung als gelesen bestätigen und bei Bedarf das Kabel zurück ins Lager schreiben oder löschen, wenn es vollständig eingezogen wurde.",
-    "Übersichtlicheres Layout: Die Startseite und der Bereich «Baustellenmaterial» wurden neu angeordnet und übersichtlicher gestaltet.",
-    "Aktive Baustellen drucken: Auch bei aktiven Baustellen kann nun direkt über das Drei-Punkte-Menü ein Ausdruck der Baustelle mit ihrer Materialliste erstellt werden.",
-    "Prüfung auf doppelte Spontis Nummern: Beim Speichern einer Materialvorlage wird geprüft, ob die Spontis Nummer bereits vorhanden ist. Falls dieselbe Nummer schon existiert, erscheint ein Hinweis."
+    "05.10.2026 – Neues Menü: Die Navigation wurde für PC und Smartphone überarbeitet und auf allen Seiten vereinheitlicht. Die aktuelle Seite ist blau hervorgehoben.",
+    "05.10.2026 – Meine Übersicht: Unter «Verwaltung» findet jeder Benutzer seine Kabel mit dem Status «In Gebrauch» und seine selbst erstellten aktiven Baustellen. Beendete Baustellen werden dort nicht angezeigt.",
+    "05.10.2026 – Zentrale Hilfe: Unter «Verwaltung → Hilfe» sind die Anleitungen für Kabellager und Baustellenmaterial übersichtlich zusammengefasst.",
+    "05.10.2026 – Einheitliche Symbole und vollständiges Menü: Kabellager und Baustellenmaterial verwenden auf der Startseite dieselben Symbole wie im Menü. Auch auf den Seiten «Profil» und «Datenschutz» stehen die vorgesehenen Menüpunkte entsprechend den Zugriffsrechten zur Verfügung.",
+    "05.10.2026 – Korrekturen bei Baustellen: Aktive und beendete Baustellen sowie Materialvorlagen werden wieder korrekt geladen. Die Fenster zum Erstellen und Bearbeiten werden über dem Navigationsbanner angezeigt.",
+    "05.10.2026 – Datenschutz ergänzt: Der Text beschreibt die verwendeten Dienste, die Speicherung der Firestore-Daten in den USA, Browser-Speicher, Backups und die Aufbewahrung der Protokolle. Der Datenschutzkontakt ist ebenfalls angegeben.",
+    "01.10.2026 – Datum und Uhrzeit bei Bobinen: Wird eine Bobine auf «In Gebrauch» gesetzt, wird der Zeitpunkt nun in den Details angezeigt.",
+    "01.10.2026 – Erinnerung nach 48 Stunden: Ist ein Kabel länger als 48 Stunden auf «In Gebrauch» gesetzt, erhält die Person, die es herausgeschrieben hat, beim nächsten Aufrufen des Lagermanagers eine Erinnerung. Sie kann die Meldung als gelesen bestätigen und bei Bedarf das Kabel zurück ins Lager schreiben oder löschen, wenn es vollständig eingezogen wurde.",
+    "01.10.2026 – Übersichtlicheres Layout: Die Startseite und der Bereich «Baustellenmaterial» wurden neu angeordnet und übersichtlicher gestaltet.",
+    "01.10.2026 – Aktive Baustellen drucken: Auch bei aktiven Baustellen kann nun direkt über das Drei-Punkte-Menü ein Ausdruck der Baustelle mit ihrer Materialliste erstellt werden.",
+    "01.10.2026 – Prüfung auf doppelte Spontis Nummern: Beim Speichern einer Materialvorlage wird geprüft, ob die Spontis Nummer bereits vorhanden ist. Falls dieselbe Nummer schon existiert, erscheint ein Hinweis."
   ]
 }
