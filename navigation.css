@@ -1,0 +1,41 @@
+/* Shared navigation; application permissions stay on the original buttons. */
+body.nt-navigation{margin:0;padding:102px 32px 32px;background:#f1f5f9;--nt-sidebar-width:264px;--nt-header-height:72px}
+.nt-navigation #appContent{margin-left:var(--nt-sidebar-width);min-width:0}
+.nt-navigation.nt-nav-collapsed #appContent{margin-left:0}
+.nt-navigation.nt-profile{padding-left:calc(var(--nt-sidebar-width) + 32px)}
+.nt-navigation.nt-profile.nt-nav-collapsed{padding-left:32px}
+.nt-navigation .menu-wrap{display:none}
+.nt-navigation .nt-topbar{box-sizing:border-box;position:fixed;inset:0 0 auto;height:var(--nt-header-height);z-index:3100;display:flex;align-items:center;gap:24px;padding:12px 24px;background:#153352;color:white;box-shadow:0 2px 8px #10263c18}
+.nt-brand{font-size:22px;font-weight:700;line-height:1.2}.nt-brand small{display:block;font-size:13px;font-weight:400;color:#c1d2e3;margin-top:3px}
+.nt-navigation .nt-toggle{display:inline-flex;align-items:center;gap:9px;min-height:44px;padding:10px 14px;margin:0;border:1px solid #ffffff40;border-radius:10px;background:#ffffff0d;color:white;font-size:15px;cursor:pointer}
+.nt-navigation .nt-toggle:hover{background:#ffffff20}
+.nt-navigation .nt-toggle svg,.nt-navigation #dropdownMenu svg{width:23px;height:23px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.nt-navigation #dropdownMenu{box-sizing:border-box;display:flex;flex-direction:column;position:fixed;inset:var(--nt-header-height) auto 0 0;width:var(--nt-sidebar-width);min-width:0;max-height:none;padding:18px 12px;background:white;border:0;border-right:1px solid #e1e7ee;border-radius:0;box-shadow:none;z-index:3200;overflow-y:auto;transform:translateX(0);transition:transform .2s ease;text-align:left}
+.nt-navigation.nt-nav-collapsed #dropdownMenu{transform:translateX(-100%)}
+.nt-navigation #dropdownMenu button,.nt-navigation #dropdownMenu a{box-sizing:border-box;flex-shrink:0;display:flex;align-items:center;justify-content:flex-start;gap:13px;width:100%;min-height:48px;padding:12px 14px;margin:0 0 5px;border:0;border-radius:10px;background:transparent;color:#19334f;font:15px Arial,sans-serif;text-decoration:none;text-align:left;cursor:pointer}
+.nt-navigation #dropdownMenu button:hover,.nt-navigation #dropdownMenu a:hover{background:#f1f5f9}
+.nt-navigation #dropdownMenu .active-page{background:#e5f1ff!important;color:#0863cd!important;box-shadow:inset 3px 0 #0874ef;font-weight:700;cursor:pointer}
+.nt-navigation #dropdownMenu .nt-section{border-top:1px solid #e5eaf0;margin:14px 10px 10px;padding-top:18px;color:#718096;font-size:11px;letter-spacing:1.4px}
+.nt-navigation #dropdownMenu .logout-safe{border-top:1px solid #e5eaf0;border-radius:0;margin-top:16px;color:#5c6e80}
+.nt-navigation #dropdownMenu .nt-close{display:none}
+.nt-navigation .nt-backdrop{display:none}
+.nt-navigation button:focus-visible,.nt-navigation #dropdownMenu a:focus-visible{outline:3px solid #3788ea;outline-offset:2px}
+.nt-navigation.nt-session-hidden #appContent{margin-left:0}
+.nt-navigation.nt-session-hidden{padding-top:32px}
+@media(max-width:900px){
+ body.nt-navigation,body.nt-navigation.nt-profile,body.nt-navigation.nt-profile.nt-nav-collapsed{padding:90px 16px 24px;--nt-header-height:70px}
+ .nt-navigation #appContent,.nt-navigation.nt-nav-collapsed #appContent{margin-left:0}
+ .nt-navigation .nt-topbar{padding:10px 16px;gap:12px;justify-content:space-between}
+ .nt-brand{font-size:19px}
+ .nt-navigation #dropdownMenu{inset:0 auto 0 0;width:min(320px,86vw);padding:14px 12px;transform:translateX(-100%);box-shadow:12px 0 40px #132a4526;z-index:3400}
+ .nt-navigation.nt-nav-mobile-open #dropdownMenu{transform:translateX(0)}
+ .nt-navigation #dropdownMenu .nt-close{display:flex;justify-content:space-between;margin-bottom:14px;font-weight:700;font-size:17px}
+ .nt-navigation.nt-nav-mobile-open .nt-backdrop{display:block;position:fixed;inset:0;background:#14243d80;z-index:3300}
+ body.nt-navigation.nt-nav-mobile-open{overflow:hidden}
+}
+@media(prefers-reduced-motion:reduce){.nt-navigation #dropdownMenu{transition:none}}
+@media print{
+ body.nt-navigation,body.nt-navigation.nt-profile{margin:0!important;padding:0!important;background:white!important}
+ .nt-navigation #appContent{margin-left:0!important}
+ .nt-navigation .nt-topbar,.nt-navigation #dropdownMenu,.nt-navigation .nt-backdrop{display:none!important}
+}
