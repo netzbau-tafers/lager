@@ -1942,7 +1942,6 @@ function renderVorlagen(){
       const card = document.createElement("div");
       const hasAlteSpontis = hasAlteSpontisNummer(v.alteSpontis);
       card.className = "baustelle-card";
-  card.id = "overview-baustelle-" + baustelle.id;
 
       card.innerHTML = `
         <h3>${escapeHtml(v.material || "")}</h3>
@@ -2348,6 +2347,7 @@ function openSpontisLink(encodedUrl){
 function createBaustelleCard(baustelle){
   const card = document.createElement("div");
   card.className = "baustelle-card";
+  card.id = "overview-baustelle-" + baustelle.id;
 
   const statusBadgeClass = getStatusBadgeClass(baustelle.status);
   const statusLabel = getStatusLabel(baustelle.status);
