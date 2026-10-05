@@ -3,7 +3,8 @@
   'use strict';
   function init(){
     const menu=document.getElementById('dropdownMenu');
-    if(!menu)return;
+    if(!menu||menu.dataset.navigationReady==='true')return;
+    menu.dataset.navigationReady='true';
     const app=document.getElementById('appContent');
     const host=app||document.body;
     const mobile=window.matchMedia('(max-width:900px)');
@@ -42,8 +43,11 @@
     const privacy=document.createElement('a');privacy.href='datenschutz.html';privacy.append(icon('datenschutz'),document.createTextNode('Datenschutz'));
     if(current==='datenschutz.html'){privacy.classList.add('active-page');privacy.setAttribute('aria-current','page')}
     const logout=menu.querySelector('.logout-safe');menu.insertBefore(privacy,logout);
-    const help=document.getElementById('workspaceHelp');
-    if(help){const helpButton=document.createElement('button');helpButton.type='button';helpButton.append(icon('logs'),document.createTextNode('Hilfe'));helpButton.addEventListener('click',()=>{window.closeMenu();help.hidden=false;help.open=true;help.scrollIntoView({behavior:'auto',block:'start'});help.querySelector('summary')?.focus()});menu.insertBefore(helpButton,privacy)}
+    const helpLink=document.createElement('a');helpLink.href='hilfe.html';
+    const helpIcon=document.createElementNS('http://www.w3.org/2000/svg','svg');helpIcon.setAttribute('viewBox','0 0 24 24');helpIcon.setAttribute('aria-hidden','true');helpIcon.innerHTML='<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4M12 17h.01"/>';
+    helpLink.append(helpIcon,document.createTextNode('Hilfe'));
+    if(current==='hilfe.html'){helpLink.classList.add('active-page');helpLink.setAttribute('aria-current','page')}
+    menu.insertBefore(helpLink,privacy);
     const close=document.createElement('button');close.type='button';close.className='nt-close';close.innerHTML='<span>Netzbau Tafers</span><span aria-hidden="true">✕</span>';close.setAttribute('aria-label','Menü schliessen');menu.prepend(close);
     let previousFocus=null;
     const backgroundNodes=()=>[...host.children].filter(node=>node!==menu&&node!==backdrop);
@@ -69,3 +73,4 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
+
