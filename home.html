@@ -307,6 +307,17 @@ button:hover{
     font-size:13px;
   }
 }
+
+.hero-nav-icon{
+  width:23px;
+  height:23px;
+  flex-shrink:0;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.7;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <link rel="stylesheet" href="navigation.css?v=20261005">
@@ -377,10 +388,10 @@ button:hover{
   <section class="hero">
     <div class="hero-actions">
       <a href="index.html" class="hero-link">
-        <button><i class="fa-solid fa-warehouse"></i>Kabellager</button>
+        <button><svg class="hero-nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 12a8 8 0 1 1-16 0 8 8 0 0 1 16 0M17 12a5 5 0 1 1-10 0 5 5 0 0 1 10 0M18 18l3 3"/></svg>Kabellager</button>
       </a>
       <a id="baustellenHeroLink" href="baustellen.html" class="hero-link">
-        <button><i class="fa-solid fa-screwdriver-wrench"></i>Baustellenmaterial</button>
+        <button><svg class="hero-nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 17v-4a8 8 0 0 1 16 0v4M9 5v7M15 5v7M2 17h20v4H2z"/></svg>Baustellenmaterial</button>
       </a>
     </div>
 
