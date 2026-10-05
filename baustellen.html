@@ -1863,7 +1863,7 @@ function renderAll(){
   if(overviewBaustelleId){
     overviewTarget = alleBaustellen.find(b => b.id === overviewBaustelleId && b.status === 'aktiv');
     if(overviewTarget){
-      document.getElementById('searchInput').value = String(overviewTarget.nummer || overviewTarget.name || '');
+      document.getElementById('searchInput').value = '';
       document.getElementById('creatorFilterMode').value = 'all';
       openMaterialLists[overviewTarget.id] = true;
       overviewBaustelleId = null;
