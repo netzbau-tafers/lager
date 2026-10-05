@@ -180,6 +180,8 @@
         <button onclick="goToKabellager()"><i class="fa-solid fa-warehouse"></i> Kabellager</button>
         <button onclick="goToKabelReport()"><i class="fa-solid fa-chart-column"></i> Kabel Report</button>
         <button id="baustellenMenuButton" onclick="goToBaustellen()"><i class="fa-solid fa-screwdriver-wrench"></i> Baustellenmaterial</button>
+        <button id="archivMenuButton" data-page="archiv" onclick="goToArchiv()" style="display:none;"><i class="fa-solid fa-box-archive"></i> Archiv</button>
+        <button id="logsMenuButton" data-page="logs" onclick="goToLogs()" style="display:none;"><i class="fa-solid fa-clipboard-list"></i> Protokoll</button>
         <button class="active-page" onclick="closeMenu()"><i class="fa-solid fa-user"></i> Profil</button>
         <button class="logout-safe" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
       </div>
@@ -216,6 +218,8 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
     const usersCollection = db.collection("users");
+    const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "pmyu29TlC3QM7JIysmy2EmiHSWW2", "Tgj9KT6C21XjeistBWRiSVYqTDC2", "hwZEme8xvkasSAGrmOtQRLOnnXn1", "PKDpb7Cb7ig8ZKZRMm23FOKnCHQ2", "PAtM8Lv1TBNLSiQzBLJK9Oda8KK2", "DSMERv7Uu4b4eEYQx5SKbjvdher2"];
+    const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
     const LIMITED_ACCESS_UIDS = ["POSB6W7xeDZ8Dlba03ZP3J02dMC3", "AX08qKp7lte6vslQMFn76FVqxw53", "KYqiqNKTmkQQYVWAa6bp6vSvTlV2"];
     const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
 
@@ -252,9 +256,32 @@
       window.location.href = "baustellen.html";
     }
 
+    function goToArchiv(){
+      closeMenu();
+      const user = auth.currentUser;
+      if(!user || !isAdminUid(user.uid) || hasLimitedAccess(user.uid)){
+        alert("Archiv ist nur für Administratoren sichtbar.");
+        return;
+      }
+      window.location.href = "archiv.html";
+    }
+
+    function goToLogs(){
+      closeMenu();
+      const user = auth.currentUser;
+      if(!user || !isAdminUid(user.uid) || hasLimitedAccess(user.uid)){
+        alert("Protokoll ist nur für Administratoren sichtbar.");
+        return;
+      }
+      window.location.href = "logs.html";
+    }
+
     function updateNavigationVisibility(user){
       const baustellenButton = document.getElementById("baustellenMenuButton");
       const isLimitedUser = !!(user && hasLimitedAccess(user.uid));
+      const isAdminUser = !!(user && isAdminUid(user.uid)) && !isLimitedUser;
+      document.getElementById("archivMenuButton").style.display = isAdminUser ? "inline-flex" : "none";
+      document.getElementById("logsMenuButton").style.display = isAdminUser ? "inline-flex" : "none";
 
       if(baustellenButton){
         baustellenButton.style.display = isLimitedUser ? "none" : "inline-flex";
