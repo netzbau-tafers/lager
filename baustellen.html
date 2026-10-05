@@ -1857,7 +1857,18 @@ function getStatusBadgeClass(status){
   return "badge badge-beendet";
 }
 
+let overviewBaustelleId = new URLSearchParams(window.location.search).get('baustelle');
 function renderAll(){
+  let overviewTarget = null;
+  if(overviewBaustelleId){
+    overviewTarget = alleBaustellen.find(b => b.id === overviewBaustelleId && b.status === 'aktiv');
+    if(overviewTarget){
+      document.getElementById('searchInput').value = String(overviewTarget.nummer || overviewTarget.name || '');
+      document.getElementById('creatorFilterMode').value = 'all';
+      openMaterialLists[overviewTarget.id] = true;
+      overviewBaustelleId = null;
+    }
+  }
   const aktiveContainer = document.getElementById("aktiveBaustellen");
   const beendeteContainer = document.getElementById("beendeteBaustellen");
   const beendeteCount = document.getElementById("beendeteCount");
@@ -1881,6 +1892,10 @@ function renderAll(){
   }else{
     aktive.forEach(b => aktiveContainer.appendChild(createBaustelleCard(b)));
   }
+  if(overviewTarget){requestAnimationFrame(() => {
+    const target=document.getElementById('overview-baustelle-' + overviewTarget.id);
+    if(target){target.style.scrollMarginTop='90px';target.scrollIntoView({block:'center'});}
+  });}
 
   if(beendete.length === 0){
     beendeteContainer.innerHTML = '<div class="empty-box">Keine beendeten Baustellen gefunden.</div>';
@@ -1927,6 +1942,7 @@ function renderVorlagen(){
       const card = document.createElement("div");
       const hasAlteSpontis = hasAlteSpontisNummer(v.alteSpontis);
       card.className = "baustelle-card";
+  card.id = "overview-baustelle-" + baustelle.id;
 
       card.innerHTML = `
         <h3>${escapeHtml(v.material || "")}</h3>
@@ -3535,8 +3551,9 @@ function clearVorlageLinkInput(){
 
   <footer class="app-footer">© 2026 Martin Gross. Alle Rechte vorbehalten. · <a href="datenschutz.html">Datenschutz</a></footer>
 <script src="bobinen-erinnerung.js?v=20261001-3"></script>
-<script src="navigation.js?v=20261005-help"></script>
+<script src="navigation.js?v=20261005-overview"></script>
 </body>
 </html>
+
 
 

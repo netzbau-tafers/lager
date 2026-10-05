@@ -2451,6 +2451,7 @@ function renderDesktopTable(data){
       : "";
 
     const mainRow = document.createElement("tr");
+    mainRow.id = "overview-bobine-" + docItem.id;
     const statusClass = b.status === "Lager" ? "instock" : "inuse";
     const reserviertClass = b.status === "Lager" && b.reserviert ? " reserved" : "";
     mainRow.className = "main-row " + statusClass + reserviertClass;
@@ -2606,6 +2607,7 @@ function renderMobileCards(data){
 
     const card = document.createElement("div");
     card.className = "mobile-card " + statusClass + reserviertClass;
+    card.id = "overview-mobile-bobine-" + docItem.id;
 
     const mobileStatusDetailsHtml = `
       <div class="mobile-details-item">
@@ -2885,7 +2887,18 @@ function printInventoryReport(){
   window.print();
 }
 
+let overviewBobineId = new URLSearchParams(window.location.search).get('bobine');
 function renderFilteredTable(){
+  let overviewTarget = null;
+  if(overviewBobineId){
+    overviewTarget = alleBobinen.find(item => item.id === overviewBobineId);
+    if(overviewTarget){
+      document.getElementById('searchInput').value = String(overviewTarget.data().nummer || '');
+      document.getElementById('statusFilter').value = 'Alle';
+      openDetailsRows.add(overviewBobineId);
+      overviewBobineId = null;
+    }
+  }
   const suchbegriff = document.getElementById("searchInput").value.trim().toLowerCase();
   const statusFilter = document.getElementById("statusFilter").value;
 
@@ -2927,6 +2940,12 @@ function renderFilteredTable(){
 
   renderDesktopTable(gefiltert);
   renderMobileCards(gefiltert);
+  if(overviewTarget){requestAnimationFrame(() => {
+    const mobile = document.getElementById('overview-mobile-bobine-' + overviewTarget.id);
+    const desktop = document.getElementById('overview-bobine-' + overviewTarget.id);
+    const target = mobile && mobile.getClientRects().length ? mobile : desktop;
+    if(target){target.style.scrollMarginTop = '90px';target.scrollIntoView({block:'center'});}
+  });}
 
   const ausgeschriebenAnzahl = gefiltert.filter(docItem => String(docItem.data().status || "") === "In Gebrauch").length;
   const reserviertAnzahl = gefiltert.filter(docItem => {
@@ -3550,8 +3569,9 @@ document.addEventListener("DOMContentLoaded", function(){
 
   <footer class="app-footer">© 2026 Martin Gross. Alle Rechte vorbehalten. · <a href="datenschutz.html">Datenschutz</a></footer>
 <script src="bobinen-erinnerung.js?v=20261001-3"></script>
-<script src="navigation.js?v=20261005-help"></script>
+<script src="navigation.js?v=20261005-overview"></script>
 </body>
 </html>
+
 
 
