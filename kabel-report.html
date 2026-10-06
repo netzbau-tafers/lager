@@ -12,6 +12,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="zugriffsrechte.js?v=20261006"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -894,7 +895,7 @@ function getSnapshotByMonth(year, monthIndex){
 }
 
 function canManuallySaveSnapshots(user){
-  return !!(user && user.uid === SNAPSHOT_MANAGER_UID);
+  return !!(user && LagerAccess.manager("kabelreport", user.uid));
 }
 
 function formatTimestamp(value){
@@ -1815,6 +1816,7 @@ function filterLiveEntriesAgainstSnapshots(year, reportEntries = []){
 }
 
 async function saveSnapshotForMonth(year, monthIndex){
+  if(!LagerAccess.requireWrite("kabelreport")) return;
   const user = auth.currentUser;
   if(!canManuallySaveSnapshots(user)){
     alert("Dieser Snapshot-Button ist nur für den freigegebenen Benutzer sichtbar.");
@@ -1862,8 +1864,9 @@ async function saveSnapshotForMonth(year, monthIndex){
 }
 
 async function ensurePreviousMonthSnapshot(){
+  if(!LagerAccess.write("kabelreport")) return;
   const user = auth.currentUser;
-  if(!user || !isAdminUid(user.uid) || isEnsuringSnapshot || !hasLoadedLogs || !hasLoadedSnapshots){
+  if(!user || !LagerAccess.manager("kabelreport", user.uid) || isEnsuringSnapshot || !hasLoadedLogs || !hasLoadedSnapshots){
     return;
   }
 
@@ -1973,7 +1976,7 @@ function handleYearFilterChange(){
   renderReport();
 }
 
-auth.onAuthStateChanged((user) => {
+LagerAccess.onAuthStateChanged((user) => {
   currentUser = user || null;
 
   if(user){
@@ -2010,9 +2013,10 @@ document.addEventListener("DOMContentLoaded", function(){
 
 <footer class="app-footer">© 2026 Martin Gross. Alle Rechte vorbehalten.</footer>
 <script src="bobinen-erinnerung.js"></script>
-<script src="navigation.js?v=20261005-overview"></script>
+<script src="navigation.js?v=20261006-access"></script>
 </body>
 </html>
+
 
 
 

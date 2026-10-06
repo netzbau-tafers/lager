@@ -203,6 +203,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="zugriffsrechte.js?v=20261006"></script>
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",
@@ -349,7 +350,7 @@
         });
     }
 
-    auth.onAuthStateChanged((user) => {
+    LagerAccess.onAuthStateChanged((user) => {
       if(!user){
         window.location.href = "home.html";
         return;
@@ -374,9 +375,10 @@
 
   <footer class="app-footer">© 2026 Martin Gross. Alle Rechte vorbehalten.</footer>
 <script src="bobinen-erinnerung.js"></script>
-<script src="navigation.js?v=20261005-overview"></script>
+<script src="navigation.js?v=20261006-access"></script>
 </body>
 </html>
+
 
 
 

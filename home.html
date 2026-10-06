@@ -320,6 +320,7 @@ button:hover{
 }
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="zugriffsrechte.js?v=20261006"></script>
 <link rel="stylesheet" href="navigation.css?v=20261005-menu-style">
 </head>
 <body>
@@ -684,7 +685,7 @@ document.addEventListener("click", (event) => {
 document.addEventListener("DOMContentLoaded", markActiveMenu);
 document.addEventListener("DOMContentLoaded", loadHomeInfos);
 
-auth.onAuthStateChanged((user) => {
+LagerAccess.onAuthStateChanged((user) => {
   if(user){
     setNavigationVisibility(user);
     document.getElementById("loginScreen").style.display = "none";
@@ -700,9 +701,10 @@ auth.onAuthStateChanged((user) => {
 
   <footer class="app-footer">© 2026 Martin Gross. Alle Rechte vorbehalten.</footer>
 <script src="bobinen-erinnerung.js"></script>
-<script src="navigation.js?v=20261005-overview"></script>
+<script src="navigation.js?v=20261006-access"></script>
 </body>
 </html>
+
 
 
 

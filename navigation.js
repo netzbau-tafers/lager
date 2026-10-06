@@ -73,8 +73,10 @@
     mobile.addEventListener('change',()=>window.closeMenu());
     if(app){const sessionSync=()=>{const hidden=getComputedStyle(app).display==='none';body.classList.toggle('nt-session-hidden',hidden);if(hidden)window.closeMenu()};new MutationObserver(sessionSync).observe(app,{attributes:true,attributeFilter:['style','class']});sessionSync()}
     sync();
+    window.LagerAccess?.apply();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
+
 
 

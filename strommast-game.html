@@ -13,6 +13,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="zugriffsrechte.js?v=20261006"></script>
 
 <style>
 :root{
@@ -1086,6 +1087,7 @@ async function cleanupRanking(){
 }
 
 async function saveScore(){
+  if(!LagerAccess.requireWrite("spiel")) return;
   if(gameOverSaved || !canScoreReachLeaderboard(score)){
     return;
   }
@@ -2345,7 +2347,7 @@ function initializeGame(){
   draw();
 }
 
-auth.onAuthStateChanged((user) => {
+LagerAccess.onAuthStateChanged((user) => {
   if(!user){
     window.location.replace("home.html");
     return;
@@ -2376,3 +2378,4 @@ characterButtons.forEach((button) => {
 <script src="bobinen-erinnerung.js"></script>
 </body>
 </html>
+
