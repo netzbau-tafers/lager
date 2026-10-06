@@ -596,7 +596,7 @@ function loadArchivCache(){
       return;
     }
 
-    alleBaustellen = parsed.baustellen;
+    alleBaustellen = parsed.baustellen.filter(b => b.status === "archiviert");
     // Materialpositionen werden ausschließlich pro geöffneter Liste geladen.
     renderArchiv();
   }catch(error){
@@ -986,7 +986,7 @@ function startListeners(){
   loadVorlagen();
 
   if(!unsubscribeBaustellen){
-    unsubscribeBaustellen = baustellenCollection.onSnapshot(snapshot => {
+    unsubscribeBaustellen = baustellenCollection.where("status", "==", "archiviert").onSnapshot(snapshot => {
       alleBaustellen = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       saveArchivCache();
       renderArchiv();
@@ -1615,6 +1615,7 @@ async function deleteBaustelle(id){
 <script src="navigation.js?v=20261005-overview"></script>
 </body>
 </html>
+
 
 
 
