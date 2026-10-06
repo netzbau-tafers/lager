@@ -956,7 +956,7 @@ dialog.vorlage-duplicate-dialog::backdrop{
     <div id="neueBaustelleWrap"><button onclick="openBaustelleModal()"><i class="fa-solid fa-plus"></i> Neue Baustelle erstellen</button></div>
   </div>
   <div class="workspace-search">
-    <input id="searchInput" type="text" aria-label="Baustellen suchen" placeholder="Baustellen suchen · Material nur in bereits geladenen Listen" oninput="renderAll()" maxlength="120">
+    <input id="searchInput" type="text" aria-label="Baustellen suchen" placeholder="Nach Baustellenname, Nummer, Verantwortlicher oder Material suchen" oninput="renderAll()" maxlength="120">
     <select id="creatorFilterMode" aria-label="Nach Ersteller filtern" onchange="onCreatorFilterChanged()"><option value="all">Alle Ersteller anzeigen</option><option value="mine">Nur von mir erstellt</option></select>
     <button class="back" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Zurücksetzen</button>
   </div>
@@ -1640,6 +1640,7 @@ function startListeners(){
     unsubscribeBaustellen = baustellenCollection.where("status", "in", ["aktiv", "rausschreiben"]).onSnapshot(snapshot => {
       alleBaustellen = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       pruneBaustellenMaterial();
+      alleBaustellen.forEach(b => openBaustellenMaterial(b.id));
       renderAll();
     }, error => {
       console.error("Fehler Baustellen:", error);
@@ -2413,7 +2414,7 @@ function createBaustelleCard(baustelle){
 
   let materialHtml = "";
   if(!baustellenMaterialLoaded.has(baustelle.id)){
-    materialHtml = '<div class="empty-box">' + (isOpen ? 'Materialliste wird geladen …' : 'Materialliste wird beim Öffnen geladen.') + '</div>';
+    materialHtml = '<div class="empty-box">Materialliste wird geladen …</div>';
   }else if(materialien.length === 0){
     materialHtml = '<div class="empty-box">Noch kein Material erfasst.</div>';
   }else{
