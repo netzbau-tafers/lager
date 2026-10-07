@@ -204,6 +204,13 @@
 <style>
 .user-card{padding:20px;margin-top:18px;border:1px solid #d5dbe3;border-radius:12px}.user-card h2{font-size:19px;margin:0 0 8px}.user-meta{overflow-wrap:anywhere;color:#526478;font-size:14px}.permission-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}.permission-grid label{display:flex;flex-direction:column;gap:8px}.permission-grid select{padding:10px;border:1px solid #ccd5df;border-radius:8px;background:white;font:inherit}.user-feedback{min-height:20px;font-size:14px}.user-card .delete-account{background:#b3261e;margin-left:8px}.user-card .delete-account:hover{background:#8d1e18}.user-card button:disabled{opacity:.5;cursor:default}[hidden]{display:none!important}@media(max-width:680px){.permission-grid{grid-template-columns:1fr}.user-card{padding:14px}}
 
+
+/* Permission levels use soft backgrounds while keeping all labels black. */
+.permission-grid select{color:#000;opacity:1;-webkit-text-fill-color:#000}
+.permission-grid select[data-permission="edit"],.permission-grid option[value="edit"]{background-color:#e3f1e5;color:#000}
+.permission-grid select[data-permission="view"],.permission-grid option[value="view"]{background-color:#fff0d9;color:#000}
+.permission-grid select[data-permission="none"],.permission-grid option[value="none"]{background-color:#f8e2e2;color:#000}
+
 .permissions-panel{min-width:0;margin:16px 0;border:1px solid #d5dbe3;border-radius:10px;background:#f8fafc}
 .permissions-panel summary{padding:13px 14px;cursor:pointer;font-weight:600;overflow-wrap:anywhere;min-height:44px}
 .permissions-panel summary:hover{background:#eef2f6;border-radius:10px}
@@ -257,7 +264,7 @@
 
 function logout(){if(confirm('Wirklich ausloggen?'))auth.signOut().then(()=>location.href='home.html');}
 </script>
-<script src="benutzer.js?v=20261007-password-reset"></script>
+<script src="benutzer.js?v=20261007-permission-colors"></script>
 <script>
 (function(){
   const dialog=document.getElementById('newUserPanel'),opener=document.getElementById('openNewUser'),submit=document.getElementById('newUserSubmit');

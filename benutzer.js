@@ -6,6 +6,11 @@
   const listAccounts=functions.httpsCallable("lagerListUsers"),deleteAccount=functions.httpsCallable("lagerDeleteUser");
   const clean=value=>String(value||'').replace(/[<>]/g,'').replace(/[\u0000-\u001F\u007F]/g,' ').replace(/\s+/g,' ').trim().slice(0,120);
   function text(tag,value){const node=document.createElement(tag);node.textContent=value;return node;}
+  function colorPermission(select){
+    const update=()=>{select.dataset.permission=select.value;};
+    select.addEventListener('change',update);
+    update();
+  }
   const titles={hauptadministrator:'Hauptadministrator',administrator:'Administrator',baustellenverantwortlicher:'Baustellenverantwortlicher',mitarbeiter:'Mitarbeiter',leseberechtigter:'Leseberechtigter'};
   const titleOrder=Object.keys(titles);
   function effectivePermissions(row){
@@ -47,7 +52,7 @@
       titleSelect.value=titleFor(row);titleSelect.disabled=master;titleLabel.append(titleSelect);card.append(titleLabel);
       const grid=document.createElement('div');grid.className='permission-grid';const selects={};
       const permissions=effectivePermissions(row);
-      for(const [key,name]of Object.entries(LagerAccess.areas)){const label=text('label',name),select=document.createElement('select');for(const [value,title]of (['materialvorlagen','beendete'].includes(key)?[['none','Nicht erlaubt'],['edit',key==='beendete'?'Archivieren, bearbeiten, wiederherstellen und löschen':'Erstellen, bearbeiten und löschen']]:[['none','Gesperrt'],['view','Nur ansehen'],['edit','Ansehen und bearbeiten']])){const option=text('option',title);option.value=value;select.append(option);}select.value=master?'edit':permissions[key]||'none';select.disabled=master;selects[key]=select;label.append(select);grid.append(label);}
+      for(const [key,name]of Object.entries(LagerAccess.areas)){const label=text('label',name),select=document.createElement('select');for(const [value,title]of (['materialvorlagen','beendete'].includes(key)?[['none','Nicht erlaubt'],['edit',key==='beendete'?'Archivieren, bearbeiten, wiederherstellen und löschen':'Erstellen, bearbeiten und löschen']]:[['none','Gesperrt'],['view','Nur ansehen'],['edit','Ansehen und bearbeiten']])){const option=text('option',title);option.value=value;select.append(option);}select.value=master?'edit':permissions[key]||'none';select.disabled=master;colorPermission(select);selects[key]=select;label.append(select);grid.append(label);}
       const permissionsPanel=document.createElement('details');permissionsPanel.className='permissions-panel';permissionsPanel.append(text('summary','Berechtigungen'),grid);card.append(permissionsPanel);const save=text('button','Änderungen speichern');save.type='button';const feedback=text('p','');feedback.className='user-feedback';feedback.setAttribute('role','status');card.append(save,feedback);
       const remove=text('button','Konto löschen');remove.type='button';remove.className='delete-account';remove.disabled=master;remove.title=master?'Das Hauptadministrator-Konto ist geschützt.':'Anmeldekonto dauerhaft löschen';card.insertBefore(remove,feedback);
       if(auth.currentUser?.uid===LagerAccess.MASTER){
@@ -109,6 +114,7 @@
     const label=text('label',name),select=document.createElement('select');
     const choices=['materialvorlagen','beendete'].includes(key)?[['none','Nicht erlaubt'],['edit','Erlaubt']]:[['none','Gesperrt'],['view','Nur ansehen'],['edit','Ansehen und bearbeiten']];
     for(const [value,title]of choices){const option=text('option',title);option.value=value;select.append(option);}
+    colorPermission(select);
     newSelects[key]=select;label.append(select);document.getElementById('newUserPermissions').append(label);
   }
   let creating=false;
@@ -118,7 +124,7 @@
     const email=document.getElementById('newUserEmail').value.trim(),username=document.getElementById('newUserName').value.trim(),permissions=Object.fromEntries(Object.entries(newSelects).map(([key,select])=>[key,select.value]));
     try{
       const result=await createAccount({email,username,permissions});if(result.data?.created!==true||!result.data.uid)throw Error('Ungültige Serverantwort');
-      newForm.reset();newLink.value=result.data.setupLink||'';newResult.hidden=!result.data.setupLink;
+      newForm.reset();Object.values(newSelects).forEach(select=>{select.dataset.permission=select.value;});newLink.value=result.data.setupLink||'';newResult.hidden=!result.data.setupLink;
       newStatus.textContent=result.data.setupLink?'Konto erstellt. Kopiere den Passwort-Link und gib ihn dem neuen Benutzer weiter.':'Konto erstellt. Der Passwort-Link konnte nicht erzeugt werden. Der Benutzer kann auf der Anmeldeseite sein Passwort zurücksetzen.';
       await load();
     }catch(error){newStatus.textContent=error.code==='functions/already-exists'?'Diese E-Mail hat bereits ein Konto.':error.code==='functions/invalid-argument'?'Bitte E-Mail, Benutzername und Rechte prüfen.':error.code==='functions/internal'?(error.message||'Erstellen fehlgeschlagen. Bitte die Kontoliste prüfen.'):'Erstellen fehlgeschlagen. Prüfe, ob lagerCreateUser in Firebase veröffentlicht ist. Bei einem Verbindungsfehler zuerst die Kontoliste aktualisieren.';}
