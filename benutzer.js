@@ -6,20 +6,50 @@
   const listAccounts=functions.httpsCallable("lagerListUsers"),deleteAccount=functions.httpsCallable("lagerDeleteUser");
   const clean=value=>String(value||'').replace(/[<>]/g,'').replace(/[\u0000-\u001F\u007F]/g,' ').replace(/\s+/g,' ').trim().slice(0,120);
   function text(tag,value){const node=document.createElement(tag);node.textContent=value;return node;}
+  const titles={hauptadministrator:'Hauptadministrator',administrator:'Administrator',baustellenverantwortlicher:'Baustellenverantwortlicher',mitarbeiter:'Mitarbeiter',leseberechtigter:'Leseberechtigter'};
+  const titleOrder=Object.keys(titles);
+  function effectivePermissions(row){
+    const defaults=LagerAccess.defaults(row.id),permissions={...defaults,...row.access?.permissions};
+    for(const key of ['beendete','materialvorlagen']){
+      if(row.access&&!(key in (row.access.permissions||{})))permissions[key]=defaults[key]==='edit'&&permissions.baustellen==='edit'?'edit':'none';
+    }
+    return permissions;
+  }
+  function titleFor(row){
+    if(row.id===LagerAccess.MASTER)return 'hauptadministrator';
+    if(titleOrder.includes(row.adminTitle)&&row.adminTitle!=='hauptadministrator')return row.adminTitle;
+    const p=effectivePermissions(row);
+    if(['kabellager','baustellen','archiv','materialvorlagen','beendete'].every(key=>p[key]==='edit'))return 'administrator';
+    if(p.baustellen==='edit'&&p.beendete==='edit')return 'baustellenverantwortlicher';
+    if(Object.entries(p).some(([key,value])=>key!=='spiel'&&value==='edit'))return 'mitarbeiter';
+    return 'leseberechtigter';
+  }
+  function compareUsers(a,b){
+    return titleOrder.indexOf(titleFor(a))-titleOrder.indexOf(titleFor(b))||
+      String(a.username||a.email||a.id).localeCompare(String(b.username||b.email||b.id),'de-CH')||
+      a.id.localeCompare(b.id);
+  }
   function render(){
     list.replaceChildren();const query=search.value.toLocaleLowerCase('de-CH');
-    const filtered=rows.filter(row=>[row.id,row.username,row.email].some(value=>String(value||'').toLocaleLowerCase('de-CH').includes(query)));
+    const filtered=rows.filter(row=>[row.id,row.username,row.email,titles[titleFor(row)]].some(value=>String(value||'').toLocaleLowerCase('de-CH').includes(query))).sort(compareUsers);
     if(!filtered.length){list.append(text('p','Keine Benutzerprofile gefunden.'));return;}
     for(const row of filtered){
       const master=row.id===LagerAccess.MASTER,card=text('article','');card.className='user-card';
-      card.append(text('h2',(row.username||row.email||'Benutzer ohne Namen')+(master?' · Master-Admin':'')));
+      card.append(text('h2',(row.username||row.email||'Benutzer ohne Namen')+' · '+titles[titleFor(row)]));
       const date=row.lastSeenAt?.toDate?.();const meta=text('p',(row.email||'Keine E-Mail hinterlegt')+' · UID: '+row.id+' · Letzte Aktivität: '+(date?date.toLocaleString('de-CH'):'Noch nicht erfasst'));meta.className='user-meta';card.append(meta);
       const label=text('label','Benutzername');const input=document.createElement('input');input.type='text';input.maxLength=120;input.value=row.username||'';label.append(input);card.append(label);
+      const titleLabel=text('label','Titel'),titleSelect=document.createElement('select');
+      titleSelect.style.cssText='width:100%;max-width:100%;min-width:0;padding:10px;border:1px solid #ccd5df;border-radius:8px;background:white;font:inherit;margin:6px 0 12px';
+      for(const [value,name] of Object.entries(titles)){
+        if(!master&&value==='hauptadministrator')continue;
+        const option=text('option',name);option.value=value;titleSelect.append(option);
+      }
+      titleSelect.value=titleFor(row);titleSelect.disabled=master;titleLabel.append(titleSelect);card.append(titleLabel);
       const grid=document.createElement('div');grid.className='permission-grid';const selects={};
-      const permissions={...LagerAccess.defaults(row.id),...row.access?.permissions};if(row.access&&!('beendete' in row.access.permissions))permissions.beendete=LagerAccess.defaults(row.id).beendete==='edit'&&permissions.baustellen==='edit'?'edit':'none';if(row.access&&!('materialvorlagen' in row.access.permissions))permissions.materialvorlagen=LagerAccess.defaults(row.id).materialvorlagen==='edit'&&permissions.baustellen==='edit'?'edit':'none';
+      const permissions=effectivePermissions(row);
       for(const [key,name]of Object.entries(LagerAccess.areas)){const label=text('label',name),select=document.createElement('select');for(const [value,title]of (['materialvorlagen','beendete'].includes(key)?[['none','Nicht erlaubt'],['edit',key==='beendete'?'Archivieren, bearbeiten, wiederherstellen und löschen':'Erstellen, bearbeiten und löschen']]:[['none','Gesperrt'],['view','Nur ansehen'],['edit','Ansehen und bearbeiten']])){const option=text('option',title);option.value=value;select.append(option);}select.value=master?'edit':permissions[key]||'none';select.disabled=master;selects[key]=select;label.append(select);grid.append(label);}
       card.append(grid);const save=text('button','Änderungen speichern');save.type='button';const feedback=text('p','');feedback.className='user-feedback';feedback.setAttribute('role','status');card.append(save,feedback);
-      const remove=text('button','Konto löschen');remove.type='button';remove.className='delete-account';remove.disabled=master;remove.title=master?'Das Master-Admin-Konto ist geschützt.':'Anmeldekonto dauerhaft löschen';card.insertBefore(remove,feedback);
+      const remove=text('button','Konto löschen');remove.type='button';remove.className='delete-account';remove.disabled=master;remove.title=master?'Das Hauptadministrator-Konto ist geschützt.':'Anmeldekonto dauerhaft löschen';card.insertBefore(remove,feedback);
       remove.addEventListener('click',async()=>{
         if(master)return;
         const answer=prompt('Konto dauerhaft löschen?\n\n'+(row.email||row.username||row.id)+'\nUID: '+row.id+'\n\nDas Anmeldekonto, Profil und die Rechte werden gelöscht. Baustellen und Protokolle bleiben erhalten.\n\nZum Bestätigen bitte LÖSCHEN eingeben.');
@@ -32,10 +62,10 @@
         try{
           // Profile names and access rights change atomically; metadata stays intact.
           const batch=db.batch(),timestamp=firebase.firestore.FieldValue.serverTimestamp(),username=clean(input.value);
-          batch.set(db.collection('users').doc(row.id),{username,updatedAt:timestamp},{merge:true});
+          batch.set(db.collection('users').doc(row.id),{username,adminTitle:master?'hauptadministrator':titleSelect.value,updatedAt:timestamp},{merge:true});
           const selected=Object.fromEntries(Object.entries(selects).map(([key,select])=>[key,select.value]));
           if(!master)batch.set(db.collection('user_access').doc(row.id),{permissions:selected,updatedAt:timestamp,updatedBy:auth.currentUser.uid});
-          await batch.commit();row.username=username;if(!master)row.access={permissions:selected};input.value=username;feedback.style.color='#1b5e20';feedback.textContent='Gespeichert. Zugriffsänderungen werden auf geöffneten Seiten übernommen.';
+          await batch.commit();row.username=username;row.adminTitle=master?'hauptadministrator':titleSelect.value;if(!master)row.access={permissions:selected};input.value=username;feedback.style.color='#1b5e20';render();status.textContent='Gespeichert. Die Liste wurde nach Titel sortiert.';
         }catch(error){console.error(error);feedback.style.color='#b3261e';feedback.textContent='Speichern fehlgeschlagen. Prüfe, ob die neuen Firestore-Regeln veröffentlicht sind.';}finally{save.disabled=false;remove.disabled=master;}
       });list.append(card);
     }
