@@ -16,14 +16,15 @@ service cloud.firestore {
     }
     function canRead(area) { return signedIn() && (master() || level(area) in ['view', 'edit']); }
     function canWrite(area) { return signedIn() && (master() || level(area) == 'edit'); }
+    function manageTemplates() { return signedIn() && (master() || (configured() ? (get(/databases/$(database)/documents/user_access/$(request.auth.uid)).data.get('permissions', {}).get('materialvorlagen', admin() && canWrite('baustellen') ? 'edit' : 'none') == 'edit') : (admin() && canWrite('baustellen')))); }
     function manager(area) { return canWrite(area) && (master() || configured() || admin()); }
     function validLevel(value) { return value in ['none', 'view', 'edit']; }
     function validAccess() {
       let p = request.resource.data.permissions;
-      return p is map && p.keys().hasOnly(['kabellager','baustellen','archiv','kabelreport','logs','spiel','gespart']) &&
+      return p is map && p.keys().hasOnly(['kabellager','baustellen','archiv','kabelreport','logs','spiel','gespart','materialvorlagen']) &&
         p.keys().hasAll(['kabellager','baustellen','archiv','kabelreport','logs','spiel']) &&
         validLevel(p.kabellager) && validLevel(p.baustellen) && validLevel(p.archiv) &&
-        validLevel(p.kabelreport) && validLevel(p.logs) && validLevel(p.spiel) && validLevel(p.get('gespart', 'none')) &&
+        validLevel(p.kabelreport) && validLevel(p.logs) && validLevel(p.spiel) && validLevel(p.get('gespart', 'none')) && p.get('materialvorlagen', 'none') in ['none', 'edit'] &&
         request.resource.data.keys().hasOnly(['permissions','updatedAt','updatedBy']) &&
         request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
     }
@@ -69,14 +70,13 @@ service cloud.firestore {
       allow delete: if canWrite('baustellen') || manager('archiv');
     }
     match /material_vorlagen/{document} {
-      allow read: if canRead('baustellen') || canRead('archiv');
-      allow create: if canWrite('baustellen');
-      allow update, delete: if manager('baustellen');
+      allow read: if canRead('baustellen') || canRead('archiv') || manageTemplates();
+      allow create, update, delete: if manageTemplates();
     }
     // Cable reports are calculated from logs; report readers can read that source data.
     match /logs/{document} {
       allow read: if canRead('logs') || canRead('kabelreport');
-      allow create: if canWrite('kabellager') || canWrite('baustellen') || canWrite('archiv');
+      allow create: if canWrite('kabellager') || canWrite('baustellen') || canWrite('archiv') || manageTemplates();
       allow update: if false;
       allow delete: if manager('logs');
     }
@@ -99,4 +99,3 @@ service cloud.firestore {
     }
   }
 }
-

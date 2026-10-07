@@ -12,7 +12,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="zugriffsrechte.js?v=20261006"></script>
+<script src="zugriffsrechte.js?v=20261007-vorlagenrecht"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -975,7 +975,7 @@ dialog.vorlage-duplicate-dialog::backdrop{
     <div class="search-box workspace-toolbar">
       <div class="workspace-heading">
         <div><h2>Materialvorlagen</h2><div class="workspace-count" id="vorlagenTotalCount"></div></div>
-        <div id="neueVorlageWrap" style="display:none;"><button onclick="openVorlageModal()" data-access-write="baustellen"><i class="fa-solid fa-plus"></i> Neue Vorlage</button></div>
+        <div id="neueVorlageWrap" style="display:none;"><button onclick="openVorlageModal()" data-access-write="materialvorlagen"><i class="fa-solid fa-plus"></i> Neue Vorlage</button></div>
       </div>
       <div class="workspace-search template-search">
         <input id="vorlagenSearchInput" type="text" aria-label="Materialvorlagen suchen" placeholder="Nach Material oder Spontis Nummer suchen" oninput="renderVorlagen()" maxlength="120">
@@ -1060,7 +1060,7 @@ dialog.vorlage-duplicate-dialog::backdrop{
       <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
       <span>Wird gespeichert… Bitte warten.</span>
     </div>
-    <button id="saveVorlageBtn" onclick="saveVorlage()" data-access-write="baustellen"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
+    <button id="saveVorlageBtn" onclick="saveVorlage()" data-access-write="materialvorlagen"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
     <button id="cancelVorlageBtn" class="back" onclick="closeModals()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
   </div>
 </div>
@@ -1217,7 +1217,7 @@ function canManageMaterial(baustelle){
 function updateAdminVisibility(){
   const neueVorlageWrap = document.getElementById("neueVorlageWrap");
   if(neueVorlageWrap){
-    neueVorlageWrap.style.display = isAdminUser ? "block" : "none";
+    neueVorlageWrap.style.display = LagerAccess.write("materialvorlagen") ? "block" : "none";
   }
 }
 
@@ -1922,12 +1922,12 @@ function renderVorlagen(){
 
       card.innerHTML = `
         <h3>${escapeHtml(v.material || "")}</h3>
-        ${renderSpontisBlock(getSpontisLabel(hasAlteSpontis), v.spontis || "", v.link || "", isAdminUser, isAdminUser)}
+        ${renderSpontisBlock(getSpontisLabel(hasAlteSpontis), v.spontis || "", v.link || "", LagerAccess.write("materialvorlagen"), LagerAccess.write("materialvorlagen"))}
         ${renderBarcodeBlock(getBarcodeValueFromSpontis(v.spontis || ""), getBarcodeLabel(hasAlteSpontis))}
         ${renderVorlageImageAccordion(v.imageUrl || "")}
         ${renderSpontisBlock("Alte Spontis Nummer", v.alteSpontis || "", "", false, false, "barcode-spacing")}
         ${renderBarcodeBlock(getBarcodeValueFromSpontis(v.alteSpontis || ""), "Alter Barcode")}
-        ${isAdminUser ? `
+        ${LagerAccess.write("materialvorlagen") ? `
         <div class="card-actions">
           <div class="card-menu-wrap">
             <button class="card-menu-button" onclick="toggleCardMenu(event, 'vorlage-${v.id}')" title="Weitere Aktionen">
@@ -1935,10 +1935,10 @@ function renderVorlagen(){
             </button>
 
             <div id="cardMenu-vorlage-${v.id}" class="card-dropdown">
-              <button class="edit" onclick="openVorlageModal('${v.id}'); closeAllCardMenus();" data-access-write="baustellen">
+              <button class="edit" onclick="openVorlageModal('${v.id}'); closeAllCardMenus();" data-access-write="materialvorlagen">
                 <i class="fa-solid fa-pen"></i> Bearbeiten
               </button>
-              <button class="delete" onclick="deleteVorlage('${v.id}'); closeAllCardMenus();" data-access-write="baustellen">
+              <button class="delete" onclick="deleteVorlage('${v.id}'); closeAllCardMenus();" data-access-write="materialvorlagen">
                 <i class="fa-solid fa-trash"></i> Löschen
               </button>
             </div>
@@ -2781,9 +2781,9 @@ function saveMaterial(){
 }
 
 function openVorlageModal(id = null){
-  if(!LagerAccess.requireWrite("baustellen")) return;
-  if(!isAdminUser){
-    alert("Nur Admins dürfen Materialvorlagen verwalten.");
+  if(!LagerAccess.requireWrite("materialvorlagen")) return;
+  if(!LagerAccess.write("materialvorlagen")){
+    alert("Nur Benutzer mit Vorlagenrecht dürfen Materialvorlagen verwalten.");
     return;
   }
 
@@ -2842,9 +2842,9 @@ function confirmDuplicateVorlage(nummer){
 }
 
 async function saveVorlage(){
-  if(!LagerAccess.requireWrite("baustellen")) return;
-  if(!isAdminUser){
-    alert("Nur Admins dürfen Materialvorlagen speichern.");
+  if(!LagerAccess.requireWrite("materialvorlagen")) return;
+  if(!LagerAccess.write("materialvorlagen")){
+    alert("Nur Benutzer mit Vorlagenrecht dürfen Materialvorlagen speichern.");
     return;
   }
   if(isSavingVorlage){
@@ -3422,9 +3422,9 @@ function deleteMaterial(id){
 }
 
 function deleteVorlage(id){
-  if(!LagerAccess.requireWrite("baustellen")) return;
-  if(!isAdminUser){
-    alert("Nur Admins dürfen Materialvorlagen löschen.");
+  if(!LagerAccess.requireWrite("materialvorlagen")) return;
+  if(!LagerAccess.write("materialvorlagen")){
+    alert("Nur Benutzer mit Vorlagenrecht dürfen Materialvorlagen löschen.");
     return;
   }
 
@@ -3544,7 +3544,3 @@ function clearVorlageLinkInput(){
 <script src="navigation.js?v=20261006-access"></script>
 </body>
 </html>
-
-
-
-

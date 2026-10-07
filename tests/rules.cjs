@@ -20,7 +20,9 @@ const levels=value=>Object.fromEntries(areas.map(key=>[key,value]));
   await setRights(levels('none'));for(const path of ['bobinen/a','baustellen/a','logs/a','strommastRanking/a'])await assertFails(getDoc(doc(worker,path)));
   await setRights({...levels('none'),archiv:'view'});await assertSucceeds(getDoc(doc(worker,'baustellen/b')));await assertFails(deleteDoc(doc(worker,'baustellen/b')));await assertFails(getDoc(doc(worker,'bobinen/a')));
   await setRights({...levels('none'),kabelreport:'view'});await assertSucceeds(getDoc(doc(worker,'logs/a')));await assertSucceeds(getDoc(doc(worker,'kabel_report_snapshots/a')));await assertFails(updateDoc(doc(worker,'kabel_report_snapshots/a'),{test:true}));
-  await setRights(levels('edit'));for(const path of ['bobinen/a','baustellen/a','baustellen_material/a','material_vorlagen/a','kabel_report_snapshots/a','gespart_tarife/a'])await assertSucceeds(updateDoc(doc(worker,path),{test:true}));await assertFails(updateDoc(doc(worker,'logs/a'),{test:true}));await assertSucceeds(deleteDoc(doc(worker,'baustellen/b')));
+  await setRights({...levels('edit'),materialvorlagen:'edit'});for(const path of ['bobinen/a','baustellen/a','baustellen_material/a','material_vorlagen/a','kabel_report_snapshots/a','gespart_tarife/a'])await assertSucceeds(updateDoc(doc(worker,path),{test:true}));await assertFails(updateDoc(doc(worker,'logs/a'),{test:true}));await assertSucceeds(deleteDoc(doc(worker,'baustellen/b')));
+  await setRights({...levels('edit'),materialvorlagen:'none'});await assertSucceeds(getDoc(doc(worker,'material_vorlagen/a')));await assertFails(setDoc(doc(worker,'material_vorlagen/new'),{material:'Neu'}));await assertFails(updateDoc(doc(worker,'material_vorlagen/a'),{material:'Geändert'}));await assertFails(deleteDoc(doc(worker,'material_vorlagen/a')));
+  await setRights({...levels('edit'),materialvorlagen:'edit'});await assertSucceeds(setDoc(doc(worker,'material_vorlagen/new'),{material:'Neu'}));await assertSucceeds(updateDoc(doc(worker,'material_vorlagen/new'),{material:'Geändert'}));await assertSucceeds(deleteDoc(doc(worker,'material_vorlagen/new')));
   await assertFails(setDoc(doc(master,'user_access/'+MASTER),{permissions:levels('none'),updatedAt:serverTimestamp(),updatedBy:MASTER}));await assertFails(setDoc(doc(master,'user_access/worker'),{permissions:{...levels('edit'),kabellager:'invalid'},updatedAt:serverTimestamp(),updatedBy:MASTER}));
   const admin=env.authenticatedContext('smnnQd4RhEQZR3uuNN0otNALUqi1').firestore();await assertFails(getDocs(collection(admin,'users')));await assertFails(updateDoc(doc(admin,'users/worker'),{username:'forged'}));
   const sixRights=levels('view');delete sixRights.gespart;await setRights(sixRights);await assertFails(getDoc(doc(worker,'gespart_tarife/a')));await assertSucceeds(getDoc(doc(worker,'bobinen/a')));
@@ -35,4 +37,3 @@ const levels=value=>Object.fromEntries(areas.map(key=>[key,value]));
   console.log('Firestore authorization scenarios passed.');
  }finally{await env.cleanup();}
 })().catch(error=>{console.error(error);process.exitCode=1;});
-
