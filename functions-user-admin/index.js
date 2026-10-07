@@ -12,5 +12,3 @@ exports.lagerListUsers=callable(service.list);
 exports.lagerDeleteUser=callable(service.remove);
 
 exports.lagerCreateUser=callable(service.create);
-
-exports.lagerPasswordResetLink=callable(service.resetLink);
