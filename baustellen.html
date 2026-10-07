@@ -12,6 +12,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="zugriffsrechte.js?v=20261006"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -953,7 +954,7 @@ dialog.vorlage-duplicate-dialog::backdrop{
 <div id="baustellenSearchBox" class="search-box workspace-toolbar">
   <div class="workspace-heading">
     <div><h2 id="workspaceSectionTitle">Baustellen</h2><div class="workspace-count" id="workspaceMaterialCount"></div></div>
-    <div id="neueBaustelleWrap"><button onclick="openBaustelleModal()"><i class="fa-solid fa-plus"></i> Neue Baustelle erstellen</button></div>
+    <div id="neueBaustelleWrap"><button onclick="openBaustelleModal()" data-access-write="baustellen"><i class="fa-solid fa-plus"></i> Neue Baustelle erstellen</button></div>
   </div>
   <div class="workspace-search">
     <input id="searchInput" type="text" aria-label="Baustellen suchen" placeholder="Nach Baustellenname, Nummer, Verantwortlicher oder Material suchen" oninput="renderAll()" maxlength="120">
@@ -974,7 +975,7 @@ dialog.vorlage-duplicate-dialog::backdrop{
     <div class="search-box workspace-toolbar">
       <div class="workspace-heading">
         <div><h2>Materialvorlagen</h2><div class="workspace-count" id="vorlagenTotalCount"></div></div>
-        <div id="neueVorlageWrap" style="display:none;"><button onclick="openVorlageModal()"><i class="fa-solid fa-plus"></i> Neue Vorlage</button></div>
+        <div id="neueVorlageWrap" style="display:none;"><button onclick="openVorlageModal()" data-access-write="baustellen"><i class="fa-solid fa-plus"></i> Neue Vorlage</button></div>
       </div>
       <div class="workspace-search template-search">
         <input id="vorlagenSearchInput" type="text" aria-label="Materialvorlagen suchen" placeholder="Nach Material oder Spontis Nummer suchen" oninput="renderVorlagen()" maxlength="120">
@@ -992,7 +993,7 @@ dialog.vorlage-duplicate-dialog::backdrop{
     <input id="baustelleName" placeholder="Baustellen Name" maxlength="120">
     <input id="baustelleNummer" placeholder="Baustellen Nummer" maxlength="60">
     <input id="baustelleVerantwortlicher" placeholder="Verantwortlicher" maxlength="120">
-    <button onclick="saveBaustelle()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
+    <button onclick="saveBaustelle()" data-access-write="baustellen"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
     <button class="back" onclick="closeModals()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
   </div>
 </div>
@@ -1013,7 +1014,7 @@ dialog.vorlage-duplicate-dialog::backdrop{
     <input id="materialName" placeholder="Material" maxlength="120">
     <input id="materialAnzahl" placeholder="Anzahl" maxlength="40">
     <input id="materialSpontis" placeholder="Neue Spontis Nummer (optional)" maxlength="60">
-    <button onclick="saveMaterial()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
+    <button onclick="saveMaterial()" data-access-write="baustellen"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
     <button class="back" onclick="closeModals()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
   </div>
 </div>
@@ -1059,7 +1060,7 @@ dialog.vorlage-duplicate-dialog::backdrop{
       <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
       <span>Wird gespeichert… Bitte warten.</span>
     </div>
-    <button id="saveVorlageBtn" onclick="saveVorlage()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
+    <button id="saveVorlageBtn" onclick="saveVorlage()" data-access-write="baustellen"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
     <button id="cancelVorlageBtn" class="back" onclick="closeModals()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
   </div>
 </div>
@@ -1155,27 +1156,7 @@ function getCurrentUserDisplayName(user){
   return sanitizeInput(user && user.email ? user.email : "", 120);
 }
 
-function syncUsernameFromFirestore(user){
-  if(!user || !user.uid){
-    localStorage.removeItem("lagerUsername");
-    return Promise.resolve();
-  }
-
-  return usersCollection.doc(user.uid).get()
-    .then(doc => {
-      const data = doc.exists ? (doc.data() || {}) : {};
-      const username = sanitizeInput(data.username || "", 120);
-
-      if(username){
-        localStorage.setItem("lagerUsername", username);
-      }else{
-        localStorage.removeItem("lagerUsername");
-      }
-    })
-    .catch(error => {
-      console.error("Fehler beim Laden des Benutzernamens:", error);
-    });
-}
+function syncUsernameFromFirestore(user){ return Promise.resolve(); }
 
 function setAdminMenuVisibility(isAdmin){
   const archivButton = document.getElementById("archivMenuButton");
@@ -1208,6 +1189,7 @@ function getBaustelleVonMaterial(materialId){
 }
 
 function canEditBaustelle(baustelle){
+  if(!LagerAccess.write("baustellen")) return false;
   if(!baustelle){
     return false;
   }
@@ -1220,6 +1202,7 @@ function canEditBaustelle(baustelle){
 }
 
 function canManageMaterial(baustelle){
+  if(!LagerAccess.write("baustellen")) return false;
   if(!baustelle){
     return false;
   }
@@ -1600,16 +1583,10 @@ function stopListeners(){
 
 }
 
-auth.onAuthStateChanged((user) => {
+LagerAccess.onAuthStateChanged((user) => {
   if(user){
-    if(hasLimitedAccess(user.uid)){
-      closeMenu();
-      alert("Du hast nur Zugriff auf Startseite, Kabellager, Mast Runner und Profil.");
-      window.location.href = "home.html";
-      return;
-    }
 
-    isAdminUser = isAdminUid(user.uid);
+    isAdminUser = LagerAccess.manager("baustellen", user.uid);
     setAdminMenuVisibility(isAdminUser);
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
@@ -1958,10 +1935,10 @@ function renderVorlagen(){
             </button>
 
             <div id="cardMenu-vorlage-${v.id}" class="card-dropdown">
-              <button class="edit" onclick="openVorlageModal('${v.id}'); closeAllCardMenus();">
+              <button class="edit" onclick="openVorlageModal('${v.id}'); closeAllCardMenus();" data-access-write="baustellen">
                 <i class="fa-solid fa-pen"></i> Bearbeiten
               </button>
-              <button class="delete" onclick="deleteVorlage('${v.id}'); closeAllCardMenus();">
+              <button class="delete" onclick="deleteVorlage('${v.id}'); closeAllCardMenus();" data-access-write="baustellen">
                 <i class="fa-solid fa-trash"></i> Löschen
               </button>
             </div>
@@ -2381,10 +2358,10 @@ function createBaustelleCard(baustelle){
               </button>
 
               <div id="cardMenu-material-${m.id}" class="card-dropdown">
-                <button class="edit" onclick="openMaterialModal('${baustelle.id}','${m.id}'); closeAllCardMenus();">
+                <button class="edit" onclick="openMaterialModal('${baustelle.id}','${m.id}'); closeAllCardMenus();" data-access-write="baustellen">
                   <i class="fa-solid fa-pen"></i> Bearbeiten
                 </button>
-                <button class="delete" onclick="deleteMaterial('${m.id}'); closeAllCardMenus();">
+                <button class="delete" onclick="deleteMaterial('${m.id}'); closeAllCardMenus();" data-access-write="baustellen">
                   <i class="fa-solid fa-trash"></i> Löschen
                 </button>
               </div>
@@ -2401,8 +2378,8 @@ function createBaustelleCard(baustelle){
   if(baustelle.status === "aktiv"){
     actionsHtml = `
       <div class="card-actions">
-        <button onclick="openMaterialModal('${baustelle.id}')"><i class="fa-solid fa-plus"></i> Material hinzufügen</button>
-        <button class="finish" onclick="finishBaustelle('${baustelle.id}')"><i class="fa-solid fa-check"></i> Baustelle beenden</button>
+        <button onclick="openMaterialModal('${baustelle.id}')" data-access-write="baustellen"><i class="fa-solid fa-plus"></i> Material hinzufügen</button>
+        <button class="finish" onclick="finishBaustelle('${baustelle.id}')" data-access-write="baustellen"><i class="fa-solid fa-check"></i> Baustelle beenden</button>
 
         <div class="card-menu-wrap">
           <button class="card-menu-button" onclick="toggleCardMenu(event, '${baustelle.id}')" title="Weitere Aktionen">
@@ -2413,10 +2390,10 @@ function createBaustelleCard(baustelle){
             <button class="print-btn" onclick="printBaustelle('${baustelle.id}'); closeAllCardMenus();">
               <i class="fa-solid fa-print"></i> Drucken
             </button>
-            <button class="edit" onclick="editBaustelle('${baustelle.id}'); closeAllCardMenus();">
+            <button class="edit" onclick="editBaustelle('${baustelle.id}'); closeAllCardMenus();" data-access-write="baustellen">
               <i class="fa-solid fa-pen"></i> Bearbeiten
             </button>
-            <button class="delete" onclick="deleteBaustelle('${baustelle.id}'); closeAllCardMenus();">
+            <button class="delete" onclick="deleteBaustelle('${baustelle.id}'); closeAllCardMenus();" data-access-write="baustellen">
               <i class="fa-solid fa-trash"></i> Löschen
             </button>
           </div>
@@ -2427,7 +2404,7 @@ function createBaustelleCard(baustelle){
     actionsHtml = `
       <div class="card-actions">
         <button class="print-btn" onclick="printBaustelle('${baustelle.id}')"><i class="fa-solid fa-print"></i> Drucken</button>
-        ${isAdminUser ? `<button class="archive" onclick="archiveBaustelle('${baustelle.id}')"><i class="fa-solid fa-box-archive"></i> Archivieren</button>` : ""}
+        ${isAdminUser ? `<button class="archive" onclick="archiveBaustelle('${baustelle.id}')" data-access-write="baustellen"><i class="fa-solid fa-box-archive"></i> Archivieren</button>` : ""}
 
         ${isAdminUser ? `
         <div class="card-menu-wrap">
@@ -2436,13 +2413,13 @@ function createBaustelleCard(baustelle){
           </button>
 
           <div id="cardMenu-${baustelle.id}" class="card-dropdown">
-            <button class="finish" onclick="reactivateBaustelle('${baustelle.id}'); closeAllCardMenus();">
+            <button class="finish" onclick="reactivateBaustelle('${baustelle.id}'); closeAllCardMenus();" data-access-write="baustellen">
               <i class="fa-solid fa-rotate-left"></i> Wieder aktivieren
             </button>
-            <button class="edit" onclick="editBaustelle('${baustelle.id}'); closeAllCardMenus();">
+            <button class="edit" onclick="editBaustelle('${baustelle.id}'); closeAllCardMenus();" data-access-write="baustellen">
               <i class="fa-solid fa-pen"></i> Bearbeiten
             </button>
-            <button class="delete" onclick="deleteBaustelle('${baustelle.id}'); closeAllCardMenus();">
+            <button class="delete" onclick="deleteBaustelle('${baustelle.id}'); closeAllCardMenus();" data-access-write="baustellen">
               <i class="fa-solid fa-trash"></i> Löschen
             </button>
           </div>
@@ -2532,6 +2509,7 @@ document.addEventListener("keydown", event => {
 });
 
 function openBaustelleModal(){
+  if(!LagerAccess.requireWrite("baustellen")) return;
   editBaustelleId = null;
   const user = auth.currentUser;
   const defaultVerantwortlicher = sanitizeInput(getCurrentUserDisplayName(user), 120);
@@ -2543,6 +2521,7 @@ function openBaustelleModal(){
 }
 
 function editBaustelle(id){
+  if(!LagerAccess.requireWrite("baustellen")) return;
   const b = alleBaustellen.find(x => x.id === id);
   if(!b){
     alert("Baustelle nicht gefunden.");
@@ -2563,6 +2542,7 @@ function editBaustelle(id){
 }
 
 function saveBaustelle(){
+  if(!LagerAccess.requireWrite("baustellen")) return;
   const name = sanitizeInput(document.getElementById("baustelleName").value, 120);
   const nummer = sanitizeInput(document.getElementById("baustelleNummer").value, 60);
   const verantwortlicher = sanitizeInput(document.getElementById("baustelleVerantwortlicher").value, 120);
@@ -2669,6 +2649,7 @@ function saveBaustelle(){
 }
 
 function openMaterialModal(baustelleId, materialId = null){
+  if(!LagerAccess.requireWrite("baustellen")) return;
   const baustelle = getBaustelleById(baustelleId);
   if(!baustelle){
     alert("Baustelle nicht gefunden.");
@@ -2711,6 +2692,7 @@ function openMaterialModal(baustelleId, materialId = null){
 }
 
 function saveMaterial(){
+  if(!LagerAccess.requireWrite("baustellen")) return;
   const material = sanitizeInput(document.getElementById("materialName").value, 120);
   const anzahl = sanitizeInput(document.getElementById("materialAnzahl").value, 40);
   const spontis = sanitizeInput(document.getElementById("materialSpontis").value, 60);
@@ -2799,6 +2781,7 @@ function saveMaterial(){
 }
 
 function openVorlageModal(id = null){
+  if(!LagerAccess.requireWrite("baustellen")) return;
   if(!isAdminUser){
     alert("Nur Admins dürfen Materialvorlagen verwalten.");
     return;
@@ -2859,6 +2842,7 @@ function confirmDuplicateVorlage(nummer){
 }
 
 async function saveVorlage(){
+  if(!LagerAccess.requireWrite("baustellen")) return;
   if(!isAdminUser){
     alert("Nur Admins dürfen Materialvorlagen speichern.");
     return;
@@ -3016,6 +3000,7 @@ async function saveVorlage(){
 }
 
 function finishBaustelle(id){
+  if(!LagerAccess.requireWrite("baustellen")) return;
   const b = alleBaustellen.find(x => x.id === id);
   if(!b){
     alert("Baustelle nicht gefunden.");
@@ -3052,6 +3037,7 @@ function finishBaustelle(id){
 }
 
 function archiveBaustelle(id){
+  if(!LagerAccess.requireWrite("baustellen")) return;
   if(!isAdminUser){
     alert("Nur Admins dürfen archivieren.");
     return;
@@ -3090,6 +3076,7 @@ function archiveBaustelle(id){
 }
 
 function reactivateBaustelle(id){
+  if(!LagerAccess.requireWrite("baustellen")) return;
   if(!isAdminUser){
     alert("Nur Admins dürfen beendete Baustellen wieder aktivieren.");
     return;
@@ -3336,6 +3323,7 @@ function printBaustelle(id){
 }
 
 function deleteBaustelle(id){
+  if(!LagerAccess.requireWrite("baustellen")) return;
   const b = alleBaustellen.find(x => x.id === id);
   if(!b){
     alert("Baustelle nicht gefunden.");
@@ -3391,6 +3379,7 @@ function deleteBaustelle(id){
 }
 
 function deleteMaterial(id){
+  if(!LagerAccess.requireWrite("baustellen")) return;
   const m = alleMaterialien.find(x => x.id === id);
   if(!m){
     alert("Material nicht gefunden.");
@@ -3433,6 +3422,7 @@ function deleteMaterial(id){
 }
 
 function deleteVorlage(id){
+  if(!LagerAccess.requireWrite("baustellen")) return;
   if(!isAdminUser){
     alert("Nur Admins dürfen Materialvorlagen löschen.");
     return;
@@ -3551,9 +3541,10 @@ function clearVorlageLinkInput(){
 
   <footer class="app-footer">© 2026 Martin Gross. Alle Rechte vorbehalten.</footer>
 <script src="bobinen-erinnerung.js?v=20261001-3"></script>
-<script src="navigation.js?v=20261005-overview"></script>
+<script src="navigation.js?v=20261006-access"></script>
 </body>
 </html>
+
 
 
 

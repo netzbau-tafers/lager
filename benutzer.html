@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Benutzerverwaltung</title>
+  <link rel="icon" type="image/png" sizes="any" href="favicon.png">
+<link rel="shortcut icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" sizes="180x180" href="favicon.png">
+<link rel="manifest" href="site.webmanifest">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <style>
+    body{
+      font-family:Arial, sans-serif;
+      background:#e6eaef;
+      margin:40px;
+      color:#222;
+    }
+
+    .header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:25px;
+      gap:15px;
+    }
+
+    .header h1{
+      margin:0;
+      font-size:32px;
+    }
+
+    .menu-wrap{
+      position:relative;
+    }
+
+    .menu-button{
+      background:#555;
+      color:white;
+      border:none;
+      border-radius:10px;
+      padding:11px 15px;
+      font-size:20px;
+      line-height:1;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:48px;
+      min-height:44px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.10);
+      transition:background 0.2s ease;
+    }
+
+    .menu-button:hover{
+      background:#333;
+    }
+
+    .dropdown-menu{
+      display:none;
+      position:absolute;
+      top:52px;
+      right:0;
+      min-width:220px;
+      background:white;
+      border:1px solid #ccc;
+      border-radius:12px;
+      box-shadow:0 8px 20px rgba(0,0,0,0.12);
+      padding:8px;
+      z-index:3000;
+    }
+
+    .dropdown-menu.open{
+      display:block;
+    }
+
+    .dropdown-menu button{
+      width:100%;
+      text-align:left;
+      margin:0 0 8px 0;
+    }
+
+    .dropdown-menu button:last-child{
+      margin-bottom:0;
+    }
+
+    .active-page{
+      background:#e0e0e0 !important;
+      color:#333 !important;
+      cursor:default;
+    }
+
+    button{
+      padding:10px 14px;
+      cursor:pointer;
+      border:none;
+      border-radius:8px;
+      background:#3498db;
+      color:white;
+      margin:2px;
+      font-size:14px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      transition:background 0.2s ease;
+    }
+
+    button:hover{
+      background:#2980b9;
+    }
+
+    .logout-safe{
+      background:#777;
+    }
+
+    .logout-safe:hover{
+      background:#555;
+    }
+
+    .card{
+      max-width:720px;
+      margin:0 auto;
+      background:white;
+      border:1px solid #d5dbe3;
+      border-radius:14px;
+      box-shadow:0 8px 22px rgba(0,0,0,0.08);
+      padding:22px;
+    }
+
+    input{
+      width:100%;
+      padding:10px;
+      margin:6px 0 12px 0;
+      box-sizing:border-box;
+      border:1px solid #ccc;
+      border-radius:6px;
+      font-size:15px;
+    }
+
+    .muted{color:#555;font-size:14px}
+    .info{font-size:14px;margin-top:10px}
+
+    @media (max-width: 680px){
+      body{
+        margin:18px;
+      }
+
+      .header h1{
+        font-size:28px;
+      }
+    }
+
+.app-footer{
+  margin:32px auto 0;
+  max-width:1100px;
+  padding:14px 18px;
+  text-align:center;
+  color:#5b6570;
+  font-size:14px;
+}
+
+@media (max-width: 680px){
+  .app-footer{
+    margin-top:24px;
+    padding:12px 10px;
+    font-size:13px;
+  }
+}
+</style>
+<link rel="stylesheet" href="navigation.css?v=20261005-menu-style">
+</head>
+<body>
+<div class="header"><h1>Benutzerverwaltung</h1></div>
+<div id="dropdownMenu" class="dropdown-menu">
+<button data-page="home" onclick="location.href='home.html'">Startseite</button>
+<button data-page="index" onclick="location.href='index.html'">Kabellager</button>
+<button data-page="baustellen" onclick="location.href='baustellen.html'">Baustellenmaterial</button>
+<button data-page="archiv" onclick="location.href='archiv.html'">Archiv</button>
+<button data-page="kabelreport" onclick="location.href='kabel-report.html'">Kabel Report</button>
+<button data-page="logs" onclick="location.href='logs.html'">Protokoll</button>
+<button data-page="profil" onclick="location.href='profil.html'">Profil</button>
+<button class="logout-safe" onclick="logout()">Abmelden</button>
+</div>
+<main class="card" style="max-width:1000px" hidden id="userAdmin">
+<p>Benutzernamen und Zugriffe verwalten. Dein Master-Admin-Konto behält alle Rechte.</p>
+<p class="muted">Diese Liste enthält gespeicherte Benutzerprofile. Weitere bestehende Konten erscheinen beim nächsten Öffnen der aktualisierten Seite. „Letzte Aktivität“ zeigt den letzten Seitenaufruf, keinen Live-Online-Status.</p>
+<label for="userSearch">Benutzer suchen</label><input id="userSearch" type="search" placeholder="Name, E-Mail oder UID">
+<button id="userRefresh" type="button">Liste aktualisieren</button>
+<p id="userStatus" role="status" aria-live="polite"></p>
+<div id="userList"></div>
+<p class="muted">Baustellen und Archiv verwenden gemeinsame Daten. Der Kabel Report liest Protokolldaten. Rechte für diese Seiten erlauben daher auch das Lesen ihrer gemeinsamen Quelldaten. Historische Protokolle und bereits gespeicherte Aktionsnamen werden bei einer Namensänderung nicht umgeschrieben.</p>
+<p class="muted">„Ansehen und bearbeiten“ erlaubt auch das Löschen im Rahmen der jeweiligen Funktion. Beim Protokoll bleiben Einträge unveränderbar. „Gespart“ ist für die vorhandenen Daten vorgesehen; eine entsprechende Seite ist aktuell nicht im Repository enthalten.</p>
+</main>
+<style>
+.user-card{padding:20px;margin-top:18px;border:1px solid #d5dbe3;border-radius:12px}.user-card h2{font-size:19px;margin:0 0 8px}.user-meta{overflow-wrap:anywhere;color:#526478;font-size:14px}.permission-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}.permission-grid label{display:flex;flex-direction:column;gap:8px}.permission-grid select{padding:10px;border:1px solid #ccd5df;border-radius:8px;background:white;font:inherit}.user-feedback{min-height:20px;font-size:14px}.user-card button:disabled{opacity:.5;cursor:default}[hidden]{display:none!important}@media(max-width:680px){.permission-grid{grid-template-columns:1fr}.user-card{padding:14px}}
+</style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="zugriffsrechte.js?v=20261006"></script>
+<script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",
+      authDomain: "netzbau-tafers.firebaseapp.com",
+      projectId: "netzbau-tafers",
+      storageBucket: "netzbau-tafers.appspot.com",
+      messagingSenderId: "389541837675",
+      appId: "1:389541837675:web:db580ce67c57a9a16dea2e",
+      measurementId: "G-B5MJGD3108"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+function logout(){if(confirm('Wirklich ausloggen?'))auth.signOut().then(()=>location.href='home.html');}
+</script>
+<script src="benutzer.js?v=20261006"></script>
+<script src="navigation.js?v=20261006-access"></script>
+</body></html>

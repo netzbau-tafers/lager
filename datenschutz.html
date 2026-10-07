@@ -59,6 +59,7 @@ body{
 }
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="zugriffsrechte.js?v=20261006"></script>
 <link rel="stylesheet" href="navigation.css?v=20261005-menu-style">
 </head>
 
@@ -84,7 +85,7 @@ body{
   <p>Martin Gross<br>E-Mail: <a href="mailto:gross.martin1994@gmail.com">gross.martin1994@gmail.com</a></p>
   <h3>2. Daten und Verwendungszwecke</h3>
   <ul>
-    <li><strong>Benutzerkonto:</strong> E-Mail-Adresse, Benutzer-ID und Benutzername für Anmeldung, Benutzerzuordnung und Zugriffsverwaltung. Die Anmeldung erfolgt über Firebase Authentication.</li>
+    <li><strong>Benutzerkonto:</strong> E-Mail-Adresse, Benutzer-ID und Benutzername für Anmeldung, Benutzerzuordnung und Zugriffsverwaltung. Die Anmeldung erfolgt über Firebase Authentication. Zusätzlich werden Zugriffsrechte und der Zeitpunkt des letzten Seitenaufrufs für die Benutzerverwaltung gespeichert. Nur der Master-Administrator kann die Benutzerübersicht aufrufen und Namen sowie Zugriffsrechte anderer Benutzer ändern.</li>
     <li><strong>Kabel und Baustellen:</strong> Kabel-, Baustellen- und Materialdaten sowie verantwortliche Personen, Ersteller und Benutzer, die Kabel in Gebrauch setzen. Dazu gehören Namen beziehungsweise E-Mail-Adressen, Benutzer-IDs und Zeitstempel.</li>
     <li><strong>Protokoll:</strong> Benutzeraktionen mit Bereich, Aktion, betroffenem Objekt, Benutzerangaben, Details und Zeitpunkt zur betrieblichen Nachverfolgung.</li>
     <li><strong>Reports und Archiv:</strong> Auswertungen und gespeicherte Kabelreports sowie abgeschlossene Baustellen und zugehöriges Material zur betrieblichen Dokumentation.</li>
@@ -159,7 +160,7 @@ let timeout = setTimeout(() => {
   window.location.href = "home.html";
 }, 4000);
 
-auth.onAuthStateChanged((user) => {
+LagerAccess.onAuthStateChanged((user) => {
   clearTimeout(timeout);
 
   if (user) {
@@ -172,9 +173,10 @@ auth.onAuthStateChanged((user) => {
 </script>
 
 <script src="bobinen-erinnerung.js"></script>
-<script src="navigation.js?v=20261005-overview"></script>
+<script src="navigation.js?v=20261006-access"></script>
 </body>
 </html>
+
 
 
 

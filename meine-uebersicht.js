@@ -39,14 +39,18 @@
   }
   async function load(){
     const user=currentUser;if(!user)return;
-    const token=++requestId,limited=LIMITED_ACCESS_UIDS.includes(user.uid);
+    const token=++requestId,limited=!LagerAccess.read("baustellen");
     refresh.disabled=true;document.getElementById('overviewUpdated').textContent='Wird aktualisiert …';
     document.getElementById('siteStat').hidden=limited;document.getElementById('mySitesSection').hidden=limited;
-    const requests=[db.collection('bobinen').where('inGebrauchVonUid','==',user.uid).where('status','==','In Gebrauch').get()];
-    if(!limited)requests.push(db.collection('baustellen').where('createdByUid','==',user.uid).where('status','==','aktiv').get());
+    const requests=[];const sections=[];
+    document.getElementById('myCables').closest('section').hidden=!LagerAccess.read('kabellager');
+    document.getElementById('cableCount').parentElement.hidden=!LagerAccess.read('kabellager');
+    if(LagerAccess.read('kabellager')){sections.push(0);requests.push(db.collection('bobinen').where('inGebrauchVonUid','==',user.uid).where('status','==','In Gebrauch').get());}
+    if(!limited){sections.push(1);requests.push(db.collection('baustellen').where('createdByUid','==',user.uid).where('status','==','aktiv').get());}
     const results=await Promise.allSettled(requests);
     if(token!==requestId||currentUser?.uid!==user.uid)return;
-    results.forEach((result,index)=>{
+    results.forEach((result,requestIndex)=>{
+      const index=sections[requestIndex];
       if(result.status==='fulfilled'){if(index===0)showCables(result.value,user.uid);else showSites(result.value,user.uid);}
       else{const target=document.getElementById(index===0?'myCables':'mySites');target.replaceChildren(text('p','Die Daten konnten nicht geladen werden. Bitte erneut aktualisieren.','overview-error'));document.getElementById(index===0?'cableCount':'siteCount').textContent='–';console.error('Meine Übersicht: Laden fehlgeschlagen',result.reason);}
     });
@@ -54,9 +58,10 @@
     const failed=results.some(r=>r.status==='rejected');document.getElementById('overviewUpdated').textContent=failed?'Ein Bereich konnte nicht geladen werden.':'Zuletzt aktualisiert: '+new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
   }
   refresh.addEventListener('click',load);
-  auth.onAuthStateChanged(user=>{
+  LagerAccess.onAuthStateChanged(user=>{
     currentUser=user;
     if(!user){requestId++;document.getElementById('myCables').replaceChildren();document.getElementById('mySites').replaceChildren();window.location.href='home.html';return;}
     setNavigationVisibility(user);document.body.style.display='block';load();
   });
 })();
+
