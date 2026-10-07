@@ -33,6 +33,15 @@ function createService({auth,db,timestamp,ErrorType}){
       let setupLink=null;try{setupLink=await auth.generatePasswordResetLink(user.email);}catch(_){}
       return {created:true,uid:user.uid,email:user.email,setupLink};
     },
+    async resetLink(request){
+      await requireMaster(request);
+      const target=uid(request.data?.uid);
+      const user=await auth.getUser(target);
+      if(user.disabled||!user.email)throw new ErrorType('failed-precondition','Das Konto ist gesperrt oder hat keine E-Mail.');
+      if((await db.collection('account_deletions').doc(target).get()).exists)throw new ErrorType('failed-precondition','Das Konto wird gelöscht.');
+      const resetLink=await auth.generatePasswordResetLink(user.email);
+      return {uid:target,email:user.email,resetLink};
+    },
     async list(request){
       await requireMaster(request);
       const token=request.data?.pageToken;
