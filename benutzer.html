@@ -197,6 +197,21 @@
 </main>
 <style>
 .user-card{padding:20px;margin-top:18px;border:1px solid #d5dbe3;border-radius:12px}.user-card h2{font-size:19px;margin:0 0 8px}.user-meta{overflow-wrap:anywhere;color:#526478;font-size:14px}.permission-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}.permission-grid label{display:flex;flex-direction:column;gap:8px}.permission-grid select{padding:10px;border:1px solid #ccd5df;border-radius:8px;background:white;font:inherit}.user-feedback{min-height:20px;font-size:14px}.user-card .delete-account{background:#b3261e;margin-left:8px}.user-card .delete-account:hover{background:#8d1e18}.user-card button:disabled{opacity:.5;cursor:default}[hidden]{display:none!important}@media(max-width:680px){.permission-grid{grid-template-columns:1fr}.user-card{padding:14px}}
+
+/* The user form must fit narrow screens, including long permission labels. */
+#userAdmin,#userAdmin *{box-sizing:border-box}
+#userAdmin{width:100%;min-width:0}
+#userAdmin .user-card,#userAdmin .permission-grid,#userAdmin .permission-grid label{min-width:0}
+#userAdmin .permission-grid select,#userAdmin input{width:100%;max-width:100%;min-width:0}
+#userAdmin p,#userAdmin h2,#userAdmin label{overflow-wrap:anywhere}
+@media(max-width:680px){
+ #userAdmin{padding:14px}
+ #userAdmin .user-card{padding:12px}
+ #userAdmin .permission-grid{grid-template-columns:minmax(0,1fr)}
+ #userAdmin .permission-grid select{font-size:14px;padding:10px 6px}
+ #userAdmin .user-card button{max-width:100%;white-space:normal}
+ #userAdmin .user-card .delete-account{margin-left:2px}
+}
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -221,5 +236,5 @@
 function logout(){if(confirm('Wirklich ausloggen?'))auth.signOut().then(()=>location.href='home.html');}
 </script>
 <script src="benutzer.js?v=20261007-beendete-recht"></script>
-<script src="navigation.js?v=20261006-access"></script>
+<script src="navigation.js?v=20261007-user-icon"></script>
 </body></html>
