@@ -187,6 +187,17 @@
 <p>„Materialvorlagen verwalten“ erlaubt das Erstellen, Bearbeiten und Löschen von Vorlagen. Die Auswahl bestehender Vorlagen auf Baustellen benötigt dieses Recht nicht.</p>
 <p>Benutzernamen und Zugriffe verwalten. Dein Master-Admin-Konto behält alle Rechte.</p>
 <p class="muted">Wenn die Serverfunktion eingerichtet ist, zeigt diese Liste alle registrierten Anmeldekonten. Andernfalls werden nur gespeicherte Benutzerprofile angezeigt. „Letzte Aktivität“ zeigt den letzten Seitenaufruf, keinen Live-Online-Status.</p>
+<details id="newUserPanel"><summary>Neuen Benutzer erstellen</summary>
+<form id="newUserForm">
+<label for="newUserEmail">E-Mail</label><input id="newUserEmail" type="email" required maxlength="254" autocomplete="off">
+<label for="newUserName">Benutzername</label><input id="newUserName" type="text" required maxlength="120" autocomplete="off">
+<p class="muted">Wähle die Rechte. Der Benutzer legt sein Passwort über den Link fest, den du nach dem Erstellen erhältst. Es wird keine E-Mail automatisch versendet.</p>
+<div id="newUserPermissions" class="permission-grid"></div>
+<button id="newUserSubmit" type="submit">Benutzer erstellen</button>
+<p id="newUserStatus" role="status" aria-live="polite"></p>
+</form>
+<div id="newUserResult" hidden><label for="newUserLink">Link zum Festlegen des Passworts</label><input id="newUserLink" type="text" readonly><button id="newUserCopy" type="button">Link kopieren</button><p class="muted">Gib diesen Link nur dem neuen Benutzer weiter. Falls er abgelaufen ist, kann der Benutzer auf der Anmeldeseite sein Passwort zurücksetzen.</p></div>
+</details>
 <label for="userSearch">Benutzer suchen</label><input id="userSearch" type="search" placeholder="Name, E-Mail oder UID">
 <button id="userRefresh" type="button">Liste aktualisieren</button>
 <p id="userStatus" role="status" aria-live="polite"></p>
@@ -235,6 +246,6 @@
 
 function logout(){if(confirm('Wirklich ausloggen?'))auth.signOut().then(()=>location.href='home.html');}
 </script>
-<script src="benutzer.js?v=20261007-beendete-recht"></script>
+<script src="benutzer.js?v=20261007-create-user"></script>
 <script src="navigation.js?v=20261007-user-icon"></script>
 </body></html>

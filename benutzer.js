@@ -53,6 +53,27 @@
     }catch(error){console.error(error);list.replaceChildren();status.textContent='Benutzer konnten nicht geladen werden. Bitte zuerst die neuen Firestore-Regeln veröffentlichen.';}
     finally{busy=false;refresh.disabled=false;}
   }
+  const createAccount=functions.httpsCallable('lagerCreateUser'),newForm=document.getElementById('newUserForm'),newStatus=document.getElementById('newUserStatus'),newSubmit=document.getElementById('newUserSubmit'),newResult=document.getElementById('newUserResult'),newLink=document.getElementById('newUserLink'),newSelects={};
+  for(const [key,name]of Object.entries(LagerAccess.areas)){
+    const label=text('label',name),select=document.createElement('select');
+    const choices=['materialvorlagen','beendete'].includes(key)?[['none','Nicht erlaubt'],['edit','Erlaubt']]:[['none','Gesperrt'],['view','Nur ansehen'],['edit','Ansehen und bearbeiten']];
+    for(const [value,title]of choices){const option=text('option',title);option.value=value;select.append(option);}
+    newSelects[key]=select;label.append(select);document.getElementById('newUserPermissions').append(label);
+  }
+  let creating=false;
+  newForm.addEventListener('submit',async event=>{
+    event.preventDefault();if(creating||!newForm.reportValidity())return;
+    creating=true;newSubmit.disabled=true;newResult.hidden=true;newLink.value='';newStatus.textContent='Konto wird erstellt …';
+    const email=document.getElementById('newUserEmail').value.trim(),username=document.getElementById('newUserName').value.trim(),permissions=Object.fromEntries(Object.entries(newSelects).map(([key,select])=>[key,select.value]));
+    try{
+      const result=await createAccount({email,username,permissions});if(result.data?.created!==true||!result.data.uid)throw Error('Ungültige Serverantwort');
+      newForm.reset();newLink.value=result.data.setupLink||'';newResult.hidden=!result.data.setupLink;
+      newStatus.textContent=result.data.setupLink?'Konto erstellt. Kopiere den Passwort-Link und gib ihn dem neuen Benutzer weiter.':'Konto erstellt. Der Passwort-Link konnte nicht erzeugt werden. Der Benutzer kann auf der Anmeldeseite sein Passwort zurücksetzen.';
+      await load();
+    }catch(error){newStatus.textContent=error.code==='functions/already-exists'?'Diese E-Mail hat bereits ein Konto.':error.code==='functions/invalid-argument'?'Bitte E-Mail, Benutzername und Rechte prüfen.':error.code==='functions/internal'?(error.message||'Erstellen fehlgeschlagen. Bitte die Kontoliste prüfen.'):'Erstellen fehlgeschlagen. Prüfe, ob lagerCreateUser in Firebase veröffentlicht ist. Bei einem Verbindungsfehler zuerst die Kontoliste aktualisieren.';}
+    finally{creating=false;newSubmit.disabled=false;}
+  });
+  document.getElementById('newUserCopy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(newLink.value);newStatus.textContent='Passwort-Link kopiert.';}catch(_){newLink.focus();newLink.select();newStatus.textContent='Bitte den markierten Link kopieren.';}});
   search.addEventListener('input',render);refresh.addEventListener('click',load);
   LagerAccess.onAuthStateChanged(user=>{if(!user){location.replace('home.html');return;}document.getElementById('userAdmin').hidden=false;return load();});
 })();

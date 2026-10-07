@@ -1,4 +1,5 @@
 'use strict';
+const {randomBytes}=require('node:crypto');
 const MASTER='pmyu29TlC3QM7JIysmy2EmiHSWW2';
 function createService({auth,db,timestamp,ErrorType}){
   async function requireMaster(request){
@@ -9,6 +10,29 @@ function createService({auth,db,timestamp,ErrorType}){
   }
   function uid(value){if(typeof value!=='string'||!value||value.length>128||value.includes('/'))throw new ErrorType('invalid-argument','Ungültige Benutzer-ID.');return value;}
   return {
+    async create(request){
+      await requireMaster(request);
+      const data=request.data||{},email=typeof data.email==='string'?data.email.trim():'',username=typeof data.username==='string'?data.username.trim():'';
+      if(!email||email.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||!username||username.length>120||/[<>\u0000-\u001f\u007f]/.test(username))throw new ErrorType('invalid-argument','Bitte gültige E-Mail und Benutzernamen angeben.');
+      const keys=['kabellager','baustellen','archiv','kabelreport','logs','spiel','materialvorlagen','beendete'],p=data.permissions;
+      if(!p||typeof p!=='object'||Array.isArray(p)||Object.keys(p).length!==keys.length||!keys.every(key=>['materialvorlagen','beendete'].includes(key)?['none','edit'].includes(p[key]):['none','view','edit'].includes(p[key])))throw new ErrorType('invalid-argument','Ungültige Zugriffsrechte.');
+      const permissions=Object.fromEntries(keys.map(key=>[key,p[key]]));
+      let user;
+      try{user=await auth.createUser({email,displayName:username,password:randomBytes(32).toString('base64url'),disabled:true,emailVerified:false});}
+      catch(error){if(error.code==='auth/email-already-exists')throw new ErrorType('already-exists','Diese E-Mail hat bereits ein Konto.');if(error.code==='auth/invalid-email')throw new ErrorType('invalid-argument','Ungültige E-Mail.');throw error;}
+      try{
+        const batch=db.batch(),time=timestamp();
+        batch.set(db.collection('users').doc(user.uid),{username,email:user.email,updatedAt:time});
+        batch.set(db.collection('user_access').doc(user.uid),{permissions,updatedAt:time,updatedBy:MASTER});
+        await batch.commit();await auth.updateUser(user.uid,{disabled:false});
+      }catch(error){
+        try{await auth.deleteUser(user.uid);const batch=db.batch();batch.delete(db.collection('users').doc(user.uid));batch.delete(db.collection('user_access').doc(user.uid));await batch.commit();}
+        catch(_){throw new ErrorType('internal','Einrichtung fehlgeschlagen. Konto '+user.uid+' bitte in Firebase prüfen, bevor du es erneut versuchst.');}
+        throw new ErrorType('internal','Einrichtung fehlgeschlagen. Bitte erneut versuchen.');
+      }
+      let setupLink=null;try{setupLink=await auth.generatePasswordResetLink(user.email);}catch(_){}
+      return {created:true,uid:user.uid,email:user.email,setupLink};
+    },
     async list(request){
       await requireMaster(request);
       const token=request.data?.pageToken;
