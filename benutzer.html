@@ -190,7 +190,7 @@
 <label for="newUserEmail">E-Mail</label><input id="newUserEmail" type="email" required maxlength="254" autocomplete="off">
 <label for="newUserName">Benutzername</label><input id="newUserName" type="text" required maxlength="120" autocomplete="off">
 <p class="muted">Wähle die Rechte. Der Benutzer legt sein Passwort über den Link fest, den du nach dem Erstellen erhältst. Es wird keine E-Mail automatisch versendet.</p>
-<div id="newUserPermissions" class="permission-grid"></div>
+<details class="permissions-panel" id="newUserPermissionsPanel"><summary>Berechtigungen</summary><div id="newUserPermissions" class="permission-grid"></div></details>
 <div class="dialog-actions"><button id="cancelNewUser" type="button" class="logout-safe">Abbrechen</button><button id="newUserSubmit" type="submit"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Konto erstellen</button></div>
 <p id="newUserStatus" role="status" aria-live="polite"></p>
 </form>
@@ -204,6 +204,12 @@
 <style>
 .user-card{padding:20px;margin-top:18px;border:1px solid #d5dbe3;border-radius:12px}.user-card h2{font-size:19px;margin:0 0 8px}.user-meta{overflow-wrap:anywhere;color:#526478;font-size:14px}.permission-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}.permission-grid label{display:flex;flex-direction:column;gap:8px}.permission-grid select{padding:10px;border:1px solid #ccd5df;border-radius:8px;background:white;font:inherit}.user-feedback{min-height:20px;font-size:14px}.user-card .delete-account{background:#b3261e;margin-left:8px}.user-card .delete-account:hover{background:#8d1e18}.user-card button:disabled{opacity:.5;cursor:default}[hidden]{display:none!important}@media(max-width:680px){.permission-grid{grid-template-columns:1fr}.user-card{padding:14px}}
 
+.permissions-panel{min-width:0;margin:16px 0;border:1px solid #d5dbe3;border-radius:10px;background:#f8fafc}
+.permissions-panel summary{padding:13px 14px;cursor:pointer;font-weight:600;overflow-wrap:anywhere;min-height:44px}
+.permissions-panel summary:hover{background:#eef2f6;border-radius:10px}
+.permissions-panel summary:focus-visible{outline:2px solid #3498db;outline-offset:2px;border-radius:10px}
+.permissions-panel[open] summary{border-bottom:1px solid #d5dbe3}
+.permissions-panel .permission-grid{padding:0 14px}
 .user-toolbar{display:flex;justify-content:flex-end;margin-bottom:20px}
 #newUserPanel{box-sizing:border-box;width:calc(100% - 32px);max-width:640px;max-height:calc(100dvh - 32px);padding:24px;border:1px solid #d5dbe3;border-radius:18px;background:white;color:#222;box-shadow:0 20px 70px rgba(0,0,0,.25);overflow-y:auto}
 #newUserPanel::backdrop{background:rgba(22,34,50,.55)}
@@ -251,12 +257,13 @@
 
 function logout(){if(confirm('Wirklich ausloggen?'))auth.signOut().then(()=>location.href='home.html');}
 </script>
-<script src="benutzer.js?v=20261007-title-sort"></script>
+<script src="benutzer.js?v=20261007-permissions-collapse"></script>
 <script>
 (function(){
   const dialog=document.getElementById('newUserPanel'),opener=document.getElementById('openNewUser'),submit=document.getElementById('newUserSubmit');
   function closeDialog(){if(!submit.disabled)dialog.close();}
   opener.addEventListener('click',()=>{
+    document.getElementById('newUserPermissionsPanel').open=false;
     dialog.showModal();
     document.getElementById('newUserEmail').focus();
   });
