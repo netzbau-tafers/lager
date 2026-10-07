@@ -50,6 +50,27 @@
       for(const [key,name]of Object.entries(LagerAccess.areas)){const label=text('label',name),select=document.createElement('select');for(const [value,title]of (['materialvorlagen','beendete'].includes(key)?[['none','Nicht erlaubt'],['edit',key==='beendete'?'Archivieren, bearbeiten, wiederherstellen und löschen':'Erstellen, bearbeiten und löschen']]:[['none','Gesperrt'],['view','Nur ansehen'],['edit','Ansehen und bearbeiten']])){const option=text('option',title);option.value=value;select.append(option);}select.value=master?'edit':permissions[key]||'none';select.disabled=master;selects[key]=select;label.append(select);grid.append(label);}
       const permissionsPanel=document.createElement('details');permissionsPanel.className='permissions-panel';permissionsPanel.append(text('summary','Berechtigungen'),grid);card.append(permissionsPanel);const save=text('button','Änderungen speichern');save.type='button';const feedback=text('p','');feedback.className='user-feedback';feedback.setAttribute('role','status');card.append(save,feedback);
       const remove=text('button','Konto löschen');remove.type='button';remove.className='delete-account';remove.disabled=master;remove.title=master?'Das Hauptadministrator-Konto ist geschützt.':'Anmeldekonto dauerhaft löschen';card.insertBefore(remove,feedback);
+      if(auth.currentUser?.uid===LagerAccess.MASTER){
+        const reset=text('button','Passwort zurücksetzen');reset.type='button';
+        const icon=document.createElement('i');icon.className='fa-solid fa-key';icon.setAttribute('aria-hidden','true');reset.prepend(icon);
+        reset.disabled=!row.email;reset.title=row.email?'E-Mail zum Zurücksetzen senden':'Keine E-Mail hinterlegt';card.insertBefore(reset,feedback);
+        reset.addEventListener('click',async()=>{
+          if(reset.disabled||auth.currentUser?.uid!==LagerAccess.MASTER)return;
+          const email=String(row.email||'').trim();
+          if(!email){feedback.textContent='Keine E-Mail hinterlegt. Bitte die Liste aktualisieren.';return;}
+          if(!confirm('E-Mail zum Zurücksetzen des Passworts an '+email+' senden?\n\nDer Benutzer legt über den Link selbst ein neues Passwort fest.'))return;
+          reset.disabled=true;feedback.style.color='';feedback.textContent='E-Mail wird angefordert …';
+          try{
+            auth.languageCode='de';
+            await auth.sendPasswordResetEmail(email);
+            feedback.style.color='#1b5e20';feedback.textContent='E-Mail zum Zurücksetzen an '+email+' angefordert. Bitte auch den Spam-Ordner prüfen.';
+          }catch(error){
+            feedback.style.color='#b3261e';
+            const messages={'auth/too-many-requests':'Zu viele Anfragen. Bitte später erneut versuchen.','auth/network-request-failed':'Keine Verbindung. Bitte die Internetverbindung prüfen.','auth/invalid-email':'Die E-Mail-Adresse ist ungültig. Bitte die Liste aktualisieren.','auth/user-not-found':'Das Konto wurde nicht gefunden. Bitte die Liste aktualisieren.'};
+            feedback.textContent=messages[error.code]||'Die E-Mail konnte nicht angefordert werden. Bitte später erneut versuchen.';
+          }finally{reset.disabled=!row.email;}
+        });
+      }
       remove.addEventListener('click',async()=>{
         if(master)return;
         const answer=prompt('Konto dauerhaft löschen?\n\n'+(row.email||row.username||row.id)+'\nUID: '+row.id+'\n\nDas Anmeldekonto, Profil und die Rechte werden gelöscht. Baustellen und Protokolle bleiben erhalten.\n\nZum Bestätigen bitte LÖSCHEN eingeben.');
