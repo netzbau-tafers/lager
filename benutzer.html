@@ -196,7 +196,7 @@
 </form>
 <div id="newUserResult" hidden><label for="newUserLink">Link zum Festlegen des Passworts</label><input id="newUserLink" type="text" readonly><button id="newUserCopy" type="button">Link kopieren</button><p class="muted">Gib diesen Link nur dem neuen Benutzer weiter. Falls er abgelaufen ist, kann der Benutzer auf der Anmeldeseite sein Passwort zurücksetzen.</p></div>
 </dialog>
-<label for="userSearch">Benutzer suchen</label><input id="userSearch" type="search" placeholder="Name, E-Mail oder UID">
+<label for="userSearch">Benutzer suchen</label><input id="userSearch" type="search" placeholder="Name, E-Mail, Titel oder UID">
 <button id="userRefresh" type="button">Liste aktualisieren</button>
 <p id="userStatus" role="status" aria-live="polite"></p>
 <div id="userList"></div>
@@ -251,7 +251,7 @@
 
 function logout(){if(confirm('Wirklich ausloggen?'))auth.signOut().then(()=>location.href='home.html');}
 </script>
-<script src="benutzer.js?v=20261007-create-user"></script>
+<script src="benutzer.js?v=20261007-title-sort"></script>
 <script>
 (function(){
   const dialog=document.getElementById('newUserPanel'),opener=document.getElementById('openNewUser'),submit=document.getElementById('newUserSubmit');
