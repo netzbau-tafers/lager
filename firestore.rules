@@ -21,9 +21,9 @@ service cloud.firestore {
     function validAccess() {
       let p = request.resource.data.permissions;
       return p is map && p.keys().hasOnly(['kabellager','baustellen','archiv','kabelreport','logs','spiel','gespart']) &&
-        p.keys().hasAll(['kabellager','baustellen','archiv','kabelreport','logs','spiel','gespart']) &&
+        p.keys().hasAll(['kabellager','baustellen','archiv','kabelreport','logs','spiel']) &&
         validLevel(p.kabellager) && validLevel(p.baustellen) && validLevel(p.archiv) &&
-        validLevel(p.kabelreport) && validLevel(p.logs) && validLevel(p.spiel) && validLevel(p.gespart) &&
+        validLevel(p.kabelreport) && validLevel(p.logs) && validLevel(p.spiel) && validLevel(p.get('gespart', 'none')) &&
         request.resource.data.keys().hasOnly(['permissions','updatedAt','updatedBy']) &&
         request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
     }
