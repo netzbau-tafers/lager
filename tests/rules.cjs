@@ -24,6 +24,14 @@ const levels=value=>Object.fromEntries(areas.map(key=>[key,value]));
   await assertFails(setDoc(doc(master,'user_access/'+MASTER),{permissions:levels('none'),updatedAt:serverTimestamp(),updatedBy:MASTER}));await assertFails(setDoc(doc(master,'user_access/worker'),{permissions:{...levels('edit'),kabellager:'invalid'},updatedAt:serverTimestamp(),updatedBy:MASTER}));
   const admin=env.authenticatedContext('smnnQd4RhEQZR3uuNN0otNALUqi1').firestore();await assertFails(getDocs(collection(admin,'users')));await assertFails(updateDoc(doc(admin,'users/worker'),{username:'forged'}));
   const batch=writeBatch(master);batch.set(doc(master,'users/worker'),{username:'Batch name'},{merge:true});batch.set(doc(master,'user_access/worker'),{permissions:levels('view'),updatedAt:serverTimestamp(),updatedBy:MASTER});await assertSucceeds(batch.commit());
+  await env.withSecurityRulesDisabled(async context=>{await setDoc(doc(context.firestore(),'account_deletions/worker'),{deletedAt:serverTimestamp(),deletedBy:MASTER});});
+  // The same authenticated context represents an already-issued ID token.
+  for(const path of ['bobinen/a','users/worker','user_access/worker','logs/a'])await assertFails(getDoc(doc(worker,path)));
+  await assertFails(setDoc(doc(worker,'users/worker'),{username:'Recreated',email:'max@example.com'},{merge:true}));
+  await assertFails(deleteDoc(doc(worker,'account_deletions/worker')));
+  await assertFails(deleteDoc(doc(master,'account_deletions/worker')));
+  await assertFails(setDoc(doc(master,'users/worker'),{username:'Stale save'},{merge:true}));
   console.log('Firestore authorization scenarios passed.');
  }finally{await env.cleanup();}
 })().catch(error=>{console.error(error);process.exitCode=1;});
+

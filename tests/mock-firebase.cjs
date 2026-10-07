@@ -7,6 +7,7 @@ module.exports = function mock(scenario){
   const db={collection,batch:()=>{const writes=[];return {set:(ref,data)=>writes.push(data),commit:async()=>saved.push(...writes)}},runTransaction:async()=>{}};
   const auth={setPersistence:async()=>{},currentUser:user,onAuthStateChanged:callback=>{queueMicrotask(()=>callback(user));return ()=>{};},signOut:async()=>{auth.currentUser=null;}};
   const firestore=()=>db;firestore.FieldValue={serverTimestamp:()=>({server:true}),delete:()=>({delete:true})};firestore.Timestamp={now:()=>timestamp};
-  const authFactory=()=>auth;authFactory.Auth={Persistence:{LOCAL:'local'}};globalThis.firebase={apps:[],initializeApp:()=>({firestore,auth:authFactory}),auth:authFactory,firestore,storage:()=>({ref:()=>({})})};
+  const authFactory=()=>auth;authFactory.Auth={Persistence:{LOCAL:'local'}};globalThis.firebase={apps:[],initializeApp:()=>({firestore,auth:authFactory}),auth:authFactory,firestore,functions:()=>({httpsCallable:name=>async data=>{if(name==='lagerListUsers'){if(scenario.listFail)throw Error('not deployed');return {data:{users:[...Object.entries(profiles).map(([uid,profile])=>({uid,email:profile.email})),...(scenario.extraAccounts||[])],pageToken:null}};}if(name==='lagerDeleteUser'){if(scenario.deleteFail)throw Error('failure');saved.push({deletedUid:data.uid});return {data:{deleted:true,uid:data.uid}};}}}),storage:()=>({ref:()=>({})})};
 }
 ;
+
