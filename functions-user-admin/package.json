@@ -1,0 +1,1 @@
+{"name":"lager-user-admin","private":true,"main":"index.js","engines":{"node":"22"},"dependencies":{"firebase-admin":"^13.0.0","firebase-functions":"^6.0.0"}}

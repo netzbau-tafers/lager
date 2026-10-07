@@ -1,5 +1,7 @@
 # Benutzerverwaltung einrichten
 
+Für die vollständige Kontoliste und das Löschen von Anmeldekonten siehe `KONTEN-VERWALTUNG.md`. Dazu sind die neue Functions-Codebase und die aktualisierten Regeln zu veröffentlichen.
+
 1. Den Pull Request prüfen. Die Datei `firestore.rules` enthält den vollständigen Ersatz für die derzeit veröffentlichten Regeln.
 2. Diese Regeln unter Firebase → Firestore Database → Regeln einfügen und veröffentlichen. Diese Änderung geschieht nicht automatisch durch GitHub Pages.
 3. Den Pull Request zusammenführen und nach der GitHub-Pages-Veröffentlichung die Seite neu laden.
@@ -16,7 +18,7 @@
 - Namen und Rechte werden gemeinsam in einem Batch gespeichert. Benutzer dürfen ihre eigenen Rechte nicht schreiben. Der eigene Benutzername kann wie bisher unter „Profil“ geändert werden.
 - Offene Seiten beobachten das eigene Berechtigungsdokument. Bei einer Änderung werden sie neu geladen bzw. zur Startseite umgeleitet. Firestore verweigert unerlaubte Datenzugriffe unabhängig vom Menü.
 - Namen werden aus dem eigenen Profil beobachtet und für neue Aktionen übernommen. Historische Logs, Bobinen-Namensfelder und Rankings werden nicht umgeschrieben.
-- Die Liste zeigt Firestore-Benutzerprofile, keine vollständige Liste von Firebase-Authentication-Konten. Bestehende Konten ohne Profil erhalten beim nächsten Aufruf der neuen Version ein Profil. Gelöschte Authentication-Konten werden nicht automatisch aus dieser Liste entfernt.
+- Mit der veröffentlichten Funktion `lagerListUsers` zeigt die Liste alle Firebase-Authentication-Konten. Ohne diese Funktion zeigt sie ausdrücklich nur Firestore-Benutzerprofile. Bestehende Konten ohne Profil erhalten beim nächsten Aufruf der neuen Version ein Profil. Mit der Listenfunktion werden bereits gelöschte Authentication-Konten nicht angezeigt.
 - „Letzte Aktivität“ ist der letzte Seitenaufruf der neuen Version. Es gibt keine Live-Anwesenheitserkennung und keinen laufenden Heartbeat.
 
 ## Gemeinsame Daten
@@ -37,3 +39,4 @@ Der Kabel Report berechnet Werte aus `logs`. Wer den Report lesen darf, kann des
 Tests reproduzieren: im Verzeichnis `tests` `npm install` ausführen, dann `npm run test:ui` und `npm run test:rules`. Für den Emulator ist Java erforderlich (firebase-tools 14 unterstützt Java 17).
 
 Nach Veröffentlichung mit einem Testkonto die drei Stufen prüfen. Alte bereits geöffnete Versionen kennen die neuen Rechte noch nicht und können nach einer Sperre Berechtigungsfehler zeigen. Ein erneutes Laden übernimmt die neue Oberfläche.
+

@@ -1,7 +1,7 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() { return request.auth != null; }
+    function signedIn() { return request.auth != null && !exists(/databases/$(database)/documents/account_deletions/$(request.auth.uid)); }
     function master() { return signedIn() && request.auth.uid == 'pmyu29TlC3QM7JIysmy2EmiHSWW2'; }
     function admin() { return signedIn() && request.auth.uid in ['smnnQd4RhEQZR3uuNN0otNALUqi1', 'pmyu29TlC3QM7JIysmy2EmiHSWW2', 'PAtM8Lv1TBNLSiQzBLJK9Oda8KK2', 'hwZEme8xvkasSAGrmOtQRLOnnXn1', 'PKDpb7Cb7ig8ZKZRMm23FOKnCHQ2', 'Tgj9KT6C21XjeistBWRiSVYqTDC2', 'DSMERv7Uu4b4eEYQx5SKbjvdher2']; }
     function limited() { return request.auth.uid in ['POSB6W7xeDZ8Dlba03ZP3J02dMC3', 'AX08qKp7lte6vslQMFn76FVqxw53', 'KYqiqNKTmkQQYVWAa6bp6vSvTlV2']; }
@@ -33,17 +33,21 @@ service cloud.firestore {
         (!('lastSeenAt' in request.resource.data) || request.resource.data.lastSeenAt == request.time ||
           (resource != null && request.resource.data.lastSeenAt == resource.data.get('lastSeenAt', null)));
     }
+    // Server-only deletion markers block still-valid ID tokens. No client writes.
+    match /account_deletions/{userId} {
+      allow read, write: if false;
+    }
     match /user_access/{userId} {
       allow get: if master() || (signedIn() && request.auth.uid == userId);
       allow list: if master();
-      allow create, update: if master() && userId != request.auth.uid && validAccess();
+      allow create, update: if master() && userId != request.auth.uid && !exists(/databases/$(database)/documents/account_deletions/$(userId)) && validAccess();
       allow delete: if master() && userId != request.auth.uid;
     }
     match /users/{userId} {
       allow read: if master() || (signedIn() && request.auth.uid == userId);
-      allow create: if master() || (signedIn() && request.auth.uid == userId &&
+      allow create: if (master() && !exists(/databases/$(database)/documents/account_deletions/$(userId))) || (signedIn() && request.auth.uid == userId &&
         request.resource.data.keys().hasOnly(['username','email','updatedAt','lastSeenAt']) && validOwnProfile());
-      allow update: if master() || (signedIn() && request.auth.uid == userId &&
+      allow update: if (master() && !exists(/databases/$(database)/documents/account_deletions/$(userId))) || (signedIn() && request.auth.uid == userId &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['username','email','updatedAt','lastSeenAt']) && validOwnProfile());
       allow delete: if master() && userId != request.auth.uid;
     }
@@ -95,3 +99,4 @@ service cloud.firestore {
     }
   }
 }
+
