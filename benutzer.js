@@ -2,7 +2,7 @@
   'use strict';
   const db=firebase.firestore(),list=document.getElementById('userList'),status=document.getElementById('userStatus'),search=document.getElementById('userSearch'),refresh=document.getElementById('userRefresh');
   let rows=[],busy=false;
-  const functions=firebase.functions("europe-west1");
+  const functions=firebase.app().functions("europe-west1");
   const listAccounts=functions.httpsCallable("lagerListUsers"),deleteAccount=functions.httpsCallable("lagerDeleteUser");
   const clean=value=>String(value||'').replace(/[<>]/g,'').replace(/[\u0000-\u001F\u007F]/g,' ').replace(/\s+/g,' ').trim().slice(0,120);
   function text(tag,value){const node=document.createElement(tag);node.textContent=value;return node;}
