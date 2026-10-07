@@ -48,7 +48,7 @@
       const grid=document.createElement('div');grid.className='permission-grid';const selects={};
       const permissions=effectivePermissions(row);
       for(const [key,name]of Object.entries(LagerAccess.areas)){const label=text('label',name),select=document.createElement('select');for(const [value,title]of (['materialvorlagen','beendete'].includes(key)?[['none','Nicht erlaubt'],['edit',key==='beendete'?'Archivieren, bearbeiten, wiederherstellen und löschen':'Erstellen, bearbeiten und löschen']]:[['none','Gesperrt'],['view','Nur ansehen'],['edit','Ansehen und bearbeiten']])){const option=text('option',title);option.value=value;select.append(option);}select.value=master?'edit':permissions[key]||'none';select.disabled=master;selects[key]=select;label.append(select);grid.append(label);}
-      card.append(grid);const save=text('button','Änderungen speichern');save.type='button';const feedback=text('p','');feedback.className='user-feedback';feedback.setAttribute('role','status');card.append(save,feedback);
+      const permissionsPanel=document.createElement('details');permissionsPanel.className='permissions-panel';permissionsPanel.append(text('summary','Berechtigungen'),grid);card.append(permissionsPanel);const save=text('button','Änderungen speichern');save.type='button';const feedback=text('p','');feedback.className='user-feedback';feedback.setAttribute('role','status');card.append(save,feedback);
       const remove=text('button','Konto löschen');remove.type='button';remove.className='delete-account';remove.disabled=master;remove.title=master?'Das Hauptadministrator-Konto ist geschützt.':'Anmeldekonto dauerhaft löschen';card.insertBefore(remove,feedback);
       remove.addEventListener('click',async()=>{
         if(master)return;
