@@ -11,7 +11,7 @@
     select.addEventListener('change',update);
     update();
   }
-  const titles={hauptadministrator:'Hauptadministrator',administrator:'Administrator',baustellenverantwortlicher:'Baustellenverantwortlicher',mitarbeiter:'Mitarbeiter',leseberechtigter:'Leseberechtigter'};
+  const titles={hauptadministrator:'Hauptadministrator',administrator:'Administrator',baustellenverantwortlicher:'Baustellenverantwortlicher',mitarbeiter:'Mitarbeiter',techniker:'Techniker',leseberechtigter:'Leseberechtigter'};
   const titleOrder=Object.keys(titles);
   function effectivePermissions(row){
     const defaults=LagerAccess.defaults(row.id),permissions={...defaults,...row.access?.permissions};
