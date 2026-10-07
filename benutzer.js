@@ -16,8 +16,8 @@
       const date=row.lastSeenAt?.toDate?.();const meta=text('p',(row.email||'Keine E-Mail hinterlegt')+' · UID: '+row.id+' · Letzte Aktivität: '+(date?date.toLocaleString('de-CH'):'Noch nicht erfasst'));meta.className='user-meta';card.append(meta);
       const label=text('label','Benutzername');const input=document.createElement('input');input.type='text';input.maxLength=120;input.value=row.username||'';label.append(input);card.append(label);
       const grid=document.createElement('div');grid.className='permission-grid';const selects={};
-      const permissions=row.access?.permissions||LagerAccess.defaults(row.id);
-      for(const [key,name]of Object.entries(LagerAccess.areas)){const label=text('label',name),select=document.createElement('select');for(const [value,title]of [['none','Gesperrt'],['view','Nur ansehen'],['edit','Ansehen und bearbeiten']]){const option=text('option',title);option.value=value;select.append(option);}select.value=master?'edit':permissions[key]||'none';select.disabled=master;selects[key]=select;label.append(select);grid.append(label);}
+      const permissions={...LagerAccess.defaults(row.id),...row.access?.permissions};if(row.access&&!('materialvorlagen' in row.access.permissions))permissions.materialvorlagen=LagerAccess.defaults(row.id).materialvorlagen==='edit'&&permissions.baustellen==='edit'?'edit':'none';
+      for(const [key,name]of Object.entries(LagerAccess.areas)){const label=text('label',name),select=document.createElement('select');for(const [value,title]of (key==='materialvorlagen'?[['none','Nicht erlaubt'],['edit','Erstellen, bearbeiten und löschen']]:[['none','Gesperrt'],['view','Nur ansehen'],['edit','Ansehen und bearbeiten']])){const option=text('option',title);option.value=value;select.append(option);}select.value=master?'edit':permissions[key]||'none';select.disabled=master;selects[key]=select;label.append(select);grid.append(label);}
       card.append(grid);const save=text('button','Änderungen speichern');save.type='button';const feedback=text('p','');feedback.className='user-feedback';feedback.setAttribute('role','status');card.append(save,feedback);
       const remove=text('button','Konto löschen');remove.type='button';remove.className='delete-account';remove.disabled=master;remove.title=master?'Das Master-Admin-Konto ist geschützt.':'Anmeldekonto dauerhaft löschen';card.insertBefore(remove,feedback);
       remove.addEventListener('click',async()=>{
@@ -56,4 +56,3 @@
   search.addEventListener('input',render);refresh.addEventListener('click',load);
   LagerAccess.onAuthStateChanged(user=>{if(!user){location.replace('home.html');return;}document.getElementById('userAdmin').hidden=false;return load();});
 })();
-

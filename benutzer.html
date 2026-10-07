@@ -183,6 +183,7 @@
 <button class="logout-safe" onclick="logout()">Abmelden</button>
 </div>
 <main class="card" style="max-width:1000px" hidden id="userAdmin">
+<p>„Materialvorlagen verwalten“ erlaubt das Erstellen, Bearbeiten und Löschen von Vorlagen. Die Auswahl bestehender Vorlagen auf Baustellen benötigt dieses Recht nicht.</p>
 <p>Benutzernamen und Zugriffe verwalten. Dein Master-Admin-Konto behält alle Rechte.</p>
 <p class="muted">Wenn die Serverfunktion eingerichtet ist, zeigt diese Liste alle registrierten Anmeldekonten. Andernfalls werden nur gespeicherte Benutzerprofile angezeigt. „Letzte Aktivität“ zeigt den letzten Seitenaufruf, keinen Live-Online-Status.</p>
 <label for="userSearch">Benutzer suchen</label><input id="userSearch" type="search" placeholder="Name, E-Mail oder UID">
@@ -200,7 +201,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
-<script src="zugriffsrechte.js?v=20261007-ohne-gespart"></script>
+<script src="zugriffsrechte.js?v=20261007-vorlagenrecht"></script>
 <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",
@@ -218,7 +219,6 @@
 
 function logout(){if(confirm('Wirklich ausloggen?'))auth.signOut().then(()=>location.href='home.html');}
 </script>
-<script src="benutzer.js?v=20261007-functions-fix"></script>
+<script src="benutzer.js?v=20261007-vorlagenrecht"></script>
 <script src="navigation.js?v=20261006-access"></script>
 </body></html>
-
