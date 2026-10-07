@@ -71,24 +71,6 @@
           }finally{reset.disabled=!row.email;}
         });
       }
-      if(auth.currentUser?.uid===LagerAccess.MASTER){
-        const linkButton=text('button','Passwort-Link erstellen');linkButton.type='button';linkButton.disabled=!row.email;card.insertBefore(linkButton,feedback);
-        const linkPanel=document.createElement('div');linkPanel.hidden=true;
-        const linkLabel=text('label','Passwort-Link (nur dem betreffenden Benutzer weitergeben)'),linkInput=document.createElement('input');linkInput.type='text';linkInput.readOnly=true;linkLabel.append(linkInput);
-        const copy=text('button','Link kopieren');copy.type='button';linkPanel.append(linkLabel,copy,text('p','Falls die E-Mail nicht ankommt, kannst du diesen Link direkt weitergeben. Es wird keine E-Mail versendet.'));card.append(linkPanel);
-        linkButton.addEventListener('click',async()=>{
-          if(linkButton.disabled||auth.currentUser?.uid!==LagerAccess.MASTER)return;
-          if(!confirm('Passwort-Link für '+row.email+' erstellen? Nur diesem Benutzer weitergeben.'))return;
-          linkButton.disabled=true;linkPanel.hidden=true;linkInput.value='';feedback.style.color='';feedback.textContent='Link wird erstellt …';
-          try{
-            const result=await functions.httpsCallable('lagerPasswordResetLink')({uid:row.id});
-            if(result.data?.uid!==row.id||!result.data.resetLink)throw Error('Ungültige Serverantwort');
-            linkInput.value=result.data.resetLink;linkPanel.hidden=false;feedback.textContent='Passwort-Link für '+result.data.email+' erstellt.';
-          }catch(error){feedback.style.color='#b3261e';feedback.textContent='Link konnte nicht erstellt werden. Prüfe, ob lagerPasswordResetLink in Firebase veröffentlicht ist.';}
-          finally{linkButton.disabled=!row.email;}
-        });
-        copy.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(linkInput.value);feedback.textContent='Passwort-Link kopiert.';}catch(_){linkInput.focus();linkInput.select();feedback.textContent='Bitte den markierten Link kopieren.';}});
-      }
       remove.addEventListener('click',async()=>{
         if(master)return;
         const answer=prompt('Konto dauerhaft löschen?\n\n'+(row.email||row.username||row.id)+'\nUID: '+row.id+'\n\nDas Anmeldekonto, Profil und die Rechte werden gelöscht. Baustellen und Protokolle bleiben erhalten.\n\nZum Bestätigen bitte LÖSCHEN eingeben.');
