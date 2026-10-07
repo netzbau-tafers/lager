@@ -191,7 +191,7 @@
 <div id="userList"></div>
 <p class="muted">„Konto löschen“ entfernt das Anmeldekonto, das Profil und die Zugriffsrechte dauerhaft. Baustellen, Kabel und historische Protokolle bleiben erhalten. Das Master-Admin-Konto ist geschützt.</p>
 <p class="muted">Baustellen und Archiv verwenden gemeinsame Daten. Der Kabel Report liest Protokolldaten. Rechte für diese Seiten erlauben daher auch das Lesen ihrer gemeinsamen Quelldaten. Historische Protokolle und bereits gespeicherte Aktionsnamen werden bei einer Namensänderung nicht umgeschrieben.</p>
-<p class="muted">„Ansehen und bearbeiten“ erlaubt auch das Löschen im Rahmen der jeweiligen Funktion. Beim Protokoll bleiben Einträge unveränderbar. „Gespart“ ist für die vorhandenen Daten vorgesehen; eine entsprechende Seite ist aktuell nicht im Repository enthalten.</p>
+<p class="muted">„Ansehen und bearbeiten“ erlaubt auch das Löschen im Rahmen der jeweiligen Funktion. Beim Protokoll bleiben Einträge unveränderbar.</p>
 </main>
 <style>
 .user-card{padding:20px;margin-top:18px;border:1px solid #d5dbe3;border-radius:12px}.user-card h2{font-size:19px;margin:0 0 8px}.user-meta{overflow-wrap:anywhere;color:#526478;font-size:14px}.permission-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}.permission-grid label{display:flex;flex-direction:column;gap:8px}.permission-grid select{padding:10px;border:1px solid #ccd5df;border-radius:8px;background:white;font:inherit}.user-feedback{min-height:20px;font-size:14px}.user-card .delete-account{background:#b3261e;margin-left:8px}.user-card .delete-account:hover{background:#8d1e18}.user-card button:disabled{opacity:.5;cursor:default}[hidden]{display:none!important}@media(max-width:680px){.permission-grid{grid-template-columns:1fr}.user-card{padding:14px}}
@@ -200,7 +200,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
-<script src="zugriffsrechte.js?v=20261006"></script>
+<script src="zugriffsrechte.js?v=20261007-ohne-gespart"></script>
 <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",

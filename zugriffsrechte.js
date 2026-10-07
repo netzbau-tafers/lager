@@ -4,7 +4,7 @@
   const MASTER='pmyu29TlC3QM7JIysmy2EmiHSWW2';
   const ADMINS=['smnnQd4RhEQZR3uuNN0otNALUqi1',MASTER,'PAtM8Lv1TBNLSiQzBLJK9Oda8KK2','hwZEme8xvkasSAGrmOtQRLOnnXn1','PKDpb7Cb7ig8ZKZRMm23FOKnCHQ2','Tgj9KT6C21XjeistBWRiSVYqTDC2','DSMERv7Uu4b4eEYQx5SKbjvdher2'];
   const LIMITED=['POSB6W7xeDZ8Dlba03ZP3J02dMC3','AX08qKp7lte6vslQMFn76FVqxw53','KYqiqNKTmkQQYVWAa6bp6vSvTlV2'];
-  const areas={kabellager:'Kabellager',baustellen:'Baustellenmaterial und Vorlagen',archiv:'Archiv',kabelreport:'Kabel Report',logs:'Protokoll',spiel:'Mast Runner',gespart:'Gespart'};
+  const areas={kabellager:'Kabellager',baustellen:'Baustellenmaterial und Vorlagen',archiv:'Archiv',kabelreport:'Kabel Report',logs:'Protokoll',spiel:'Mast Runner'};
   const pages={'index.html':'kabellager','baustellen.html':'baustellen','archiv.html':'archiv','kabel-report.html':'kabelreport','logs.html':'logs','strommast-game.html':'spiel','gespart.html':'gespart','benutzer.html':'benutzer'};
   let uid=null,permissions={},configured=false,ready=null,unsubscribe=null,profileUnsubscribe=null;
   function defaults(id){const admin=ADMINS.includes(id),limited=LIMITED.includes(id);return {kabellager:'edit',baustellen:limited?'none':'edit',archiv:admin?'edit':'none',kabelreport:admin?'edit':'view',logs:admin?'edit':'none',spiel:'edit',gespart:'edit'};}
