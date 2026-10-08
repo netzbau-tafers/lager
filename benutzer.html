@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Benutzerverwaltung</title>
+  <link rel="icon" type="image/png" sizes="any" href="favicon.png">
+<link rel="shortcut icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" sizes="180x180" href="favicon.png">
+<link rel="manifest" href="site.webmanifest">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <style>
+    body{
+      font-family:Arial, sans-serif;
+      background:#e6eaef;
+      margin:40px;
+      color:#222;
+    }
+
+    .header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:25px;
+      gap:15px;
+    }
+
+    .header h1{
+      margin:0;
+      font-size:32px;
+    }
+
+    .menu-wrap{
+      position:relative;
+    }
+
+    .menu-button{
+      background:#555;
+      color:white;
+      border:none;
+      border-radius:10px;
+      padding:11px 15px;
+      font-size:20px;
+      line-height:1;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:48px;
+      min-height:44px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.10);
+      transition:background 0.2s ease;
+    }
+
+    .menu-button:hover{
+      background:#333;
+    }
+
+    .dropdown-menu{
+      display:none;
+      position:absolute;
+      top:52px;
+      right:0;
+      min-width:220px;
+      background:white;
+      border:1px solid #ccc;
+      border-radius:12px;
+      box-shadow:0 8px 20px rgba(0,0,0,0.12);
+      padding:8px;
+      z-index:3000;
+    }
+
+    .dropdown-menu.open{
+      display:block;
+    }
+
+    .dropdown-menu button{
+      width:100%;
+      text-align:left;
+      margin:0 0 8px 0;
+    }
+
+    .dropdown-menu button:last-child{
+      margin-bottom:0;
+    }
+
+    .active-page{
+      background:#e0e0e0 !important;
+      color:#333 !important;
+      cursor:default;
+    }
+
+    button{
+      padding:10px 14px;
+      cursor:pointer;
+      border:none;
+      border-radius:8px;
+      background:#3498db;
+      color:white;
+      margin:2px;
+      font-size:14px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      transition:background 0.2s ease;
+    }
+
+    button:hover{
+      background:#2980b9;
+    }
+
+    .logout-safe{
+      background:#777;
+    }
+
+    .logout-safe:hover{
+      background:#555;
+    }
+
+    .card{
+      max-width:720px;
+      margin:0 auto;
+      background:white;
+      border:1px solid #d5dbe3;
+      border-radius:14px;
+      box-shadow:0 8px 22px rgba(0,0,0,0.08);
+      padding:22px;
+    }
+
+    input{
+      width:100%;
+      padding:10px;
+      margin:6px 0 12px 0;
+      box-sizing:border-box;
+      border:1px solid #ccc;
+      border-radius:6px;
+      font-size:15px;
+    }
+
+    .muted{color:#555;font-size:14px}
+    .info{font-size:14px;margin-top:10px}
+
+    @media (max-width: 680px){
+      body{
+        margin:18px;
+      }
+
+      .header h1{
+        font-size:28px;
+      }
+    }
+
+.app-footer{
+  margin:32px auto 0;
+  max-width:1100px;
+  padding:14px 18px;
+  text-align:center;
+  color:#5b6570;
+  font-size:14px;
+}
+
+@media (max-width: 680px){
+  .app-footer{
+    margin-top:24px;
+    padding:12px 10px;
+    font-size:13px;
+  }
+}
+</style>
+<link rel="stylesheet" href="navigation.css?v=20261005-menu-style">
+</head>
+<body>
+<div class="header"><h1>Benutzerverwaltung</h1></div>
+<div id="dropdownMenu" class="dropdown-menu">
+<button data-page="home" onclick="location.href='home.html'">Startseite</button>
+<button data-page="index" onclick="location.href='index.html'">Kabellager</button>
+<button data-page="baustellen" onclick="location.href='baustellen.html'">Baustellenmaterial</button>
+<button data-page="archiv" onclick="location.href='archiv.html'">Archiv</button>
+<button data-page="kabelreport" onclick="location.href='kabel-report.html'">Kabel Report</button>
+<button data-page="logs" onclick="location.href='logs.html'">Protokoll</button>
+<button data-page="profil" onclick="location.href='profil.html'">Profil</button>
+<button class="logout-safe" onclick="logout()">Abmelden</button>
+</div>
+<main class="card" style="max-width:1000px" hidden id="userAdmin">
+<div class="user-toolbar"><button id="openNewUser" type="button"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Neues Konto erstellen</button></div>
+<dialog id="newUserPanel" aria-labelledby="newUserTitle">
+<div class="new-user-header"><div><h2 id="newUserTitle">Neues Konto erstellen</h2><p class="muted">Anmeldedaten und Zugriffsrechte festlegen</p></div><button id="closeNewUser" class="dialog-close" type="button" aria-label="Fenster schliessen"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>
+<form id="newUserForm">
+<label for="newUserEmail">E-Mail</label><input id="newUserEmail" type="email" required maxlength="254" autocomplete="off">
+<label for="newUserName">Benutzername</label><input id="newUserName" type="text" required maxlength="120" autocomplete="off">
+<p class="muted">Wähle die Rechte. Der Benutzer legt sein Passwort über den Link fest, den du nach dem Erstellen erhältst. Es wird keine E-Mail automatisch versendet.</p>
+<details class="permissions-panel" id="newUserPermissionsPanel"><summary>Berechtigungen</summary><div id="newUserPermissions" class="permission-grid"></div></details>
+<div class="dialog-actions"><button id="cancelNewUser" type="button" class="logout-safe">Abbrechen</button><button id="newUserSubmit" type="submit"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Konto erstellen</button></div>
+<p id="newUserStatus" role="status" aria-live="polite"></p>
+</form>
+<div id="newUserResult" hidden><label for="newUserLink">Link zum Festlegen des Passworts</label><input id="newUserLink" type="text" readonly><button id="newUserCopy" type="button">Link kopieren</button><p class="muted">Gib diesen Link nur dem neuen Benutzer weiter. Falls er abgelaufen ist, kann der Benutzer auf der Anmeldeseite sein Passwort zurücksetzen.</p></div>
+</dialog>
+<label for="userSearch">Benutzer suchen</label><input id="userSearch" type="search" placeholder="Name, E-Mail, Titel oder UID">
+<button id="userRefresh" type="button">Liste aktualisieren</button>
+<p id="userStatus" role="status" aria-live="polite"></p>
+<div id="userList"></div>
+</main>
+<style>
+.user-card{padding:20px;margin-top:18px;border:1px solid #d5dbe3;border-radius:12px}.user-card h2{font-size:19px;margin:0 0 8px}.user-meta{overflow-wrap:anywhere;color:#526478;font-size:14px}.permission-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}.permission-grid label{display:flex;flex-direction:column;gap:8px}.permission-grid select{padding:10px;border:1px solid #ccd5df;border-radius:8px;background:white;font:inherit}.user-feedback{min-height:20px;font-size:14px}.user-card .delete-account{background:#b3261e;margin-left:8px}.user-card .delete-account:hover{background:#8d1e18}.user-card button:disabled{opacity:.5;cursor:default}[hidden]{display:none!important}@media(max-width:680px){.permission-grid{grid-template-columns:1fr}.user-card{padding:14px}}
+
+
+/* Permission levels use soft backgrounds while keeping all labels black. */
+.permission-grid select{color:#000;opacity:1;-webkit-text-fill-color:#000}
+.permission-grid select[data-permission="edit"],.permission-grid option[value="edit"]{background-color:#e3f1e5;color:#000}
+.permission-grid select[data-permission="view"],.permission-grid option[value="view"]{background-color:#fff0d9;color:#000}
+.permission-grid select[data-permission="none"],.permission-grid option[value="none"]{background-color:#f8e2e2;color:#000}
+
+.permissions-panel{min-width:0;margin:16px 0;border:1px solid #d5dbe3;border-radius:10px;background:#f8fafc}
+.permissions-panel summary{padding:13px 14px;cursor:pointer;font-weight:600;overflow-wrap:anywhere;min-height:44px}
+.permissions-panel summary:hover{background:#eef2f6;border-radius:10px}
+.permissions-panel summary:focus-visible{outline:2px solid #3498db;outline-offset:2px;border-radius:10px}
+.permissions-panel[open] summary{border-bottom:1px solid #d5dbe3}
+.permissions-panel .permission-grid{padding:0 14px}
+.user-toolbar{display:flex;justify-content:flex-end;margin-bottom:20px}
+#newUserPanel{box-sizing:border-box;width:calc(100% - 32px);max-width:640px;max-height:calc(100dvh - 32px);padding:24px;border:1px solid #d5dbe3;border-radius:18px;background:white;color:#222;box-shadow:0 20px 70px rgba(0,0,0,.25);overflow-y:auto}
+#newUserPanel::backdrop{background:rgba(22,34,50,.55)}
+.new-user-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:20px}
+.new-user-header h2{margin:0;font-size:24px}.new-user-header p{margin:8px 0 0}
+.dialog-close{flex-shrink:0;background:#eef2f6;color:#526478;width:40px;height:40px;padding:0}.dialog-close:hover{background:#dce4ec}
+.dialog-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-top:20px}
+#newUserStatus:empty{display:none}
+#newUserResult{padding:16px;border:1px solid #b9daca;border-radius:12px;background:#f1faf5}
+@media(max-width:680px){#newUserPanel{padding:18px}.new-user-header h2{font-size:22px}.user-toolbar button{width:100%}#newUserPanel .permission-grid{grid-template-columns:minmax(0,1fr)}}
+/* The user form must fit narrow screens, including long permission labels. */
+#userAdmin,#userAdmin *{box-sizing:border-box}
+#userAdmin{width:100%;min-width:0}
+#userAdmin .user-card,#userAdmin .permission-grid,#userAdmin .permission-grid label{min-width:0}
+#userAdmin .permission-grid select,#userAdmin input{width:100%;max-width:100%;min-width:0}
+#userAdmin p,#userAdmin h2,#userAdmin label{overflow-wrap:anywhere}
+@media(max-width:680px){
+ #userAdmin{padding:14px}
+ #userAdmin .user-card{padding:12px}
+ #userAdmin .permission-grid{grid-template-columns:minmax(0,1fr)}
+ #userAdmin .permission-grid select{font-size:14px;padding:10px 6px}
+ #userAdmin .user-card button{max-width:100%;white-space:normal}
+ #userAdmin .user-card .delete-account{margin-left:2px}
+}
+</style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+<script src="zugriffsrechte.js?v=20261007-beendete-recht"></script>
+<script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",
+      authDomain: "netzbau-tafers.firebaseapp.com",
+      projectId: "netzbau-tafers",
+      storageBucket: "netzbau-tafers.appspot.com",
+      messagingSenderId: "389541837675",
+      appId: "1:389541837675:web:db580ce67c57a9a16dea2e",
+      measurementId: "G-B5MJGD3108"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+function logout(){if(confirm('Wirklich ausloggen?'))auth.signOut().then(()=>location.href='home.html');}
+</script>
+<script src="benutzer.js?v=20261007-techniker"></script>
+<script>
+(function(){
+  const dialog=document.getElementById('newUserPanel'),opener=document.getElementById('openNewUser'),submit=document.getElementById('newUserSubmit');
+  function closeDialog(){if(!submit.disabled)dialog.close();}
+  opener.addEventListener('click',()=>{
+    document.getElementById('newUserPermissionsPanel').open=false;
+    dialog.showModal();
+    document.getElementById('newUserEmail').focus();
+  });
+  document.getElementById('closeNewUser').addEventListener('click',closeDialog);
+  document.getElementById('cancelNewUser').addEventListener('click',closeDialog);
+  dialog.addEventListener('cancel',event=>{if(submit.disabled)event.preventDefault();});
+  dialog.addEventListener('click',event=>{
+    if(event.target!==dialog)return;
+    const rect=dialog.getBoundingClientRect();
+    if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)closeDialog();
+  });
+  dialog.addEventListener('close',()=>opener.focus());
+})();
+</script>
+<script src="navigation.js?v=20261007-user-icon"></script>
+</body></html>

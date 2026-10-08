@@ -77,10 +77,10 @@
     };
     document.body.append(element); button.focus();
   }
-  firebase.auth().onAuthStateChanged(nextUser => {
+  LagerAccess.onAuthStateChanged(nextUser => {
     if(unsubscribe) unsubscribe();
     clearTimeout(timer); remove(); records = []; user = nextUser;
-    if(!user) return;
+    if(!user || !LagerAccess.write("kabellager")) return;
     unsubscribe = db.collection('bobinen').where('inGebrauchVonUid','==',user.uid).onSnapshot(snapshot => {
       records = snapshot.docs; check();
     },error => console.error('Bobinen-Erinnerungen konnten nicht geladen werden:',error));
@@ -88,3 +88,4 @@
   document.addEventListener('visibilitychange',check);
   window.addEventListener('focus',check);
 })();
+
