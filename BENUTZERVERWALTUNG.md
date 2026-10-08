@@ -23,7 +23,7 @@ Für die vollständige Kontoliste und das Löschen von Anmeldekonten siehe `KONT
 
 ## Gemeinsame Daten
 
-Die jetzige Datenstruktur und die bestehenden Abfragen lesen Baustellen und Archiv aus denselben Collections. Deshalb erlauben Rechte für einen dieser Bereiche das Lesen der gemeinsamen Baustellen-, Material- und Vorlagendaten. Das Ausblenden der anderen Seite ist keine Trennung einzelner Dokumente.
+Baustellen und Archiv verwenden getrennte Collections. Baustellenrechte erlauben das Lesen von `baustellen` und `baustellen_material`, Archivrechte von `baustellen_archiv` und `baustellen_material_archiv`. Materialvorlagen bleiben gemeinsame Quelldaten. Die Einführung und Migration bestehender Archive ist in `ARCHIV-TRENNUNG.md` beschrieben.
 
 Der Kabel Report berechnet Werte aus `logs`. Wer den Report lesen darf, kann deshalb auch die zugrunde liegenden Protokolldaten lesen, selbst wenn die Protokollseite gesperrt ist. Eine strengere Trennung braucht separate Report-Daten bzw. gefilterte Abfragen und weitere Änderungen an der Datenstruktur.
 

@@ -12,3 +12,6 @@ exports.lagerListUsers=callable(service.list);
 exports.lagerDeleteUser=callable(service.remove);
 
 exports.lagerCreateUser=callable(service.create);
+
+const {createArchive}=require('./archive.cjs');
+exports.lagerArchiveBaustelle=onCall({region:'europe-west1',maxInstances:2},createArchive({db:getFirestore(),auth:getAuth(),timestamp:()=>FieldValue.serverTimestamp(),ErrorType:HttpsError}));

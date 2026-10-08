@@ -14,6 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="zugriffsrechte.js?v=20261007-beendete-recht"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -1610,7 +1611,7 @@ function startListeners(){
   loadVorlagen();
 
   if(!unsubscribeBaustellen){
-    unsubscribeBaustellen = baustellenCollection.onSnapshot(snapshot => {
+    unsubscribeBaustellen = baustellenCollection.where("status", "in", ["aktiv", "rausschreiben", "beendet"]).onSnapshot(snapshot => {
       alleBaustellen = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       renderAll();
     }, error => {
@@ -3058,21 +3059,10 @@ function archiveBaustelle(id){
     "Die Baustelle wird ins Archiv verschoben.";
 
   if(confirm(text)){
-    baustellenCollection.doc(id).update({
-      status: "archiviert",
-      archiviertAm: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => {
-      writeLog(
-        "Baustellenmaterial",
-        "Baustelle archiviert",
-        "baustelle",
-        id,
-        "Name: " + (b.name || "") +
-        " | Nummer: " + (b.nummer || "")
-      );
+    firebase.app().functions("europe-west1").httpsCallable("lagerArchiveBaustelle")({id}).then(() => {
     }).catch(error => {
       console.error("Fehler beim Archivieren der Baustelle:", error);
-      alert("Fehler beim Archivieren.");
+      alert(error.message || "Fehler beim Archivieren.");
     });
   }
 }

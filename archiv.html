@@ -536,8 +536,8 @@ const authReady = auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
     console.error("Auth-Persistenz konnte nicht gesetzt werden:", error);
   });
 
-const baustellenCollection = db.collection("baustellen");
-const materialCollection = db.collection("baustellen_material");
+const baustellenCollection = db.collection("baustellen_archiv");
+const materialCollection = db.collection("baustellen_material_archiv");
 const vorlagenCollection = db.collection("material_vorlagen");
 const logsCollection = db.collection("logs");
 
@@ -567,7 +567,7 @@ function setLogsMenuVisibility(isAdmin){
   }
 }
 
-const ARCHIV_CACHE_KEY = "archiv_snapshot_v1";
+const ARCHIV_CACHE_KEY = "archiv_snapshot_v2_getrennt";
 const VORLAGEN_CACHE_KEY = "material_vorlagen_cache_v1";
 const VORLAGEN_CACHE_MAX_AGE_MS = 1000 * 60 * 60 * 6;
 

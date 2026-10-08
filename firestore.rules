@@ -18,7 +18,7 @@ service cloud.firestore {
     function canWrite(area) { return signedIn() && (master() || level(area) == 'edit'); }
     function manageTemplates() { return signedIn() && (master() || (configured() ? (get(/databases/$(database)/documents/user_access/$(request.auth.uid)).data.get('permissions', {}).get('materialvorlagen', admin() && canWrite('baustellen') ? 'edit' : 'none') == 'edit') : (admin() && canWrite('baustellen')))); }
     function manageFinished() { return canWrite('baustellen') && (master() || (configured() ? get(/databases/$(database)/documents/user_access/$(request.auth.uid)).data.get('permissions', {}).get('beendete', admin() ? 'edit' : 'none') == 'edit' : admin())); }
-    function materialWritable(id) { let site = get(/databases/$(database)/documents/baustellen/$(id)).data; return (site.status == 'aktiv' && canWrite('baustellen')) || (site.status in ['rausschreiben','beendet'] && manageFinished()) || (site.status == 'archiviert' && manager('archiv')); }
+    function materialWritable(id) { let site = get(/databases/$(database)/documents/baustellen/$(id)).data; return (site.status == 'aktiv' && canWrite('baustellen')) || (site.status in ['rausschreiben','beendet'] && manageFinished()); }
     function manager(area) { return canWrite(area) && (master() || configured() || admin()); }
     function validLevel(value) { return value in ['none', 'view', 'edit']; }
     function validAccess() {
@@ -58,19 +58,29 @@ service cloud.firestore {
       allow read: if canRead('kabellager');
       allow create, update, delete: if canWrite('kabellager');
     }
-    // Baustellen and archive share documents. Page rights grant access to this shared data.
+    // Archive creation and movement are server-only (authenticated callable).
     match /baustellen/{document} {
-      allow read: if canRead('baustellen') || canRead('archiv');
+      allow read: if canRead('baustellen');
       allow create: if canWrite('baustellen') && request.resource.data.status == 'aktiv';
-      allow update: if (canWrite('baustellen') && resource.data.status == 'aktiv' && request.resource.data.status in ['aktiv','rausschreiben']) || (resource.data.status in ['beendet','rausschreiben'] && manageFinished()) || (resource.data.status == 'archiviert' && manager('archiv')); 
+      allow update: if (canWrite('baustellen') && resource.data.status == 'aktiv' && request.resource.data.status in ['aktiv','rausschreiben']) || (resource.data.status in ['beendet','rausschreiben'] && manageFinished() && request.resource.data.status in ['aktiv','beendet','rausschreiben']);
       allow delete: if (canWrite('baustellen') && resource.data.status == 'aktiv') ||
-        (manageFinished() && resource.data.status in ['beendet','rausschreiben']) || (manager('archiv') && resource.data.status == 'archiviert');
+        (manageFinished() && resource.data.status in ['beendet','rausschreiben']);
     }
     match /baustellen_material/{document} {
-      allow read: if canRead('baustellen') || canRead('archiv');
+      allow read: if canRead('baustellen');
       allow create: if materialWritable(request.resource.data.baustelleId);
       allow update: if materialWritable(resource.data.baustelleId) && request.resource.data.baustelleId == resource.data.baustelleId;
       allow delete: if materialWritable(resource.data.baustelleId);
+    }
+    match /baustellen_archiv/{document} {
+      allow read: if canRead('archiv');
+      allow create, update: if false;
+      allow delete: if manager('archiv');
+    }
+    match /baustellen_material_archiv/{document} {
+      allow read: if canRead('archiv');
+      allow create, update: if false;
+      allow delete: if manager('archiv');
     }
     match /material_vorlagen/{document} {
       allow read: if canRead('baustellen') || canRead('archiv') || manageTemplates();
