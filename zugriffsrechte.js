@@ -17,6 +17,19 @@
     const menu=document.getElementById('dropdownMenu');
     if(menu){
       if(uid===MASTER&&!menu.querySelector('[data-page="benutzer"]')){const link=document.createElement('a');link.href='benutzer.html';link.dataset.page='benutzer';link.textContent='Benutzerverwaltung';menu.insertBefore(link,menu.querySelector('.logout-safe'));}
+      const userAdmin=menu.querySelector('[data-page="benutzer"]');
+      let backup=menu.querySelector('[data-page="backup"]');
+      if(uid===MASTER&&userAdmin&&!backup){
+        backup=document.createElement('a');
+        backup.href='https://script.google.com/macros/s/AKfycbySZvX0lDVHZivyuVZbgEzaVZyB4b9pGEBjmrhao9p4l5PZYmS9w3aa2x37bM8e7mhH/exec';
+        backup.dataset.page='backup';
+        backup.textContent='Backup-Verwaltung';
+        backup.style.display='none';
+        backup.target='_blank';
+        backup.rel='noopener noreferrer';
+        userAdmin.after(backup);
+      }
+      if(backup)backup.style.display=uid===MASTER?'inline-flex':'none';
       const keys={index:'kabellager',baustellen:'baustellen',archiv:'archiv',kabelreport:'kabelreport',logs:'logs',benutzer:'benutzer'};
       for(const node of menu.querySelectorAll('[data-page]')){const area=keys[node.dataset.page];if(area)node.style.display=read(area)?'inline-flex':'none';}
       // Capture navigation so older inline administrator checks cannot deny assigned access.
