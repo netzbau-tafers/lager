@@ -1,8 +1,8 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {createPush,due,WAIT}=require('./push.cjs');
-const now=Date.now(),ts=ms=>({toMillis:()=>ms});
+const {createPush,due,WAIT,workWindow}=require('./push.cjs');
+const now=Date.parse('2026-10-12T07:00:00Z'),ts=ms=>({toMillis:()=>ms});
 const bobine=()=>({nummer:'123',status:'In Gebrauch',inGebrauchVonUid:'alice',inGebrauchAm:ts(now-WAIT-1000)});
 test('48h boundary and repeated use',()=>{
   const b=bobine();assert.equal(due(b,now),true);assert.equal(due(b,now-WAIT),false);
@@ -22,7 +22,7 @@ function fixture(){
   function ref(path){return {path,async get(){const value=data.get(path);return {exists:data.has(path),id:path.split('/').pop(),ref:this,data:()=>value};},async set(value,options){data.set(path,options?.merge?{...data.get(path),...value}:value);},async update(value){await this.set(value,{merge:true});},async delete(){data.delete(path);}};}
   const db={collection:name=>({doc:id=>ref(name+'/'+id),where:(key,op,value)=>({async get(){const docs=[];for(const [path,entry] of data)if(path.startsWith(name+'/')&&entry[key]===value)docs.push(await ref(path).get());return {docs};}})}),async runTransaction(fn){return fn({get:r=>r.get(),set:(r,v,o)=>r.set(v,o),delete:r=>r.delete()});}};
   class E extends Error{constructor(code,message){super(message);this.code=code;}}
-  const service=createPush({db,auth:{getUser:async()=>({disabled})},messaging:{send:async message=>{messages.push(message);return 'sent';}},FieldValue:{serverTimestamp:()=>ts(Date.now())},ErrorType:E,logger:{info(){},warn(){}}});
+  const service=createPush({db,clock:()=>now,auth:{getUser:async()=>({disabled})},messaging:{send:async message=>{messages.push(message);return 'sent';}},FieldValue:{serverTimestamp:()=>ts(now)},ErrorType:E,logger:{info(){},warn(){}}});
   return {data,messages,service,setDisabled:value=>{disabled=value;}};
 }
 test('device owner changes; another user cannot unregister it',async()=>{
@@ -54,4 +54,15 @@ test('deleted, disabled and read-only accounts receive no reminders',async()=>{
     if(mode==='view')f.data.set('user_access/alice',{permissions:{kabellager:'view'}});
     await f.service.remind();assert.equal(f.messages.length,0);
   }
+});
+
+test('Swiss working hours, weekends and daylight saving',()=>{
+  for(const [date,expected] of [
+    ['2026-10-12T04:59:59Z',false],['2026-10-12T05:00:00Z',true],
+    ['2026-10-12T15:09:59Z',true],['2026-10-12T15:10:00Z',false],
+    ['2026-10-09T09:49:59Z',true],['2026-10-09T09:50:00Z',false],
+    ['2026-10-10T07:00:00Z',false],['2026-10-11T07:00:00Z',false],
+    ['2026-11-02T05:59:59Z',false],['2026-11-02T06:00:00Z',true]
+  ])assert.equal(workWindow(Date.parse(date)).allowed,expected,date);
+  assert.equal(workWindow(Date.parse('2026-10-09T09:45:00Z')).ttl,300);
 });
