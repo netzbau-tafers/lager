@@ -83,11 +83,11 @@ body{
 <button class="logout-safe" onclick="logout()">Abmelden</button>
 </div>
 <main>
-<div class="overview-heading"><p>Deine Kabel, aktiven Baustellen und Fahrzeugfavoriten.</p><button id="overviewRefresh" type="button">Aktualisieren</button></div>
-<div class="overview-counts"><div class="overview-stat"><strong id="cableCount">–</strong><span>Kabel in Gebrauch</span></div><div class="overview-stat" id="siteStat"><strong id="siteCount">–</strong><span>aktive Baustellen</span></div><div class="overview-stat" id="vehicleStat" hidden><strong id="vehicleCount">–</strong><span>Fahrzeugfavoriten</span></div></div>
+<div class="overview-heading"><p>Deine Fahrzeugfavoriten, Kabel in Gebrauch und aktiven Baustellen.</p><button id="overviewRefresh" type="button">Aktualisieren</button></div>
+<div class="overview-counts"><div class="overview-stat" id="vehicleStat" hidden><strong id="vehicleCount">–</strong><span>Fahrzeugfavoriten</span></div><div class="overview-stat"><strong id="cableCount">–</strong><span>Kabel in Gebrauch</span></div><div class="overview-stat" id="siteStat"><strong id="siteCount">–</strong><span>aktive Baustellen</span></div></div>
+<section class="overview-section" id="myVehiclesSection" aria-labelledby="vehiclesHeading" hidden><h2 id="vehiclesHeading">Meine Fahrzeugfavoriten</h2><p class="overview-note">Belegung und Kilometerstand werden automatisch aktualisiert.</p><p id="vehicleStatus" role="status">Fahrzeuge werden geladen …</p><div id="vehicleList" class="vehicle-grid"></div><p><a href="fahrzeuge.html">Alle Fahrzeuge öffnen →</a></p></section>
 <section class="overview-section" aria-labelledby="cablesHeading"><h2 id="cablesHeading">Meine Kabel in Gebrauch</h2><p class="overview-note">Von dir auf «In Gebrauch» gesetzt</p><div id="myCables" aria-live="polite">Wird geladen …</div></section>
 <section class="overview-section" id="mySitesSection" aria-labelledby="sitesHeading"><h2 id="sitesHeading">Meine aktiven Baustellen</h2><p class="overview-note">Von dir erstellt</p><div id="mySites" class="overview-sites" aria-live="polite">Wird geladen …</div></section>
-<section class="overview-section" id="myVehiclesSection" aria-labelledby="vehiclesHeading" hidden><h2 id="vehiclesHeading">Meine Fahrzeugfavoriten</h2><p class="overview-note">Belegung und Kilometerstand werden automatisch aktualisiert.</p><p id="vehicleStatus" role="status">Fahrzeuge werden geladen …</p><div id="vehicleList" class="vehicle-grid"></div><p><a href="fahrzeuge.html">Alle Fahrzeuge öffnen →</a></p></section>
 <p id="overviewUpdated" class="overview-note" role="status"></p>
 </main>
 </div>
