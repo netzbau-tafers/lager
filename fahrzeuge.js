@@ -51,7 +51,8 @@
     for(const v of visible){
       const card=node('article','','vehicle-card'+(v.id===selected?' vehicle-selected':''));card.id='vehicle-'+v.id;
       const header=node('header'),title=node('div');title.append(node('h2',v.name),node('p',v.plate,'vehicle-plate'));
-      const favorite=button(favorites.has(v.id)?'★':'☆','favorite',v.id,'favorite');favorite.setAttribute('aria-label',favorites.has(v.id)?v.name+' aus Favoriten entfernen':v.name+' als Favorit speichern');favorite.setAttribute('aria-pressed',String(favorites.has(v.id)));header.append(title,favorite);card.append(header);
+      const favorite=button(favorites.has(v.id)?'★':'☆','favorite',v.id,'favorite');favorite.setAttribute('aria-label',favorites.has(v.id)?v.name+' aus Favoriten entfernen':v.name+' als Favorit speichern');favorite.setAttribute('aria-pressed',String(favorites.has(v.id)));const tools=node('div','','vehicle-card-tools');tools.append(favorite);
+      const menu=node('details');menu.className='vehicle-menu';const toggle=node('summary','⋮');toggle.setAttribute('aria-label','Fahrzeugmenü für '+v.name);toggle.title='Fahrzeugmenü';const menuItems=node('div','','vehicle-menu-items');menuItems.append(button('QR-Code herunterladen','qr',v.id,'secondary'));menu.append(toggle,menuItems);tools.append(menu);header.append(title,tools);card.append(header);
       card.append(node('p',v.active?'In Gebrauch von '+v.active.name:'Fahrzeug frei','vehicle-state'+(v.active?' busy':'')));
       if(v.active)card.append(node('p','Seit '+date(v.active.start),'vehicle-time'));
       const mileage=node('div','','vehicle-km');mileage.append(node('span','Kilometerstand für das Tankterminal'),node('strong',km(v.km)),node('small','Stand: '+date(v.kmAt)+(v.kmBy?.name?' · '+v.kmBy.name:'')));card.append(mileage);
@@ -68,8 +69,7 @@
         if(!v.active)card.append(node('p','Nachtragen: heute ab 07:00 oder ab dem Ende der letzten Nutzung bis jetzt.','vehicle-help'));
       }
       const feedback=node('p',messages.get(v.id)||'','vehicle-feedback');feedback.setAttribute('role','status');card.append(feedback);
-      if(!overview){const menu=node('details');menu.className='vehicle-menu';menu.append(node('summary','Fahrzeugmenü'),button('QR-Code herunterladen','qr',v.id,'secondary'));card.append(menu);}
-      const details=node('details');details.dataset.history=v.id;details.open=openHistory.has(v.id);details.append(node('summary','Nutzungs- und Tankverlauf'));const history=node('div');history.dataset.historyList=v.id;details.append(history);details.addEventListener('toggle',()=>{if(!details.isConnected)return;if(details.open){openHistory.add(v.id);if(!histories.has(v.id))watchHistory(v.id);else historyList(v.id);}else{openHistory.delete(v.id);histories.get(v.id)?.unsubscribe?.();histories.delete(v.id);}});card.append(details);list.append(card);if(details.open)historyList(v.id);
+      const details=node('details');details.dataset.history=v.id;details.open=openHistory.has(v.id);details.append(node('summary','Nutzungs- und Tankverlauf'));const history=node('div');history.dataset.historyList=v.id;history.className='vehicle-history-scroll';history.tabIndex=0;history.setAttribute('role','region');history.setAttribute('aria-label','Nutzungs- und Tankverlauf für '+v.name);details.append(history);details.addEventListener('toggle',()=>{if(!details.isConnected)return;if(details.open){openHistory.add(v.id);if(!histories.has(v.id))watchHistory(v.id);else historyList(v.id);}else{openHistory.delete(v.id);histories.get(v.id)?.unsubscribe?.();histories.delete(v.id);}});card.append(details);list.append(card);if(details.open)historyList(v.id);
     }
     if(restore){const target=[...list.querySelectorAll('button')].find(n=>n.dataset.action===restore.action&&n.dataset.id===restore.id);target?.focus({preventScroll:true});}
     if(selected&&!selectedScrolled){const card=document.getElementById('vehicle-'+selected);if(card){selectedScrolled=true;card.scrollIntoView({behavior:'smooth',block:'start'});}}
@@ -129,6 +129,8 @@
     if(action==='start'){await act(v,action);return;}
     openDialog(action,v);
   });
+  document.addEventListener('click',event=>{for(const menu of list.querySelectorAll('.vehicle-menu[open]'))if(!menu.contains(event.target))menu.open=false;});
+  document.addEventListener('keydown',event=>{if(event.key==='Escape')for(const menu of list.querySelectorAll('.vehicle-menu[open]')){menu.open=false;menu.querySelector('summary').focus();}});
   document.getElementById('addVehicle')?.addEventListener('click',()=>openDialog('create'));
   cancel.addEventListener('click',()=>{if(!saving)dialog.close();});dialog.addEventListener('cancel',event=>{if(saving)event.preventDefault();});
   form.addEventListener('submit',async event=>{
