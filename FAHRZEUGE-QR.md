@@ -1,6 +1,6 @@
 # QR-Codes für Fahrzeuge
 
-Nach dem Zusammenführen und dem GitHub-Pages-Deployment steht auf jeder Fahrzeugkarte das aufklappbare Fahrzeugmenü mit „QR-Code herunterladen“ bereit. Die SVG-Bilddatei lässt sich ohne Qualitätsverlust ausdrucken. QR-Codes werden lokal erzeugt, ohne externen QR-Dienst und ohne zusätzliche Firestore-Dokumente.
+Nach dem Zusammenführen und dem GitHub-Pages-Deployment steht auf jeder Fahrzeugkarte das Drei-Punkte-Menü rechts neben dem Favoritenstern mit „QR-Code herunterladen“ bereit. Die SVG-Bilddatei lässt sich ohne Qualitätsverlust ausdrucken. QR-Codes werden lokal erzeugt, ohne externen QR-Dienst und ohne zusätzliche Firestore-Dokumente.
 
 Die Fahrzeug-ID bleibt gleich; der Code muss bei Statuswechsel oder Umbenennung nicht ersetzt werden. Er enthält einen Link zu `fahrzeuge.html?fahrzeug=…&scan=1`. Derselbe Link kann auf einen NFC-Tag geschrieben werden.
 
