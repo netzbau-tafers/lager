@@ -12,6 +12,7 @@
     return now - lastReminder >= WAIT;
   };
   let user = null, unsubscribe = null, records = [], active = null, timer = null;
+  let unsubscribePush = null, pushReady = false, pushUntil = 0;
   const db = firebase.firestore();
   const style = document.createElement('style');
   style.textContent = `#bobinen-erinnerung{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}#bobinen-erinnerung section{background:white;color:#172033;border-radius:16px;padding:24px;width:100%;max-width:460px;max-height:85vh;overflow:auto;box-shadow:0 16px 60px #0004;font:16px/1.5 Arial,sans-serif}#bobinen-erinnerung h2{font-size:21px;margin:0 0 12px}#bobinen-erinnerung dl{display:grid;grid-template-columns:130px 1fr;gap:8px;margin:18px 0}#bobinen-erinnerung dt{font-weight:bold}#bobinen-erinnerung dd{margin:0;overflow-wrap:anywhere}#bobinen-erinnerung button{background:#1565c0;color:white;border:0;border-radius:9px;padding:12px 18px;font:inherit;cursor:pointer}#bobinen-erinnerung a{color:#1565c0;display:inline-block;margin:0 12px 12px 0}#bobinen-erinnerung .error{color:#b71c1c}@media(max-width:400px){#bobinen-erinnerung dl{grid-template-columns:1fr;gap:3px}#bobinen-erinnerung dd{margin-bottom:8px}}`;
@@ -21,7 +22,8 @@
   }
   function check() {
     clearTimeout(timer);
-    if(!user || document.visibilityState === 'hidden') return;
+    if(!user || !pushReady || document.visibilityState === 'hidden') return;
+    if(pushUntil > Date.now()){remove();timer=setTimeout(check,30000);return;}
     if(active) {
       const current = records.find(r => r.id === active.id);
       if(!current || !eligible(current.data(), user.uid) || millis(current.data().inGebrauchAm) !== active.started) remove();
@@ -79,8 +81,15 @@
   }
   LagerAccess.onAuthStateChanged(nextUser => {
     if(unsubscribe) unsubscribe();
+    if(unsubscribePush) unsubscribePush();
+    pushReady = false; pushUntil = 0;
     clearTimeout(timer); remove(); records = []; user = nextUser;
     if(!user || !LagerAccess.write("kabellager")) return;
+    unsubscribePush = db.collection('push_preferences').doc(user.uid).onSnapshot(snapshot => {
+      const preference = snapshot.data() || {};
+      pushUntil = preference.enabled ? millis(preference.activeUntil) : 0;
+      pushReady = true; check();
+    }, error => {console.error('Push-Einstellung konnte nicht geladen werden:',error);pushReady=true;pushUntil=0;check();});
     unsubscribe = db.collection('bobinen').where('inGebrauchVonUid','==',user.uid).onSnapshot(snapshot => {
       records = snapshot.docs; check();
     },error => console.error('Bobinen-Erinnerungen konnten nicht geladen werden:',error));
@@ -88,4 +97,5 @@
   document.addEventListener('visibilitychange',check);
   window.addEventListener('focus',check);
 })();
+
 
