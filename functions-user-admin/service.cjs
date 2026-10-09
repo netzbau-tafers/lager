@@ -10,6 +10,16 @@ function createService({auth,db,timestamp,ErrorType}){
   }
   function uid(value){if(typeof value!=='string'||!value||value.length>128||value.includes('/'))throw new ErrorType('invalid-argument','Ungültige Benutzer-ID.');return value;}
   return {
+    async resetLink(request){
+      await requireMaster(request);
+      const target=uid(request.data?.uid);
+      if((await db.collection('account_deletions').doc(target).get()).exists)throw new ErrorType('failed-precondition','Dieses Konto wurde gelöscht.');
+      let user;
+      try{user=await auth.getUser(target);}catch(error){if(error.code==='auth/user-not-found')throw new ErrorType('not-found','Konto nicht gefunden. Bitte die Liste aktualisieren.');throw error;}
+      if(user.disabled||!user.email)throw new ErrorType('failed-precondition','Das Konto ist gesperrt oder hat keine E-Mail-Adresse.');
+      const resetLink=await auth.generatePasswordResetLink(user.email);
+      return {uid:target,email:user.email,resetLink};
+    },
     async create(request){
       await requireMaster(request);
       const data=request.data||{},email=typeof data.email==='string'?data.email.trim():'',username=typeof data.username==='string'?data.username.trim():'';
