@@ -1204,12 +1204,12 @@ textarea{
     <div class="search-title">Suche</div>
 
     <div class="search-row">
-      <input id="searchInput" type="text" placeholder="Nach Nummer, Kabeltyp oder Baustelle suchen" oninput="renderFilteredTable()" maxlength="120">
+      <input id="searchInput" type="text" placeholder="Nach Nummer, Kabeltyp oder Baustelle suchen" oninput="renderFilteredTable(true)" maxlength="120">
       <button class="reset" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
     </div>
 
     <div class="filter-row">
-      <select id="statusFilter" onchange="renderFilteredTable()">
+      <select id="statusFilter" onchange="renderFilteredTable(true)">
         <option value="Alle">Alle</option>
         <option value="Lager">Lager</option>
         <option value="Reserviert">Reserviert</option>
@@ -2871,7 +2871,9 @@ function printInventoryReport(){
 }
 
 let overviewBobineId = new URLSearchParams(window.location.search).get('bobine');
-function renderFilteredTable(){
+let focusedBobineId = overviewBobineId;
+function renderFilteredTable(filterChanged = false){
+  if(filterChanged){focusedBobineId = null; overviewBobineId = null;}
   let overviewTarget = null;
   if(overviewBobineId){
     overviewTarget = alleBobinen.find(item => item.id === overviewBobineId);
@@ -2886,6 +2888,7 @@ function renderFilteredTable(){
   const statusFilter = document.getElementById("statusFilter").value;
 
   const gefiltert = alleBobinen.filter(docItem => {
+    if(focusedBobineId && docItem.id !== focusedBobineId) return false;
     const b = docItem.data();
 
     const nummer = String(b.nummer || "").toLowerCase();
@@ -2917,6 +2920,7 @@ function renderFilteredTable(){
   const noResults = document.getElementById("noResults");
   if(gefiltert.length === 0){
     noResults.style.display = "block";
+    noResults.textContent = focusedBobineId ? "Die verlinkte Bobine ist nicht mehr vorhanden. Mit Suche zurücksetzen werden alle Bobinen angezeigt." : "Keine Bobinen gefunden.";
   }else{
     noResults.style.display = "none";
   }
@@ -2945,6 +2949,7 @@ function renderFilteredTable(){
 }
 
 function resetSearch(){
+  focusedBobineId = null; overviewBobineId = null;
   document.getElementById("searchInput").value = "";
   document.getElementById("statusFilter").value = "Alle";
   renderFilteredTable();
@@ -3561,6 +3566,7 @@ document.addEventListener("DOMContentLoaded", function(){
 <script src="navigation.js?v=20261006-access"></script>
 </body>
 </html>
+
 
 
 
