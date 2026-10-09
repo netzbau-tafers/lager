@@ -13,3 +13,12 @@ test('notification shows exactly the linked bobine and opens details',()=>{
   vm.runInContext('resetSearch()',r.c);assert.equal(r.rendered().length,2);
 });
 test('deleted bobine gives a clear message',()=>{const r=run('deleted',[]);assert.match(r.nodes.noResults.textContent,/nicht mehr vorhanden/);});
+test('in-app reminder is suppressed by active push and returns after expiry',()=>{
+  const source=fs.readFileSync(__dirname+'/bobinen-erinnerung.js','utf8');
+  const check=source.slice(source.indexOf('  function check()'),source.indexOf('  function show('));
+  let shown=0,removed=0;
+  const c={timer:null,user:{uid:'alice'},pushReady:true,pushUntil:Date.now()+100000,active:null,records:[{id:'1',data:()=>({})}],document:{visibilityState:'visible'},clearTimeout(){},setTimeout(){return 1;},remove(){removed++;},show(){shown++;},eligible:()=>true};
+  vm.createContext(c);vm.runInContext(check+';check();',c);assert.equal(shown,0);assert.equal(removed,1);
+  c.pushUntil=0;vm.runInContext('check()',c);assert.equal(shown,1);
+  c.pushReady=false;vm.runInContext('check()',c);assert.equal(shown,1);
+});
