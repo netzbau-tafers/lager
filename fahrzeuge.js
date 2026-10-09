@@ -6,7 +6,9 @@
   const dialog=document.getElementById('vehicleDialog'),form=document.getElementById('vehicleForm'),fields=document.getElementById('dialogFields'),save=document.getElementById('dialogSave'),cancel=document.getElementById('dialogCancel');
   const overview=Boolean(document.getElementById('myVehiclesSection'));
   let user=null,vehicles=[],favorites=new Set(),unsubVehicles=null,unsubFavorites=null,pending=null,saving=false,selectedScrolled=false;
-  const selected=new URLSearchParams(location.search).get('fahrzeug'),busy=new Set(),messages=new Map(),histories=new Map(),openHistory=new Set();
+  const selected=new URLSearchParams(location.search).get('fahrzeug'),scanRequested=!overview&&new URLSearchParams(location.search).get('scan')==='1';
+  let scanHandled=false;
+  const busy=new Set(),messages=new Map(),histories=new Map(),openHistory=new Set();
   function node(tag,value='',className=''){const element=document.createElement(tag);element.textContent=value;if(className)element.className=className;return element;}
   function date(value){return value?.toDate?.().toLocaleString('de-CH',{timeZone:'Europe/Zurich',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})||'–';}
   function km(value){return Number.isSafeInteger(value)?value.toLocaleString('de-CH')+' km':'Nicht hinterlegt';}
@@ -66,18 +68,42 @@
         if(!v.active)card.append(node('p','Nachtragen: heute ab 07:00 oder ab dem Ende der letzten Nutzung bis jetzt.','vehicle-help'));
       }
       const feedback=node('p',messages.get(v.id)||'','vehicle-feedback');feedback.setAttribute('role','status');card.append(feedback);
+      if(!overview){const menu=node('details');menu.className='vehicle-menu';menu.append(node('summary','Fahrzeugmenü'),button('QR-Code herunterladen','qr',v.id,'secondary'));card.append(menu);}
       const details=node('details');details.dataset.history=v.id;details.open=openHistory.has(v.id);details.append(node('summary','Nutzungs- und Tankverlauf'));const history=node('div');history.dataset.historyList=v.id;details.append(history);details.addEventListener('toggle',()=>{if(!details.isConnected)return;if(details.open){openHistory.add(v.id);if(!histories.has(v.id))watchHistory(v.id);else historyList(v.id);}else{openHistory.delete(v.id);histories.get(v.id)?.unsubscribe?.();histories.delete(v.id);}});card.append(details);list.append(card);if(details.open)historyList(v.id);
     }
     if(restore){const target=[...list.querySelectorAll('button')].find(n=>n.dataset.action===restore.action&&n.dataset.id===restore.id);target?.focus({preventScroll:true});}
     if(selected&&!selectedScrolled){const card=document.getElementById('vehicle-'+selected);if(card){selectedScrolled=true;card.scrollIntoView({behavior:'smooth',block:'start'});}}
   }
+  function downloadQr(v){
+    const url=new URL('fahrzeuge.html',location.href);url.searchParams.set('fahrzeug',v.id);url.searchParams.set('scan','1');
+    const qr=qrcode(0,'M');qr.addData(url.href);qr.make();
+    const blob=new Blob([qr.createSvgTag({cellSize:8,margin:32,scalable:true})],{type:'image/svg+xml'});
+    const objectUrl=URL.createObjectURL(blob),link=document.createElement('a');link.href=objectUrl;
+    link.download='QR-'+v.name.replace(/[^a-zA-Z0-9_-]/g,'_')+'.svg';document.body.append(link);link.click();link.remove();
+    setTimeout(()=>URL.revokeObjectURL(objectUrl),60000);
+    messages.set(v.id,'QR-Code heruntergeladen. Zum Ausdrucken die Bilddatei öffnen.');render();
+  }
+  function handleScan(){
+    if(!scanRequested||scanHandled)return;scanHandled=true;
+    // Consume the intent before writing: snapshots and reloads must never toggle again.
+    const clean=new URL(location.href);clean.searchParams.delete('scan');history.replaceState(null,'',clean.href);
+    const v=vehicles.find(entry=>entry.id===selected);
+    if(!v){status.textContent='Das gescannte Fahrzeug wurde nicht gefunden.';return;}
+    if(!LagerAccess.write('fahrzeuge')){messages.set(v.id,'Du darfst Fahrzeuge nur ansehen.');render();return;}
+    if(v.active&&v.active.uid!==user.uid){messages.set(v.id,'Dieses Fahrzeug ist von '+v.active.name+' in Gebrauch.');render();return;}
+    if(v.active){openDialog('free',v);return;}
+    const own=vehicles.find(entry=>entry.active?.uid===user.uid);
+    if(own){messages.set(v.id,'Zuerst '+own.name+' freigeben.');render();return;}
+    void act(v,'start');
+  }
   function input(name,label,type,value,max){const wrapper=node('label',label),field=node('input');field.name=name;field.type=type;field.value=value;field.required=true;if(type==='number'){field.min='0';field.max='9999999';field.step='1';field.inputMode='numeric';}else field.maxLength=max;wrapper.append(field);fields.append(wrapper);return field;}
   function openDialog(action,vehicle){
     pending={action,vehicle,requestId:requestId()};fields.replaceChildren();document.getElementById('dialogStatus').textContent='';save.disabled=false;cancel.disabled=false;
-    const titles={create:'Fahrzeug hinzufügen',fuel:'Tanken',takeover:'Fahrzeug für mich übernehmen',day:'Nutzung für heute nachtragen'};
+    const titles={create:'Fahrzeug hinzufügen',fuel:'Tanken',takeover:'Fahrzeug für mich übernehmen',day:'Nutzung für heute nachtragen',free:'Fahrzeug zurückgeben'};
     document.getElementById('dialogTitle').textContent=titles[action]+(vehicle?' · '+vehicle.name:'');
     const note=document.getElementById('dialogNote');note.textContent='';save.textContent='Speichern';
     if(action==='create'){input('name','Fahrzeugname','text','',100);input('plate','Kennzeichen','text','',30);input('km','Aktueller Kilometerstand','number','');}
+    if(action==='free'){note.textContent='Möchtest du das Fahrzeug wieder freigeben?';save.textContent='Fahrzeug zurückgeben';}
     if(action==='fuel'){note.textContent='Lies den aktuellen Kilometerstand am Fahrzeug ab. Nach dem Speichern steht er gross auf der Karte für das Bezahlen am Tankterminal.';const field=input('km','Aktueller Kilometerstand','number','');field.min=String(vehicle.km||0);}
     if(action==='takeover'){note.textContent='Die Nutzung von '+vehicle.active.name+' wird jetzt beendet und im Verlauf als Übernahme dokumentiert. Danach ist das Fahrzeug auf dich eingetragen.';save.textContent='Für mich übernehmen';}
     if(action==='day'){note.textContent='Deine Nutzung wird für heute von frühestens 07:00 oder vom Ende der letzten protokollierten Nutzung bis zum Speichern nachgetragen. Das Fahrzeug bleibt frei.';save.textContent='Nutzung nachtragen';}
@@ -97,9 +123,10 @@
       try{if(favorites.has(v.id))await ref.delete();else await ref.set({updatedAt:firebase.firestore.FieldValue.serverTimestamp()});messages.set(v.id,'Favorit gespeichert.');}
       catch(error){messages.set(v.id,errorText(error));}finally{busy.delete(v.id);render();}return;
     }
+    if(action==='qr'){downloadQr(v);return;}
     if(action==='more'){watchHistory(v.id,(histories.get(v.id)?.limit||30)+30);return;}
     if(!LagerAccess.write('fahrzeuge'))return;
-    if(action==='start'||action==='free'){await act(v,action);return;}
+    if(action==='start'){await act(v,action);return;}
     openDialog(action,v);
   });
   document.getElementById('addVehicle')?.addEventListener('click',()=>openDialog('create'));
@@ -117,10 +144,10 @@
   search?.addEventListener('input',render);onlyFavorites?.addEventListener('change',render);
   LagerAccess.onAuthStateChanged(current=>{
     user=current;unsubVehicles?.();unsubFavorites?.();for(const state of histories.values())state.unsubscribe?.();histories.clear();openHistory.clear();favorites.clear();vehicles=[];
-    if(!user){location.replace('home.html');return;}
+    if(!user){location.replace('home.html'+(scanRequested?'?vehicleScan='+encodeURIComponent(selected||''):''));return;}
     if(overview){const hidden=!LagerAccess.read('fahrzeuge');document.getElementById('myVehiclesSection').hidden=hidden;document.getElementById('vehicleStat').hidden=hidden;if(hidden)return;}
     document.getElementById('appContent').style.display='block';const add=document.getElementById('addVehicle');if(add)add.hidden=!LagerAccess.write('fahrzeugeErstellen');
-    unsubVehicles=db.collection('fahrzeuge').onSnapshot(snapshot=>{vehicles=snapshot.docs.map(doc=>({...doc.data(),id:doc.id}));status.textContent=overview?'Belegung wird automatisch aktualisiert.':vehicles.length+' Fahrzeuge · Belegung wird automatisch aktualisiert';render();},error=>{status.textContent=errorText(error);status.className='vehicle-error';});
+    unsubVehicles=db.collection('fahrzeuge').onSnapshot(snapshot=>{vehicles=snapshot.docs.map(doc=>({...doc.data(),id:doc.id}));status.textContent=overview?'Belegung wird automatisch aktualisiert.':vehicles.length+' Fahrzeuge · Belegung wird automatisch aktualisiert';render();handleScan();},error=>{status.textContent=errorText(error);status.className='vehicle-error';});
     unsubFavorites=db.collection('fahrzeug_favoriten').doc(user.uid).collection('fahrzeuge').onSnapshot(snapshot=>{favorites=new Set(snapshot.docs.map(doc=>doc.id));render();},()=>{status.textContent='Favoriten konnten nicht geladen werden. Bitte die Firestore-Regeln prüfen.';});
   });
 })();

@@ -687,6 +687,8 @@ document.addEventListener("DOMContentLoaded", loadHomeInfos);
 
 LagerAccess.onAuthStateChanged((user) => {
   if(user){
+    const scanId=new URLSearchParams(location.search).get('vehicleScan');
+    if(scanId&&scanId.length<=128&&!scanId.includes('/')){location.replace('fahrzeuge.html?fahrzeug='+encodeURIComponent(scanId)+'&scan=1');return;}
     setNavigationVisibility(user);
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
