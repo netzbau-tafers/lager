@@ -198,6 +198,14 @@
 
     <button onclick="resetPassword()"><i class="fa-solid fa-key"></i> Passwort zurücksetzen</button>
     <p id="profileInfo" class="info"></p>
+    <hr style="margin:18px 0;border:none;border-top:1px solid #eee;">
+    <h2 style="font-size:20px">Smartphone-Benachrichtigungen</h2>
+    <p class="muted">Erinnerung für deine Bobinen nach 48 Stunden in Gebrauch. Solange sie in Gebrauch bleiben, frühestens alle weiteren 48 Stunden. Gilt für dieses Gerät.</p>
+    <button id="pushEnable" type="button"><i class="fa-solid fa-bell"></i> Benachrichtigungen aktivieren</button>
+    <button id="pushTest" type="button">Testnachricht senden</button>
+    <button id="pushDisable" type="button" class="logout-safe">Ausschalten</button>
+    <p class="muted">iPhone: In Safari über Teilen → Zum Home-Bildschirm hinzufügen. Danach die Seite über das neue Symbol öffnen und hier aktivieren.</p>
+    <p id="pushInfo" class="info" role="status" aria-live="polite">Benachrichtigungen werden geprüft …</p>
   </section>
 
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -378,6 +386,7 @@
 <script src="navigation.js?v=20261006-access"></script>
 </body>
 </html>
+
 
 
 
