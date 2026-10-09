@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fahrzeuge | Lagermanager</title>
+<link rel="icon" href="favicon.png"><link rel="manifest" href="site.webmanifest"><link rel="apple-touch-icon" href="favicon.png">
+<link rel="stylesheet" href="navigation.css?v=20261005-menu-style"><link rel="stylesheet" href="fahrzeuge.css?v=20261009">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+<script src="zugriffsrechte.js?v=20261009-fahrzeuge"></script>
+</head>
+<body>
+<div id="appContent" style="display:none">
+<div class="header"><h1>Fahrzeuge</h1></div>
+<nav id="dropdownMenu" class="dropdown-menu">
+<button data-page="home" onclick="location.href='home.html'">Startseite</button>
+<button data-page="index" onclick="location.href='index.html'">Kabellager</button>
+<button data-page="baustellen" onclick="location.href='baustellen.html'">Baustellenmaterial</button>
+<button data-page="fahrzeuge" onclick="location.href='fahrzeuge.html'">Fahrzeuge</button>
+<button data-page="archiv" onclick="location.href='archiv.html'">Archiv</button>
+<button data-page="kabelreport" onclick="location.href='kabel-report.html'">Kabel Report</button>
+<button data-page="logs" onclick="location.href='logs.html'">Protokoll</button>
+<button data-page="profil" onclick="location.href='profil.html'">Profil</button>
+<button class="logout-safe" onclick="logout()">Abmelden</button>
+</nav>
+<main>
+<div class="vehicle-toolbar"><p>Wer fährt gerade? Belegung, Kilometerstand und Verlauf für das ganze Team.</p><button id="addVehicle" type="button" hidden>+ Fahrzeug hinzufügen</button></div>
+<div class="vehicle-filters"><label for="vehicleSearch">Fahrzeug suchen<input id="vehicleSearch" type="search" placeholder="Name oder Kennzeichen"></label><label class="vehicle-check"><input id="onlyFavorites" type="checkbox"> Nur meine Favoriten</label></div>
+<p id="vehicleStatus" role="status">Fahrzeuge werden geladen …</p>
+<div id="vehicleList" class="vehicle-grid"></div>
+</main>
+</div>
+<dialog id="vehicleDialog" aria-labelledby="dialogTitle">
+<form id="vehicleForm"><h2 id="dialogTitle"></h2><p id="dialogNote"></p><div id="dialogFields"></div><p id="dialogStatus" role="status"></p><div class="dialog-actions"><button id="dialogCancel" type="button" class="secondary">Abbrechen</button><button id="dialogSave" type="submit">Speichern</button></div></form>
+</dialog>
+<footer class="app-footer">© 2026 Martin Gross. Alle Rechte vorbehalten.</footer>
+<script>
+firebase.initializeApp({apiKey:'AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w',authDomain:'netzbau-tafers.firebaseapp.com',projectId:'netzbau-tafers',storageBucket:'netzbau-tafers.appspot.com',messagingSenderId:'389541837675',appId:'1:389541837675:web:db580ce67c57a9a16dea2e',measurementId:'G-B5MJGD3108'});
+const auth=firebase.auth();
+function logout(){if(confirm('Wirklich ausloggen?'))auth.signOut().then(()=>location.href='home.html');}
+</script>
+<script src="fahrzeuge.js?v=20261009"></script><script src="navigation.js?v=20261009-fahrzeuge"></script>
+</body>
+</html>

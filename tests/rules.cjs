@@ -29,9 +29,28 @@ const levels=value=>Object.fromEntries(areas.map(key=>[key,value]));
   await setRights({...levels('edit'),beendete:'edit'});await assertSucceeds(updateDoc(doc(worker,'baustellen/c'),{name:'Erlaubt'}));await assertSucceeds(updateDoc(doc(worker,'baustellen_material/c'),{anzahl:2}));await assertSucceeds(updateDoc(doc(worker,'baustellen/c'),{status:'aktiv'}));await assertSucceeds(updateDoc(doc(worker,'baustellen/c'),{status:'rausschreiben'}));await assertSucceeds(updateDoc(doc(worker,'baustellen/c'),{status:'archiviert'}));await assertSucceeds(deleteDoc(doc(worker,'baustellen_material/c')));await assertSucceeds(deleteDoc(doc(worker,'baustellen/c')));
   const sixRights=levels('view');delete sixRights.gespart;await setRights(sixRights);await assertFails(getDoc(doc(worker,'gespart_tarife/a')));await assertSucceeds(getDoc(doc(worker,'bobinen/a')));
   const batch=writeBatch(master);batch.set(doc(master,'users/worker'),{username:'Batch name'},{merge:true});batch.set(doc(master,'user_access/worker'),{permissions:levels('view'),updatedAt:serverTimestamp(),updatedBy:MASTER});await assertSucceeds(batch.commit());
+
+  // New vehicle rights are opt-in, even for legacy administrators.
+  await env.withSecurityRulesDisabled(async context=>{const db=context.firestore();for(const [path,data]of Object.entries({'fahrzeuge/bus':{name:'Bus',plate:'FR123',km:100,status:'frei'},'fahrzeuge/bus/verlauf/session':{actor:{uid:'worker',name:'Max'},start:serverTimestamp(),end:null},'fahrzeuge/bus/aktionen/request':{action:'start'},'fahrzeug_nutzung/worker':{vehicleId:'bus'},'fahrzeug_favoriten/other/fahrzeuge/bus':{updatedAt:serverTimestamp()}}))await setDoc(doc(db,path),data);});
+  await assertFails(getDoc(doc(worker,'fahrzeuge/bus')));await assertFails(getDoc(doc(admin,'fahrzeuge/bus')));await assertFails(getDoc(doc(anon,'fahrzeuge/bus')));
+  for(const level of ['view','edit']){
+    await setRights({...levels('none'),fahrzeuge:level,fahrzeugeErstellen:'edit'});
+    await assertSucceeds(getDocs(collection(worker,'fahrzeuge')));await assertSucceeds(getDoc(doc(worker,'fahrzeuge/bus')));await assertSucceeds(getDocs(collection(worker,'fahrzeuge/bus/verlauf')));
+    await assertFails(updateDoc(doc(worker,'fahrzeuge/bus'),{active:{uid:'forged'}}));await assertFails(setDoc(doc(worker,'fahrzeuge/new'),{name:'Forged'}));await assertFails(deleteDoc(doc(worker,'fahrzeuge/bus')));await assertFails(updateDoc(doc(worker,'fahrzeuge/bus/verlauf/session'),{end:serverTimestamp()}));
+    await assertSucceeds(setDoc(doc(worker,'fahrzeug_favoriten/worker/fahrzeuge/bus'),{updatedAt:serverTimestamp()}));await assertSucceeds(getDocs(collection(worker,'fahrzeug_favoriten/worker/fahrzeuge')));
+    await assertFails(setDoc(doc(worker,'fahrzeug_favoriten/worker/fahrzeuge/unknown'),{updatedAt:serverTimestamp()}));await assertFails(setDoc(doc(worker,'fahrzeug_favoriten/worker/fahrzeuge/bus'),{updatedAt:serverTimestamp(),extra:true}));
+    await assertFails(getDoc(doc(worker,'fahrzeug_favoriten/other/fahrzeuge/bus')));await assertFails(setDoc(doc(worker,'fahrzeug_favoriten/other/fahrzeuge/bus'),{updatedAt:serverTimestamp()}));await assertFails(deleteDoc(doc(worker,'fahrzeug_favoriten/other/fahrzeuge/bus')));
+    await assertFails(getDoc(doc(worker,'fahrzeug_nutzung/worker')));await assertFails(setDoc(doc(worker,'fahrzeug_nutzung/worker'),{vehicleId:null}));await assertFails(getDoc(doc(worker,'fahrzeuge/bus/aktionen/request')));
+    await assertSucceeds(deleteDoc(doc(worker,'fahrzeug_favoriten/worker/fahrzeuge/bus')));
+  }
+  await assertSucceeds(getDoc(doc(master,'fahrzeuge/bus')));await assertFails(updateDoc(doc(master,'fahrzeuge/bus'),{km:1}));
+  await assertFails(setDoc(doc(master,'user_access/worker'),{permissions:{...levels('view'),fahrzeugeErstellen:'view'},updatedAt:serverTimestamp(),updatedBy:MASTER}));
+  await assertFails(setDoc(doc(master,'user_access/worker'),{permissions:{...levels('view'),fahrzeuge:'all'},updatedAt:serverTimestamp(),updatedBy:MASTER}));
+  await assertFails(setDoc(doc(master,'user_access/worker'),{permissions:{...levels('view'),fahrzeugeUebernehmen:'view'},updatedAt:serverTimestamp(),updatedBy:MASTER}));
+  await setRights({...levels('view'),fahrzeuge:'edit',fahrzeugeUebernehmen:'edit'});
   await env.withSecurityRulesDisabled(async context=>{await setDoc(doc(context.firestore(),'account_deletions/worker'),{deletedAt:serverTimestamp(),deletedBy:MASTER});});
   // The same authenticated context represents an already-issued ID token.
-  for(const path of ['bobinen/a','users/worker','user_access/worker','logs/a'])await assertFails(getDoc(doc(worker,path)));
+  for(const path of ['bobinen/a','users/worker','user_access/worker','logs/a','fahrzeuge/bus','fahrzeuge/bus/verlauf/session'])await assertFails(getDoc(doc(worker,path)));
   await assertFails(setDoc(doc(worker,'users/worker'),{username:'Recreated',email:'max@example.com'},{merge:true}));
   await assertFails(deleteDoc(doc(worker,'account_deletions/worker')));
   await assertFails(deleteDoc(doc(master,'account_deletions/worker')));
@@ -39,3 +58,4 @@ const levels=value=>Object.fromEntries(areas.map(key=>[key,value]));
   console.log('Firestore authorization scenarios passed.');
  }finally{await env.cleanup();}
 })().catch(error=>{console.error(error);process.exitCode=1;});
+

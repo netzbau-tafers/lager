@@ -2,7 +2,7 @@
 const {onCall,HttpsError}=require('firebase-functions/v2/https');
 const {initializeApp}=require('firebase-admin/app');
 const {getAuth}=require('firebase-admin/auth');
-const {getFirestore,FieldValue}=require('firebase-admin/firestore');
+const {getFirestore,FieldValue,Timestamp}=require('firebase-admin/firestore');
 const logger=require('firebase-functions/logger');
 const {createService}=require('./service.cjs');
 initializeApp();
@@ -25,3 +25,10 @@ exports.lagerTestPush=pushCall(push.test);
 exports.lagerBobinenPushReminder=onSchedule({schedule:'*/15 7-17 * * 1-5',timeZone:'Europe/Zurich',region:'europe-west1',maxInstances:1,timeoutSeconds:540,retryCount:0},push.remind);
 
 exports.lagerPasswordResetLink=callable(service.resetLink);
+
+
+const {createVehicles}=require('./vehicles.cjs');
+const vehicles=createVehicles({db:getFirestore(),auth:getAuth(),Timestamp,ErrorType:HttpsError});
+const vehicleCall=handler=>onCall({region:'europe-west1',maxInstances:2},async request=>{try{return await handler(request);}catch(error){if(error instanceof HttpsError)throw error;logger.error('Fahrzeugaktion fehlgeschlagen',{code:error.code||'internal'});throw new HttpsError('internal','Fahrzeugaktion konnte nicht gespeichert werden. Bitte aktualisieren und erneut versuchen.');}});
+exports.lagerCreateVehicle=vehicleCall(vehicles.create);
+exports.lagerVehicleAction=vehicleCall(vehicles.action);

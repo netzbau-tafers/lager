@@ -59,7 +59,7 @@ body{
 }
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="zugriffsrechte.js?v=20261006"></script>
+<script src="zugriffsrechte.js?v=20261009-fahrzeuge"></script>
 <link rel="stylesheet" href="navigation.css?v=20261005-menu-style">
 </head>
 
@@ -87,6 +87,7 @@ body{
   <ul>
     <li><strong>Benutzerkonto:</strong> E-Mail-Adresse, Benutzer-ID und Benutzername für Anmeldung, Benutzerzuordnung und Zugriffsverwaltung. Die Anmeldung erfolgt über Firebase Authentication. Zusätzlich werden Zugriffsrechte und der Zeitpunkt des letzten Seitenaufrufs für die Benutzerverwaltung gespeichert. Nur der Master-Administrator kann die Benutzerübersicht aufrufen und Namen sowie Zugriffsrechte anderer Benutzer ändern.</li>
     <li><strong>Kabel und Baustellen:</strong> Kabel-, Baustellen- und Materialdaten sowie verantwortliche Personen, Ersteller und Benutzer, die Kabel in Gebrauch setzen. Dazu gehören Namen beziehungsweise E-Mail-Adressen, Benutzer-IDs und Zeitstempel.</li>
+    <li><strong>Fahrzeuge:</strong> Fahrzeugname, Kennzeichen, Kilometerstand beim Tanken sowie Nutzungszeiträume, Übernahmen und nachgetragene Nutzungen mit Benutzer-ID, Benutzername und Zeitstempeln. Berechtigte Personen können diese Angaben einsehen. Fahrzeugfavoriten werden dem jeweiligen Benutzerkonto zugeordnet.</li>
     <li><strong>Protokoll:</strong> Benutzeraktionen mit Bereich, Aktion, betroffenem Objekt, Benutzerangaben, Details und Zeitpunkt zur betrieblichen Nachverfolgung.</li>
     <li><strong>Reports und Archiv:</strong> Auswertungen und gespeicherte Kabelreports sowie abgeschlossene Baustellen und zugehöriges Material zur betrieblichen Dokumentation.</li>
     <li><strong>Materialvorlagen:</strong> Materialangaben und gegebenenfalls hochgeladene Bilder. Bilder sollen keine unnötigen Personendaten enthalten.</li>
@@ -109,7 +110,7 @@ body{
   <p>Die Anwendung und die Anmeldung verwenden Browser-Speicher. Dort werden unter anderem Anmeldeinformationen für die Sitzung, der Benutzername, zwischengespeicherte Materialvorlagen, Menüeinstellungen sowie bei Nutzung des Spiels Spielstände gespeichert. Browser-Speicher kann über die Website-Daten in den Browser-Einstellungen gelöscht werden; dadurch kann eine erneute Anmeldung erforderlich werden.</p>
   <h3>6. Aufbewahrung</h3>
   <p>Benutzeraktionen im Protokoll (Logs) werden spätestens ein Jahr nach ihrer Erfassung gelöscht. Diese Frist ist auch bei Sicherungen zu berücksichtigen; eine Wiederherstellung darf die Frist nicht verlängern.</p>
-  <p>Für Benutzerkonten, Kabeldaten, Baustellen, Materialvorlagen, Archive und Reports ist hier keine feste einjährige Löschfrist festgelegt. Fragen zur Aufbewahrung oder zur Löschung dieser Daten können an den Verantwortlichen gerichtet werden.</p>
+  <p>Für Benutzerkonten, Kabeldaten, Baustellen, Fahrzeuge und deren Verlauf, Materialvorlagen, Archive und Reports ist hier keine feste einjährige Löschfrist festgelegt. Fragen zur Aufbewahrung oder zur Löschung dieser Daten können an den Verantwortlichen gerichtet werden.</p>
   <h3>7. Auskunft und Berichtigung</h3>
   <p>Sie können beim Verantwortlichen Auskunft über Ihre bearbeiteten Personendaten und deren Berichtigung verlangen. Anliegen zur Löschung oder zur weiteren Bearbeitung können ebenfalls an die oben genannte E-Mail-Adresse gerichtet werden. Gesetzliche und betriebliche Aufbewahrungspflichten werden dabei berücksichtigt.</p>
 </main>
@@ -174,9 +175,10 @@ LagerAccess.onAuthStateChanged((user) => {
 </script>
 
 <script src="bobinen-erinnerung.js"></script>
-<script src="navigation.js?v=20261006-access"></script>
+<script src="navigation.js?v=20261009-fahrzeuge"></script>
 </body>
 </html>
+
 
 
 
