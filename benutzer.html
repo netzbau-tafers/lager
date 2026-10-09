@@ -246,7 +246,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
-<script src="zugriffsrechte.js?v=20261007-beendete-recht"></script>
+<script src="zugriffsrechte.js?v=20261009-fahrzeuge"></script>
 <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",
@@ -264,7 +264,7 @@
 
 function logout(){if(confirm('Wirklich ausloggen?'))auth.signOut().then(()=>location.href='home.html');}
 </script>
-<script src="benutzer.js?v=20261009-reset-link"></script>
+<script src="benutzer.js?v=20261009-fahrzeuge"></script>
 <script>
 (function(){
   const dialog=document.getElementById('newUserPanel'),opener=document.getElementById('openNewUser'),submit=document.getElementById('newUserSubmit');
@@ -285,5 +285,5 @@ function logout(){if(confirm('Wirklich ausloggen?'))auth.signOut().then(()=>loca
   dialog.addEventListener('close',()=>opener.focus());
 })();
 </script>
-<script src="navigation.js?v=20261007-user-icon"></script>
+<script src="navigation.js?v=20261009-fahrzeuge"></script>
 </body></html>

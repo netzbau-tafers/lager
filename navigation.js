@@ -18,9 +18,12 @@
     const toggle=bar.querySelector('button');
     const backdrop=document.createElement('div');backdrop.className='nt-backdrop';backdrop.setAttribute('aria-hidden','true');host.append(backdrop);
     menu.classList.remove('open');menu.setAttribute('role','navigation');menu.setAttribute('aria-label','Hauptnavigation');host.append(menu);
-    const iconPaths={home:'M3 10 12 3 21 10v11h-6v-7H9v7H3z',index:'M20 12a8 8 0 1 1-16 0 8 8 0 0 1 16 0M17 12a5 5 0 1 1-10 0 5 5 0 0 1 10 0M18 18l3 3',baustellen:'M4 17v-4a8 8 0 0 1 16 0v4M9 5v7M15 5v7M2 17h20v4H2z',archiv:'M3 7h18v14H3zM2 3h20v4H2zM9 11h6',logs:'M5 2h14v20H5zM8 7h8M8 12h8M8 17h5',kabelreport:'M3 21h18M6 17v-5M12 17V4M18 17V8',profil:'M16 6a4 4 0 1 1-8 0 4 4 0 0 1 8 0M4 22v-4c0-6 16-6 16 0v4z',benutzer:'M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M2 21v-3c0-5 14-5 14 0v3M16 4a3 3 0 0 1 0 6M19 14c2 1 3 2 3 4v3',backup:'M4 4h16v16H4zM8 4v6h8V4M8 20v-6h8v6',datenschutz:'M12 2 21 6v6c0 5-9 10-9 10S3 17 3 12V6zM12 7v8',logout:'M10 3H3v18h7M8 12h14M17 7l5 5-5 5'};
+    const iconPaths={fahrzeuge:'M3 15V9l2-5h14l2 5v6M3 9h18M3 15h18M5 15v5M19 15v5M6 12h2M16 12h2',home:'M3 10 12 3 21 10v11h-6v-7H9v7H3z',index:'M20 12a8 8 0 1 1-16 0 8 8 0 0 1 16 0M17 12a5 5 0 1 1-10 0 5 5 0 0 1 10 0M18 18l3 3',baustellen:'M4 17v-4a8 8 0 0 1 16 0v4M9 5v7M15 5v7M2 17h20v4H2z',archiv:'M3 7h18v14H3zM2 3h20v4H2zM9 11h6',logs:'M5 2h14v20H5zM8 7h8M8 12h8M8 17h5',kabelreport:'M3 21h18M6 17v-5M12 17V4M18 17V8',profil:'M16 6a4 4 0 1 1-8 0 4 4 0 0 1 8 0M4 22v-4c0-6 16-6 16 0v4z',benutzer:'M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M2 21v-3c0-5 14-5 14 0v3M16 4a3 3 0 0 1 0 6M19 14c2 1 3 2 3 4v3',backup:'M4 4h16v16H4zM8 4v6h8V4M8 20v-6h8v6',datenschutz:'M12 2 21 6v6c0 5-9 10-9 10S3 17 3 12V6zM12 7v8',logout:'M10 3H3v18h7M8 12h14M17 7l5 5-5 5'};
     function icon(key){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');const path=document.createElementNS(svg.namespaceURI,'path');path.setAttribute('d',iconPaths[key]||iconPaths.logs);svg.append(path);return svg}
     function decorateUserAdmin(){
+      const vehicle=menu.querySelector('[data-page="fahrzeuge"]');
+      if(vehicle&&!vehicle.querySelector('svg'))vehicle.prepend(icon('fahrzeuge'));
+      if(vehicle&&location.pathname.endsWith('/fahrzeuge.html')){vehicle.classList.add('active-page');vehicle.setAttribute('aria-current','page');}
       const backup=menu.querySelector('[data-page="backup"]');
       if(backup&&!backup.querySelector('svg'))backup.prepend(icon('backup'));
       const link=menu.querySelector('[data-page="benutzer"]');
@@ -50,6 +53,7 @@
     const works=menu.querySelector('[data-page="baustellen"]');
     if(works&&report)menu.insertBefore(works,report);
     if(archive&&report)menu.insertBefore(archive,report);
+    if(!menu.querySelector('[data-page="fahrzeuge"]')){const vehicle=document.createElement('a');vehicle.href='fahrzeuge.html';vehicle.dataset.page='fahrzeuge';vehicle.textContent='Fahrzeuge';vehicle.style.display='none';menu.insertBefore(vehicle,report||menu.querySelector('[data-page="profil"]'));decorateUserAdmin();}
     const section=document.createElement('div');section.className='nt-section';section.textContent='VERWALTUNG';
     const firstAdmin=report||menu.querySelector('[data-page="logs"], [data-page="profil"]');if(firstAdmin)menu.insertBefore(section,firstAdmin);
     const overview=document.createElement('a');overview.href='meine-uebersicht.html';overview.append(icon('profil'),document.createTextNode('Meine Übersicht'));
@@ -89,6 +93,7 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
+
 
 
 

@@ -4,10 +4,10 @@
   const MASTER='pmyu29TlC3QM7JIysmy2EmiHSWW2';
   const ADMINS=['smnnQd4RhEQZR3uuNN0otNALUqi1',MASTER,'PAtM8Lv1TBNLSiQzBLJK9Oda8KK2','hwZEme8xvkasSAGrmOtQRLOnnXn1','PKDpb7Cb7ig8ZKZRMm23FOKnCHQ2','Tgj9KT6C21XjeistBWRiSVYqTDC2','DSMERv7Uu4b4eEYQx5SKbjvdher2'];
   const LIMITED=['POSB6W7xeDZ8Dlba03ZP3J02dMC3','AX08qKp7lte6vslQMFn76FVqxw53','KYqiqNKTmkQQYVWAa6bp6vSvTlV2'];
-  const areas={kabellager:'Kabellager',baustellen:'Baustellenmaterial',materialvorlagen:'Materialvorlagen verwalten',beendete:'Beendete Baustellen verwalten',archiv:'Archiv',kabelreport:'Kabel Report',logs:'Protokoll',spiel:'Mast Runner'};
-  const pages={'index.html':'kabellager','baustellen.html':'baustellen','archiv.html':'archiv','kabel-report.html':'kabelreport','logs.html':'logs','strommast-game.html':'spiel','gespart.html':'gespart','benutzer.html':'benutzer'};
+  const areas={fahrzeuge:'Fahrzeuge',fahrzeugeUebernehmen:'Belegte Fahrzeuge übernehmen',fahrzeugeErstellen:'Neue Fahrzeuge hinzufügen',kabellager:'Kabellager',baustellen:'Baustellenmaterial',materialvorlagen:'Materialvorlagen verwalten',beendete:'Beendete Baustellen verwalten',archiv:'Archiv',kabelreport:'Kabel Report',logs:'Protokoll',spiel:'Mast Runner'};
+  const pages={'fahrzeuge.html':'fahrzeuge','index.html':'kabellager','baustellen.html':'baustellen','archiv.html':'archiv','kabel-report.html':'kabelreport','logs.html':'logs','strommast-game.html':'spiel','gespart.html':'gespart','benutzer.html':'benutzer'};
   let uid=null,permissions={},configured=false,ready=null,unsubscribe=null,profileUnsubscribe=null;
-  function defaults(id){const admin=ADMINS.includes(id),limited=LIMITED.includes(id);return {beendete:admin&&!limited?'edit':'none',materialvorlagen:admin&&!limited?'edit':'none',kabellager:'edit',baustellen:limited?'none':'edit',archiv:admin?'edit':'none',kabelreport:admin?'edit':'view',logs:admin?'edit':'none',spiel:'edit',gespart:'edit'};}
+  function defaults(id){const admin=ADMINS.includes(id),limited=LIMITED.includes(id);return {fahrzeuge:'none',fahrzeugeUebernehmen:'none',fahrzeugeErstellen:'none',beendete:admin&&!limited?'edit':'none',materialvorlagen:admin&&!limited?'edit':'none',kabellager:'edit',baustellen:limited?'none':'edit',archiv:admin?'edit':'none',kabelreport:admin?'edit':'view',logs:admin?'edit':'none',spiel:'edit',gespart:'edit'};}
   function level(area){if(!uid)return 'none';if(uid===MASTER)return 'edit';if(area==='benutzer')return 'none';if(area==='materialvorlagen'||area==='beendete')return permissions[area]||(ADMINS.includes(uid)&&permissions.baustellen==='edit'?'edit':'none');return permissions[area]||'none';}
   function read(area){return ['view','edit'].includes(level(area));}
   function write(area){return level(area)==='edit';}
@@ -30,7 +30,7 @@
         userAdmin.after(backup);
       }
       if(backup)backup.style.display=uid===MASTER?'inline-flex':'none';
-      const keys={index:'kabellager',baustellen:'baustellen',archiv:'archiv',kabelreport:'kabelreport',logs:'logs',benutzer:'benutzer'};
+      const keys={fahrzeuge:'fahrzeuge',index:'kabellager',baustellen:'baustellen',archiv:'archiv',kabelreport:'kabelreport',logs:'logs',benutzer:'benutzer'};
       for(const node of menu.querySelectorAll('[data-page]')){const area=keys[node.dataset.page];if(area)node.style.display=read(area)?'inline-flex':'none';}
       // Capture navigation so older inline administrator checks cannot deny assigned access.
       if(!menu.dataset.accessReady){menu.dataset.accessReady='true';menu.addEventListener('click',event=>{const node=event.target.closest('[data-page]');const key=node?.dataset.page;if(!keys[key])return;event.preventDefault();event.stopImmediatePropagation();if(read(keys[key]))location.href=key==='index'?'index.html':key==='kabelreport'?'kabel-report.html':key+'.html';},true);}
@@ -65,3 +65,4 @@
   window.LagerAccess={MASTER,areas,defaults,read,write,manager,requireWrite,onAuthStateChanged,apply,load};
   document.addEventListener('DOMContentLoaded',()=>{apply();const root=document.getElementById('appContent')||document.body;let queued=false;new MutationObserver(()=>{if(queued)return;queued=true;queueMicrotask(()=>{queued=false;/* Only new controls; avoid observing our own attribute writes. */for(const node of root.querySelectorAll('[data-access-write]')){const disabled=!write(node.dataset.accessWrite);node.hidden=disabled;if('disabled'in node)node.disabled=disabled;}});}).observe(root,{childList:true,subtree:true});});
 })();
+
