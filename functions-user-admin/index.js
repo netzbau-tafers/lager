@@ -12,3 +12,14 @@ exports.lagerListUsers=callable(service.list);
 exports.lagerDeleteUser=callable(service.remove);
 
 exports.lagerCreateUser=callable(service.create);
+
+
+const {onSchedule}=require('firebase-functions/v2/scheduler');
+const {getMessaging}=require('firebase-admin/messaging');
+const {createPush}=require('./push.cjs');
+const push=createPush({db:getFirestore(),auth:getAuth(),messaging:getMessaging(),FieldValue,ErrorType:HttpsError,logger});
+const pushCall=handler=>onCall({region:'europe-west1',maxInstances:2},handler);
+exports.lagerRegisterPush=pushCall(push.register);
+exports.lagerUnregisterPush=pushCall(push.unregister);
+exports.lagerTestPush=pushCall(push.test);
+exports.lagerBobinenPushReminder=onSchedule({schedule:'*/15 7-17 * * 1-5',timeZone:'Europe/Zurich',region:'europe-west1',maxInstances:1,timeoutSeconds:540,retryCount:0},push.remind);

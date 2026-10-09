@@ -54,6 +54,11 @@ service cloud.firestore {
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['username','email','updatedAt','lastSeenAt']) && validOwnProfile());
       allow delete: if master() && userId != request.auth.uid;
     }
+    // Only the current user may read their own push preference; all existing rules stay unchanged.
+    match /push_preferences/{userId} {
+      allow get: if signedIn() && request.auth.uid == userId;
+      allow list, write: if false;
+    }
     match /bobinen/{document} {
       allow read: if canRead('kabellager');
       allow create, update, delete: if canWrite('kabellager');
@@ -102,3 +107,4 @@ service cloud.firestore {
     }
   }
 }
+
