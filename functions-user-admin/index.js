@@ -22,4 +22,4 @@ const pushCall=handler=>onCall({region:'europe-west1',maxInstances:2},handler);
 exports.lagerRegisterPush=pushCall(push.register);
 exports.lagerUnregisterPush=pushCall(push.unregister);
 exports.lagerTestPush=pushCall(push.test);
-exports.lagerBobinenPushReminder=onSchedule({schedule:'every 15 minutes',timeZone:'Europe/Zurich',region:'europe-west1',maxInstances:1,timeoutSeconds:540,retryCount:0},push.remind);
+exports.lagerBobinenPushReminder=onSchedule({schedule:'*/15 7-17 * * 1-5',timeZone:'Europe/Zurich',region:'europe-west1',maxInstances:1,timeoutSeconds:540,retryCount:0},push.remind);
