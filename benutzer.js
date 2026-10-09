@@ -4,6 +4,7 @@
   let rows=[],busy=false;
   const functions=firebase.app().functions("europe-west1");
   const listAccounts=functions.httpsCallable("lagerListUsers"),deleteAccount=functions.httpsCallable("lagerDeleteUser");
+  const generateResetLink=functions.httpsCallable("lagerPasswordResetLink");
   const clean=value=>String(value||'').replace(/[<>]/g,'').replace(/[\u0000-\u001F\u007F]/g,' ').replace(/\s+/g,' ').trim().slice(0,120);
   function text(tag,value){const node=document.createElement(tag);node.textContent=value;return node;}
   function colorPermission(select){
@@ -58,21 +59,27 @@
       if(auth.currentUser?.uid===LagerAccess.MASTER){
         const reset=text('button','Passwort zurücksetzen');reset.type='button';
         const icon=document.createElement('i');icon.className='fa-solid fa-key';icon.setAttribute('aria-hidden','true');reset.prepend(icon);
-        reset.disabled=!row.email;reset.title=row.email?'E-Mail zum Zurücksetzen senden':'Keine E-Mail hinterlegt';card.insertBefore(reset,feedback);
+        reset.disabled=!row.email;reset.title='Link zum Zurücksetzen erzeugen';card.insertBefore(reset,feedback);
+        const linkPanel=document.createElement('div');linkPanel.hidden=true;
+        const linkLabel=text('label','Passwort-Link für '+(row.email||row.username||row.id));
+        const linkInput=document.createElement('input');linkInput.type='text';linkInput.readOnly=true;linkInput.style.width='100%';linkInput.style.boxSizing='border-box';
+        linkLabel.append(linkInput);const copy=text('button','Link kopieren');copy.type='button';
+        linkPanel.append(linkLabel,copy);card.insertBefore(linkPanel,feedback);
+        copy.addEventListener('click',async()=>{
+          try{await navigator.clipboard.writeText(linkInput.value);feedback.textContent='Passwort-Link kopiert.';}
+          catch(_){linkInput.focus();linkInput.select();feedback.textContent='Bitte den markierten Link kopieren.';}
+        });
         reset.addEventListener('click',async()=>{
           if(reset.disabled||auth.currentUser?.uid!==LagerAccess.MASTER)return;
-          const email=String(row.email||'').trim();
-          if(!email){feedback.textContent='Keine E-Mail hinterlegt. Bitte die Liste aktualisieren.';return;}
-          if(!confirm('E-Mail zum Zurücksetzen des Passworts an '+email+' senden?\n\nDer Benutzer legt über den Link selbst ein neues Passwort fest.'))return;
-          reset.disabled=true;feedback.style.color='';feedback.textContent='E-Mail wird angefordert …';
+          reset.disabled=true;linkPanel.hidden=true;linkInput.value='';feedback.style.color='';feedback.textContent='Passwort-Link wird erstellt …';
           try{
-            auth.languageCode='de';
-            await auth.sendPasswordResetEmail(email);
-            feedback.style.color='#1b5e20';feedback.textContent='E-Mail zum Zurücksetzen an '+email+' angefordert. Bitte auch den Spam-Ordner prüfen.';
+            const result=await generateResetLink({uid:row.id}),data=result.data;
+            if(data?.uid!==row.id||typeof data.resetLink!=='string'||!data.resetLink.startsWith('https://'))throw Error('Ungültige Serverantwort');
+            linkInput.value=data.resetLink;linkPanel.hidden=false;
+            feedback.style.color='#1b5e20';feedback.textContent='Link für '+data.email+' erstellt. Kopiere ihn und sende ihn der Person. Es wurde keine E-Mail versendet.';
           }catch(error){
             feedback.style.color='#b3261e';
-            const messages={'auth/too-many-requests':'Zu viele Anfragen. Bitte später erneut versuchen.','auth/network-request-failed':'Keine Verbindung. Bitte die Internetverbindung prüfen.','auth/invalid-email':'Die E-Mail-Adresse ist ungültig. Bitte die Liste aktualisieren.','auth/user-not-found':'Das Konto wurde nicht gefunden. Bitte die Liste aktualisieren.'};
-            feedback.textContent=messages[error.code]||'Die E-Mail konnte nicht angefordert werden. Bitte später erneut versuchen.';
+            feedback.textContent=['functions/not-found','functions/failed-precondition','functions/permission-denied'].includes(error.code)?error.message:'Der Passwort-Link konnte nicht erstellt werden. Prüfe, ob lagerPasswordResetLink in Firebase veröffentlicht ist.';
           }finally{reset.disabled=!row.email;}
         });
       }
