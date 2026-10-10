@@ -28,7 +28,7 @@ exports.lagerPasswordResetLink=callable(service.resetLink);
 
 
 const {createVehicles}=require('./vehicles.cjs');
-const vehicles=createVehicles({db:getFirestore(),auth:getAuth(),Timestamp,ErrorType:HttpsError});
+const vehicles=createVehicles({db:getFirestore(),auth:getAuth(),Timestamp,FieldValue,ErrorType:HttpsError});
 const vehicleCall=handler=>onCall({region:'europe-west1',maxInstances:2},async request=>{try{return await handler(request);}catch(error){if(error instanceof HttpsError)throw error;logger.error('Fahrzeugaktion fehlgeschlagen',{code:error.code||'internal'});throw new HttpsError('internal','Fahrzeugaktion konnte nicht gespeichert werden. Bitte aktualisieren und erneut versuchen.');}});
 exports.lagerCreateVehicle=vehicleCall(vehicles.create);
 exports.lagerDeleteVehicle=vehicleCall(vehicles.remove);
@@ -36,7 +36,7 @@ exports.lagerVehicleAction=vehicleCall(vehicles.action);
 
 const {onDocumentCreated}=require('firebase-functions/v2/firestore');
 const {createBackfill,createBackfillNotifier}=require('./vehicle-backfill.cjs');
-const backfill=createBackfill({db:getFirestore(),auth:getAuth(),Timestamp,ErrorType:HttpsError});
+const backfill=createBackfill({db:getFirestore(),auth:getAuth(),Timestamp,FieldValue,ErrorType:HttpsError});
 exports.lagerVehicleBackfillUsers=vehicleCall(backfill.recipients);
 exports.lagerVehicleBackfill=vehicleCall(backfill.propose);
 exports.lagerVehicleBackfillReview=vehicleCall(backfill.review);
@@ -48,3 +48,8 @@ const vehicleSchedule={timeZone:'Europe/Zurich',region:'europe-west1',maxInstanc
 exports.lagerVehiclePushReminderWeekdays=onSchedule({...vehicleSchedule,schedule:'10 17 * * 1-4'},remindVehicles);
 exports.lagerVehiclePushReminderFriday=onSchedule({...vehicleSchedule,schedule:'55 11 * * 5'},remindVehicles);
 
+
+const {createLogbook}=require("./vehicle-logbook.cjs");
+const logbook=createLogbook({db:getFirestore(),auth:getAuth(),Timestamp,ErrorType:HttpsError});
+exports.lagerVehicleLogbook=vehicleCall(logbook.search);
+exports.lagerVehicleLogbookVehicles=vehicleCall(logbook.catalog);

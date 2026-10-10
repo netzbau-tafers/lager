@@ -9,11 +9,11 @@ function fixture(){
   const data=new Map(),audit=[],users=new Map(),versions=new Map();let serial=0,queue=Promise.resolve(),clock=Date.parse('2026-10-09T08:00:00Z');
   const snapshot=path=>({exists:data.has(path),data:()=>data.get(path)});
   const doc=path=>({path,id:path.split('/').at(-1),get:async()=>snapshot(path),collection:name=>collection(path+'/'+name)});
-  const collection=path=>({doc:id=>doc(path+'/'+(id||'auto'+(++serial)))});
+  const collection=path=>({doc:id=>doc(path+'/'+(id||'auto'+(++serial))),where(field,op,value){return {get:async()=>({docs:[...data].filter(([key,row])=>key.startsWith(path+'/')&&key.split('/').length===path.split('/').length+1&&row[field]?.toMillis?.()>value.getTime()).map(([,row])=>({data:()=>row}))})};}});
   const db={collection,recursiveDelete:async ref=>{for(const path of data.keys())if(path===ref.path||path.startsWith(ref.path+'/'))data.delete(path);},runTransaction(callback){
     const result=queue.then(async()=>{
       const writes=[];let writing=false;
-      const tx={delete:ref=>{writing=true;writes.push(['delete',ref.path]);},get:async ref=>{assert.equal(writing,false,'transaction read after write');return snapshot(ref.path);},create:(ref,value)=>{writing=true;writes.push(['create',ref.path,value]);},update:(ref,value)=>{writing=true;writes.push(['update',ref.path,value]);},set:(ref,value)=>{writing=true;writes.push(['set',ref.path,value]);}};
+      const tx={delete:ref=>{writing=true;writes.push(['delete',ref.path]);},get:async ref=>{assert.equal(writing,false,'transaction read after write');return ref.get?ref.get():snapshot(ref.path);},create:(ref,value)=>{writing=true;writes.push(['create',ref.path,value]);},update:(ref,value)=>{writing=true;writes.push(['update',ref.path,value]);},set:(ref,value)=>{writing=true;writes.push(['set',ref.path,value]);}};
       await callback(tx);const draft=new Map(data);
       for(const [type,path,value]of writes){if(type==='delete'){draft.delete(path);continue;}if(type!=='set')assert.equal(draft.has(path),type==='update',type+' existence');draft.set(path,type==='update'?{...draft.get(path),...value}:value);}
       data.clear();for(const pair of draft)data.set(...pair);audit.push(writes);return undefined;

@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fahrzeuge | Lagermanager</title>
+<title>Fahrtenbuch | Lagermanager</title>
 <link rel="icon" href="favicon.png"><link rel="manifest" href="site.webmanifest"><link rel="apple-touch-icon" href="favicon.png">
 <link rel="stylesheet" href="navigation.css?v=20261005-menu-style"><link rel="stylesheet" href="fahrzeuge.css?v=20261010-backfill">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -13,7 +13,7 @@
 </head>
 <body>
 <div id="appContent" style="display:none">
-<div class="header"><h1>Fahrzeuge</h1></div>
+<div class="header"><h1>Fahrtenbuch</h1></div>
 <nav id="dropdownMenu" class="dropdown-menu">
 <button data-page="home" onclick="location.href='home.html'">Startseite</button>
 <button data-page="index" onclick="location.href='index.html'">Kabellager</button>
@@ -26,23 +26,27 @@
 <button class="logout-safe" onclick="logout()">Abmelden</button>
 </nav>
 <main>
-<div class="vehicle-toolbar"><p>Wer fährt gerade? Belegung, Kilometerstand und Verlauf für das ganze Team.</p><button id="addVehicle" type="button" hidden>+ Fahrzeug hinzufügen</button></div>
-<p><a href="fahrtenbuch.html">Fahrtenbuch öffnen · Nutzung und Tankungen nach Datum suchen</a></p>
-<div class="vehicle-filters"><label for="vehicleSearch">Fahrzeug suchen<input id="vehicleSearch" type="search" placeholder="Name oder Kennzeichen"></label><label class="vehicle-check"><input id="onlyFavorites" type="checkbox"> Nur meine Favoriten</label></div>
-<p id="vehicleStatus" role="status">Fahrzeuge werden geladen …</p>
-<div id="vehicleList" class="vehicle-grid"></div>
+<p>Nutzungen und Tankungen gezielt nach Fahrzeug und Datum suchen. Alle Zeiten sind Schweizer Ortszeit.</p>
+<form id="logbookSearch" class="vehicle-filters">
+<label>Fahrzeug<select id="logbookVehicle" required><option value="">Fahrzeuge werden geladen …</option></select></label>
+<label>Datum<input id="logbookDate" type="date" required></label>
+<label>Uhrzeit (optional)<input id="logbookTime" type="time"><small>Leer lassen für den ganzen Tag.</small></label>
+<label>Einträge<select id="logbookKind"><option value="all">Nutzung und Tankungen</option><option value="use">Nur Nutzungen</option><option value="fuel">Nur Tankungen</option></select></label>
+<button id="logbookSubmit" type="submit" disabled>Suchen</button>
+</form>
+<p id="logbookStatus" role="status">Bitte anmelden …</p>
+<p>Eine offene Nutzung bedeutet „Rückgabe nicht erfasst“. Nachträge mit ausstehender Bestätigung sind entsprechend gekennzeichnet.</p>
+<div id="logbookResults" class="vehicle-grid"></div>
+<button id="logbookMore" type="button" hidden>Weitere laden</button>
 </main>
 </div>
-<dialog id="vehicleDialog" aria-labelledby="dialogTitle">
-<form id="vehicleForm"><h2 id="dialogTitle"></h2><p id="dialogNote"></p><div id="dialogFields"></div><p id="dialogStatus" role="status"></p><div class="dialog-actions"><button id="dialogCancel" type="button" class="secondary">Abbrechen</button><button id="dialogSave" type="submit">Speichern</button></div></form>
-</dialog>
+
 <footer class="app-footer">© 2026 Martin Gross. Alle Rechte vorbehalten.</footer>
 <script>
 firebase.initializeApp({apiKey:'AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w',authDomain:'netzbau-tafers.firebaseapp.com',projectId:'netzbau-tafers',storageBucket:'netzbau-tafers.appspot.com',messagingSenderId:'389541837675',appId:'1:389541837675:web:db580ce67c57a9a16dea2e',measurementId:'G-B5MJGD3108'});
 const auth=firebase.auth();
 function logout(){if(confirm('Wirklich ausloggen?'))auth.signOut().then(()=>location.href='home.html');}
 </script>
-<script src="vendor/qrcode.js"></script><script src="fahrzeuge.js?v=20261010-fahrtenbuch"></script><script src="navigation.js?v=20261010-fahrtenbuch"></script>
+<script src="fahrtenbuch.js?v=20261010"></script><script src="navigation.js?v=20261010-fahrtenbuch"></script>
 </body>
 </html>
-

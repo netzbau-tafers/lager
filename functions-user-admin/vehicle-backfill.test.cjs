@@ -11,11 +11,11 @@ function setup(){
   rows.set('fahrzeuge/car',{name:'Unimog',plate:'FR 123',revision:0,active:{uid:'other'},lastUseEnd:Timestamp.fromMillis(100)});
   const snapshot=ref=>({id:ref.id,ref,exists:rows.has(ref.path),data:()=>rows.get(ref.path)});
   const doc=path=>({path,id:path.split('/').at(-1),collection:name=>collection(path+'/'+name),get:async()=>snapshot(doc(path)),set:async(data,options)=>{rows.set(path,options?.merge?{...rows.get(path),...data}:data);}});
-  const collection=path=>({doc:id=>doc(path+'/'+id),where(field,operator,value){return {get:async()=>({docs:[...rows].filter(([key,data])=>key.startsWith(path+'/')&&key.split('/').length===path.split('/').length+1&&data[field]===value).map(([key])=>snapshot(doc(key)))})};}});
+  const collection=path=>({doc:id=>doc(path+'/'+id),where(field,operator,value){return {get:async()=>({docs:[...rows].filter(([key,data])=>key.startsWith(path+'/')&&key.split('/').length===path.split('/').length+1&&(operator==='>'?data[field]?.toMillis?.()>value.getTime():data[field]===value)).map(([key])=>snapshot(doc(key)))})};}});
   let tail=Promise.resolve();
   const db={collection,runTransaction(callback){const result=tail.then(async()=>{
     const writes=[];let wrote=false;
-    const tx={get:async ref=>{assert.equal(wrote,false,'all reads must precede writes');return snapshot(ref);},create(ref,data){wrote=true;assert.equal(rows.has(ref.path),false);writes.push(()=>rows.set(ref.path,data));},update(ref,data){wrote=true;assert.equal(rows.has(ref.path),true);writes.push(()=>rows.set(ref.path,{...rows.get(ref.path),...data}));},delete(ref){wrote=true;writes.push(()=>rows.delete(ref.path));},set(ref,data){wrote=true;writes.push(()=>rows.set(ref.path,data));}};
+    const tx={get:async ref=>{assert.equal(wrote,false,'all reads must precede writes');return ref.get?ref.get():snapshot(ref);},create(ref,data){wrote=true;assert.equal(rows.has(ref.path),false);writes.push(()=>rows.set(ref.path,data));},update(ref,data){wrote=true;assert.equal(rows.has(ref.path),true);writes.push(()=>rows.set(ref.path,{...rows.get(ref.path),...data}));},delete(ref){wrote=true;writes.push(()=>rows.delete(ref.path));},set(ref,data){wrote=true;writes.push(()=>rows.set(ref.path,data));}};
     const value=await callback(tx);writes.forEach(write=>write());return value;
   });tail=result.catch(()=>{});return result;}};
   const auth={getUser:async uid=>{if(!users.has(uid))throw new ErrorType('auth/user-not-found','Missing');return users.get(uid);},listUsers:async()=>({users:[...users.values()]})};
@@ -72,9 +72,9 @@ test('only recipient can confirm, including master cannot confirm for somebody e
   for(const uid of ['sender','other',MASTER])await assert.rejects(s.service.review(review(id,'confirmed',uid)),{code:'permission-denied'});
   await s.service.review(review(id));const request=s.rows.get('fahrzeug_nachtraege/'+id);assert.equal(request.status,'confirmed');assert.equal(s.rows.get('fahrzeuge/car/verlauf/'+request.historyId).status,'confirmed');assert.equal(s.rows.get('fahrzeuge/car').active.uid,'other');
 });
-test('rejection removes history but retains decision; repeated review is idempotent',async()=>{
+test('rejection retains a hidden tombstone for incremental backup; repeated review is idempotent',async()=>{
   const s=setup(),{id}=await s.service.propose(sender(proposal)),request=s.rows.get('fahrzeug_nachtraege/'+id);
-  await s.service.review(review(id,'rejected'));await s.service.review(review(id,'rejected'));assert.equal(s.rows.has('fahrzeuge/car/verlauf/'+request.historyId),false);assert.equal(s.rows.get('fahrzeug_nachtraege/'+id).status,'rejected');assert.equal(s.rows.get('fahrzeuge/car').revision,2);await assert.rejects(s.service.review(review(id)),{code:'failed-precondition'});
+  await s.service.review(review(id,'rejected'));await s.service.review(review(id,'rejected'));assert.equal(s.rows.get('fahrzeuge/car/verlauf/'+request.historyId).status,'rejected');assert.equal(s.rows.get('fahrzeug_nachtraege/'+id).status,'rejected');assert.equal(s.rows.get('fahrzeuge/car').revision,2);await assert.rejects(s.service.review(review(id)),{code:'failed-precondition'});
 });
 test('concurrent opposite decisions leave exactly one final decision',async()=>{
   const s=setup(),{id}=await s.service.propose(sender(proposal));const results=await Promise.allSettled([s.service.review(review(id)),s.service.review(review(id,'rejected'))]);assert.equal(results.filter(result=>result.status==='fulfilled').length,1);assert.equal(s.rows.get('fahrzeug_nachtraege/'+id).status,'confirmed');
