@@ -81,3 +81,15 @@ node --test tests/vehicle-notification-link.test.cjs functions-user-admin/vehicl
 ```
 
 
+
+## Fahrzeuginformationen bearbeiten
+
+Im Drei-Punkte-Menü ist „Informationen“ für alle mit Fahrzeugzugriff verfügbar. Beim Hinzufügen und Bearbeiten können Fahrzeugverantwortlicher (optional, 100 Zeichen) und Details (optional, 5000 Zeichen, mehrere Zeilen) hinterlegt werden. „Bearbeiten“ verwendet dieselbe Berechtigung `fahrzeugeErstellen` wie Hinzufügen und Löschen, auch serverseitig. Name und Kennzeichen können bearbeitet werden; Kilometerstand, Belegung und bestehender Verlauf bleiben erhalten. Gleichzeitige Änderungen werden über die Fahrzeugrevision geprüft.
+
+Nach dem Zusammenführen aus dem Repository-Ordner mit `firebase.json` veröffentlichen:
+
+```bash
+firebase deploy --only functions:lager-user-admin:lagerCreateVehicle,functions:lager-user-admin:lagerEditVehicle --project netzbau-tafers
+```
+
+Die HTML/JS/CSS-Dateien werden über GitHub Pages veröffentlicht. Keine neuen Firestore-Regeln oder Indizes erforderlich. Bestehende Fahrzeuge ohne Zusatzinformationen zeigen „Nicht hinterlegt“ an.
