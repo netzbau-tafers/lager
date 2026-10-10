@@ -5,7 +5,7 @@ class CallableError extends Error{constructor(code,message){super(message);this.
 function fixture({deleteFail=false,batchFail=false}={}){
  const events=[],records=new Map([['users/worker',{username:'Max'}],['user_access/worker',{permissions:{kabellager:'edit'}}]]);let exists=true;
  const auth={getUser:async id=>({uid:id,disabled:false}),listUsers:async(_size,token)=>({users:[{uid:'worker',email:'max@example.com',passwordHash:'secret',providerData:['secret']}],pageToken:token?undefined:'next'}),deleteUser:async id=>{events.push('auth-delete');if(deleteFail)throw Object.assign(Error('failure'),{code:'auth/internal-error'});if(!exists)throw Object.assign(Error('missing'),{code:'auth/user-not-found'});exists=false;}};
- const ref=(name,id)=>({path:name+'/'+id,set:async data=>{events.push('block');records.set(name+'/'+id,data);}});
+ const ref=(name,id)=>({path:name+'/'+id,get:async()=>({exists:records.has(name+'/'+id),data:()=>records.get(name+'/'+id)}),set:async data=>{events.push('block');records.set(name+'/'+id,data);}});
  const db={collection:name=>({doc:id=>ref(name,id)}),batch:()=>{const removed=[];return {delete:reference=>removed.push(reference.path),commit:async()=>{events.push('cleanup');if(batchFail)throw Error('batch failed');for(const path of removed)records.delete(path);}}}};
  return {service:createService({auth,db,timestamp:()=>123,ErrorType:CallableError}),events,records,request:{auth:{uid:MASTER},data:{uid:'worker',confirmUid:'worker'}}};
 }
@@ -16,3 +16,8 @@ test('Auth failure retains marker and profile for retry',async()=>{const f=fixtu
 test('retry after Auth deletion completes idempotently',async()=>{const f=fixture();await f.service.remove(f.request);await f.service.remove(f.request);assert(!f.records.has('users/worker'));});
 test('cleanup failure preserves block',async()=>{const f=fixture({batchFail:true});await assert.rejects(f.service.remove(f.request));assert(f.records.has('account_deletions/worker'));});
 test('listing supports pages and returns only necessary fields',async()=>{const f=fixture();const result=await f.service.list({auth:{uid:MASTER},data:{}});assert.equal(result.pageToken,'next');assert.deepEqual(Object.keys(result.users[0]).sort(),['disabled','displayName','email','uid']);assert.equal((await f.service.list({auth:{uid:MASTER},data:{pageToken:'next'}})).pageToken,null);});
+
+
+test('delegated view lists users but cannot create or delete',async()=>{const f=fixture();f.records.set('user_access/viewer',{permissions:{benutzer:'view'}});assert((await f.service.list({auth:{uid:'viewer'},data:{}})).users.length);for(const method of ['create','remove'])await assert.rejects(f.service[method]({...f.request,auth:{uid:'viewer'}}),e=>e.code==='permission-denied');});
+test('delegated editor can delete another account but cannot delete master or itself',async()=>{const f=fixture();f.records.set('user_access/editor',{permissions:{benutzer:'edit'}});for(const uid of [MASTER,'editor'])await assert.rejects(f.service.remove({auth:{uid:'editor'},data:{uid,confirmUid:uid}}),e=>e.code==='failed-precondition');await f.service.remove({...f.request,auth:{uid:'editor'}});assert.equal(f.records.get('account_deletions/worker').deletedBy,'editor');});
+test('deleted delegated administrator is denied',async()=>{const f=fixture();f.records.set('user_access/editor',{permissions:{benutzer:'edit'}});f.records.set('account_deletions/editor',{});await assert.rejects(f.service.list({auth:{uid:'editor'}}),e=>e.code==='permission-denied');});
