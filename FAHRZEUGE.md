@@ -93,3 +93,19 @@ firebase deploy --only functions:lager-user-admin:lagerCreateVehicle,functions:l
 ```
 
 Die HTML/JS/CSS-Dateien werden über GitHub Pages veröffentlicht. Keine neuen Firestore-Regeln oder Indizes erforderlich. Bestehende Fahrzeuge ohne Zusatzinformationen zeigen „Nicht hinterlegt“ an.
+
+## Automatische Bereinigung der Fahrzeugaktionen
+
+`lagerVehicleActionCleanup` läuft täglich um 03:15 Uhr (Europe/Zurich). Gelöscht werden ausschliesslich Dokumente unter `fahrzeuge/{id}/aktionen/{anfrage}` mit `createdAt` älter als sieben Tage. Auch bestehende Einträge und Aktionen bereits gelöschter Fahrzeuge werden erfasst. Nutzungs- und Tankverlauf (`verlauf`), Nachträge, Fahrzeugdaten und Belegung werden nicht gelöscht. Wiederholte Anfragen bleiben innerhalb der Aufbewahrungszeit abgesichert; danach verhindert zusätzlich die geprüfte Fahrzeugrevision das erneute Ausführen einer alten Anfrage.
+
+Die Bereinigung fragt nur abgelaufene Dokumente ab, mit Seiten und Löschbatches von höchstens 400 Einträgen. Pro Lauf werden höchstens 10 000 Dokumente geprüft; ein grösserer Rückstand wird an Folgetagen weiterbearbeitet. Der Collection-Group-Index für `aktionen.createdAt` ist bereits in `firestore.indexes.json` enthalten. Fehlende oder ungültige Zeitstempel werden nicht gelöscht. Da täglich bereinigt wird, erfolgt die Löschung nach sieben Tagen beim nächsten Lauf, gewöhnlich vor einem Alter von acht Tagen.
+
+Nach dem Zusammenführen im Repository-Ordner mit `firebase.json` ausführen:
+
+```bash
+firebase deploy --only functions:lager-user-admin:lagerVehicleActionCleanup --project netzbau-tafers
+```
+
+Falls der benötigte Index in Firebase noch nicht besteht, in Firestore einen aufsteigenden Index für `createdAt` mit Collection-Group-Umfang für `aktionen` hinzufügen. Bestehende andere Indizes beibehalten. Eine TTL-Regel oder Änderung der Firestore-Regeln ist nicht erforderlich. Der Zeitplan wird beim Bereitstellen der Funktion eingerichtet. Vor dem ersten erfolgreichen Lauf findet noch keine Bereinigung statt.
+
+Tests: `node --test functions-user-admin/vehicle-action-cleanup.test.cjs`
