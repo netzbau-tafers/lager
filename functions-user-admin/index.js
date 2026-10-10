@@ -70,12 +70,12 @@ exports.lagerVehicleExportRead=exportCall(vehicleExport.read);
 exports.lagerVehicleExportDelete=exportCall(vehicleExport.remove);
 exports.lagerVehicleExportRestore=exportCall(vehicleExport.restore);
 
-const {defineSecret,defineString}=require('firebase-functions/params');
+const {defineSecret}=require('firebase-functions/params');
 const serviceBrevoKey=defineSecret('BREVO_API_KEY');
-const serviceMailSender=defineString('VEHICLE_SERVICE_SENDER',{description:'Bereits in Brevo freigegebene Absenderadresse'});
-const serviceMailRecipient=defineString('VEHICLE_SERVICE_RECIPIENT',{description:'Empfänger für Fahrzeug- und Kranservice-Erinnerungen'});
+const serviceMailSender=defineSecret('VEHICLE_SERVICE_SENDER');
+const serviceMailRecipient=defineSecret('VEHICLE_SERVICE_RECIPIENT');
 const {createServiceReminder}=require('./vehicle-service.cjs');
 exports.lagerVehicleService=vehicleCall(vehicles.service);
-exports.lagerVehicleServiceReminder=onSchedule({...vehicleSchedule,schedule:'0 7 * * *',secrets:[serviceBrevoKey]},async()=>{
+exports.lagerVehicleServiceReminder=onSchedule({...vehicleSchedule,schedule:'0 7 * * *',secrets:[serviceBrevoKey,serviceMailSender,serviceMailRecipient]},async()=>{
   await createServiceReminder({db:getFirestore(),FieldValue,logger,apiKey:serviceBrevoKey.value(),sender:serviceMailSender.value(),recipient:serviceMailRecipient.value()})();
 });
