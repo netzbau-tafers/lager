@@ -122,7 +122,7 @@ test('vehicle information: optional fields, multiline details, edit rights and s
   }
 });
 
-test('service dates enforce editing permission, valid dates and revision',async()=>{
+test('service dates allow vehicle access, enforce valid dates and revision',async()=>{
   const f=fixture(),id=await f.create();
   const save=(uid,extra={})=>f.service.service(f.request(uid,{id,revision:f.vehicle(id).revision,vehicle:'2026-11-09',crane:null,...extra}));
   await save('alice');
@@ -130,6 +130,13 @@ test('service dates enforce editing permission, valid dates and revision',async(
   await rejects(save('alice',{vehicle:'2026-02-30'}),'invalid-argument');
   await rejects(save('alice',{revision:0}),'failed-precondition');
   f.user('bob',{fahrzeuge:'edit',fahrzeugeErstellen:'view'});
+  await save('bob');
+  f.user('bob',{fahrzeuge:'view',fahrzeugeErstellen:'none'});
+  await save('bob');
+  for(const permissions of [{fahrzeuge:'none',fahrzeugeErstellen:'edit'},{}]){
+    f.user('bob',permissions);await rejects(save('bob'),'permission-denied');
+  }
+  f.user('bob',{fahrzeuge:'view'});f.users.get('bob').disabled=true;
   await rejects(save('bob'),'permission-denied');
   await save('alice',{vehicle:null,crane:'2027-01-01'});
   assert.equal(f.vehicle(id).serviceDates.vehicle,null);

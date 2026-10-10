@@ -20,11 +20,12 @@ function createVehicles({db,auth,Timestamp,ErrorType,FieldValue,now=Date.now}){
     const profile=await db.collection('users').doc(uid).get();
     return {uid,name:profile.data()?.username||user.displayName||user.email||'Benutzer'};
   }
-  async function permitted(tx,uid,create=false,takeover=false){
+  async function permitted(tx,uid,create=false,takeover=false,serviceAccess=false){
     const [deleted,access]=await Promise.all([tx.get(db.collection('account_deletions').doc(uid)),tx.get(db.collection('user_access').doc(uid))]);
     if(deleted.exists)fail('permission-denied','Konto gelöscht.');
     if(uid===MASTER)return;
     const p=access.data()?.permissions||{};
+    if(serviceAccess){if(!['view','edit'].includes(p.fahrzeuge))fail('permission-denied','Du hast keinen Zugriff auf Fahrzeuge.');return;}
     if(takeover&&p.fahrzeugeUebernehmen!=='edit')fail('permission-denied','Du darfst keine belegten Fahrzeuge übernehmen.');
     if(create?(!['view','edit'].includes(p.fahrzeuge)||p.fahrzeugeErstellen!=='edit'):p.fahrzeuge!=='edit')fail('permission-denied',create?'Du darfst keine Fahrzeuge hinzufügen, bearbeiten oder löschen.':'Du darfst Fahrzeuge nur ansehen oder hast keinen Zugriff.');
   }
@@ -42,7 +43,7 @@ function createVehicles({db,auth,Timestamp,ErrorType,FieldValue,now=Date.now}){
       for(const key of ['vehicle','crane'])if(data[key]!==null&&!validServiceDate(data[key]))fail('invalid-argument','Gültiges Servicedatum angeben.');
       const ref=db.collection('fahrzeuge').doc(data.id);
       await db.runTransaction(async tx=>{
-        await permitted(tx,who.uid,true);
+        await permitted(tx,who.uid,false,false,true);
         const snapshot=await tx.get(ref);
         if(!snapshot.exists)fail('not-found','Fahrzeug nicht gefunden.');
         const v=snapshot.data();
