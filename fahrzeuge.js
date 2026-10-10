@@ -15,6 +15,9 @@
   const inbox=!overview?document.createElement('section'):null;
   if(inbox){inbox.className='vehicle-confirmations';inbox.hidden=true;inbox.setAttribute('aria-label','Fahrzeugnutzung bestätigen');list.before(inbox);}
   function node(tag,value='',className=''){const element=document.createElement(tag);element.textContent=value;if(className)element.className=className;return element;}
+  function loading(element,active){element.classList.toggle('vehicle-loading',active);element.setAttribute('aria-busy',String(active));}
+  let vehiclesLoading=true,favoritesLoading=true;
+  loading(status,true);
   function date(value){return value?.toDate?.().toLocaleString('de-CH',{timeZone:'Europe/Zurich',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})||'–';}
   function km(value){return Number.isSafeInteger(value)?value.toLocaleString('de-CH')+' km':'Nicht hinterlegt';}
   function requestId(){const bytes=new Uint8Array(16);crypto.getRandomValues(bytes);return Array.from(bytes,n=>n.toString(16).padStart(2,'0')).join('');}
@@ -27,7 +30,7 @@
   const historyPageSize=20;
   function historyList(id){
     const target=[...list.querySelectorAll('[data-history-list]')].find(n=>n.dataset.historyList===id);if(!target)return;
-    target.replaceChildren();const data=histories.get(id);
+    target.replaceChildren();const data=histories.get(id);loading(target,!data||data.loading);
     if(!data){target.append(node('p','Verlauf wird geladen …'));return;}
     if(data.error)target.append(node('p','Verlauf konnte nicht geladen werden. Bitte erneut versuchen.','vehicle-error'));
     if(!data.entries.length)target.append(node('p',data.loading?'Verlauf wird geladen …':data.error?'': 'Keine Einträge für diese Auswahl.'));
@@ -67,7 +70,7 @@
   function render(){
     const focus=document.activeElement;const restore=focus?.dataset?.action?{action:focus.dataset.action,id:focus.dataset.id}:null;
     if(selectedSearch&&search){const vehicle=vehicles.find(v=>v.id===selected);if(vehicle)search.value=vehicle.plate;}
-    list.replaceChildren();const ownVehicle=vehicles.find(v=>v.active?.uid===user?.uid);const query=(search?.value||'').trim().toLocaleLowerCase('de-CH');
+    list.replaceChildren();list.setAttribute('aria-busy',String(vehiclesLoading||favoritesLoading));if(vehiclesLoading||favoritesLoading){const notice=node('p','Fahrzeuge werden geladen …','vehicle-loading');notice.setAttribute('role','status');list.append(notice);return;}const ownVehicle=vehicles.find(v=>v.active?.uid===user?.uid);const query=(search?.value||'').trim().toLocaleLowerCase('de-CH');
     const visible=vehicles.filter(v=>selectedSearch?v.id===selected:(!(overview||onlyFavorites?.checked)||favorites.has(v.id))&&(v.name+' '+v.plate).toLocaleLowerCase('de-CH').includes(query)).sort((a,b)=>Number(Boolean(user)&&b.active?.uid===user.uid)-Number(Boolean(user)&&a.active?.uid===user.uid)||Number(!overview&&b.id===selected)-Number(!overview&&a.id===selected)||Number(favorites.has(b.id))-Number(favorites.has(a.id))||a.name.localeCompare(b.name,'de-CH'));
     if(overview)document.getElementById('vehicleCount').textContent=String(visible.length);
     if(!visible.length)list.append(node('p',overview?'Speichere Fahrzeuge im Bereich „Fahrzeuge“ mit dem Stern als Favoriten.':vehicles.length?'Keine Fahrzeuge für diese Auswahl.':'Noch keine Fahrzeuge angelegt.'));
@@ -92,7 +95,7 @@
         if(ownVehicle&&ownVehicle.id!==v.id)card.append(node('p','Zuerst '+ownVehicle.name+' freigeben, um dieses Fahrzeug zu benutzen.','vehicle-help'));
         if(!v.active)card.append(node('p','Nachtragen: heute ab 07:00 oder ab dem Ende der letzten Nutzung bis jetzt.','vehicle-help'));
       }
-      const feedback=node('p',messages.get(v.id)||'','vehicle-feedback');feedback.setAttribute('role','status');card.append(feedback);
+      const feedback=node('p',busy.has(v.id)?(messages.get(v.id)||'Wird verarbeitet …'):messages.get(v.id)||'','vehicle-feedback');loading(feedback,busy.has(v.id));card.setAttribute('aria-busy',String(busy.has(v.id)));feedback.setAttribute('role','status');card.append(feedback);
       const details=node('details');details.dataset.history=v.id;details.open=openHistory.has(v.id);details.append(node('summary','Nutzungs- und Tankverlauf'));const history=node('div');history.dataset.historyList=v.id;history.className='vehicle-history-scroll';history.tabIndex=0;history.setAttribute('role','region');history.setAttribute('aria-label','Nutzungs- und Tankverlauf für '+v.name);details.append(history);details.addEventListener('toggle',()=>{if(!details.isConnected)return;if(details.open){openHistory.add(v.id);if(!histories.has(v.id))void loadHistory(v.id);else historyList(v.id);}else{openHistory.delete(v.id);}});card.append(details);list.append(card);if(details.open){if(!histories.has(v.id))void loadHistory(v.id);else historyList(v.id);}
     }
     if(restore){const target=[...list.querySelectorAll('button')].find(n=>n.dataset.action===restore.action&&n.dataset.id===restore.id);target?.focus({preventScroll:true});}
@@ -163,6 +166,7 @@
   function todayZurich(){return new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Zurich',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}
   async function backfillFields(operation){
     save.disabled=true;
+    const recipientStatus=document.getElementById('dialogStatus');recipientStatus.textContent='Personen werden geladen …';loading(recipientStatus,true);
     const personLabel=node('label','Person'),person=node('select');person.name='targetUid';person.required=true;
     const placeholder=node('option','Person auswählen');placeholder.value='';person.append(placeholder);personLabel.append(person);fields.append(personLabel);
     person.addEventListener('change',()=>{save.textContent=person.value===user?.uid?'Nutzung speichern':'Zur Bestätigung senden';});
@@ -175,8 +179,9 @@
       if(pending!==operation||!dialog.open)return;
       for(const recipient of recipientCache){const option=node('option',recipient.name);option.value=recipient.uid;person.append(option);}
       if(!recipientCache.length){document.getElementById('dialogStatus').textContent='Keine aktiven Personen mit Fahrzeugzugriff gefunden.';return;}
-      save.disabled=false;
+      recipientStatus.textContent='';save.disabled=false;
     }catch(error){if(pending===operation)document.getElementById('dialogStatus').textContent=errorText(error);}
+    finally{if(pending===operation)loading(recipientStatus,false);}
   }
   function renderInbox(){
     if(!inbox)return;inbox.replaceChildren();inbox.hidden=!backfills.length;if(!backfills.length)return;
@@ -187,15 +192,16 @@
       for(const [decision,label] of [['confirmed','Bestätigen'],['rejected','Ablehnen']]){
         const control=node('button',label,decision==='rejected'?'secondary':'');control.type='button';
         control.addEventListener('click',async()=>{
-          for(const button of controls.children)button.disabled=true;feedback.textContent='Wird gespeichert …';
+          for(const button of controls.children)button.disabled=true;feedback.textContent='Wird gespeichert …';loading(feedback,true);
           try{await reviewCall({id:request.id,decision});status.textContent=decision==='confirmed'?'Nutzung bestätigt.':'Nachtrag abgelehnt und aus dem Verlauf entfernt.';}
-          catch(error){feedback.textContent=errorText(error);for(const button of controls.children)button.disabled=false;}
+          catch(error){feedback.textContent=errorText(error);for(const button of controls.children)button.disabled=false;}finally{loading(feedback,false);}
         });controls.append(control);
       }
       card.append(controls,feedback);inbox.append(card);
     }
   }
   function openDialog(action,vehicle,previousVehicle){
+    loading(document.getElementById('dialogStatus'),false);
     pending={action,vehicle,requestId:requestId()};
     if(action==='switch')Object.assign(pending,{previousVehicle,releaseRequestId:requestId(),released:false,targetAction:vehicle.active?'takeover':'start'});fields.replaceChildren();save.hidden=false;cancel.textContent='Abbrechen';document.getElementById('dialogStatus').textContent='';save.disabled=false;cancel.disabled=false;
     const titles={info:'Fahrzeuginformationen',edit:'Fahrzeug bearbeiten',create:'Fahrzeug hinzufügen',fuel:'Tanken',takeover:'Fahrzeug für mich übernehmen',day:'Nutzung für heute nachtragen',free:'Fahrzeug zurückgeben',switch:'Fahrzeug wechseln',backfill:'Nutzung für eine Person nachtragen'};
@@ -235,7 +241,7 @@
     const v=vehicles.find(entry=>entry.id===control.dataset.id);if(!v)return;
     const action=control.dataset.action;
     if(action==='favorite'){
-      busy.add(v.id);render();const ref=db.collection('fahrzeug_favoriten').doc(user.uid).collection('fahrzeuge').doc(v.id);
+      busy.add(v.id);messages.set(v.id,'Favorit wird gespeichert …');render();const ref=db.collection('fahrzeug_favoriten').doc(user.uid).collection('fahrzeuge').doc(v.id);
       try{if(favorites.has(v.id))await ref.delete();else await ref.set({updatedAt:firebase.firestore.FieldValue.serverTimestamp()});messages.set(v.id,'Favorit gespeichert.');}
       catch(error){messages.set(v.id,errorText(error));}finally{busy.delete(v.id);render();}return;
     }
@@ -246,7 +252,7 @@
       if(!LagerAccess.write('fahrzeugeErstellen'))return;
       if(v.active){messages.set(v.id,'Das Fahrzeug ist noch in Gebrauch. Zuerst freigeben.');render();return;}
       if(!confirm(v.name+' ('+v.plate+') aus der Fahrzeugliste löschen? Der gesamte Nutzungs- und Tankverlauf bleibt in Firebase erhalten.'))return;
-      busy.add(v.id);render();
+      busy.add(v.id);messages.set(v.id,'Fahrzeug wird gelöscht …');render();
       try{await deleteCall({id:v.id,revision:v.revision});invalidateHistory(v.id);openHistory.delete(v.id);status.textContent='Fahrzeug gelöscht.';}
       catch(error){messages.set(v.id,errorText(error));}finally{busy.delete(v.id);render();}return;
     }
@@ -261,7 +267,7 @@
   cancel.addEventListener('click',()=>{if(!saving){dialog.close();pending=null;}});dialog.addEventListener('cancel',event=>{if(saving)event.preventDefault();else pending=null;});
   form.addEventListener('submit',async event=>{
     event.preventDefault();if(saving||!pending||pending.action==='info'||!form.reportValidity())return;
-    const operation=pending,values=new FormData(form);saving=true;save.disabled=true;cancel.disabled=true;document.getElementById('dialogStatus').textContent='Wird gespeichert …';
+    const operation=pending,values=new FormData(form);saving=true;save.disabled=true;cancel.disabled=true;loading(save,true);loading(document.getElementById('dialogStatus'),true);document.getElementById('dialogStatus').textContent='Wird gespeichert …';
     try{
       if(operation.action==='create')await createCall({name:values.get('name').trim(),plate:values.get('plate').trim(),km:Number(values.get('km')),responsible:values.get('responsible').trim(),details:values.get('details').trim()});
       else if(operation.action==='edit')await editCall({id:operation.vehicle.id,revision:operation.vehicle.revision,name:values.get('name').trim(),plate:values.get('plate').trim(),responsible:values.get('responsible').trim(),details:values.get('details').trim()});
@@ -284,11 +290,12 @@
       if(!overview&&['start','takeover','switch'].includes(operation.action))ownScrollId=operation.vehicle.id;
       dialog.close();pending=null;render();status.textContent=operation.action==='create'?'Fahrzeug hinzugefügt.':operation.action==='backfill'?(operation.backfillStatus==='confirmed'?'Eigene Nutzung gespeichert. Keine Bestätigung und keine Benachrichtigung nötig.':'Nachtrag gesendet. Die Person kann ihn im Bereich Fahrzeuge bestätigen; eine Smartphone-Benachrichtigung wird an ihre aktivierten Geräte gesendet.'):'Änderung gespeichert.';
     }catch(error){document.getElementById('dialogStatus').textContent=(operation.action==='switch'&&operation.released?operation.previousVehicle.name+' wurde freigegeben. Das gescannte Fahrzeug konnte noch nicht auf dich eingetragen werden. ':'')+errorText(error);if(error.code==='functions/failed-precondition'){save.disabled=true;document.getElementById('dialogStatus').textContent+=' Schliesse dieses Fenster und öffne die Aktion nochmals.';}}
-    finally{saving=false;cancel.disabled=false;if(document.getElementById('dialogStatus').textContent.indexOf('Schliesse dieses Fenster')===-1)save.disabled=false;}
+    finally{loading(save,false);loading(document.getElementById('dialogStatus'),false);saving=false;cancel.disabled=false;if(document.getElementById('dialogStatus').textContent.indexOf('Schliesse dieses Fenster')===-1)save.disabled=false;}
   });
   search?.addEventListener('input',()=>{selectedSearch=false;render();});onlyFavorites?.addEventListener('change',()=>{selectedSearch=false;render();});
   LagerAccess.onAuthStateChanged(current=>{
     ownScrollId=null;if(ownScrollFrame!==null){cancelAnimationFrame(ownScrollFrame);ownScrollFrame=null;}
+    vehiclesLoading=true;favoritesLoading=true;loading(status,true);status.classList.remove('vehicle-error');
     user=current;unsubVehicles?.();unsubFavorites?.();unsubBackfills?.();backfills=[];recipientCache=null;renderInbox();histories.clear();openHistory.clear();favorites.clear();vehicles=[];
     if(!user){const backfillId=new URLSearchParams(location.search).get('nachtrag');location.replace('home.html'+(scanRequested?'?vehicleScan='+encodeURIComponent(selected||''):backfillId?'?vehicleBackfill='+encodeURIComponent(backfillId):''));return;}
     if(overview){const hidden=!LagerAccess.read('fahrzeuge');document.getElementById('myVehiclesSection').hidden=hidden;document.getElementById('vehicleStat').hidden=hidden;if(hidden)return;}
@@ -296,8 +303,8 @@
     if(inbox)unsubBackfills=db.collection('fahrzeug_nachtraege').where('targetUid','==',user.uid).where('status','==','pending').onSnapshot(snapshot=>{
       backfills=snapshot.docs.map(doc=>({...doc.data(),id:doc.id})).sort((a,b)=>b.createdAt.toMillis()-a.createdAt.toMillis());renderInbox();
     },error=>{status.textContent='Bestätigungsanfragen konnten nicht geladen werden. '+errorText(error);});
-    unsubVehicles=db.collection('fahrzeuge').onSnapshot(snapshot=>{const next=snapshot.docs.map(doc=>({...doc.data(),id:doc.id}));for(const previous of vehicles){if(next.find(v=>v.id===previous.id)?.revision!==previous.revision)invalidateHistory(previous.id);}vehicles=next;status.textContent=overview?'Belegung wird automatisch aktualisiert.':vehicles.length+' Fahrzeuge · Belegung wird automatisch aktualisiert';render();handleScan();},error=>{status.textContent=errorText(error);status.className='vehicle-error';});
-    unsubFavorites=db.collection('fahrzeug_favoriten').doc(user.uid).collection('fahrzeuge').onSnapshot(snapshot=>{favorites=new Set(snapshot.docs.map(doc=>doc.id));render();},()=>{status.textContent='Favoriten konnten nicht geladen werden. Bitte die Firestore-Regeln prüfen.';});
+    unsubVehicles=db.collection('fahrzeuge').onSnapshot(snapshot=>{const next=snapshot.docs.map(doc=>({...doc.data(),id:doc.id}));for(const previous of vehicles){if(next.find(v=>v.id===previous.id)?.revision!==previous.revision)invalidateHistory(previous.id);}vehicles=next;vehiclesLoading=false;loading(status,false);status.textContent=overview?'Belegung wird automatisch aktualisiert.':vehicles.length+' Fahrzeuge · Belegung wird automatisch aktualisiert';render();handleScan();},error=>{vehiclesLoading=false;loading(status,false);status.textContent=errorText(error);status.className='vehicle-error';render();});
+    unsubFavorites=db.collection('fahrzeug_favoriten').doc(user.uid).collection('fahrzeuge').onSnapshot(snapshot=>{favorites=new Set(snapshot.docs.map(doc=>doc.id));favoritesLoading=false;render();},()=>{favoritesLoading=false;render();status.textContent='Favoriten konnten nicht geladen werden. Bitte die Firestore-Regeln prüfen.';});
   });
 })();
 
