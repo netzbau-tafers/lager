@@ -58,20 +58,23 @@ function createBackfill({db,auth,Timestamp,ErrorType,now=Date.now}){
       if(!Number.isFinite(start)||!Number.isFinite(end)||start>=end||end>now())fail('invalid-argument','Gültigen abgeschlossenen Zeitraum in Schweizer Zeit angeben. Bei der Zeitumstellung bitte eine eindeutige Uhrzeit wählen.');
       const selected=await account(data.targetUid);
       if(!['view','edit'].includes(selected.level))fail('permission-denied','Die ausgewählte Person hat keinen Fahrzeugzugriff.');
+      const self=who.uid===selected.uid;
       const id=who.uid+'_'+data.requestId,ref=requests.doc(id),vehicleRef=db.collection('fahrzeuge').doc(data.vehicleId),historyRef=vehicleRef.collection('verlauf').doc('nachtrag_'+id);
-      await db.runTransaction(async tx=>{
+      const result=await db.runTransaction(async tx=>{
         await txAllowed(tx,who.uid,true);await txAllowed(tx,selected.uid,false);
         const [old,vehicle]=await Promise.all([tx.get(ref),tx.get(vehicleRef)]);
-        if(old.exists){const previous=old.data();if(previous.vehicleId!==data.vehicleId||previous.targetUid!==data.targetUid||previous.start.toMillis()!==start||previous.end.toMillis()!==end||previous.wholeDay!==data.wholeDay)fail('invalid-argument','Diese Anfrage wurde bereits anders verwendet.');return;}
+        if(old.exists){const previous=old.data();if(previous.vehicleId!==data.vehicleId||previous.targetUid!==data.targetUid||previous.start.toMillis()!==start||previous.end.toMillis()!==end||previous.wholeDay!==data.wholeDay)fail('invalid-argument','Diese Anfrage wurde bereits anders verwendet.');return previous.status;}
         if(!vehicle.exists)fail('not-found','Fahrzeug nicht gefunden.');
         const v=vehicle.data(),time=Timestamp.fromMillis(now());
-        const proposal={vehicleId:data.vehicleId,vehicleName:v.name,plate:v.plate,targetUid:selected.uid,actor:person(selected),requestedBy:person(who),start:Timestamp.fromMillis(start),end:Timestamp.fromMillis(end),wholeDay:data.wholeDay,status:'pending',createdAt:time,historyId:historyRef.id};
+        const confirmation=self?{confirmedAt:time,confirmedBy:person(who),confirmationRequired:false}:{confirmationRequired:true};
+        const proposal={vehicleId:data.vehicleId,vehicleName:v.name,plate:v.plate,targetUid:selected.uid,actor:person(selected),requestedBy:person(who),start:Timestamp.fromMillis(start),end:Timestamp.fromMillis(end),wholeDay:data.wholeDay,status:self?'confirmed':'pending',...confirmation,createdAt:time,historyId:historyRef.id};
         tx.create(ref,proposal);
-        tx.create(historyRef,{type:'backfill',actor:proposal.actor,requestedBy:proposal.requestedBy,start:proposal.start,end:proposal.end,wholeDay:proposal.wholeDay,status:'pending',requestId:id,createdAt:time});
+        tx.create(historyRef,{type:'backfill',actor:proposal.actor,requestedBy:proposal.requestedBy,start:proposal.start,end:proposal.end,wholeDay:proposal.wholeDay,status:proposal.status,...confirmation,requestId:id,createdAt:time});
         // Revision refreshes opened history without reading the full history in a live listener.
         tx.update(vehicleRef,{revision:v.revision+1,updatedAt:time});
+        return proposal.status;
       });
-      return {id,status:'pending'};
+      return {id,status:result};
     },
     async review(request){
       const who=await caller(request,false),data=request.data||{};
@@ -99,7 +102,7 @@ function createBackfill({db,auth,Timestamp,ErrorType,now=Date.now}){
 function createBackfillNotifier({db,auth,messaging,logger,now=Date.now}){
   return async event=>{
     const snapshot=event.data;if(!snapshot)return;
-    const ref=snapshot.ref,proposal=snapshot.data();if(proposal.status!=='pending')return;
+    const ref=snapshot.ref,proposal=snapshot.data();if(proposal.status!=='pending'||proposal.targetUid===proposal.requestedBy?.uid)return;
     const [account,deleted,access]=await Promise.all([auth.getUser(proposal.targetUid),db.collection('account_deletions').doc(proposal.targetUid).get(),db.collection('user_access').doc(proposal.targetUid).get()]);
     if(account.disabled||deleted.exists||(proposal.targetUid!==MASTER&&!['view','edit'].includes(access.data()?.permissions?.fahrzeuge)))return;
     const devices=await db.collection('push_devices').where('uid','==',proposal.targetUid).get();
@@ -117,4 +120,5 @@ function createBackfillNotifier({db,auth,messaging,logger,now=Date.now}){
   };
 }
 module.exports={createBackfill,createBackfillNotifier,zurichMillis};
+
 
