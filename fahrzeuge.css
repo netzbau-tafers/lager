@@ -24,3 +24,5 @@ dialog select{display:block;width:100%;box-sizing:border-box;border:1px solid #b
 @media(max-width:680px){#logbookSearch{align-items:stretch;}#logbookSearch label{flex:auto;}#logbookSubmit{margin-top:0;}}
 
 dialog textarea{display:block;width:100%;box-sizing:border-box;border:1px solid #bdcad8;border-radius:8px;padding:12px;margin-top:7px;font:inherit;background:white;color:#24364a;resize:vertical}dialog textarea:focus-visible{outline:3px solid #4397ec;outline-offset:3px}.vehicle-information{white-space:pre-wrap;overflow-wrap:anywhere}
+
+.logbook-export{margin-top:32px;padding:22px;background:white;border:1px solid #d7e1ec;border-radius:14px}.export-controls{display:flex;flex-wrap:wrap;gap:14px;align-items:end}.export-controls label{flex:1 1 160px}.logbook-export select{display:block;width:100%;box-sizing:border-box;border:1px solid #bdcad8;border-radius:8px;padding:12px;margin-top:7px;font:inherit;background:white;color:#24364a}.logbook-export p{line-height:1.5}.logbook-export .vehicle-check{font-weight:normal}

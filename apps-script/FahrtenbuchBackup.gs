@@ -31,13 +31,14 @@ function vhBackupVehiclesUnlocked_(project,token,forceFull){
      var data=JSON.parse(r.getContentText());(data.documents||[]).forEach(function(d){byPath[getRelativeDocumentPath_(d.name,project)]=d;});page=data.nextPageToken||'';
    }while(page);
  }
+ var deletions=vhApplyHistoryDeletions_(project,token,byPath);
  var docs=Object.keys(byPath).sort().map(function(p){return byPath[p];});
  var output=docs.map(function(d){var path=getRelativeDocumentPath_(d.name,project),json=JSON.stringify(d.fields||{});if(json.length>49000)throw new Error('Fahrzeugdokument zu gross für Sheets: '+path);return [path,path.split('/').pop(),json,d.createTime||'',d.updateTime||'',cutoff];});
  var oldLength=sheet.getLastRow();sheet.getRange(1,1,1,6).setValues([['documentPath','documentId','fieldsJson','createTime','updateTime','backupZeitpunkt']]);
  if(sheet.getMaxRows()<output.length+1)sheet.insertRowsAfter(sheet.getMaxRows(),output.length+1-sheet.getMaxRows());
  if(output.length)sheet.getRange(2,1,output.length,6).setNumberFormat('@').setValues(output);
  if(oldLength>output.length+1)sheet.getRange(output.length+2,1,oldLength-output.length-1,6).clearContent();
- sheet.setFrozenRows(1);SpreadsheetApp.flush();state.getRange(1,1,3,2).setNumberFormat('@').setValues([['lastSuccessfulCutoff',cutoff],['mode',mode],['documents',String(output.length)]]);SpreadsheetApp.flush();return docs;
+ sheet.setFrozenRows(1);SpreadsheetApp.flush();state.getRange(1,1,3,2).setNumberFormat('@').setValues([['lastSuccessfulCutoff',cutoff],['mode',mode],['documents',String(output.length)]]);SpreadsheetApp.flush();vhConfirmHistoryDeletions_(project,token,deletions);return docs;
 }
 function enableVehicleHistoryIncremental(){
  var config=getConfig_(),token=getServiceAccountAccessToken_(config.saClientEmail,config.saPrivateKey);
@@ -60,4 +61,44 @@ function vhAcquireCacheLease_(project,token){
 function vhReleaseCacheLease_(project,token,version){
  var name='projects/'+project+'/databases/(default)/documents/backup_runtime/fahrtenbuch_cache';
  try{var r=UrlFetchApp.fetch('https://firestore.googleapis.com/v1/projects/'+project+'/databases/(default)/documents:commit',{method:'post',contentType:'application/json',headers:{Authorization:'Bearer '+token},payload:JSON.stringify({writes:[{delete:name,currentDocument:{updateTime:version}}]}),muteHttpExceptions:true});if(r.getResponseCode()!==200)Logger.log('Fahrtenbuch-Sperre läuft automatisch nach elf Minuten ab.');}catch(e){Logger.log('Fahrtenbuch-Sperre läuft automatisch nach elf Minuten ab.');}
+}
+
+// Die Export-Löschung liefert genaue Dokumentpfade, niemals einen pauschalen Zeitraum.
+// Nur pending Meldungen lesen; erfolgreiche Verarbeitung erst nach Sheets.flush bestätigen.
+function vhApplyHistoryDeletions_(project,token,byPath){
+ var root='projects/'+project+'/databases/(default)/documents',pending=[],cursor=null,started=Date.now();
+ do{
+  var query={from:[{collectionId:'fahrtenbuch_loeschungen'}],where:{unaryFilter:{field:{fieldPath:'backupAppliedAt'},op:'IS_NULL'}},orderBy:[{field:{fieldPath:'__name__'},direction:'ASCENDING'}],limit:100};
+  if(cursor)query.startAt={values:[{referenceValue:cursor}],before:false};
+  var response=UrlFetchApp.fetch('https://firestore.googleapis.com/v1/'+root+':runQuery',{method:'post',contentType:'application/json',headers:{Authorization:'Bearer '+token},payload:JSON.stringify({structuredQuery:query}),muteHttpExceptions:true});
+  if(response.getResponseCode()!==200)throw new Error('Löschmeldungen für das Fahrtenbuch konnten nicht gelesen werden. Backup bleibt unbestätigt.');
+  var docs=JSON.parse(response.getContentText()).filter(function(r){return r.document;}).map(function(r){return r.document;});
+  for(var j=0;j<docs.length;j++){
+   if(Date.now()-started>120000)return pending; // Vollständige Meldungen bestätigen, Rest beim nächsten Lauf.
+   var d=docs[j],paths=(d.fields.paths&&d.fields.paths.arrayValue&&d.fields.paths.arrayValue.values||[]).map(function(v){return v.stringValue;});
+   paths.forEach(function(path){if(!/^fahrzeuge\/[^/]+\/verlauf\/[^/]+$/.test(path))throw new Error('Ungültiger Dokumentpfad in der Löschmeldung.');});
+   if(paths.length){
+    // Eine gemeinsame Abfrage schützt inzwischen wiederhergestellte Einträge.
+    var r=UrlFetchApp.fetch('https://firestore.googleapis.com/v1/'+root+':batchGet',{method:'post',contentType:'application/json',headers:{Authorization:'Bearer '+token},payload:JSON.stringify({documents:paths.map(function(path){return root+'/'+path;})}),muteHttpExceptions:true});
+    if(r.getResponseCode()!==200)throw new Error('Gelöschter Verlauf konnte nicht geprüft werden. Backup bleibt unbestätigt.');
+    var checked=Object.create(null);
+    JSON.parse(r.getContentText()).forEach(function(item){
+     var name=item.found?item.found.name:item.missing,path=name&&name.slice(root.length+1);
+     if(paths.indexOf(path)<0)throw new Error('Unerwartete Antwort bei der Backup-Bereinigung.');
+     checked[path]=true;if(item.found)byPath[path]=item.found;else if(item.missing)delete byPath[path];
+    });
+    if(paths.some(function(path){return !checked[path];}))throw new Error('Unvollständige Prüfung der gelöschten Verläufe.');
+   }
+   pending.push({name:d.name,updateTime:d.updateTime});
+  }
+  if(docs.length)cursor=docs[docs.length-1].name;
+ }while(docs.length===100);
+ return pending;
+}
+function vhConfirmHistoryDeletions_(project,token,pending){
+ for(var i=0;i<pending.length;i+=100){
+  var writes=pending.slice(i,i+100).map(function(d){return {update:{name:d.name,fields:{backupAppliedAt:{timestampValue:new Date().toISOString()}}},updateMask:{fieldPaths:['backupAppliedAt']},currentDocument:{updateTime:d.updateTime}};});
+  var r=UrlFetchApp.fetch('https://firestore.googleapis.com/v1/projects/'+project+'/databases/(default)/documents:commit',{method:'post',contentType:'application/json',headers:{Authorization:'Bearer '+token},payload:JSON.stringify({writes:writes}),muteHttpExceptions:true});
+  if(r.getResponseCode()!==200)throw new Error('Backup geschrieben; Bestätigung der Löschmeldungen fehlgeschlagen. Nächster Lauf prüft die Meldungen erneut.');
+ }
 }
