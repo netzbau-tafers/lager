@@ -49,9 +49,9 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if master() || (signedIn() && request.auth.uid == userId);
       allow create: if (master() && !exists(/databases/$(database)/documents/account_deletions/$(userId))) || (signedIn() && request.auth.uid == userId &&
-        request.resource.data.keys().hasOnly(['username','email','updatedAt','lastSeenAt']) && validOwnProfile());
+        request.resource.data.keys().hasOnly(['email','updatedAt','lastSeenAt']) && validOwnProfile());
       allow update: if (master() && !exists(/databases/$(database)/documents/account_deletions/$(userId))) || (signedIn() && request.auth.uid == userId &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['username','email','updatedAt','lastSeenAt']) && validOwnProfile());
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['email','updatedAt','lastSeenAt']) && validOwnProfile());
       allow delete: if master() && userId != request.auth.uid;
     }
     // Only the current user may read their own push preference; all existing rules stay unchanged.

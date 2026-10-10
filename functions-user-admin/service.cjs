@@ -10,6 +10,17 @@ function createService({auth,db,timestamp,ErrorType}){
   }
   function uid(value){if(typeof value!=='string'||!value||value.length>128||value.includes('/'))throw new ErrorType('invalid-argument','Ungültige Benutzer-ID.');return value;}
   return {
+    async ownResetLink(request){
+      if(!request.auth)throw new ErrorType('unauthenticated','Bitte anmelden.');
+      // Derive the target only from the verified caller, never from client data.
+      const target=request.auth.uid;
+      if((await db.collection('account_deletions').doc(target).get()).exists)throw new ErrorType('failed-precondition','Dieses Konto wurde gelöscht.');
+      let user;
+      try{user=await auth.getUser(target);}catch(error){if(error.code==='auth/user-not-found')throw new ErrorType('unauthenticated','Bitte erneut anmelden.');throw error;}
+      if(user.disabled||!user.email)throw new ErrorType('failed-precondition','Das Konto ist gesperrt oder hat keine E-Mail-Adresse.');
+      const resetLink=await auth.generatePasswordResetLink(user.email);
+      return {resetLink};
+    },
     async resetLink(request){
       await requireMaster(request);
       const target=uid(request.data?.uid);

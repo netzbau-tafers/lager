@@ -17,3 +17,15 @@ test('non-master and unauthenticated callers cannot generate links',async()=>{
 test('deleted and disabled accounts cannot generate links',async()=>{
   for(const option of [{deleted:true},{disabled:true}]){const f=fixture(option);await assert.rejects(f.service.resetLink({auth:{uid:MASTER},data:{uid:'target'}}),e=>e.code==='failed-precondition');assert.equal(f.generated.length,0);}
 });
+
+test('own link ignores supplied target and email, and sends no email',async()=>{
+  const f=fixture();const result=await f.service.ownResetLink({auth:{uid:'self'},data:{uid:MASTER,email:'attacker@example.com'}});
+  assert.deepEqual(result,{resetLink:'https://example.com/reset?secret=test'});
+  assert.deepEqual(f.generated,['current@example.com']);
+});
+test('own link requires authentication and an active existing account',async()=>{
+  await assert.rejects(fixture().service.ownResetLink({data:{}}),e=>e.code==='unauthenticated');
+  for(const option of [{deleted:true},{disabled:true}]){
+    const f=fixture(option);await assert.rejects(f.service.ownResetLink({auth:{uid:'self'}}),e=>e.code==='failed-precondition');assert.equal(f.generated.length,0);
+  }
+});

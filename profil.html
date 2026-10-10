@@ -189,15 +189,13 @@
   </div>
 
   <section class="card">
-    <label for="usernameInput"><strong>Benutzername</strong></label>
-    <input id="usernameInput" type="text" maxlength="120" placeholder="z. B. Max Muster">
-    <button onclick="saveUsername()"><i class="fa-solid fa-floppy-disk"></i> Benutzername speichern</button>
-    <p class="muted">Wenn kein Benutzername gesetzt ist, wird weiterhin die E-Mail angezeigt.</p>
+    <h2 id="profileGreeting" style="font-size:22px">Hallo</h2>
 
     <hr style="margin:18px 0; border:none; border-top:1px solid #eee;">
 
-    <button onclick="resetPassword()"><i class="fa-solid fa-key"></i> Passwort zurücksetzen</button>
-    <p id="profileInfo" class="info"></p>
+    <button id="passwordResetButton" type="button" onclick="resetPassword()"><i class="fa-solid fa-key"></i> Passwort zurücksetzen</button>
+    <p id="profileInfo" class="info" role="status" aria-live="polite"></p>
+    <p><a id="passwordResetLink" hidden referrerpolicy="no-referrer">Neues Passwort festlegen</a></p>
     <hr style="margin:18px 0;border:none;border-top:1px solid #eee;">
     <h2 style="font-size:20px">Smartphone-Benachrichtigungen</h2>
     <p class="muted">Erinnerung für deine Bobinen nach 48 Stunden in Gebrauch. Solange sie in Gebrauch bleiben, frühestens alle weiteren 48 Stunden.</p>
@@ -213,6 +211,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
 <script src="zugriffsrechte.js?v=20261010-fahrtenbuch"></script>
   <script>
     const firebaseConfig = {
@@ -316,48 +315,31 @@
       el.style.color = isError ? "#b3261e" : "#1b5e20";
     }
 
-    function saveUsername(){
-      const user = auth.currentUser;
-      if(!user){
-        setInfo("Nicht eingeloggt.", true);
+    async function resetPassword(){
+      const button = document.getElementById("passwordResetButton");
+      const link = document.getElementById("passwordResetLink");
+      link.hidden = true;
+      link.removeAttribute("href");
+      if(!auth.currentUser){
+        setInfo("Bitte anmelden.", true);
         return;
       }
-
-      const username = sanitizeInput(document.getElementById("usernameInput").value, 120);
-
-      usersCollection.doc(user.uid).set({
-        username: username,
-        email: user.email || "",
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true })
-        .then(() => {
-          if(username){
-            localStorage.setItem("lagerUsername", username);
-          }else{
-            localStorage.removeItem("lagerUsername");
-          }
-          setInfo("Profil gespeichert.");
-        })
-        .catch((error) => {
-          console.error("Profil speichern fehlgeschlagen:", error);
-          setInfo("Profil konnte nicht gespeichert werden.", true);
-        });
-    }
-
-    function resetPassword(){
-      const user = auth.currentUser;
-      const email = user && user.email ? user.email : "";
-      if(!email){
-        setInfo("Keine E-Mail verfügbar.", true);
-        return;
+      button.disabled = true;
+      setInfo("Passwort-Link wird erstellt …");
+      try{
+        const result = await firebase.app().functions("europe-west1")
+          .httpsCallable("lagerOwnPasswordResetLink")({});
+        const url = new URL(result.data.resetLink);
+        if(url.protocol !== "https:") throw new Error("Ungültiger Passwort-Link.");
+        link.href = url.href;
+        link.hidden = false;
+        setInfo("Der Link ist bereit. Drücke auf «Neues Passwort festlegen».");
+      }catch(error){
+        setInfo(["functions/unauthenticated", "functions/failed-precondition"].includes(error.code)
+          ? error.message : "Passwort-Link konnte nicht erstellt werden. Bitte erneut versuchen.", true);
+      }finally{
+        button.disabled = false;
       }
-
-      auth.sendPasswordResetEmail(email)
-        .then(() => setInfo(`E-Mail zum Zurücksetzen wurde an ${email} gesendet.`))
-        .catch((error) => {
-          console.error("Passwort zurücksetzen Fehler:", error);
-          setInfo("Zurücksetzen fehlgeschlagen.", true);
-        });
     }
 
     LagerAccess.onAuthStateChanged((user) => {
@@ -370,7 +352,7 @@
 
       usersCollection.doc(user.uid).get().then((doc) => {
         const data = doc.exists ? (doc.data() || {}) : {};
-        document.getElementById("usernameInput").value = sanitizeInput(data.username || "", 120);
+        document.getElementById("profileGreeting").textContent = "Hallo " + sanitizeInput(data.username || user.displayName || user.email || "", 120);
       });
     });
 
