@@ -7,7 +7,7 @@
   const overview=Boolean(document.getElementById('myVehiclesSection'));
   let user=null,vehicles=[],favorites=new Set(),unsubVehicles=null,unsubFavorites=null,pending=null,saving=false,selectedScrolled=false;
   const selected=new URLSearchParams(location.search).get('fahrzeug'),scanRequested=!overview&&new URLSearchParams(location.search).get('scan')==='1';
-  let scanHandled=false,selectedScrollFrame=null;
+  let scanHandled=false,selectedScrollFrame=null,selectedSearch=!overview&&Boolean(selected);
   const busy=new Set(),messages=new Map(),histories=new Map(),openHistory=new Set();
   function node(tag,value='',className=''){const element=document.createElement(tag);element.textContent=value;if(className)element.className=className;return element;}
   function date(value){return value?.toDate?.().toLocaleString('de-CH',{timeZone:'Europe/Zurich',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})||'–';}
@@ -44,8 +44,9 @@
   }
   function render(){
     const focus=document.activeElement;const restore=focus?.dataset?.action?{action:focus.dataset.action,id:focus.dataset.id}:null;
+    if(selectedSearch&&search){const vehicle=vehicles.find(v=>v.id===selected);if(vehicle)search.value=vehicle.name;}
     list.replaceChildren();const ownVehicle=vehicles.find(v=>v.active?.uid===user?.uid);const query=(search?.value||'').trim().toLocaleLowerCase('de-CH');
-    const visible=vehicles.filter(v=>(!(overview||onlyFavorites?.checked)||favorites.has(v.id))&&(v.name+' '+v.plate).toLocaleLowerCase('de-CH').includes(query)).sort((a,b)=>Number(!overview&&b.id===selected)-Number(!overview&&a.id===selected)||Number(favorites.has(b.id))-Number(favorites.has(a.id))||a.name.localeCompare(b.name,'de-CH'));
+    const visible=vehicles.filter(v=>selectedSearch?v.id===selected:(!(overview||onlyFavorites?.checked)||favorites.has(v.id))&&(v.name+' '+v.plate).toLocaleLowerCase('de-CH').includes(query)).sort((a,b)=>Number(!overview&&b.id===selected)-Number(!overview&&a.id===selected)||Number(favorites.has(b.id))-Number(favorites.has(a.id))||a.name.localeCompare(b.name,'de-CH'));
     if(overview)document.getElementById('vehicleCount').textContent=String(visible.length);
     if(!visible.length)list.append(node('p',overview?'Speichere Fahrzeuge im Bereich „Fahrzeuge“ mit dem Stern als Favoriten.':vehicles.length?'Keine Fahrzeuge für diese Auswahl.':'Noch keine Fahrzeuge angelegt.'));
     for(const v of visible){
@@ -152,7 +153,7 @@
     }catch(error){document.getElementById('dialogStatus').textContent=errorText(error);if(error.code==='functions/failed-precondition'){save.disabled=true;document.getElementById('dialogStatus').textContent+=' Schliesse dieses Fenster und öffne die Aktion nochmals.';}}
     finally{saving=false;cancel.disabled=false;if(document.getElementById('dialogStatus').textContent.indexOf('Schliesse dieses Fenster')===-1)save.disabled=false;}
   });
-  search?.addEventListener('input',render);onlyFavorites?.addEventListener('change',render);
+  search?.addEventListener('input',()=>{selectedSearch=false;render();});onlyFavorites?.addEventListener('change',()=>{selectedSearch=false;render();});
   LagerAccess.onAuthStateChanged(current=>{
     user=current;unsubVehicles?.();unsubFavorites?.();for(const state of histories.values())state.unsubscribe?.();histories.clear();openHistory.clear();favorites.clear();vehicles=[];
     if(!user){location.replace('home.html'+(scanRequested?'?vehicleScan='+encodeURIComponent(selected||''):''));return;}
