@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fahrzeugnutzung bestätigen | Lagermanager</title>
+<link rel="icon" href="favicon.png"><link rel="manifest" href="site.webmanifest"><link rel="apple-touch-icon" href="favicon.png">
+<link rel="stylesheet" href="fahrzeuge.css?v=20261010-backfill">
+</head>
+<body>
+<main style="max-width:600px;margin:0 auto">
+  <h1 style="font-size:26px">Fahrzeugnutzung bestätigen</h1>
+  <p id="confirmationStatus" role="status" aria-live="polite">Anfrage wird geladen …</p>
+  <article id="confirmation" class="vehicle-card" hidden>
+    <h2 id="vehicleName"></h2><p id="vehiclePlate" class="vehicle-plate"></p>
+    <p id="vehiclePerson"></p><p id="vehiclePeriod"></p><p id="vehicleRequester"></p>
+    <p id="decisionState"></p>
+    <div id="confirmationActions" class="vehicle-actions" hidden>
+      <button id="confirmUse" type="button">Bestätigen</button>
+      <button id="rejectUse" type="button" class="secondary">Ablehnen</button>
+    </div>
+  </article>
+  <p><a href="fahrzeuge.html">Zu den Fahrzeugen</a> · <a href="home.html">Startseite</a></p>
+</main>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+<script>
+firebase.initializeApp({apiKey:'AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w',authDomain:'netzbau-tafers.firebaseapp.com',projectId:'netzbau-tafers',storageBucket:'netzbau-tafers.appspot.com',messagingSenderId:'389541837675',appId:'1:389541837675:web:db580ce67c57a9a16dea2e',measurementId:'G-B5MJGD3108'});
+</script>
+<script src="zugriffsrechte.js?v=20261010-delete"></script>
+<script>
+(() => {
+  'use strict';
+  const id=new URLSearchParams(location.search).get('nachtrag');
+  const status=document.getElementById('confirmationStatus'),card=document.getElementById('confirmation'),actions=document.getElementById('confirmationActions');
+  const confirmButton=document.getElementById('confirmUse'),rejectButton=document.getElementById('rejectUse');
+  const review=firebase.app().functions('europe-west1').httpsCallable('lagerVehicleBackfillReview');
+  let unsubscribe=null,saving=false,currentStatus=null;
+  const text=(name,value)=>{document.getElementById(name).textContent=value;};
+  const date=value=>value?.toDate?.().toLocaleString('de-CH',{timeZone:'Europe/Zurich',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})||'–';
+  async function decide(decision){
+    if(saving||currentStatus!=='pending')return;
+    saving=true;confirmButton.disabled=true;rejectButton.disabled=true;status.textContent='Wird gespeichert …';
+    try{await review({id,decision});status.textContent=decision==='confirmed'?'Fahrzeugnutzung bestätigt.':'Nachtrag abgelehnt und aus dem Verlauf entfernt.';}
+    catch(error){status.textContent=error.message||'Die Entscheidung konnte nicht gespeichert werden. Bitte erneut versuchen.';}
+    finally{saving=false;confirmButton.disabled=false;rejectButton.disabled=false;}
+  }
+  confirmButton.addEventListener('click',()=>decide('confirmed'));rejectButton.addEventListener('click',()=>decide('rejected'));
+  LagerAccess.onAuthStateChanged(user=>{
+    unsubscribe?.();card.hidden=true;currentStatus=null;
+    if(!id||!/^[a-zA-Z0-9_-]{1,220}$/.test(id)){status.textContent='Der Link enthält keine gültige Bestätigungsanfrage.';return;}
+    if(!user){location.replace('home.html?vehicleBackfill='+encodeURIComponent(id));return;}
+    if(!LagerAccess.read('fahrzeuge')){status.textContent='Du hast keinen Zugriff auf Fahrzeuge. Bitte wende dich an die Benutzerverwaltung.';return;}
+    unsubscribe=firebase.firestore().collection('fahrzeug_nachtraege').doc(id).onSnapshot(snapshot=>{
+      if(!snapshot.exists){status.textContent='Diese Bestätigungsanfrage wurde nicht gefunden.';card.hidden=true;return;}
+      const request=snapshot.data();
+      if(request.targetUid!==user.uid){status.textContent='Diese Anfrage ist für eine andere Person bestimmt.';card.hidden=true;return;}
+      currentStatus=request.status;
+      text('vehicleName',request.vehicleName);text('vehiclePlate',request.plate);
+      text('vehiclePerson','Person: '+request.actor.name);text('vehiclePeriod',date(request.start)+' bis '+date(request.end)+' (Schweizer Zeit)');
+      text('vehicleRequester','Nachgetragen von '+request.requestedBy.name);
+      text('decisionState',request.status==='pending'?'Bestätigung ausstehend':request.status==='confirmed'?'Bestätigt':'Abgelehnt – nicht im Verlauf aufgeführt');
+      actions.hidden=request.status!=='pending';card.hidden=false;if(!saving)status.textContent=request.status==='pending'?'Bitte prüfe die Angaben und bestätige oder lehne den Nachtrag ab.':'Diese Anfrage wurde bereits entschieden.';
+    },error=>{status.textContent=error.code==='permission-denied'?'Diese Anfrage ist für eine andere Person bestimmt oder du hast keinen Zugriff.':'Die Anfrage konnte nicht geladen werden. Bitte erneut öffnen.';card.hidden=true;});
+  });
+})();
+</script>
+</body>
+</html>

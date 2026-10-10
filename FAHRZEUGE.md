@@ -62,3 +62,22 @@ Prüfung:
 node --test functions-user-admin/vehicle-backfill.test.cjs
 ```
 
+## Benachrichtigung direkt öffnen
+
+Nachtragsbenachrichtigungen öffnen `fahrzeug-bestaetigung.html?nachtrag=…`. Die Seite lädt nur die im Link bezeichnete Anfrage und zeigt Fahrzeug, Kennzeichen, Person, Zeitraum sowie Bestätigen/Ablehnen. Bereits entschiedene Anfragen zeigen ihren Status. Nach einer nötigen Anmeldung führt der Link zu derselben Anfrage zurück. Die bisherigen Fahrzeugrechte und die Auswahl aktiver Benutzer mit Fahrzeugzugriff bleiben unverändert.
+
+Der Service Worker verarbeitet Vordergrundnachrichten sowie Firebase-Hintergrundnachrichten mit `data.url`, `fcmOptions.link` oder `fcm_options.link`. Vorhandene Benachrichtigungen mit `fahrzeuge.html?nachtrag=…` werden ebenfalls zur Einzelbestätigung weitergeleitet. Die Bobinenlinks bleiben unverändert.
+
+Nach dem Zusammenführen muss nur der Benachrichtigungstrigger aktualisiert werden:
+
+```bash
+firebase deploy --only functions:lager-user-admin:lagerVehicleBackfillNotify --project netzbau-tafers
+```
+
+Danach die App neu öffnen und einmal das Profil öffnen, damit sich der Benachrichtigungsdienst aktualisiert. Anschliessend mit einer neuen Nachtragsbenachrichtigung testen.
+
+```bash
+node --test tests/vehicle-notification-link.test.cjs functions-user-admin/vehicle-backfill.test.cjs
+```
+
+

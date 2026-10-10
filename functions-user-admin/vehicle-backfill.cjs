@@ -109,10 +109,12 @@ function createBackfillNotifier({db,auth,messaging,logger,now=Date.now}){
       if(!current.exists||current.data().status!=='pending'||!latest.exists||latest.data().uid!==proposal.targetUid||now()-(latest.data().updatedAt?.toMillis?.()||0)>=90*24*60*60*1000)continue;
       try{
         const pretty=ms=>new Intl.DateTimeFormat('de-CH',{timeZone:'Europe/Zurich',dateStyle:'short',timeStyle:'short'}).format(new Date(ms));
-        await messaging.send({token:latest.data().token,webpush:{headers:{TTL:'86400'},notification:{title:'Fahrzeugnutzung bestätigen',body:proposal.requestedBy.name+' hat '+proposal.vehicleName+' ('+proposal.plate+') für dich nachgetragen: '+pretty(proposal.start.toMillis())+' bis '+pretty(proposal.end.toMillis())+'. Bitte bestätigen oder ablehnen.',icon:'https://netzbau-tafers.github.io/lager/favicon.png',tag:'nachtrag-'+snapshot.id},fcmOptions:{link:'https://netzbau-tafers.github.io/lager/fahrzeuge.html?nachtrag='+encodeURIComponent(snapshot.id)}}});sent++;
+        const link='https://netzbau-tafers.github.io/lager/fahrzeug-bestaetigung.html?nachtrag='+encodeURIComponent(snapshot.id);
+        await messaging.send({token:latest.data().token,data:{url:link,kind:'vehicle-backfill',requestId:snapshot.id},webpush:{headers:{TTL:'86400'},notification:{title:'Fahrzeugnutzung bestätigen',body:proposal.requestedBy.name+' hat '+proposal.vehicleName+' ('+proposal.plate+') für dich nachgetragen: '+pretty(proposal.start.toMillis())+' bis '+pretty(proposal.end.toMillis())+'. Bitte bestätigen oder ablehnen.',icon:'https://netzbau-tafers.github.io/lager/favicon.png',tag:'nachtrag-'+snapshot.id,data:{url:link}},fcmOptions:{link}}});sent++;
       }catch(error){logger.warn('Nachtrag-Benachrichtigung fehlgeschlagen',{code:error.code||'unknown'});}
     }
     await ref.set({notificationStatus:sent?'sent':'not-delivered'},{merge:true});
   };
 }
 module.exports={createBackfill,createBackfillNotifier,zurichMillis};
+
