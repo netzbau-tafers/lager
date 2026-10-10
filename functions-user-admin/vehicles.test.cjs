@@ -88,12 +88,18 @@ test('takeover needs explicit permission in addition to normal vehicle usage',as
  await rejects(f.action(id,'takeover','bob'),'permission-denied');assert.equal(f.vehicle(id).active.uid,'alice');
 });
 
-test('delete permission, active vehicle and stale revision are enforced; cleanup and retries work',async()=>{
+test('delete enforces permissions and revisions, preserves history and metadata across retries',async()=>{
  const f=fixture(),id=await f.create(),request=()=>f.request('alice',{id,revision:f.vehicle(id)?.revision||0});
  f.user('alice',{fahrzeuge:'edit',fahrzeugeErstellen:'none'});await rejects(f.service.remove(request()),'permission-denied');
  f.user('alice');await f.action(id,'start');await rejects(f.service.remove(request()),'failed-precondition');await f.action(id,'free');
  await rejects(f.service.remove(f.request('alice',{id,revision:0})),'failed-precondition');
- f.user('alice',{fahrzeuge:'view',fahrzeugeErstellen:'edit'});await f.service.remove(request());assert.equal(f.vehicle(id),undefined);assert.equal(f.events(id).length,0);
- await f.service.remove(f.request('alice',{id,revision:2}));
+ await f.action(id,'fuel','bob',{km:250});
+ const retained=[...f.data.entries()].filter(([path])=>path.startsWith('fahrzeuge/'+id+'/'));
+ f.user('alice',{fahrzeuge:'view',fahrzeugeErstellen:'edit'});await f.service.remove(request());assert.equal(f.vehicle(id),undefined);assert.equal(f.events(id).length,2);
+ const archive=f.data.get('fahrzeuge_archiv/'+id);assert.equal(archive.name,'Bus');assert.equal(archive.plate,'FR 123');assert.equal(archive.km,250);assert.equal(archive.deletedBy.uid,'alice');assert.equal(archive.historyPath,'fahrzeuge/'+id+'/verlauf');assert.ok(archive.deletedAt);
+ for(const [path,value]of retained)assert.deepEqual(f.data.get(path),value);
+ await f.service.remove(f.request('alice',{id,revision:3}));
+ assert.deepEqual(f.data.get('fahrzeuge_archiv/'+id),archive);for(const [path,value]of retained)assert.deepEqual(f.data.get(path),value);
+ await rejects(f.service.action(f.request('bob',{id,revision:3,action:'start',requestId:'deleted_vehicle_start_123'})),'not-found');
  await rejects(f.service.remove(f.request('alice',{id:'../bad',revision:0})),'invalid-argument');
 });

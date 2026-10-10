@@ -182,7 +182,7 @@
     if(action==='delete'){
       if(!LagerAccess.write('fahrzeugeErstellen'))return;
       if(v.active){messages.set(v.id,'Das Fahrzeug ist noch in Gebrauch. Zuerst freigeben.');render();return;}
-      if(!confirm(v.name+' ('+v.plate+') endgültig löschen? Auch der gesamte Nutzungs- und Tankverlauf wird gelöscht.'))return;
+      if(!confirm(v.name+' ('+v.plate+') aus der Fahrzeugliste löschen? Der gesamte Nutzungs- und Tankverlauf bleibt in Firebase erhalten.'))return;
       busy.add(v.id);render();
       try{await deleteCall({id:v.id,revision:v.revision});invalidateHistory(v.id);openHistory.delete(v.id);status.textContent='Fahrzeug gelöscht.';}
       catch(error){messages.set(v.id,errorText(error));}finally{busy.delete(v.id);render();}return;

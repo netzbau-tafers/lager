@@ -45,14 +45,14 @@ function createVehicles({db,auth,Timestamp,ErrorType,now=Date.now}){
       await db.runTransaction(async tx=>{
         await permitted(tx,who.uid,true);
         const snapshot=await tx.get(ref);
-        if(!snapshot.exists)return; // Allow retrying a failed subcollection cleanup.
+        if(!snapshot.exists)return; // Repeated deletion leaves the retained history untouched.
         const v=snapshot.data();
         if(v.revision!==data.revision)fail('failed-precondition','Das Fahrzeug wurde gerade geändert. Bitte erneut öffnen.');
         if(v.active)fail('failed-precondition','Das Fahrzeug ist noch in Gebrauch. Zuerst freigeben.');
+        tx.set(db.collection('fahrzeuge_archiv').doc(data.id),{...v,deletedAt:Timestamp.fromMillis(now()),deletedBy:who,historyPath:ref.path+'/verlauf'});
         tx.delete(ref);
       });
-      // Deleting the parent alone does not delete Firestore subcollections.
-      await db.recursiveDelete(ref);
+      // Preserve all history and action documents under the original vehicle path.
       return {deleted:true};
     },
     async action(request){
