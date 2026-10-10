@@ -16,3 +16,9 @@ dialog select{display:block;width:100%;box-sizing:border-box;border:1px solid #b
 #logbookSearch label {min-width:0;flex:1 1 180px;}
 #logbookSearch small {display:block;color:#475569;}
 #logbookMore {margin:16px 0;}
+
+/* Keep logbook controls aligned even when the time field has helper text. */
+#logbookSearch{align-items:flex-start;flex-wrap:wrap;}
+#logbookSearch input,#logbookSearch select{box-sizing:border-box;height:44px;margin-top:7px;padding:8px;}
+#logbookSubmit{margin-top:24px;min-height:44px;}
+@media(max-width:680px){#logbookSearch{align-items:stretch;}#logbookSearch label{flex:auto;}#logbookSubmit{margin-top:0;}}
