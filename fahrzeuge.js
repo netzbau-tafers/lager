@@ -57,7 +57,10 @@
     if(data.error)target.append(node('p','Verlauf konnte nicht geladen werden. Bitte erneut versuchen.','vehicle-error'));
     if(!data.entries.length)target.append(node('p',data.loading?'Verlauf wird geladen …':data.error?'': 'Keine Einträge für diese Auswahl.'));
     const ordered=node('ol','','vehicle-history');
-    for(const entry of data.entries){
+    // Bei einer Übernahme entstehen Nutzung und Übernahme mit demselben Zeitstempel.
+    // Die neue Nutzung steht darüber, damit der Verlauf die zeitliche Abfolge zeigt.
+    const entries=[...data.entries].sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0)||Number(a.type==='takeover')-Number(b.type==='takeover'));
+    for(const entry of entries){
       if(entry.status==='rejected')continue;
       const row=node('li'),name=entry.actor?.name||'Unbekannte Person';
       if(entry.type==='backfill'){
