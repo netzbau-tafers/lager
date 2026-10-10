@@ -690,7 +690,7 @@ LagerAccess.onAuthStateChanged((user) => {
     const scanId=new URLSearchParams(location.search).get('vehicleScan');
     if(scanId&&scanId.length<=128&&!scanId.includes('/')){location.replace('fahrzeuge.html?fahrzeug='+encodeURIComponent(scanId)+'&scan=1');return;}
     const backfillId=new URLSearchParams(location.search).get('vehicleBackfill');
-    if(backfillId&&/^[a-zA-Z0-9_-]{1,220}$/.test(backfillId)){location.replace('fahrzeuge.html?nachtrag='+encodeURIComponent(backfillId));return;}
+    if(backfillId&&/^[a-zA-Z0-9_-]{1,220}$/.test(backfillId)){location.replace('fahrzeug-bestaetigung.html?nachtrag='+encodeURIComponent(backfillId));return;}
     setNavigationVisibility(user);
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
@@ -708,6 +708,7 @@ LagerAccess.onAuthStateChanged((user) => {
 <script src="navigation.js?v=20261009-fahrzeuge"></script>
 </body>
 </html>
+
 
 
 
