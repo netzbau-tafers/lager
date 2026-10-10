@@ -1033,6 +1033,9 @@ dialog.vorlage-duplicate-dialog::backdrop{
   <div class="modal-content">
     <h3 id="vorlageModalTitle">Neue Materialvorlage</h3>
     <input id="vorlageMaterial" placeholder="Material" maxlength="120">
+    <label for="vorlageSuchbegriffe">Alternative Bezeichnungen / Suchbegriffe (optional)</label>
+    <input id="vorlageSuchbegriffe" placeholder="z. B. Schutzrohr, Kabelrohr, 120er Rohr" maxlength="600" aria-describedby="vorlageSuchbegriffeHilfe">
+    <div id="vorlageSuchbegriffeHilfe" class="helper-text">Mit Kommas trennen. Nur für die Suche; erscheint nicht in Materiallisten oder auf Ausdrucken.</div>
     <input id="vorlageSpontis" placeholder="Neue Spontis Nummer" maxlength="60">
     <input id="vorlageAlteSpontis" placeholder="Alte Spontis Nummer (optional)" maxlength="60">
     <div class="input-with-action">
@@ -1276,6 +1279,7 @@ function getVorlagenFromCache(){
     return parsed.vorlagen.map(v => ({
       id: sanitizeInput(v.id || "", 160),
       material: sanitizeInput(v.material || "", 120),
+      suchbegriffe: sanitizeInput(v.suchbegriffe || "", 600),
       spontis: sanitizeInput(v.spontis || "", 60),
       alteSpontis: sanitizeInput(v.alteSpontis || "", 60),
       link: parseAndNormalizeUrl(v.link || "") || "",
@@ -1294,6 +1298,7 @@ function saveVorlagenToCache(vorlagen){
       vorlagen: vorlagen.map(v => ({
         id: v.id || "",
         material: sanitizeInput(v.material || "", 120),
+        suchbegriffe: sanitizeInput(v.suchbegriffe || "", 600),
         spontis: sanitizeInput(v.spontis || "", 60),
         alteSpontis: sanitizeInput(v.alteSpontis || "", 60),
         link: parseAndNormalizeUrl(v.link || "") || "",
@@ -1708,6 +1713,7 @@ function loadVorlagen(forceRefresh = false){
       return {
         id: doc.id,
         material: sanitizeInput(data.material || "", 120),
+        suchbegriffe: sanitizeInput(data.suchbegriffe || "", 600),
         spontis: sanitizeInput(data.spontis || "", 60),
         alteSpontis: sanitizeInput(data.alteSpontis || "", 60),
         link: parseAndNormalizeUrl(data.link || "") || "",
@@ -1848,7 +1854,9 @@ function vorlagePasstZurSuche(vorlage){
   const spontis = String(vorlage.spontis || "").toLowerCase();
   const alteSpontis = String(vorlage.alteSpontis || "").toLowerCase();
 
-  return material.includes(suchbegriff) || spontis.includes(suchbegriff) || alteSpontis.includes(suchbegriff);
+  const suchbegriffe = String(vorlage.suchbegriffe || "").toLowerCase();
+
+  return material.includes(suchbegriff) || spontis.includes(suchbegriff) || alteSpontis.includes(suchbegriff) || suchbegriffe.includes(suchbegriff);
 }
 
 function materialVorlagePasstZurSuche(vorlage){
@@ -1862,7 +1870,9 @@ function materialVorlagePasstZurSuche(vorlage){
   const spontis = String(vorlage.spontis || "").toLowerCase();
   const alteSpontis = String(vorlage.alteSpontis || "").toLowerCase();
 
-  return material.includes(suchbegriff) || spontis.includes(suchbegriff) || alteSpontis.includes(suchbegriff);
+  const suchbegriffe = String(vorlage.suchbegriffe || "").toLowerCase();
+
+  return material.includes(suchbegriff) || spontis.includes(suchbegriff) || alteSpontis.includes(suchbegriff) || suchbegriffe.includes(suchbegriff);
 }
 
 function getStatusLabel(status){
@@ -2862,6 +2872,7 @@ function openVorlageModal(id = null){
 
     document.getElementById("vorlageModalTitle").innerText = "Materialvorlage bearbeiten";
     document.getElementById("vorlageMaterial").value = sanitizeInput(v.material || "", 120);
+    document.getElementById("vorlageSuchbegriffe").value = sanitizeInput(v.suchbegriffe || "", 600);
     document.getElementById("vorlageSpontis").value = sanitizeInput(v.spontis || "", 60);
     document.getElementById("vorlageAlteSpontis").value = sanitizeInput(v.alteSpontis || "", 60);
     document.getElementById("vorlageLink").value = sanitizeInput(v.link || "", 600);
@@ -2869,6 +2880,7 @@ function openVorlageModal(id = null){
     selectedVorlageImageExistingUrl = parseAndNormalizeUrl(v.imageUrl || "") || "";
   }else{
     document.getElementById("vorlageModalTitle").innerText = "Neue Materialvorlage";
+    document.getElementById("vorlageSuchbegriffe").value = "";
     document.getElementById("vorlageMaterial").value = "";
     document.getElementById("vorlageSpontis").value = "";
     document.getElementById("vorlageAlteSpontis").value = "";
@@ -2914,6 +2926,7 @@ async function saveVorlage(){
   }
 
   const material = sanitizeInput(document.getElementById("vorlageMaterial").value, 120);
+  const suchbegriffe = sanitizeInput(document.getElementById("vorlageSuchbegriffe").value, 600);
   const spontis = sanitizeInput(document.getElementById("vorlageSpontis").value, 60);
   const alteSpontis = sanitizeInput(document.getElementById("vorlageAlteSpontis").value, 60);
   const linkInput = document.getElementById("vorlageLink").value;
@@ -2922,6 +2935,7 @@ async function saveVorlage(){
   const alteBarcode = getBarcodeValueFromSpontis(alteSpontis);
 
   document.getElementById("vorlageMaterial").value = material;
+  document.getElementById("vorlageSuchbegriffe").value = suchbegriffe;
   document.getElementById("vorlageSpontis").value = spontis;
   document.getElementById("vorlageAlteSpontis").value = alteSpontis;
   document.getElementById("vorlageLink").value = sanitizeInput(linkInput, 600);
@@ -2948,6 +2962,7 @@ async function saveVorlage(){
 
   const vorlagePayload = {
     material: material,
+    suchbegriffe: suchbegriffe,
     spontis: spontis,
     alteSpontis: alteSpontis,
     link: normalizedLink || ""
@@ -3588,6 +3603,7 @@ document.addEventListener("DOMContentLoaded", function(){
 function closeModals(){
   setVorlageSavingState(false);
   clearVorlageImageState();
+  document.getElementById("vorlageSuchbegriffe").value = "";
   document.getElementById("baustelleModal").style.display = "none";
   document.getElementById("materialModal").style.display = "none";
   document.getElementById("vorlageModal").style.display = "none";
@@ -3630,4 +3646,5 @@ function clearVorlageLinkInput(){
 <script src="navigation.js?v=20261010-fahrtenbuch"></script>
 </body>
 </html>
+
 
