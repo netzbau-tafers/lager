@@ -54,3 +54,8 @@ const {createLogbook}=require("./vehicle-logbook.cjs");
 const logbook=createLogbook({db:getFirestore(),auth:getAuth(),Timestamp,ErrorType:HttpsError});
 exports.lagerVehicleLogbook=vehicleCall(logbook.search);
 exports.lagerVehicleLogbookVehicles=vehicleCall(logbook.catalog);
+
+const {createVehicleActionCleanup}=require('./vehicle-action-cleanup.cjs');
+exports.lagerVehicleActionCleanup=onSchedule({...vehicleSchedule,schedule:'15 3 * * *'},async()=>{
+  await createVehicleActionCleanup({db:getFirestore(),Timestamp,logger})();
+});
