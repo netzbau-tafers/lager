@@ -37,3 +37,28 @@ Die Fahrzeugübersicht lädt keine Verlaufsdokumente. Erst beim Öffnen des Nutz
 Geladene Seiten bleiben pro Fahrzeug und Monatsauswahl während der Sitzung erhalten, auch nach dem Zuklappen. Der Monatsfilter fragt `createdAt` direkt in Firestore ab; Monatsgrenzen gelten in Europe/Zurich. „Aktualisieren“ setzt die gewählte Abfrage auf die neuesten 20 Einträge zurück. Ändert sich die Fahrzeugrevision, wird der zwischengespeicherte Verlauf verworfen: Ein geöffneter Verlauf lädt die erste Seite neu, ein geschlossener erst beim nächsten Öffnen. Bei Benutzerwechsel wird der gesamte Verlaufsspeicher geleert.
 
 Die vollständige Historie bleibt gespeichert. Bei exakt 20 Ergebnissen kann „Weitere laden“ noch eine leere letzte Seite abrufen. Die Änderung benötigt keine neue Cloud Function und keine Änderung der Firestore-Regeln.
+
+# Nutzung für eine Person nachtragen
+
+Mit dem Fahrzeugrecht „Ansehen und bearbeiten“ kann über „Nutzung für eine Person nachtragen“ eine aktive Person mit Fahrzeugzugriff ausgewählt werden. Die Auswahl enthält nur Benutzer-ID und Anzeigename; die Profil- und Benutzerverwaltung bleiben geschützt.
+
+Datum/Uhrzeit von–bis gelten in `Europe/Zurich`. „Ganzer Tag“ verwendet am ausgewählten Datum 07:00–17:15 Uhr, auch im Winter. Nur abgeschlossene Zeiträume sind zulässig. Ungültige und bei der Zeitumstellung mehrdeutige Uhrzeiten werden abgelehnt. Ein Nachtrag ändert keine laufende Belegung und keine Nutzungs-Sperre.
+
+Der Eintrag erscheint im Verlauf als „Bestätigung ausstehend“. Nur die ausgewählte Person kann im Bereich Fahrzeuge „Bestätigen“ oder „Ablehnen“ drücken, auch mit Leserecht für Fahrzeuge. Bei Bestätigung steht im Verlauf „Bestätigt“. Bei Ablehnung wird der Verlaufseintrag entfernt; die Entscheidung bleibt als serverseitiger Nachweis in `fahrzeug_nachtraege` erhalten. Ohne Antwort bleibt die Anfrage ausstehend; es gibt keine automatische Bestätigung oder Ablaufzeit.
+
+Ein Firestore-Trigger sendet die Fahrzeugbezeichnung, das Kennzeichen, den Zeitraum und den Namen der eintragenden Person an die bereits aktivierten Push-Geräte der ausgewählten Person. Antippen öffnet die Bestätigungsanfragen; eine erforderliche Anmeldung führt anschliessend dorthin zurück. Ohne erreichbares/aktiviertes Push-Gerät bleibt die Anfrage im Bereich Fahrzeuge sichtbar. Push-Zustellung ist kein Nachweis einer Bestätigung.
+
+Nach dem Zusammenführen im Repository mit `firebase.json` ausführen:
+
+```bash
+firebase deploy --only "firestore:rules,functions:lager-user-admin:lagerVehicleBackfillUsers,functions:lager-user-admin:lagerVehicleBackfill,functions:lager-user-admin:lagerVehicleBackfillReview,functions:lager-user-admin:lagerVehicleBackfillNotify" --project netzbau-tafers
+```
+
+Neue Collection: `fahrzeug_nachtraege`. Lesbar nur für die jeweilige empfangende Person mit Fahrzeugzugriff; alle Schreibzugriffe laufen über Cloud Functions. Die Collection sollte im bestehenden Backup ergänzt werden. Ablehnung und Bestätigung wirken durch eine Fahrzeugrevision auch auf geöffnete Verlaufansichten, ohne den vollständigen Verlauf live zu lesen. Anfragen lassen sich nach einer Fahrzeuglöschung weiterhin entscheiden, ohne das Fahrzeug wiederherzustellen.
+
+Prüfung:
+
+```bash
+node --test functions-user-admin/vehicle-backfill.test.cjs
+```
+
