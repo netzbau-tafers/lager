@@ -167,6 +167,7 @@
     font-size:13px;
   }
 }
+ .user-push-status{font-size:14px;font-weight:600;color:#526478}.user-push-status[data-state="enabled"]{color:#1b5e20}.user-push-status[data-state="expired"]{color:#925900}
 </style>
 <link rel="stylesheet" href="navigation.css?v=20261005-menu-style">
 </head>
@@ -269,7 +270,7 @@
 
 function logout(){if(confirm('Wirklich ausloggen?'))auth.signOut().then(()=>location.href='home.html');}
 </script>
-<script src="benutzer.js?v=20261010-permission-groups"></script>
+<script src="benutzer.js?v=20261010-push-status"></script>
 <script>
 (function(){
   const dialog=document.getElementById('newUserPanel'),opener=document.getElementById('openNewUser'),submit=document.getElementById('newUserSubmit');
