@@ -228,7 +228,7 @@
   }
   async function act(v,action){
     if(busy.has(v.id))return;busy.add(v.id);messages.set(v.id,'Wird gespeichert …');render();
-    try{await actionCall({id:v.id,revision:v.revision,action,requestId:requestId()});if(action==='start')ownScrollId=v.id;messages.set(v.id,action==='start'?'Auf dich eingetragen.':'Fahrzeug freigegeben.');}
+    try{await actionCall({id:v.id,revision:v.revision,action,requestId:requestId()});if(!overview&&action==='start')ownScrollId=v.id;messages.set(v.id,action==='start'?'Auf dich eingetragen.':'Fahrzeug freigegeben.');}
     catch(error){messages.set(v.id,errorText(error));}finally{busy.delete(v.id);render();}
   }
   list.addEventListener('click',async event=>{
@@ -281,7 +281,7 @@
         messages.set(v.id,'Auf dich eingetragen.');
       }
       else{const v=operation.vehicle;const data={id:v.id,revision:v.revision,action:operation.action,requestId:operation.requestId};if(operation.action==='fuel')data.km=Number(values.get('km'));await actionCall(data);messages.set(v.id,'Gespeichert.');}
-      if(['start','takeover','switch'].includes(operation.action))ownScrollId=operation.vehicle.id;
+      if(!overview&&['start','takeover','switch'].includes(operation.action))ownScrollId=operation.vehicle.id;
       dialog.close();pending=null;render();status.textContent=operation.action==='create'?'Fahrzeug hinzugefügt.':operation.action==='backfill'?(operation.backfillStatus==='confirmed'?'Eigene Nutzung gespeichert. Keine Bestätigung und keine Benachrichtigung nötig.':'Nachtrag gesendet. Die Person kann ihn im Bereich Fahrzeuge bestätigen; eine Smartphone-Benachrichtigung wird an ihre aktivierten Geräte gesendet.'):'Änderung gespeichert.';
     }catch(error){document.getElementById('dialogStatus').textContent=(operation.action==='switch'&&operation.released?operation.previousVehicle.name+' wurde freigegeben. Das gescannte Fahrzeug konnte noch nicht auf dich eingetragen werden. ':'')+errorText(error);if(error.code==='functions/failed-precondition'){save.disabled=true;document.getElementById('dialogStatus').textContent+=' Schliesse dieses Fenster und öffne die Aktion nochmals.';}}
     finally{saving=false;cancel.disabled=false;if(document.getElementById('dialogStatus').textContent.indexOf('Schliesse dieses Fenster')===-1)save.disabled=false;}
