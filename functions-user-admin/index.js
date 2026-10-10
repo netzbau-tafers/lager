@@ -31,6 +31,7 @@ const {createVehicles}=require('./vehicles.cjs');
 const vehicles=createVehicles({db:getFirestore(),auth:getAuth(),Timestamp,ErrorType:HttpsError});
 const vehicleCall=handler=>onCall({region:'europe-west1',maxInstances:2},async request=>{try{return await handler(request);}catch(error){if(error instanceof HttpsError)throw error;logger.error('Fahrzeugaktion fehlgeschlagen',{code:error.code||'internal'});throw new HttpsError('internal','Fahrzeugaktion konnte nicht gespeichert werden. Bitte aktualisieren und erneut versuchen.');}});
 exports.lagerCreateVehicle=vehicleCall(vehicles.create);
+exports.lagerDeleteVehicle=vehicleCall(vehicles.remove);
 exports.lagerVehicleAction=vehicleCall(vehicles.action);
 
 const {createVehicleReminder}=require('./vehicle-reminder.cjs');

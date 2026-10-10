@@ -25,6 +25,7 @@ module.exports=function vehicleMock(scenario){
   const firestore=()=>db;firestore.FieldValue={serverTimestamp:stamp};firestore.Timestamp={fromMillis:value=>({toMillis:()=>value})};
   const functions=()=>({httpsCallable:name=>async values=>{
     vehicleCalls.push({name,values});if(scenario.actionError)throw Object.assign(new Error(scenario.actionError),{code:'functions/failed-precondition'});
+    if(name==='lagerDeleteVehicle'){data.delete('fahrzeuge/'+values.id);emit('fahrzeuge/'+values.id);return {data:{deleted:true}};}
     if(name==='lagerCreateVehicle'){setVehicle('new',{...values,revision:0,active:null,kmAt:stamp()});return {data:{id:'new'}};}
     const v=data.get('fahrzeuge/'+values.id);if(values.action==='start')setVehicle(values.id,{active:{uid:user.uid,name:'Max Muster',start:stamp()},revision:v.revision+1});
     if(values.action==='free')setVehicle(values.id,{active:null,revision:v.revision+1});
