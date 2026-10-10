@@ -28,6 +28,11 @@
     return 'Speichern fehlgeschlagen. Bitte den aktuellen Stand prüfen und erneut versuchen. Die Fahrzeugfunktionen müssen in Firebase veröffentlicht sein.';
   }
   const actionIcons={
+    info:['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20','M12 11v6','M12 7h.01'],
+    service:['M14.7 6.3a5 5 0 0 0-6.4 6.4L3 18a2.1 2.1 0 0 0 3 3l5.3-5.3a5 5 0 0 0 6.4-6.4L14 13l-3-3Z'],
+    edit:['M16 3l5 5','M3 21l5-1L21 7a2.8 2.8 0 0 0-4-4L4 16Z'],
+    qr:['M3 3h6v6H3Z','M15 3h6v6h-6Z','M3 15h6v6H3Z','M12 12h3v3h-3Z','M19 12v7','M16 16l3 3 3-3','M15 22h7'],
+    delete:['M3 6h18','M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2','M5 6l1 14a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1l1-14','M10 10v7','M14 10v7'],
     takeover:['M16 3h5v5','M4 20 21 3','M21 14v7h-7'],
     fuel:['M3 22V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v17','M3 10h10','M1 22h14','M13 12h2a2 2 0 0 1 2 2v4a2 2 0 0 0 4 0V9l-4-4','M18 6v3h3'],
     backfill:['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2','M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M20 8v6','M17 11h6'],
