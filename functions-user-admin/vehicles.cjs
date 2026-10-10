@@ -26,18 +26,39 @@ function createVehicles({db,auth,Timestamp,ErrorType,FieldValue,now=Date.now}){
     if(uid===MASTER)return;
     const p=access.data()?.permissions||{};
     if(takeover&&p.fahrzeugeUebernehmen!=='edit')fail('permission-denied','Du darfst keine belegten Fahrzeuge übernehmen.');
-    if(create?(!['view','edit'].includes(p.fahrzeuge)||p.fahrzeugeErstellen!=='edit'):p.fahrzeuge!=='edit')fail('permission-denied',create?'Du darfst keine Fahrzeuge hinzufügen oder löschen.':'Du darfst Fahrzeuge nur ansehen oder hast keinen Zugriff.');
+    if(create?(!['view','edit'].includes(p.fahrzeuge)||p.fahrzeugeErstellen!=='edit'):p.fahrzeuge!=='edit')fail('permission-denied',create?'Du darfst keine Fahrzeuge hinzufügen, bearbeiten oder löschen.':'Du darfst Fahrzeuge nur ansehen oder hast keinen Zugriff.');
+  }
+  function information(data){
+    const responsible=data.responsible??'',details=data.details??'';
+    if(typeof responsible!=='string'||responsible.trim().length>100||/[<>\u0000-\u001f\u007f]/.test(responsible))fail('invalid-argument','Fahrzeugverantwortlicher: höchstens 100 Zeichen.');
+    if(typeof details!=='string'||details.trim().length>5000||/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(details))fail('invalid-argument','Details: höchstens 5000 Zeichen.');
+    return {responsible:responsible.trim(),details:details.trim()};
   }
   return {
     async create(request){
       const who=await actor(request),data=request.data||{};
       if(!string(data.name,100)||!string(data.plate,30)||!validKm(data.km))fail('invalid-argument','Name, Kennzeichen und gültigen Kilometerstand angeben.');
+      const info=information(data);
       const ref=db.collection('fahrzeuge').doc(),time=Timestamp.fromMillis(now());
       await db.runTransaction(async tx=>{
         await permitted(tx,who.uid,true);
-        tx.create(ref,{name:data.name.trim(),plate:data.plate.trim(),km:data.km,kmAt:time,kmBy:who,status:'frei',active:null,lastUseEnd:null,revision:0,createdAt:time,createdBy:who,updatedAt:time});
+        tx.create(ref,{...info,name:data.name.trim(),plate:data.plate.trim(),km:data.km,kmAt:time,kmBy:who,status:'frei',active:null,lastUseEnd:null,revision:0,createdAt:time,createdBy:who,updatedAt:time});
       });
       return {id:ref.id};
+    },
+    async edit(request){
+      const who=await actor(request),data=request.data||{};
+      if(!string(data.id,128)||data.id.includes('/')||!Number.isSafeInteger(data.revision)||data.revision<0||!string(data.name,100)||!string(data.plate,30))fail('invalid-argument','Gültiges Fahrzeug, Name und Kennzeichen angeben.');
+      const info=information(data),ref=db.collection('fahrzeuge').doc(data.id);
+      await db.runTransaction(async tx=>{
+        await permitted(tx,who.uid,true);
+        const snapshot=await tx.get(ref);
+        if(!snapshot.exists)fail('not-found','Fahrzeug nicht gefunden.');
+        const v=snapshot.data();
+        if(v.revision!==data.revision)fail('failed-precondition','Das Fahrzeug wurde gerade geändert. Bitte erneut öffnen.');
+        tx.update(ref,{...info,name:data.name.trim(),plate:data.plate.trim(),revision:v.revision+1,updatedAt:Timestamp.fromMillis(now()),updatedBy:who});
+      });
+      return {saved:true};
     },
     async remove(request){
       const who=await actor(request),data=request.data||{};

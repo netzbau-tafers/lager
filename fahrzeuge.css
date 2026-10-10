@@ -22,3 +22,5 @@ dialog select{display:block;width:100%;box-sizing:border-box;border:1px solid #b
 #logbookSearch input,#logbookSearch select{box-sizing:border-box;height:44px;margin-top:7px;padding:8px;}
 #logbookSubmit{margin-top:24px;min-height:44px;}
 @media(max-width:680px){#logbookSearch{align-items:stretch;}#logbookSearch label{flex:auto;}#logbookSubmit{margin-top:0;}}
+
+dialog textarea{display:block;width:100%;box-sizing:border-box;border:1px solid #bdcad8;border-radius:8px;padding:12px;margin-top:7px;font:inherit;background:white;color:#24364a;resize:vertical}dialog textarea:focus-visible{outline:3px solid #4397ec;outline-offset:3px}.vehicle-information{white-space:pre-wrap;overflow-wrap:anywhere}

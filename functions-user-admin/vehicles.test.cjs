@@ -103,3 +103,21 @@ test('delete enforces permissions and revisions, preserves history and metadata 
  await rejects(f.service.action(f.request('bob',{id,revision:3,action:'start',requestId:'deleted_vehicle_start_123'})),'not-found');
  await rejects(f.service.remove(f.request('alice',{id:'../bad',revision:0})),'invalid-argument');
 });
+
+test('vehicle information: optional fields, multiline details, edit rights and stale revisions',async()=>{
+  const f=fixture(),id=await f.create();assert.equal(f.vehicle(id).responsible,'');
+  await f.action(id,'start');const before=f.vehicle(id),revision=before.revision;
+  const changes={id,revision,name:'Unimog',plate:'FR 777',responsible:' Martin ',details:'Kran: 500 kg\nAusladung: 3 m',km:0,active:null};
+  await f.service.edit(f.request('alice',changes));const v=f.vehicle(id);
+  assert.equal(v.name,'Unimog');assert.equal(v.responsible,'Martin');assert.equal(v.details,changes.details);
+  assert.equal(v.km,before.km);assert.deepEqual(v.active,before.active);assert.equal(f.events(id).length,1);assert.equal(v.revision,revision+1);
+  await rejects(f.service.edit(f.request('alice',changes)),'failed-precondition');
+  for(const permissions of [{fahrzeuge:'edit'},{fahrzeuge:'view'},{fahrzeuge:'none',fahrzeugeErstellen:'edit'}]){
+    f.user('bob',permissions);await rejects(f.service.edit(f.request('bob',{...changes,revision:v.revision})),'permission-denied');
+  }
+  f.user('bob',{fahrzeuge:'view',fahrzeugeErstellen:'edit'});await f.service.edit(f.request('bob',{...changes,revision:v.revision}));
+  for(const invalid of [{responsible:'x'.repeat(101)},{details:'x'.repeat(5001)},{details:42},{responsible:[]}]){
+    await rejects(f.service.edit(f.request('alice',{...changes,revision:f.vehicle(id).revision,...invalid})),'invalid-argument');
+    await rejects(f.service.create(f.request('alice',{name:'Bus',plate:'FR 1',km:100,...invalid})),'invalid-argument');
+  }
+});
