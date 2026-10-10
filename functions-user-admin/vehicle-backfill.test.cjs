@@ -72,9 +72,12 @@ test('push includes period and approval link; reassigned and stale devices exclu
   const s=setup(),{id}=await s.service.propose(sender(proposal)),sent=[];
   s.rows.set('push_devices/good',{uid:'recipient',token:'good',updatedAt:Timestamp.fromMillis(NOW)});s.rows.set('push_devices/stale',{uid:'recipient',token:'stale',updatedAt:Timestamp.fromMillis(0)});s.rows.set('push_devices/other',{uid:'other',token:'other',updatedAt:Timestamp.fromMillis(NOW)});
   const notify=createBackfillNotifier({...s,messaging:{send:async message=>sent.push(message)},logger:{warn(){}},now:()=>NOW});
-  const snapshot=await s.db.collection('fahrzeug_nachtraege').doc(id).get();await notify({data:snapshot});assert.equal(sent.length,1);assert.equal(sent[0].token,'good');assert.match(sent[0].webpush.notification.body,/Absender.*Unimog.*FR 123/);assert.ok(sent[0].webpush.fcmOptions.link.includes('?nachtrag='));
+  const snapshot=await s.db.collection('fahrzeug_nachtraege').doc(id).get();await notify({data:snapshot});assert.equal(sent.length,1);assert.equal(sent[0].token,'good');assert.match(sent[0].webpush.notification.body,/Absender.*Unimog.*FR 123/);
+  const link='https://netzbau-tafers.github.io/lager/fahrzeug-bestaetigung.html?nachtrag='+id;
+  assert.equal(sent[0].webpush.fcmOptions.link,link);assert.equal(sent[0].webpush.notification.data.url,link);assert.equal(sent[0].data.url,link);
   await s.service.review(review(id));await notify({data:snapshot});assert.equal(sent.length,1);
 });
 test('pending request survives lack of enabled push device',async()=>{
   const s=setup(),{id}=await s.service.propose(sender(proposal));const notify=createBackfillNotifier({...s,messaging:{send:async()=>assert.fail('No device')},logger:{warn(){}},now:()=>NOW});await notify({data:await s.db.collection('fahrzeug_nachtraege').doc(id).get()});assert.equal(s.rows.get('fahrzeug_nachtraege/'+id).status,'pending');assert.equal(s.rows.get('fahrzeug_nachtraege/'+id).notificationStatus,'not-delivered');
 });
+
