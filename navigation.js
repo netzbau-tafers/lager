@@ -64,7 +64,8 @@
     const firstAdmin=report||menu.querySelector('[data-page="logs"], [data-page="profil"]');if(firstAdmin)menu.insertBefore(section,firstAdmin);
     const overview=document.createElement('a');overview.href='meine-uebersicht.html';overview.append(icon('uebersicht'),document.createTextNode('Meine Übersicht'));
     if(current==='meine-uebersicht.html'){overview.classList.add('active-page');overview.setAttribute('aria-current','page')}
-    const profileButton=menu.querySelector('[data-page="profil"]');menu.insertBefore(overview,profileButton||menu.querySelector('.logout-safe'));
+    // Meine Übersicht ist der erste Eintrag im Bereich Verwaltung.
+    section.after(overview);
     const privacy=document.createElement('a');privacy.href='datenschutz.html';privacy.append(icon('datenschutz'),document.createTextNode('Datenschutz'));
     if(current==='datenschutz.html'){privacy.classList.add('active-page');privacy.setAttribute('aria-current','page')}
     const logout=menu.querySelector('.logout-safe');menu.insertBefore(privacy,logout);
