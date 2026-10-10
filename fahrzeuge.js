@@ -145,19 +145,25 @@
     const v=vehicles.find(entry=>entry.id===selected);
     if(!v){status.textContent='Das gescannte Fahrzeug wurde nicht gefunden.';return;}
     if(!LagerAccess.write('fahrzeuge')){messages.set(v.id,'Du darfst Fahrzeuge nur ansehen.');render();return;}
-    if(v.active&&v.active.uid!==user.uid){messages.set(v.id,'Dieses Fahrzeug ist von '+v.active.name+' in Gebrauch.');render();return;}
-    if(v.active){openDialog('free',v);return;}
+    if(v.active?.uid===user.uid){openDialog('free',v);return;}
+    if(v.active&&!LagerAccess.write('fahrzeugeUebernehmen')){messages.set(v.id,'Dieses Fahrzeug ist von '+v.active.name+' in Gebrauch. Du darfst es nicht übernehmen.');render();return;}
     const own=vehicles.find(entry=>entry.active?.uid===user.uid);
-    if(own){messages.set(v.id,'Zuerst '+own.name+' freigeben.');render();return;}
+    if(own){openDialog('switch',v,own);return;}
+    if(v.active){openDialog('takeover',v);return;}
     void act(v,'start');
   }
   function input(name,label,type,value,max){const wrapper=node('label',label),field=node('input');field.name=name;field.type=type;field.value=value;field.required=true;if(type==='number'){field.min='0';field.max='9999999';field.step='1';field.inputMode='numeric';}else field.maxLength=max;wrapper.append(field);fields.append(wrapper);return field;}
-  function openDialog(action,vehicle){
-    pending={action,vehicle,requestId:requestId()};fields.replaceChildren();document.getElementById('dialogStatus').textContent='';save.disabled=false;cancel.disabled=false;
-    const titles={create:'Fahrzeug hinzufügen',fuel:'Tanken',takeover:'Fahrzeug für mich übernehmen',day:'Nutzung für heute nachtragen',free:'Fahrzeug zurückgeben'};
+  function openDialog(action,vehicle,previousVehicle){
+    pending={action,vehicle,requestId:requestId()};
+    if(action==='switch')Object.assign(pending,{previousVehicle,releaseRequestId:requestId(),released:false,targetAction:vehicle.active?'takeover':'start'});fields.replaceChildren();document.getElementById('dialogStatus').textContent='';save.disabled=false;cancel.disabled=false;
+    const titles={create:'Fahrzeug hinzufügen',fuel:'Tanken',takeover:'Fahrzeug für mich übernehmen',day:'Nutzung für heute nachtragen',free:'Fahrzeug zurückgeben',switch:'Fahrzeug wechseln'};
     document.getElementById('dialogTitle').textContent=titles[action]+(vehicle?' · '+vehicle.name:'');
     const note=document.getElementById('dialogNote');note.textContent='';save.textContent='Speichern';
     if(action==='create'){input('name','Fahrzeugname','text','',100);input('plate','Kennzeichen','text','',30);input('km','Aktueller Kilometerstand','number','');}
+    if(action==='switch'){
+      note.textContent='Du hast '+previousVehicle.name+' ('+previousVehicle.plate+') in Gebrauch. Möchtest du dieses Fahrzeug freigeben und '+vehicle.name+' ('+vehicle.plate+') '+(vehicle.active?'von '+vehicle.active.name+' übernehmen?':'in Gebrauch nehmen?');
+      save.textContent='Fahrzeug wechseln';
+    }
     if(action==='free'){note.textContent='Möchtest du das Fahrzeug wieder freigeben?';save.textContent='Fahrzeug zurückgeben';}
     if(action==='fuel'){note.textContent='Lies den aktuellen Kilometerstand am Fahrzeug ab. Nach dem Speichern steht er gross auf der Karte für das Bezahlen am Tankterminal.';const field=input('km','Aktueller Kilometerstand','number','');field.min=String(vehicle.km||0);}
     if(action==='takeover'){note.textContent='Die Nutzung von '+vehicle.active.name+' wird jetzt beendet und im Verlauf als Übernahme dokumentiert. Danach ist das Fahrzeug auf dich eingetragen.';save.textContent='Für mich übernehmen';}
@@ -203,9 +209,19 @@
     const operation=pending,values=new FormData(form);saving=true;save.disabled=true;cancel.disabled=true;document.getElementById('dialogStatus').textContent='Wird gespeichert …';
     try{
       if(operation.action==='create')await createCall({name:values.get('name').trim(),plate:values.get('plate').trim(),km:Number(values.get('km'))});
+      else if(operation.action==='switch'){
+        const previous=operation.previousVehicle,v=operation.vehicle;
+        if(!operation.released){
+          await actionCall({id:previous.id,revision:previous.revision,action:'free',requestId:operation.releaseRequestId});
+          operation.released=true;messages.set(previous.id,'Fahrzeug freigegeben.');
+          document.getElementById('dialogStatus').textContent=previous.name+' ist freigegeben. '+v.name+' wird auf dich eingetragen …';
+        }
+        await actionCall({id:v.id,revision:v.revision,action:operation.targetAction,requestId:operation.requestId});
+        messages.set(v.id,'Auf dich eingetragen.');
+      }
       else{const v=operation.vehicle;const data={id:v.id,revision:v.revision,action:operation.action,requestId:operation.requestId};if(operation.action==='fuel')data.km=Number(values.get('km'));await actionCall(data);messages.set(v.id,'Gespeichert.');}
       dialog.close();pending=null;render();status.textContent=operation.action==='create'?'Fahrzeug hinzugefügt.':'Änderung gespeichert.';
-    }catch(error){document.getElementById('dialogStatus').textContent=errorText(error);if(error.code==='functions/failed-precondition'){save.disabled=true;document.getElementById('dialogStatus').textContent+=' Schliesse dieses Fenster und öffne die Aktion nochmals.';}}
+    }catch(error){document.getElementById('dialogStatus').textContent=(operation.action==='switch'&&operation.released?operation.previousVehicle.name+' wurde freigegeben. Das gescannte Fahrzeug konnte noch nicht auf dich eingetragen werden. ':'')+errorText(error);if(error.code==='functions/failed-precondition'){save.disabled=true;document.getElementById('dialogStatus').textContent+=' Schliesse dieses Fenster und öffne die Aktion nochmals.';}}
     finally{saving=false;cancel.disabled=false;if(document.getElementById('dialogStatus').textContent.indexOf('Schliesse dieses Fenster')===-1)save.disabled=false;}
   });
   search?.addEventListener('input',()=>{selectedSearch=false;render();});onlyFavorites?.addEventListener('change',()=>{selectedSearch=false;render();});
