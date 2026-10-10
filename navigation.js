@@ -59,9 +59,9 @@
     if(vehicle&&report)menu.insertBefore(vehicle,report);
     const logbook=document.createElement('a');logbook.href='fahrtenbuch.html';logbook.dataset.page='fahrtenbuch';logbook.style.display='none';logbook.append(icon('logs'),document.createTextNode('Fahrtenbuch'));
     if(current==='fahrtenbuch.html'){logbook.classList.add('active-page');logbook.setAttribute('aria-current','page');}
-    if(vehicle)vehicle.after(logbook);else menu.append(logbook);
+    if(report)menu.insertBefore(logbook,report);else if(vehicle)vehicle.after(logbook);else menu.append(logbook);
     const section=document.createElement('div');section.className='nt-section';section.textContent='VERWALTUNG';
-    const firstAdmin=report||menu.querySelector('[data-page="logs"], [data-page="profil"]');if(firstAdmin)menu.insertBefore(section,firstAdmin);
+    const firstAdmin=logbook||report||menu.querySelector('[data-page="logs"], [data-page="profil"]');if(firstAdmin)menu.insertBefore(section,firstAdmin);
     const overview=document.createElement('a');overview.href='meine-uebersicht.html';overview.append(icon('uebersicht'),document.createTextNode('Meine Übersicht'));
     if(current==='meine-uebersicht.html'){overview.classList.add('active-page');overview.setAttribute('aria-current','page')}
     // Meine Übersicht steht direkt nach der Startseite, vor dem Kabellager.
