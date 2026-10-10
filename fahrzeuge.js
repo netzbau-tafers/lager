@@ -111,7 +111,28 @@
   function downloadQr(v){
     const url=new URL('fahrzeuge.html',location.href);url.searchParams.set('fahrzeug',v.id);url.searchParams.set('scan','1');
     const qr=qrcode(0,'M');qr.addData(url.href);qr.make();
-    const blob=new Blob([qr.createSvgTag({cellSize:8,margin:32,scalable:true})],{type:'image/svg+xml'});
+    const size=qr.getModuleCount()*8+64,namespace='http://www.w3.org/2000/svg';
+    const svg=document.createElementNS(namespace,'svg');
+    // Keep the QR code and its quiet zone intact below the printed vehicle label.
+    const nameLines=String(v.name).match(/.{1,28}(?:\s|$)|\S{1,28}/g)||['Fahrzeug'];
+    const headerHeight=32+nameLines.length*34+42;
+    svg.setAttribute('xmlns',namespace);svg.setAttribute('width',String(size));svg.setAttribute('height',String(size+headerHeight));
+    svg.setAttribute('viewBox','0 0 '+size+' '+(size+headerHeight));
+    const background=document.createElementNS(namespace,'rect');
+    background.setAttribute('width','100%');background.setAttribute('height','100%');background.setAttribute('fill','#fff');svg.append(background);
+    function label(value,y,fontSize,bold){
+      const text=document.createElementNS(namespace,'text');text.textContent=value.trim();
+      text.setAttribute('x',String(size/2));text.setAttribute('y',String(y));text.setAttribute('text-anchor','middle');
+      text.setAttribute('font-family','Arial, sans-serif');text.setAttribute('font-size',String(fontSize));text.setAttribute('fill','#000');
+      if(bold)text.setAttribute('font-weight','700');
+      if(value.length*fontSize*0.7>size-64){text.setAttribute('textLength',String(size-64));text.setAttribute('lengthAdjust','spacingAndGlyphs');}
+      svg.append(text);
+    }
+    nameLines.forEach((line,index)=>label(line,40+index*34,28,true));
+    label(String(v.plate||''),40+nameLines.length*34,24,false);
+    const qrSvg=new DOMParser().parseFromString(qr.createSvgTag({cellSize:8,margin:32,scalable:true}),'image/svg+xml').documentElement;
+    qrSvg.setAttribute('x','0');qrSvg.setAttribute('y',String(headerHeight));qrSvg.setAttribute('width',String(size));qrSvg.setAttribute('height',String(size));svg.append(qrSvg);
+    const blob=new Blob([new XMLSerializer().serializeToString(svg)],{type:'image/svg+xml'});
     const objectUrl=URL.createObjectURL(blob),link=document.createElement('a');link.href=objectUrl;
     link.download='QR-'+v.name.replace(/[^a-zA-Z0-9_-]/g,'_')+'.svg';document.body.append(link);link.click();link.remove();
     setTimeout(()=>URL.revokeObjectURL(objectUrl),60000);
