@@ -23,10 +23,10 @@ service cloud.firestore {
     function validLevel(value) { return value in ['none', 'view', 'edit']; }
     function validAccess() {
       let p = request.resource.data.permissions;
-      return p is map && p.keys().hasOnly(['kabellager','baustellen','archiv','kabelreport','logs','spiel','gespart','materialvorlagen','beendete','fahrtenbuch','fahrzeuge','fahrzeugeErstellen','fahrzeugeUebernehmen']) &&
+      return p is map && p.keys().hasOnly(['kabellager','baustellen','archiv','kabelreport','logs','spiel','gespart','materialvorlagen','beendete','fahrtenbuch','fahrtenbuchExport','fahrzeuge','fahrzeugeErstellen','fahrzeugeUebernehmen']) &&
         p.keys().hasAll(['kabellager','baustellen','archiv','kabelreport','logs','spiel']) &&
         validLevel(p.kabellager) && validLevel(p.baustellen) && validLevel(p.archiv) &&
-        validLevel(p.kabelreport) && validLevel(p.logs) && validLevel(p.spiel) && validLevel(p.get('gespart', 'none')) && p.get('materialvorlagen', 'none') in ['none', 'edit'] && p.get('beendete', 'none') in ['none','edit'] && p.get('fahrtenbuch', 'none') in ['none','edit'] && validLevel(p.get('fahrzeuge', 'none')) && p.get('fahrzeugeErstellen', 'none') in ['none','edit'] && p.get('fahrzeugeUebernehmen', 'none') in ['none','edit'] &&
+        validLevel(p.kabelreport) && validLevel(p.logs) && validLevel(p.spiel) && validLevel(p.get('gespart', 'none')) && p.get('materialvorlagen', 'none') in ['none', 'edit'] && p.get('beendete', 'none') in ['none','edit'] && p.get('fahrtenbuch', 'none') in ['none','edit'] && p.get('fahrtenbuchExport', 'none') in ['none','edit'] && validLevel(p.get('fahrzeuge', 'none')) && p.get('fahrzeugeErstellen', 'none') in ['none','edit'] && p.get('fahrzeugeUebernehmen', 'none') in ['none','edit'] &&
         request.resource.data.keys().hasOnly(['permissions','updatedAt','updatedBy']) &&
         request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
     }
@@ -128,6 +128,7 @@ service cloud.firestore {
     }
   }
 }
+
 
 
 
