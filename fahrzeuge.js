@@ -26,7 +26,23 @@
     if(error.code==='permission-denied')return 'Keine Berechtigung. Bitte die Fahrzeugrechte und die veröffentlichten Firestore-Regeln prüfen.';
     return 'Speichern fehlgeschlagen. Bitte den aktuellen Stand prüfen und erneut versuchen. Die Fahrzeugfunktionen müssen in Firebase veröffentlicht sein.';
   }
-  function button(label,action,id,className=''){const element=node('button',label,className);element.type='button';element.dataset.action=action;element.dataset.id=id;element.disabled=busy.has(id);return element;}
+  const actionIcons={
+    takeover:['M16 3h5v5','M4 20 21 3','M21 14v7h-7'],
+    fuel:['M3 22V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v17','M3 10h10','M1 22h14','M13 12h2a2 2 0 0 1 2 2v4a2 2 0 0 0 4 0V9l-4-4','M18 6v3h3'],
+    backfill:['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2','M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M20 8v6','M17 11h6'],
+    day:['M8 2v4','M16 2v4','M3 10h18','M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2','M8 16l3 3 5-5'],
+    start:['M7 4v16l13-8Z'],
+    free:['M20 6 9 17l-5-5']
+  };
+  function actionIcon(action){
+    if(!actionIcons[action])return null;
+    const namespace='http://www.w3.org/2000/svg',icon=document.createElementNS(namespace,'svg');
+    for(const [key,value] of Object.entries({viewBox:'0 0 24 24',width:'20',height:'20',fill:'none',stroke:'currentColor','stroke-width':'2','stroke-linecap':'round','stroke-linejoin':'round','aria-hidden':'true',focusable:'false'}))icon.setAttribute(key,value);
+    icon.style.cssText='display:inline-block;vertical-align:-4px;margin-right:8px;flex-shrink:0';
+    for(const d of actionIcons[action]){const path=document.createElementNS(namespace,'path');path.setAttribute('d',d);icon.append(path);}
+    return icon;
+  }
+  function button(label,action,id,className=''){const element=node('button',label,className),icon=actionIcon(action);if(icon)element.prepend(icon);element.type='button';element.dataset.action=action;element.dataset.id=id;element.disabled=busy.has(id);return element;}
   const historyPageSize=20;
   function historyList(id){
     const target=[...list.querySelectorAll('[data-history-list]')].find(n=>n.dataset.historyList===id);if(!target)return;
