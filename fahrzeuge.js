@@ -7,7 +7,7 @@
   const overview=Boolean(document.getElementById('myVehiclesSection'));
   let user=null,vehicles=[],favorites=new Set(),unsubVehicles=null,unsubFavorites=null,pending=null,saving=false,selectedScrolled=false;
   const selected=new URLSearchParams(location.search).get('fahrzeug'),scanRequested=!overview&&new URLSearchParams(location.search).get('scan')==='1';
-  let scanHandled=false;
+  let scanHandled=false,selectedScrollFrame=null;
   const busy=new Set(),messages=new Map(),histories=new Map(),openHistory=new Set();
   function node(tag,value='',className=''){const element=document.createElement(tag);element.textContent=value;if(className)element.className=className;return element;}
   function date(value){return value?.toDate?.().toLocaleString('de-CH',{timeZone:'Europe/Zurich',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})||'–';}
@@ -45,7 +45,7 @@
   function render(){
     const focus=document.activeElement;const restore=focus?.dataset?.action?{action:focus.dataset.action,id:focus.dataset.id}:null;
     list.replaceChildren();const ownVehicle=vehicles.find(v=>v.active?.uid===user?.uid);const query=(search?.value||'').trim().toLocaleLowerCase('de-CH');
-    const visible=vehicles.filter(v=>(!(overview||onlyFavorites?.checked)||favorites.has(v.id))&&(v.name+' '+v.plate).toLocaleLowerCase('de-CH').includes(query)).sort((a,b)=>Number(favorites.has(b.id))-Number(favorites.has(a.id))||a.name.localeCompare(b.name,'de-CH'));
+    const visible=vehicles.filter(v=>(!(overview||onlyFavorites?.checked)||favorites.has(v.id))&&(v.name+' '+v.plate).toLocaleLowerCase('de-CH').includes(query)).sort((a,b)=>Number(!overview&&b.id===selected)-Number(!overview&&a.id===selected)||Number(favorites.has(b.id))-Number(favorites.has(a.id))||a.name.localeCompare(b.name,'de-CH'));
     if(overview)document.getElementById('vehicleCount').textContent=String(visible.length);
     if(!visible.length)list.append(node('p',overview?'Speichere Fahrzeuge im Bereich „Fahrzeuge“ mit dem Stern als Favoriten.':vehicles.length?'Keine Fahrzeuge für diese Auswahl.':'Noch keine Fahrzeuge angelegt.'));
     for(const v of visible){
@@ -72,7 +72,16 @@
       const details=node('details');details.dataset.history=v.id;details.open=openHistory.has(v.id);details.append(node('summary','Nutzungs- und Tankverlauf'));const history=node('div');history.dataset.historyList=v.id;history.className='vehicle-history-scroll';history.tabIndex=0;history.setAttribute('role','region');history.setAttribute('aria-label','Nutzungs- und Tankverlauf für '+v.name);details.append(history);details.addEventListener('toggle',()=>{if(!details.isConnected)return;if(details.open){openHistory.add(v.id);if(!histories.has(v.id))watchHistory(v.id);else historyList(v.id);}else{openHistory.delete(v.id);histories.get(v.id)?.unsubscribe?.();histories.delete(v.id);}});card.append(details);list.append(card);if(details.open)historyList(v.id);
     }
     if(restore){const target=[...list.querySelectorAll('button')].find(n=>n.dataset.action===restore.action&&n.dataset.id===restore.id);target?.focus({preventScroll:true});}
-    if(selected&&!selectedScrolled){const card=document.getElementById('vehicle-'+selected);if(card){selectedScrolled=true;card.scrollIntoView({behavior:'smooth',block:'start'});}}
+    if(!overview&&selected&&!selectedScrolled){
+      // Live snapshots can replace the cards before the browser paints them.
+      // Resolve the current card after rendering and avoid a stale smooth scroll.
+      if(selectedScrollFrame!==null)cancelAnimationFrame(selectedScrollFrame);
+      selectedScrollFrame=requestAnimationFrame(()=>{
+        selectedScrollFrame=null;
+        const card=document.getElementById('vehicle-'+selected);
+        if(card){card.scrollIntoView({behavior:'instant',block:'start'});selectedScrolled=true;}
+      });
+    }
   }
   function downloadQr(v){
     const url=new URL('fahrzeuge.html',location.href);url.searchParams.set('fahrzeug',v.id);url.searchParams.set('scan','1');
