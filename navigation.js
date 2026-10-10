@@ -62,21 +62,35 @@
     if(report)menu.insertBefore(logbook,report);else if(vehicle)vehicle.after(logbook);else menu.append(logbook);
     const section=document.createElement('div');section.className='nt-section';section.textContent='VERWALTUNG';
     const firstAdmin=logbook||report||menu.querySelector('[data-page="logs"], [data-page="profil"]');if(firstAdmin)menu.insertBefore(section,firstAdmin);
-    const overview=document.createElement('a');overview.href='meine-uebersicht.html';overview.append(icon('uebersicht'),document.createTextNode('Meine Übersicht'));
+    const overview=document.createElement('a');overview.href='meine-uebersicht.html';overview.dataset.page='uebersicht';overview.append(icon('uebersicht'),document.createTextNode('Meine Übersicht'));
     if(current==='meine-uebersicht.html'){overview.classList.add('active-page');overview.setAttribute('aria-current','page')}
     // Meine Übersicht steht direkt nach der Startseite, vor dem Kabellager.
     const homeLink=menu.querySelector('[data-page="home"]');
     const cableLink=menu.querySelector('[data-page="index"]');
     if(homeLink)homeLink.after(overview);else menu.insertBefore(overview,cableLink||menu.firstChild);
-    const privacy=document.createElement('a');privacy.href='datenschutz.html';privacy.append(icon('datenschutz'),document.createTextNode('Datenschutz'));
+    const privacy=document.createElement('a');privacy.href='datenschutz.html';privacy.dataset.page='datenschutz';privacy.append(icon('datenschutz'),document.createTextNode('Datenschutz'));
     if(current==='datenschutz.html'){privacy.classList.add('active-page');privacy.setAttribute('aria-current','page')}
     const logout=menu.querySelector('.logout-safe');menu.insertBefore(privacy,logout);
-    const helpLink=document.createElement('a');helpLink.href='hilfe.html';
+    const helpLink=document.createElement('a');helpLink.href='hilfe.html';helpLink.dataset.page='hilfe';
     const helpIcon=document.createElementNS('http://www.w3.org/2000/svg','svg');helpIcon.setAttribute('viewBox','0 0 24 24');helpIcon.setAttribute('aria-hidden','true');helpIcon.innerHTML='<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4M12 17h.01"/>';
     helpLink.append(helpIcon,document.createTextNode('Hilfe'));
     if(current==='hilfe.html'){helpLink.classList.add('active-page');helpLink.setAttribute('aria-current','page')}
     menu.insertBefore(helpLink,privacy);
     const close=document.createElement('button');close.type='button';close.className='nt-close';close.innerHTML='<span>Netzbau Tafers</span><span aria-hidden="true">✕</span>';close.setAttribute('aria-label','Menü schliessen');menu.prepend(close);
+    // Jede Seite verwendet dieselbe Reihenfolge, unabhängig von ihren ursprünglichen Menüeinträgen.
+    const menuOrder=['home','uebersicht','index','baustellen','fahrzeuge','verwaltung','fahrtenbuch','kabelreport','archiv','logs','profil','hilfe','datenschutz','benutzer','backup','logout'];
+    section.dataset.page='verwaltung';close.dataset.page='menu-close';
+    for(const item of menu.children){
+      if(item.dataset.page)continue;
+      const target=(item.getAttribute('href')||item.getAttribute('onclick')||'');
+      if(/archiv\.html|goToArchiv/.test(target))item.dataset.page='archiv';
+      else if(item.classList.contains('logout-safe'))item.dataset.page='logout';
+    }
+    const orderedItems=[...menu.children].sort((a,b)=>{
+      const rank=item=>item===close?-1:menuOrder.includes(item.dataset.page)?menuOrder.indexOf(item.dataset.page):menuOrder.length;
+      return rank(a)-rank(b);
+    });
+    for(const item of orderedItems)menu.append(item);
     let previousFocus=null;
     const backgroundNodes=()=>[...host.children].filter(node=>node!==menu&&node!==backdrop);
     const inertBefore=new Map();
