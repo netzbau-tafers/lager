@@ -12,7 +12,7 @@ const levels=value=>Object.fromEntries(areas.map(key=>[key,value]));
   await assertSucceeds(getDocs(collection(master,'users')));await assertFails(getDocs(collection(worker,'users')));await assertFails(getDoc(doc(worker,'users/other')));
   await assertSucceeds(updateDoc(doc(master,'users/worker'),{username:'Renamed'}));
   await assertFails(setDoc(doc(worker,'user_access/worker'),{permissions:levels('edit')}));await assertFails(setDoc(doc(other,'user_access/other'),{permissions:levels('edit')}));
-  await assertSucceeds(updateDoc(doc(worker,'users/worker'),{username:'Own name',updatedAt:serverTimestamp()}));await assertSucceeds(setDoc(doc(worker,'users/worker'),{email:'max@example.com',lastSeenAt:serverTimestamp()},{merge:true}));
+  await assertFails(updateDoc(doc(worker,'users/worker'),{username:'Own name',updatedAt:serverTimestamp()}));await assertSucceeds(setDoc(doc(worker,'users/worker'),{email:'max@example.com',lastSeenAt:serverTimestamp()},{merge:true}));
   await assertFails(updateDoc(doc(worker,'users/worker'),{email:'forged@example.com'}));await assertFails(updateDoc(doc(worker,'users/worker'),{permissions:levels('edit')}));
   await assertSucceeds(setDoc(doc(other,'users/other'),{email:'other@example.com',lastSeenAt:serverTimestamp()},{merge:true}));
   for(const path of ['bobinen/a','baustellen/a','baustellen_material/a','material_vorlagen/a','logs/a','kabel_report_snapshots/a','strommastRanking/a','gespart_tarife/a']){await assertSucceeds(getDoc(doc(worker,path)));await assertFails(updateDoc(doc(worker,path),{test:true}));await assertFails(deleteDoc(doc(worker,path)));await assertFails(getDoc(doc(anon,path)));}
