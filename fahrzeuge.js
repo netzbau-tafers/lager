@@ -92,8 +92,6 @@
         if(!v.active)actions.append(button('Fahrzeug den ganzen Tag gebraucht','day',v.id,'secondary day-button'));
         if(ownVehicle){for(const control of actions.querySelectorAll('button')){if(['start','takeover','day'].includes(control.dataset.action)){control.disabled=true;control.title='Zuerst '+ownVehicle.name+' freigeben.';}}}
         card.append(actions);
-        if(ownVehicle&&ownVehicle.id!==v.id)card.append(node('p','Zuerst '+ownVehicle.name+' freigeben, um dieses Fahrzeug zu benutzen.','vehicle-help'));
-        if(!v.active)card.append(node('p','Nachtragen: heute ab 07:00 oder ab dem Ende der letzten Nutzung bis jetzt.','vehicle-help'));
       }
       const feedback=node('p',busy.has(v.id)?(messages.get(v.id)||'Wird verarbeitet …'):messages.get(v.id)||'','vehicle-feedback');loading(feedback,busy.has(v.id));card.setAttribute('aria-busy',String(busy.has(v.id)));feedback.setAttribute('role','status');card.append(feedback);
       const details=node('details');details.dataset.history=v.id;details.open=openHistory.has(v.id);details.append(node('summary','Nutzungs- und Tankverlauf'));const history=node('div');history.dataset.historyList=v.id;history.className='vehicle-history-scroll';history.tabIndex=0;history.setAttribute('role','region');history.setAttribute('aria-label','Nutzungs- und Tankverlauf für '+v.name);details.append(history);details.addEventListener('toggle',()=>{if(!details.isConnected)return;if(details.open){openHistory.add(v.id);if(!histories.has(v.id))void loadHistory(v.id);else historyList(v.id);}else{openHistory.delete(v.id);}});card.append(details);list.append(card);if(details.open){if(!histories.has(v.id))void loadHistory(v.id);else historyList(v.id);}
@@ -242,7 +240,7 @@
     const action=control.dataset.action;
     if(action==='favorite'){
       busy.add(v.id);messages.set(v.id,'Favorit wird gespeichert …');render();const ref=db.collection('fahrzeug_favoriten').doc(user.uid).collection('fahrzeuge').doc(v.id);
-      try{if(favorites.has(v.id))await ref.delete();else await ref.set({updatedAt:firebase.firestore.FieldValue.serverTimestamp()});messages.set(v.id,'Favorit gespeichert.');}
+      try{if(favorites.has(v.id))await ref.delete();else await ref.set({updatedAt:firebase.firestore.FieldValue.serverTimestamp()});messages.delete(v.id);}
       catch(error){messages.set(v.id,errorText(error));}finally{busy.delete(v.id);render();}return;
     }
     if(action==='info'){openDialog('info',v);return;}
