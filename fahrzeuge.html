@@ -9,7 +9,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
-<script src="zugriffsrechte.js?v=20261009-fahrzeuge"></script>
+<script src="zugriffsrechte.js?v=20261010-delete"></script>
 </head>
 <body>
 <div id="appContent" style="display:none">
@@ -41,6 +41,6 @@ firebase.initializeApp({apiKey:'AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w',authDom
 const auth=firebase.auth();
 function logout(){if(confirm('Wirklich ausloggen?'))auth.signOut().then(()=>location.href='home.html');}
 </script>
-<script src="vendor/qrcode.js"></script><script src="fahrzeuge.js?v=20261010-qr-focus"></script><script src="navigation.js?v=20261009-fahrzeuge"></script>
+<script src="vendor/qrcode.js"></script><script src="fahrzeuge.js?v=20261010-delete"></script><script src="navigation.js?v=20261009-fahrzeuge"></script>
 </body>
 </html>

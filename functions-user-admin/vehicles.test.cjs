@@ -10,12 +10,12 @@ function fixture(){
   const snapshot=path=>({exists:data.has(path),data:()=>data.get(path)});
   const doc=path=>({path,id:path.split('/').at(-1),get:async()=>snapshot(path),collection:name=>collection(path+'/'+name)});
   const collection=path=>({doc:id=>doc(path+'/'+(id||'auto'+(++serial)))});
-  const db={collection,runTransaction(callback){
+  const db={collection,recursiveDelete:async ref=>{for(const path of data.keys())if(path===ref.path||path.startsWith(ref.path+'/'))data.delete(path);},runTransaction(callback){
     const result=queue.then(async()=>{
       const writes=[];let writing=false;
-      const tx={get:async ref=>{assert.equal(writing,false,'transaction read after write');return snapshot(ref.path);},create:(ref,value)=>{writing=true;writes.push(['create',ref.path,value]);},update:(ref,value)=>{writing=true;writes.push(['update',ref.path,value]);},set:(ref,value)=>{writing=true;writes.push(['set',ref.path,value]);}};
+      const tx={delete:ref=>{writing=true;writes.push(['delete',ref.path]);},get:async ref=>{assert.equal(writing,false,'transaction read after write');return snapshot(ref.path);},create:(ref,value)=>{writing=true;writes.push(['create',ref.path,value]);},update:(ref,value)=>{writing=true;writes.push(['update',ref.path,value]);},set:(ref,value)=>{writing=true;writes.push(['set',ref.path,value]);}};
       await callback(tx);const draft=new Map(data);
-      for(const [type,path,value]of writes){if(type!=='set')assert.equal(draft.has(path),type==='update',type+' existence');draft.set(path,type==='update'?{...draft.get(path),...value}:value);}
+      for(const [type,path,value]of writes){if(type==='delete'){draft.delete(path);continue;}if(type!=='set')assert.equal(draft.has(path),type==='update',type+' existence');draft.set(path,type==='update'?{...draft.get(path),...value}:value);}
       data.clear();for(const pair of draft)data.set(...pair);audit.push(writes);return undefined;
     });queue=result.catch(()=>{});return result;
   }};
@@ -86,4 +86,14 @@ test('simultaneous start on different vehicles cannot bypass person lock',async(
 test('takeover needs explicit permission in addition to normal vehicle usage',async()=>{
  const f=fixture(),id=await f.create();await f.action(id,'start');f.user('bob',{fahrzeuge:'edit',fahrzeugeUebernehmen:'none'});
  await rejects(f.action(id,'takeover','bob'),'permission-denied');assert.equal(f.vehicle(id).active.uid,'alice');
+});
+
+test('delete permission, active vehicle and stale revision are enforced; cleanup and retries work',async()=>{
+ const f=fixture(),id=await f.create(),request=()=>f.request('alice',{id,revision:f.vehicle(id)?.revision||0});
+ f.user('alice',{fahrzeuge:'edit',fahrzeugeErstellen:'none'});await rejects(f.service.remove(request()),'permission-denied');
+ f.user('alice');await f.action(id,'start');await rejects(f.service.remove(request()),'failed-precondition');await f.action(id,'free');
+ await rejects(f.service.remove(f.request('alice',{id,revision:0})),'failed-precondition');
+ f.user('alice',{fahrzeuge:'view',fahrzeugeErstellen:'edit'});await f.service.remove(request());assert.equal(f.vehicle(id),undefined);assert.equal(f.events(id).length,0);
+ await f.service.remove(f.request('alice',{id,revision:2}));
+ await rejects(f.service.remove(f.request('alice',{id:'../bad',revision:0})),'invalid-argument');
 });

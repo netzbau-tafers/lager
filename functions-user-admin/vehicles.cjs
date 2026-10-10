@@ -25,7 +25,7 @@ function createVehicles({db,auth,Timestamp,ErrorType,now=Date.now}){
     if(uid===MASTER)return;
     const p=access.data()?.permissions||{};
     if(takeover&&p.fahrzeugeUebernehmen!=='edit')fail('permission-denied','Du darfst keine belegten Fahrzeuge übernehmen.');
-    if(create?(!['view','edit'].includes(p.fahrzeuge)||p.fahrzeugeErstellen!=='edit'):p.fahrzeuge!=='edit')fail('permission-denied',create?'Du darfst keine Fahrzeuge hinzufügen.':'Du darfst Fahrzeuge nur ansehen oder hast keinen Zugriff.');
+    if(create?(!['view','edit'].includes(p.fahrzeuge)||p.fahrzeugeErstellen!=='edit'):p.fahrzeuge!=='edit')fail('permission-denied',create?'Du darfst keine Fahrzeuge hinzufügen oder löschen.':'Du darfst Fahrzeuge nur ansehen oder hast keinen Zugriff.');
   }
   return {
     async create(request){
@@ -37,6 +37,23 @@ function createVehicles({db,auth,Timestamp,ErrorType,now=Date.now}){
         tx.create(ref,{name:data.name.trim(),plate:data.plate.trim(),km:data.km,kmAt:time,kmBy:who,status:'frei',active:null,lastUseEnd:null,revision:0,createdAt:time,createdBy:who,updatedAt:time});
       });
       return {id:ref.id};
+    },
+    async remove(request){
+      const who=await actor(request),data=request.data||{};
+      if(!string(data.id,128)||data.id.includes('/')||!Number.isSafeInteger(data.revision)||data.revision<0)fail('invalid-argument','Ungültiges Fahrzeug.');
+      const ref=db.collection('fahrzeuge').doc(data.id);
+      await db.runTransaction(async tx=>{
+        await permitted(tx,who.uid,true);
+        const snapshot=await tx.get(ref);
+        if(!snapshot.exists)return; // Allow retrying a failed subcollection cleanup.
+        const v=snapshot.data();
+        if(v.revision!==data.revision)fail('failed-precondition','Das Fahrzeug wurde gerade geändert. Bitte erneut öffnen.');
+        if(v.active)fail('failed-precondition','Das Fahrzeug ist noch in Gebrauch. Zuerst freigeben.');
+        tx.delete(ref);
+      });
+      // Deleting the parent alone does not delete Firestore subcollections.
+      await db.recursiveDelete(ref);
+      return {deleted:true};
     },
     async action(request){
       const who=await actor(request),data=request.data||{};
