@@ -37,11 +37,11 @@ function eligible(e,range){
 function createVehicleExport({db,auth,Timestamp,ErrorType,now=Date.now}){
   const fail=(code,text)=>{throw new ErrorType(code,text);};
   const jobs=db.collection('fahrtenbuch_exporte');
-  async function allowed(request,admin=false,tx=null){
+  async function allowed(request,tx=null){
     if(!request.auth)fail('unauthenticated','Bitte anmelden.');const uid=request.auth.uid;
     const user=await auth.getUser(uid),ref=db.collection('account_deletions').doc(uid),access=db.collection('user_access').doc(uid);
     const deleted=await (tx?tx.get(ref):ref.get()),rights=await (tx?tx.get(access):access.get());
-    if(user.disabled||deleted.exists||admin&&uid!==MASTER||uid!==MASTER&&rights.data()?.permissions?.fahrtenbuch!=='edit')fail('permission-denied',admin?'Nur der Master-Admin darf Verläufe löschen oder wiederherstellen.':'Kein Zugriff auf das Fahrtenbuch.');
+    if(user.disabled||deleted.exists||uid!==MASTER&&(rights.data()?.permissions?.fahrtenbuch!=='edit'||rights.data()?.permissions?.fahrtenbuchExport!=='edit'))fail('permission-denied','Kein Zugriff auf Export und Aufräumen.');
     return uid;
   }
   function refFor(data){if(!validId(data?.id))fail('invalid-argument','Ungültiger Export.');return jobs.doc(data.id);}
@@ -86,10 +86,10 @@ function createVehicleExport({db,auth,Timestamp,ErrorType,now=Date.now}){
       const part=await ref.collection('teile').doc(String(d.part)).get();if(!part.exists)fail('data-loss','Sicherungsteil fehlt.');return {records:records(part.data()),hash:part.data().hash};
     },
     async remove(request){
-      await allowed(request,true);const d=request.data||{},ref=refFor(d);
+      await allowed(request);const d=request.data||{},ref=refFor(d);
       if(d.confirmed!==true||!Number.isSafeInteger(d.part)||d.part<0)fail('invalid-argument','Export zuerst speichern, prüfen und Löschung bestätigen.');
       return db.runTransaction(async tx=>{
-        await allowed(request,true,tx);const snapshot=await tx.get(ref);if(!snapshot.exists)fail('not-found','Export nicht gefunden.');const job=snapshot.data();
+        const uid=await allowed(request,tx);const snapshot=await tx.get(ref);if(!snapshot.exists)fail('not-found','Export nicht gefunden.');const job=snapshot.data();own(job,uid);
         if(d.digest!==job.digest||!['ready','deleting','deleted'].includes(job.status))fail('failed-precondition','Dieser Export ist nicht zum Löschen bereit.');
         if(d.part<job.nextDeletePart)return summary(snapshot);
         if(d.part!==job.nextDeletePart||d.part>=job.parts)fail('failed-precondition','Bitte die Löschung in der vorgesehenen Reihenfolge fortsetzen.');
@@ -111,10 +111,10 @@ function createVehicleExport({db,auth,Timestamp,ErrorType,now=Date.now}){
       });
     },
     async restore(request){
-      await allowed(request,true);const d=request.data||{},ref=refFor(d);
+      await allowed(request);const d=request.data||{},ref=refFor(d);
       if(d.confirmed!==true||!Number.isSafeInteger(d.part)||d.part<0)fail('invalid-argument','Wiederherstellung bestätigen.');
       return db.runTransaction(async tx=>{
-        await allowed(request,true,tx);const snapshot=await tx.get(ref);if(!snapshot.exists)fail('not-found','Export nicht gefunden.');const job=snapshot.data();
+        const uid=await allowed(request,tx);const snapshot=await tx.get(ref);if(!snapshot.exists)fail('not-found','Export nicht gefunden.');const job=snapshot.data();own(job,uid);
         if(!['deleted','restoring','restored'].includes(job.status))fail('failed-precondition','Zuerst die Löschung abschliessen.');
         if(d.part<(job.nextRestorePart||0))return summary(snapshot);
         if(d.part!==(job.nextRestorePart||0)||d.part>=job.parts)fail('failed-precondition','Ungültige Reihenfolge.');
@@ -131,3 +131,4 @@ function createVehicleExport({db,auth,Timestamp,ErrorType,now=Date.now}){
   };
 }
 module.exports={createVehicleExport,eligible,fields,decode};
+

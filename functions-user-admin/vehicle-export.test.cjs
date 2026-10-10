@@ -67,3 +67,15 @@ test('export permission and ownership remain enforced on reads',async()=>{
  f.seed('user_access/worker',{permissions:{fahrtenbuch:'none'}});await assert.rejects(f.service.prepare(f.request({vehicleId:'all',from:'2025-01-01',to:'2025-12-31'},'worker')),{code:'permission-denied'});
  await assert.rejects(f.service.prepare(f.request({vehicleId:'all',from:'2025-02-30',to:'2025-12-31'})),{code:'invalid-argument'});
 });
+
+test('separate export permission grants own cleanup and blocks revoked access',async()=>{
+ const f=fixture(),data={vehicleId:'all',from:'2025-01-01',to:'2025-12-31'};
+ await assert.rejects(f.service.prepare(f.request(data,'worker')),{code:'permission-denied'});
+ f.seed('user_access/worker',{permissions:{fahrtenbuch:'edit',fahrtenbuchExport:'edit'}});
+ f.seed('fahrzeuge/bus/verlauf/a',f.entry());
+ const job=await f.service.prepare(f.request(data,'worker'));
+ const deleted=await f.service.remove(f.request({id:job.id,part:0,digest:job.digest,confirmed:true},'worker'));assert.equal(deleted.deleted,1);
+ const restored=await f.service.restore(f.request({id:job.id,part:0,confirmed:true},'worker'));assert.equal(restored.restored,1);
+ f.seed('user_access/worker',{permissions:{fahrtenbuch:'edit',fahrtenbuchExport:'none'}});
+ for(const method of ['list','read','remove','restore'])await assert.rejects(f.service[method](f.request({id:job.id,part:0,digest:job.digest,confirmed:true},'worker')),{code:'permission-denied'});
+});
