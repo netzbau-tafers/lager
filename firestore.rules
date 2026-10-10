@@ -6,6 +6,9 @@ service cloud.firestore {
     function admin() { return signedIn() && request.auth.uid in ['smnnQd4RhEQZR3uuNN0otNALUqi1', 'pmyu29TlC3QM7JIysmy2EmiHSWW2', 'PAtM8Lv1TBNLSiQzBLJK9Oda8KK2', 'hwZEme8xvkasSAGrmOtQRLOnnXn1', 'PKDpb7Cb7ig8ZKZRMm23FOKnCHQ2', 'Tgj9KT6C21XjeistBWRiSVYqTDC2', 'DSMERv7Uu4b4eEYQx5SKbjvdher2']; }
     function limited() { return request.auth.uid in ['POSB6W7xeDZ8Dlba03ZP3J02dMC3', 'AX08qKp7lte6vslQMFn76FVqxw53', 'KYqiqNKTmkQQYVWAa6bp6vSvTlV2']; }
     function configured() { return exists(/databases/$(database)/documents/user_access/$(request.auth.uid)); }
+    function userAdminRead() { return signedIn() && (master() || (configured() && level('benutzer') in ['view','edit'])); }
+    function userAdminWrite() { return signedIn() && (master() || (configured() && level('benutzer') == 'edit')); }
+    function protectedMaster(userId) { return userId == 'pmyu29TlC3QM7JIysmy2EmiHSWW2'; }
     function legacy(area) {
       return area == 'baustellen' ? (limited() ? 'none' : 'edit') :
         area == 'archiv' || area == 'logs' ? (admin() ? 'edit' : 'none') :
@@ -23,9 +26,9 @@ service cloud.firestore {
     function validLevel(value) { return value in ['none', 'view', 'edit']; }
     function validAccess() {
       let p = request.resource.data.permissions;
-      return p is map && p.keys().hasOnly(['kabellager','baustellen','archiv','kabelreport','logs','spiel','gespart','materialvorlagen','beendete','fahrtenbuch','fahrtenbuchExport','fahrzeuge','fahrzeugeErstellen','fahrzeugeUebernehmen']) &&
+      return p is map && p.keys().hasOnly(['benutzer','kabellager','baustellen','archiv','kabelreport','logs','spiel','gespart','materialvorlagen','beendete','fahrtenbuch','fahrtenbuchExport','fahrzeuge','fahrzeugeErstellen','fahrzeugeUebernehmen']) &&
         p.keys().hasAll(['kabellager','baustellen','archiv','kabelreport','logs','spiel']) &&
-        validLevel(p.kabellager) && validLevel(p.baustellen) && validLevel(p.archiv) &&
+        validLevel(p.get('benutzer','none')) && validLevel(p.kabellager) && validLevel(p.baustellen) && validLevel(p.archiv) &&
         validLevel(p.kabelreport) && validLevel(p.logs) && validLevel(p.spiel) && validLevel(p.get('gespart', 'none')) && p.get('materialvorlagen', 'none') in ['none', 'edit'] && p.get('beendete', 'none') in ['none','edit'] && p.get('fahrtenbuch', 'none') in ['none','edit'] && p.get('fahrtenbuchExport', 'none') in ['none','edit'] && validLevel(p.get('fahrzeuge', 'none')) && p.get('fahrzeugeErstellen', 'none') in ['none','edit'] && p.get('fahrzeugeUebernehmen', 'none') in ['none','edit'] &&
         request.resource.data.keys().hasOnly(['permissions','updatedAt','updatedBy']) &&
         request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
@@ -41,23 +44,23 @@ service cloud.firestore {
       allow read, write: if false;
     }
     match /user_access/{userId} {
-      allow get: if master() || (signedIn() && request.auth.uid == userId);
-      allow list: if master();
-      allow create, update: if master() && userId != request.auth.uid && !exists(/databases/$(database)/documents/account_deletions/$(userId)) && validAccess();
-      allow delete: if master() && userId != request.auth.uid;
+      allow get: if userAdminRead() || (signedIn() && request.auth.uid == userId);
+      allow list: if userAdminRead();
+      allow create, update: if userAdminWrite() && !protectedMaster(userId) && userId != request.auth.uid && !exists(/databases/$(database)/documents/account_deletions/$(userId)) && validAccess();
+      allow delete: if userAdminWrite() && !protectedMaster(userId) && userId != request.auth.uid;
     }
     match /users/{userId} {
-      allow read: if master() || (signedIn() && request.auth.uid == userId);
-      allow create: if (master() && !exists(/databases/$(database)/documents/account_deletions/$(userId))) || (signedIn() && request.auth.uid == userId &&
+      allow read: if userAdminRead() || (signedIn() && request.auth.uid == userId);
+      allow create: if (userAdminWrite() && (master() || !protectedMaster(userId)) && !exists(/databases/$(database)/documents/account_deletions/$(userId))) || (signedIn() && request.auth.uid == userId &&
         request.resource.data.keys().hasOnly(['email','updatedAt','lastSeenAt']) && validOwnProfile());
-      allow update: if (master() && !exists(/databases/$(database)/documents/account_deletions/$(userId))) || (signedIn() && request.auth.uid == userId &&
+      allow update: if (userAdminWrite() && (master() || !protectedMaster(userId)) && !exists(/databases/$(database)/documents/account_deletions/$(userId))) || (signedIn() && request.auth.uid == userId &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['email','updatedAt','lastSeenAt']) && validOwnProfile());
-      allow delete: if master() && userId != request.auth.uid;
+      allow delete: if userAdminWrite() && !protectedMaster(userId) && userId != request.auth.uid;
     }
     // Users read their own status; the master can list statuses for user administration.
     match /push_preferences/{userId} {
-      allow get: if master() || (signedIn() && request.auth.uid == userId);
-      allow list: if master();
+      allow get: if userAdminRead() || (signedIn() && request.auth.uid == userId);
+      allow list: if userAdminRead();
       allow write: if false;
     }
     // Vehicle rights are opt-in; no legacy fallback. Status/history writes are server-only.
@@ -129,6 +132,7 @@ service cloud.firestore {
     }
   }
 }
+
 
 
 
