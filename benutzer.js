@@ -1,7 +1,7 @@
 (function(){
   'use strict';
   const db=firebase.firestore(),list=document.getElementById('userList'),status=document.getElementById('userStatus'),search=document.getElementById('userSearch'),refresh=document.getElementById('userRefresh');
-  let rows=[],busy=false;
+  let rows=[],busy=false,pushStatusAvailable=false;
   const functions=firebase.app().functions("europe-west1");
   const listAccounts=functions.httpsCallable("lagerListUsers"),deleteAccount=functions.httpsCallable("lagerDeleteUser");
   const generateResetLink=functions.httpsCallable("lagerPasswordResetLink");
@@ -67,6 +67,11 @@
       const master=row.id===LagerAccess.MASTER,card=text('article','');card.className='user-card';
       card.append(text('h2',(row.username||row.email||'Benutzer ohne Namen')+' · '+titles[titleFor(row)]));
       const date=row.lastSeenAt?.toDate?.();const meta=text('p',(row.email||'Keine E-Mail hinterlegt')+' · UID: '+row.id+' · Letzte Aktivität: '+(date?date.toLocaleString('de-CH'):'Noch nicht erfasst'));meta.className='user-meta';card.append(meta);
+      const preference=row.pushPreference,activeUntil=preference?.activeUntil?.toMillis?.();
+      const pushState=!pushStatusAvailable?'unknown':preference?.enabled===true?(Number.isFinite(activeUntil)?(activeUntil>Date.now()?'enabled':'expired'):'unknown'):'disabled';
+      const pushLabels={enabled:'Aktiviert',disabled:'Nicht aktiviert',expired:'Registrierung abgelaufen',unknown:'Status nicht verfügbar'};
+      const pushStatus=text('p','Benachrichtigungen: '+pushLabels[pushState]);pushStatus.className='user-push-status';pushStatus.dataset.state=pushState;
+      pushStatus.title='Gespeicherter Status für mindestens ein Gerät. Änderungen in den Browser- oder Smartphone-Einstellungen sind nicht immer erkennbar.';card.append(pushStatus);
       const label=text('label','Benutzername');const input=document.createElement('input');input.type='text';input.maxLength=120;input.value=row.username||'';label.append(input);card.append(label);
       const titleLabel=text('label','Titel'),titleSelect=document.createElement('select');
       titleSelect.style.cssText='width:100%;max-width:100%;min-width:0;padding:10px;border:1px solid #ccd5df;border-radius:8px;background:white;font:inherit;margin:6px 0 12px';
@@ -132,10 +137,13 @@
     try{
       const [profiles,access]=await Promise.all([db.collection('users').get(),db.collection('user_access').get()]);
       const profileMap=new Map(profiles.docs.map(doc=>[doc.id,doc.data()])),accessMap=new Map(access.docs.map(doc=>[doc.id,doc.data()]));
+      let pushMap=new Map();pushStatusAvailable=false;
+      try{const preferences=await db.collection('push_preferences').get();pushMap=new Map(preferences.docs.map(doc=>[doc.id,doc.data()]));pushStatusAvailable=true;}
+      catch(error){console.error('Benachrichtigungsstatus konnte nicht geladen werden.',error);}
       let complete=true,accounts=[];
       try{let pageToken;const seen=new Set();do{const result=await listAccounts(pageToken?{pageToken}:{});if(!Array.isArray(result.data?.users))throw Error('Ungültige Benutzerliste');accounts.push(...result.data.users);pageToken=result.data.pageToken;if(pageToken){if(seen.has(pageToken))throw Error('Wiederholter Seitenschlüssel');seen.add(pageToken);}}while(pageToken);}
       catch(error){console.error(error);complete=false;accounts=profiles.docs.map(doc=>({uid:doc.id,email:doc.data().email||''}));}
-      rows=accounts.map(account=>({...profileMap.get(account.uid),id:account.uid,email:account.email,username:profileMap.get(account.uid)?.username||account.displayName||'',access:accessMap.get(account.uid)})).sort((a,b)=>String(a.username||a.email||a.id).localeCompare(String(b.username||b.email||b.id),'de-CH'));
+      rows=accounts.map(account=>({...profileMap.get(account.uid),id:account.uid,email:account.email,username:profileMap.get(account.uid)?.username||account.displayName||'',access:accessMap.get(account.uid),pushPreference:pushMap.get(account.uid)})).sort((a,b)=>String(a.username||a.email||a.id).localeCompare(String(b.username||b.email||b.id),'de-CH'));
       status.textContent=complete?rows.length+' registrierte Konten':rows.length+' Benutzerprofile – unvollständige Liste. Bitte lagerListUsers in Firebase veröffentlichen.';render();
     }catch(error){console.error(error);list.replaceChildren();status.textContent='Benutzer konnten nicht geladen werden. Bitte zuerst die neuen Firestore-Regeln veröffentlichen.';}
     finally{busy=false;refresh.disabled=false;}
