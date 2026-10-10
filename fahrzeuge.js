@@ -166,6 +166,7 @@
     save.disabled=true;
     const personLabel=node('label','Person'),person=node('select');person.name='targetUid';person.required=true;
     const placeholder=node('option','Person auswählen');placeholder.value='';person.append(placeholder);personLabel.append(person);fields.append(personLabel);
+    person.addEventListener('change',()=>{save.textContent=person.value===user?.uid?'Nutzung speichern':'Zur Bestätigung senden';});
     const checkLabel=node('label','','vehicle-check'),wholeDay=node('input');wholeDay.type='checkbox';wholeDay.name='wholeDay';checkLabel.append(wholeDay,node('span','Ganzer Tag (07:00–17:15 Uhr)'));fields.append(checkLabel);
     const day=input('date','Datum','date',todayZurich()),start=input('start','Von (Schweizer Zeit)','datetime-local',todayZurich()+'T07:00'),end=input('end','Bis (Schweizer Zeit)','datetime-local',todayZurich()+'T17:15');
     function mode(){day.disabled=!wholeDay.checked;day.required=wholeDay.checked;day.parentElement.hidden=!wholeDay.checked;for(const control of [start,end]){control.disabled=wholeDay.checked;control.required=!wholeDay.checked;control.parentElement.hidden=wholeDay.checked;}}
@@ -212,7 +213,7 @@
     if(action==='day'){note.textContent='Deine Nutzung wird für heute von frühestens 07:00 oder vom Ende der letzten protokollierten Nutzung bis zum Speichern nachgetragen. Das Fahrzeug bleibt frei.';save.textContent='Nutzung nachtragen';}
     dialog.showModal();
     if(action==='backfill'){
-      note.textContent='Die ausgewählte Person muss diesen Nachtrag bestätigen. Bis dahin steht im Verlauf „Bestätigung ausstehend“. Bei Ablehnung wird er aus dem Verlauf entfernt. Nur bereits abgeschlossene Zeiträume können nachgetragen werden. Die aktuelle Belegung bleibt unverändert.';
+      note.textContent='Eigene Nachträge werden direkt bestätigt gespeichert, ohne Benachrichtigung. Eine andere ausgewählte Person muss den Nachtrag bestätigen. Bis dahin steht im Verlauf „Bestätigung ausstehend“. Bei Ablehnung wird er entfernt. Nur abgeschlossene Zeiträume können nachgetragen werden. Die aktuelle Belegung bleibt unverändert.';
       save.textContent='Zur Bestätigung senden';void backfillFields(pending);
     }
   }
@@ -256,8 +257,9 @@
     try{
       if(operation.action==='create')await createCall({name:values.get('name').trim(),plate:values.get('plate').trim(),km:Number(values.get('km'))});
       else if(operation.action==='backfill'){
-        await backfillCall({vehicleId:operation.vehicle.id,targetUid:values.get('targetUid'),requestId:operation.requestId,wholeDay:values.has('wholeDay'),date:values.get('date'),start:values.get('start'),end:values.get('end')});
-        invalidateHistory(operation.vehicle.id);messages.set(operation.vehicle.id,'Nachtrag gesendet · Bestätigung ausstehend.');
+        const result=await backfillCall({vehicleId:operation.vehicle.id,targetUid:values.get('targetUid'),requestId:operation.requestId,wholeDay:values.has('wholeDay'),date:values.get('date'),start:values.get('start'),end:values.get('end')});
+        operation.backfillStatus=result.data.status;
+        invalidateHistory(operation.vehicle.id);messages.set(operation.vehicle.id,operation.backfillStatus==='confirmed'?'Eigene Nutzung gespeichert · Bestätigt.':'Nachtrag gesendet · Bestätigung ausstehend.');
       }
       else if(operation.action==='switch'){
         const previous=operation.previousVehicle,v=operation.vehicle;
@@ -270,7 +272,7 @@
         messages.set(v.id,'Auf dich eingetragen.');
       }
       else{const v=operation.vehicle;const data={id:v.id,revision:v.revision,action:operation.action,requestId:operation.requestId};if(operation.action==='fuel')data.km=Number(values.get('km'));await actionCall(data);messages.set(v.id,'Gespeichert.');}
-      dialog.close();pending=null;render();status.textContent=operation.action==='create'?'Fahrzeug hinzugefügt.':operation.action==='backfill'?'Nachtrag gesendet. Die Person kann ihn im Bereich Fahrzeuge bestätigen; eine Smartphone-Benachrichtigung wird an ihre aktivierten Geräte gesendet.':'Änderung gespeichert.';
+      dialog.close();pending=null;render();status.textContent=operation.action==='create'?'Fahrzeug hinzugefügt.':operation.action==='backfill'?(operation.backfillStatus==='confirmed'?'Eigene Nutzung gespeichert. Keine Bestätigung und keine Benachrichtigung nötig.':'Nachtrag gesendet. Die Person kann ihn im Bereich Fahrzeuge bestätigen; eine Smartphone-Benachrichtigung wird an ihre aktivierten Geräte gesendet.'):'Änderung gespeichert.';
     }catch(error){document.getElementById('dialogStatus').textContent=(operation.action==='switch'&&operation.released?operation.previousVehicle.name+' wurde freigegeben. Das gescannte Fahrzeug konnte noch nicht auf dich eingetragen werden. ':'')+errorText(error);if(error.code==='functions/failed-precondition'){save.disabled=true;document.getElementById('dialogStatus').textContent+=' Schliesse dieses Fenster und öffne die Aktion nochmals.';}}
     finally{saving=false;cancel.disabled=false;if(document.getElementById('dialogStatus').textContent.indexOf('Schliesse dieses Fenster')===-1)save.disabled=false;}
   });
@@ -287,4 +289,5 @@
     unsubFavorites=db.collection('fahrzeug_favoriten').doc(user.uid).collection('fahrzeuge').onSnapshot(snapshot=>{favorites=new Set(snapshot.docs.map(doc=>doc.id));render();},()=>{status.textContent='Favoriten konnten nicht geladen werden. Bitte die Firestore-Regeln prüfen.';});
   });
 })();
+
 

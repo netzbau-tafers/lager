@@ -24,6 +24,20 @@ function setup(){
 }
 const proposal={vehicleId:'car',targetUid:'recipient',requestId:'abcdefghijklmnop',wholeDay:false,start:'2026-10-09T08:15',end:'2026-10-09T16:30'};
 const sender=data=>({auth:{uid:'sender'},data}),review=(id,decision='confirmed',uid='recipient')=>({auth:{uid},data:{id,decision}});
+test('own backfill is immediately confirmed, retries do not duplicate it, and no push is sent',async()=>{
+  const s=setup(),data={...proposal,targetUid:'sender'},result=await s.service.propose(sender(data));
+  assert.equal(result.status,'confirmed');const request=s.rows.get('fahrzeug_nachtraege/'+result.id);
+  assert.equal(request.status,'confirmed');assert.equal(request.confirmationRequired,false);assert.equal(request.confirmedBy.uid,'sender');
+  const history=s.rows.get('fahrzeuge/car/verlauf/'+request.historyId);assert.equal(history.status,'confirmed');assert.equal(history.confirmedBy.uid,'sender');
+  assert.equal((await s.service.propose(sender(data))).status,'confirmed');assert.equal(s.rows.get('fahrzeuge/car').revision,1);assert.equal(s.rows.get('fahrzeuge/car').active.uid,'other');
+  s.rows.set('push_devices/own',{uid:'sender',token:'own-device',updatedAt:Timestamp.fromMillis(NOW)});
+  const notify=createBackfillNotifier({...s,messaging:{send:async()=>assert.fail('Own backfill must not send push')},logger:{warn(){}},now:()=>NOW});
+  await notify({data:await s.db.collection('fahrzeug_nachtraege').doc(result.id).get()});assert.equal(request.notificationStatus,undefined);
+});
+test('older pending own backfill is also not notified',async()=>{
+  const s=setup(),result=await s.service.propose(sender({...proposal,targetUid:'sender'}));const request=s.rows.get('fahrzeug_nachtraege/'+result.id);request.status='pending';
+  const notify=createBackfillNotifier({...s,messaging:{send:async()=>assert.fail('Own backfill must not send push')},logger:{warn(){}},now:()=>NOW});await notify({data:await s.db.collection('fahrzeug_nachtraege').doc(result.id).get()});assert.equal(request.notificationStatus,undefined);
+});
 test('Zurich civil times: summer, winter, invalid dates and DST ambiguity',()=>{
   assert.equal(zurichMillis('2026-07-10T07:00'),Date.parse('2026-07-10T05:00Z'));
   assert.equal(zurichMillis('2026-12-10T07:00'),Date.parse('2026-12-10T06:00Z'));
@@ -80,4 +94,5 @@ test('push includes period and approval link; reassigned and stale devices exclu
 test('pending request survives lack of enabled push device',async()=>{
   const s=setup(),{id}=await s.service.propose(sender(proposal));const notify=createBackfillNotifier({...s,messaging:{send:async()=>assert.fail('No device')},logger:{warn(){}},now:()=>NOW});await notify({data:await s.db.collection('fahrzeug_nachtraege').doc(id).get()});assert.equal(s.rows.get('fahrzeug_nachtraege/'+id).status,'pending');assert.equal(s.rows.get('fahrzeug_nachtraege/'+id).notificationStatus,'not-delivered');
 });
+
 
