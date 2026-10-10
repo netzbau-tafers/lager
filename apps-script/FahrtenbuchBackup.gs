@@ -6,6 +6,7 @@ function vhBackupVehiclesUnlocked_(project,token,forceFull){
  var previous=String(state.getRange('B1').getValue()||''),mode=String(state.getRange('B2').getValue()||'VOLL'),cutoff=new Date().toISOString(),root='projects/'+project+'/databases/(default)/documents',started=Date.now();
  var rows=sheet.getLastRow()>1?sheet.getRange(2,1,sheet.getLastRow()-1,6).getValues():[],byPath=Object.create(null);
  rows.forEach(function(r){byPath[String(r[0])]={name:root+'/'+r[0],fields:JSON.parse(String(r[2])),createTime:String(r[3]||''),updateTime:String(r[4]||'')};});
+ if(forceFull)mode='VOLL'; // Sicherheitsbackup vor Restore: danach neu aktivieren.
  if(forceFull||mode!=='INKREMENTELL'||!previous){
    byPath=Object.create(null);fetchCollectionDocuments_(project,'fahrzeuge',token).forEach(function(d){byPath[getRelativeDocumentPath_(d.name,project)]=d;});
  }else{
