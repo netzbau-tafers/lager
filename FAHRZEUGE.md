@@ -29,3 +29,11 @@ Pro Person kann nur ein Fahrzeug gleichzeitig in Gebrauch sein. Ein weiteres Sta
 `node --test functions-user-admin/vehicles.test.cjs` prüft Zeitgrenzen, Rechte, Übernahmen, Protokolle, Wiederholungen und konkurrierende Aktionen mit einem Transaktionsmodell. Im Ordner `tests` nach `npm install` prüfen `npm run test:rules`, `npm run test:vehicle-transactions` und `node vehicles-ui.cjs` die Regeln, echte Transaktionen und Bedienabläufe mit Testdaten. Für den Produktionstest zwei Benutzer mit Fahrzeugrechten verwenden: Fahrzeug gleichzeitig übernehmen/starten, Freigabe, Tanken und Favoriten prüfen. Keine Produktionsdaten für automatisierte Tests verwenden.
 
 Die bestehende Push- und Passwort-Link-Funktion bleibt erhalten. Fahrzeuge sind nicht Bestandteil der bisherigen Kabel-/Baustellen-Backup-Funktion.
+
+## Verlauf sparsam laden
+
+Die Fahrzeugübersicht lädt keine Verlaufsdokumente. Erst beim Öffnen des Nutzungs- und Tankverlaufs werden die neuesten 20 Einträge des ausgewählten Fahrzeugs abgerufen. „Weitere 20 Einträge laden“ verwendet den letzten Dokument-Snapshot als Cursor (`startAfter`) und liest nur die nächste Seite. Es gibt keinen separaten Live-Listener auf dem Verlauf.
+
+Geladene Seiten bleiben pro Fahrzeug und Monatsauswahl während der Sitzung erhalten, auch nach dem Zuklappen. Der Monatsfilter fragt `createdAt` direkt in Firestore ab; Monatsgrenzen gelten in Europe/Zurich. „Aktualisieren“ setzt die gewählte Abfrage auf die neuesten 20 Einträge zurück. Ändert sich die Fahrzeugrevision, wird der zwischengespeicherte Verlauf verworfen: Ein geöffneter Verlauf lädt die erste Seite neu, ein geschlossener erst beim nächsten Öffnen. Bei Benutzerwechsel wird der gesamte Verlaufsspeicher geleert.
+
+Die vollständige Historie bleibt gespeichert. Bei exakt 20 Ergebnissen kann „Weitere laden“ noch eine leere letzte Seite abrufen. Die Änderung benötigt keine neue Cloud Function und keine Änderung der Firestore-Regeln.
