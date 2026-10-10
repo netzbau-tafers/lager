@@ -217,6 +217,11 @@
 .permissions-panel summary:focus-visible{outline:2px solid #3498db;outline-offset:2px;border-radius:10px}
 .permissions-panel[open] summary{border-bottom:1px solid #d5dbe3}
 .permissions-panel .permission-grid{padding:0 14px}
+.permission-groups{display:grid;gap:16px;padding:16px 14px}
+.permission-group{min-width:0;margin:0;padding:12px 14px 4px;border:1px solid #d5dbe3;border-radius:10px;background:white}
+.permission-group legend{padding:0 7px;font-weight:700;color:#243d55}
+.permission-group-note{margin:0 0 10px;color:#526478;font-size:13px;line-height:1.5}
+.permissions-panel .permission-group .permission-grid{padding:0;margin:8px 0 12px}
 .user-toolbar{display:flex;justify-content:flex-end;margin-bottom:20px}
 #newUserPanel{box-sizing:border-box;width:calc(100% - 32px);max-width:640px;max-height:calc(100dvh - 32px);padding:24px;border:1px solid #d5dbe3;border-radius:18px;background:white;color:#222;box-shadow:0 20px 70px rgba(0,0,0,.25);overflow-y:auto}
 #newUserPanel::backdrop{background:rgba(22,34,50,.55)}
@@ -264,7 +269,7 @@
 
 function logout(){if(confirm('Wirklich ausloggen?'))auth.signOut().then(()=>location.href='home.html');}
 </script>
-<script src="benutzer.js?v=20261010-export-recht"></script>
+<script src="benutzer.js?v=20261010-permission-groups"></script>
 <script>
 (function(){
   const dialog=document.getElementById('newUserPanel'),opener=document.getElementById('openNewUser'),submit=document.getElementById('newUserSubmit');
