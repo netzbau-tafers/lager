@@ -10,6 +10,23 @@ function zurichMillis(value){
   const matches=[1,2].map(offset=>utc-offset*3600000).filter(ms=>format.format(new Date(ms)).replace(' ','T')===value);
   return matches.length===1?matches[0]:NaN;
 }
+// End-exclusive intervals allow consecutive uses. Query only entries ending after
+// the requested start; active sessions have no end and are checked separately.
+async function assertNoUsageOverlap(tx,vehicleRef,vehicle,start,end,fail){
+  const activeStart=vehicle.active?.start?.toMillis?.();
+  if(Number.isFinite(activeStart)&&activeStart<end){
+    fail('failed-precondition','In diesem Zeitraum ist das Fahrzeug bereits in Gebrauch. Bitte den Zeitraum anpassen.');
+  }
+  const history=await tx.get(vehicleRef.collection('verlauf').where('end','>',new Date(start)));
+  for(const doc of history.docs){
+    const entry=doc.data();
+    if(!['use','day','backfill'].includes(entry.type)||entry.status==='rejected')continue;
+    const existingStart=entry.start?.toMillis?.(),existingEnd=entry.end?.toMillis?.();
+    if(Number.isFinite(existingStart)&&Number.isFinite(existingEnd)&&existingStart<end&&existingEnd>start){
+      fail('failed-precondition','Für dieses Fahrzeug ist in diesem Zeitraum bereits eine Nutzung eingetragen oder eine Bestätigung ausstehend. Bitte den Zeitraum anpassen.');
+    }
+  }
+}
 function createBackfill({db,auth,Timestamp,ErrorType,now=Date.now}){
   const fail=(code,message)=>{throw new ErrorType(code,message);};
   const validId=id=>typeof id==='string'&&/^[a-zA-Z0-9_-]{1,128}$/.test(id);
@@ -66,6 +83,7 @@ function createBackfill({db,auth,Timestamp,ErrorType,now=Date.now}){
         if(old.exists){const previous=old.data();if(previous.vehicleId!==data.vehicleId||previous.targetUid!==data.targetUid||previous.start.toMillis()!==start||previous.end.toMillis()!==end||previous.wholeDay!==data.wholeDay)fail('invalid-argument','Diese Anfrage wurde bereits anders verwendet.');return previous.status;}
         if(!vehicle.exists)fail('not-found','Fahrzeug nicht gefunden.');
         const v=vehicle.data(),time=Timestamp.fromMillis(now());
+        await assertNoUsageOverlap(tx,vehicleRef,v,start,end,fail);
         const confirmation=self?{confirmedAt:time,confirmedBy:person(who),confirmationRequired:false}:{confirmationRequired:true};
         const proposal={vehicleId:data.vehicleId,vehicleName:v.name,plate:v.plate,targetUid:selected.uid,actor:person(selected),requestedBy:person(who),start:Timestamp.fromMillis(start),end:Timestamp.fromMillis(end),wholeDay:data.wholeDay,status:self?'confirmed':'pending',...confirmation,createdAt:time,historyId:historyRef.id};
         tx.create(ref,proposal);
@@ -119,6 +137,6 @@ function createBackfillNotifier({db,auth,messaging,logger,now=Date.now}){
     await ref.set({notificationStatus:sent?'sent':'not-delivered'},{merge:true});
   };
 }
-module.exports={createBackfill,createBackfillNotifier,zurichMillis};
+module.exports={createBackfill,createBackfillNotifier,zurichMillis,assertNoUsageOverlap};
 
 
