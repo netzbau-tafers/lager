@@ -98,11 +98,11 @@
     if(!visible.length)list.append(node('p',overview?'Hier erscheinen deine Fahrzeugfavoriten und dein aktuell genutztes Fahrzeug.':vehicles.length?'Keine Fahrzeuge für diese Auswahl.':'Noch keine Fahrzeuge angelegt.'));
     for(const v of visible){
       const card=node('article','','vehicle-card'+(v.id===selected||Boolean(user)&&v.active?.uid===user.uid?' vehicle-selected':''));card.id='vehicle-'+v.id;
+      card.append(node('p',v.active?'In Gebrauch von '+v.active.name:'Fahrzeug frei','vehicle-state'+(v.active?' busy':'')));
+      if(v.active)card.append(node('p','Seit '+date(v.active.start),'vehicle-time'));
       const header=node('header'),title=node('div');title.append(node('h2',v.name),node('p',v.plate,'vehicle-plate'));
       const favorite=button(favorites.has(v.id)?'★':'☆','favorite',v.id,'favorite');favorite.setAttribute('aria-label',favorites.has(v.id)?v.name+' aus Favoriten entfernen':v.name+' als Favorit speichern');favorite.setAttribute('aria-pressed',String(favorites.has(v.id)));const tools=node('div','','vehicle-card-tools');tools.append(favorite);
       const menu=node('details');menu.className='vehicle-menu';const toggle=node('summary','⋮');toggle.setAttribute('aria-label','Fahrzeugmenü für '+v.name);toggle.title='Fahrzeugmenü';const menuItems=node('div','','vehicle-menu-items');menuItems.append(button('Informationen','info',v.id,'secondary'));if(LagerAccess.write('fahrzeuge'))menuItems.append(button('Nutzung für eine Person nachtragen','backfill',v.id,'secondary'));if(LagerAccess.read('fahrzeuge'))menuItems.append(button('Service erfassen','service',v.id,'secondary'));if(LagerAccess.write('fahrzeugeErstellen'))menuItems.append(button('Bearbeiten','edit',v.id,'secondary'));menuItems.append(button('QR-Code herunterladen','qr',v.id,'secondary'));if(LagerAccess.write('fahrzeugeErstellen'))menuItems.append(button('Fahrzeug löschen','delete',v.id,'secondary'));menu.append(toggle,menuItems);tools.append(menu);appendServiceDates(title,v);header.append(title,tools);card.append(header);
-      card.append(node('p',v.active?'In Gebrauch von '+v.active.name:'Fahrzeug frei','vehicle-state'+(v.active?' busy':'')));
-      if(v.active)card.append(node('p','Seit '+date(v.active.start),'vehicle-time'));
       const mileage=node('div','','vehicle-km');mileage.append(node('span','Kilometerstand für das Tankterminal'),node('strong',km(v.km)),node('small','Stand: '+date(v.kmAt)+(v.kmBy?.name?' · '+v.kmBy.name:'')));card.append(mileage);
       if(LagerAccess.write('fahrzeuge')){
         const actions=node('div','','vehicle-actions');
