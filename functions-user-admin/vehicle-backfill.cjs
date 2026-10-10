@@ -27,7 +27,7 @@ async function assertNoUsageOverlap(tx,vehicleRef,vehicle,start,end,fail){
     }
   }
 }
-function createBackfill({db,auth,Timestamp,ErrorType,now=Date.now}){
+function createBackfill({db,auth,Timestamp,ErrorType,FieldValue,now=Date.now}){
   const fail=(code,message)=>{throw new ErrorType(code,message);};
   const validId=id=>typeof id==='string'&&/^[a-zA-Z0-9_-]{1,128}$/.test(id);
   async function account(uid){
@@ -87,7 +87,7 @@ function createBackfill({db,auth,Timestamp,ErrorType,now=Date.now}){
         const confirmation=self?{confirmedAt:time,confirmedBy:person(who),confirmationRequired:false}:{confirmationRequired:true};
         const proposal={vehicleId:data.vehicleId,vehicleName:v.name,plate:v.plate,targetUid:selected.uid,actor:person(selected),requestedBy:person(who),start:Timestamp.fromMillis(start),end:Timestamp.fromMillis(end),wholeDay:data.wholeDay,status:self?'confirmed':'pending',...confirmation,createdAt:time,historyId:historyRef.id};
         tx.create(ref,proposal);
-        tx.create(historyRef,{type:'backfill',actor:proposal.actor,requestedBy:proposal.requestedBy,start:proposal.start,end:proposal.end,wholeDay:proposal.wholeDay,status:proposal.status,...confirmation,requestId:id,createdAt:time});
+        tx.create(historyRef,{vehicleId:data.vehicleId,vehicleName:v.name,plate:v.plate,updatedAt:FieldValue?.serverTimestamp?.()||time,type:'backfill',actor:proposal.actor,requestedBy:proposal.requestedBy,start:proposal.start,end:proposal.end,wholeDay:proposal.wholeDay,status:proposal.status,...confirmation,requestId:id,createdAt:time});
         // Revision refreshes opened history without reading the full history in a live listener.
         tx.update(vehicleRef,{revision:v.revision+1,updatedAt:time});
         return proposal.status;
@@ -107,8 +107,8 @@ function createBackfill({db,auth,Timestamp,ErrorType,now=Date.now}){
         if(proposal.status!=='pending'){if(proposal.status===data.decision)return;fail('failed-precondition','Dieser Nachtrag wurde bereits entschieden.');}
         const vehicleRef=db.collection('fahrzeuge').doc(proposal.vehicleId),vehicle=await tx.get(vehicleRef),time=Timestamp.fromMillis(now());
         const historyRef=vehicleRef.collection('verlauf').doc(proposal.historyId);
-        if(data.decision==='confirmed')tx.update(historyRef,{status:'confirmed',confirmedAt:time,confirmedBy:person(who)});
-        else tx.delete(historyRef);
+        if(data.decision==='confirmed')tx.update(historyRef,{status:'confirmed',confirmedAt:time,confirmedBy:person(who),updatedAt:FieldValue?.serverTimestamp?.()||time});
+        else tx.update(historyRef,{status:'rejected',reviewedAt:time,reviewedBy:person(who),updatedAt:FieldValue?.serverTimestamp?.()||time});
         tx.update(ref,{status:data.decision,reviewedAt:time,reviewedBy:person(who)});
         // Approval never alters current occupancy or lastUseEnd (this is historical usage).
         if(vehicle.exists)tx.update(vehicleRef,{revision:vehicle.data().revision+1,updatedAt:time});

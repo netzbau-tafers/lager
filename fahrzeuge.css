@@ -11,3 +11,8 @@ dialog{width:min(480px,calc(100% - 48px));max-height:85vh;border:1px solid #cbd7
 .vehicle-history-controls{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;margin:.6rem 0}.vehicle-history-controls label{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem}.vehicle-history-controls input{max-width:100%;padding:.4rem}
 dialog select{display:block;width:100%;box-sizing:border-box;border:1px solid #bdcad8;border-radius:8px;padding:12px;margin-top:7px;font:inherit;background:white;color:#24364a;min-height:44px}select:focus-visible{outline:3px solid #4397ec;outline-offset:3px}.vehicle-confirmations{background:#fff7e8;border:1px solid #e8ca91;border-radius:14px;padding:18px;margin:20px 0}.vehicle-confirmations h2{margin-top:0;font-size:22px}.vehicle-confirmations .vehicle-card{margin-top:12px}.vehicle-confirmations h3{margin:0;font-size:18px}
 
+
+#logbookSearch select {width:100%;min-height:44px;border:1px solid #cbd5e1;border-radius:8px;padding:8px;background:white;color:#111827;font:inherit;}
+#logbookSearch label {min-width:0;flex:1 1 180px;}
+#logbookSearch small {display:block;color:#475569;}
+#logbookMore {margin:16px 0;}

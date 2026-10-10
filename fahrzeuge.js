@@ -42,6 +42,7 @@
     if(!data.entries.length)target.append(node('p',data.loading?'Verlauf wird geladen …':data.error?'': 'Keine Einträge für diese Auswahl.'));
     const ordered=node('ol','','vehicle-history');
     for(const entry of data.entries){
+      if(entry.status==='rejected')continue;
       const row=node('li'),name=entry.actor?.name||'Unbekannte Person';
       if(entry.type==='backfill'){
         row.append(node('strong',name+' · Nutzung nachgetragen'),node('p',date(entry.start)+' → '+date(entry.end)),node('p',entry.status==='pending'?'Bestätigung ausstehend':'Bestätigt'),node('small','Nachgetragen von '+(entry.requestedBy?.name||'Unbekannte Person')));
