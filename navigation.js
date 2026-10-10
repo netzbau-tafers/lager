@@ -54,6 +54,9 @@
     if(works&&report)menu.insertBefore(works,report);
     if(archive&&report)menu.insertBefore(archive,report);
     if(!menu.querySelector('[data-page="fahrzeuge"]')){const vehicle=document.createElement('a');vehicle.href='fahrzeuge.html';vehicle.dataset.page='fahrzeuge';vehicle.textContent='Fahrzeuge';vehicle.style.display='none';menu.insertBefore(vehicle,report||menu.querySelector('[data-page="profil"]'));decorateUserAdmin();}
+    // Existing vehicle buttons use the same position as dynamically added links.
+    const vehicle=menu.querySelector('[data-page="fahrzeuge"]');
+    if(vehicle&&report)menu.insertBefore(vehicle,report);
     const section=document.createElement('div');section.className='nt-section';section.textContent='VERWALTUNG';
     const firstAdmin=report||menu.querySelector('[data-page="logs"], [data-page="profil"]');if(firstAdmin)menu.insertBefore(section,firstAdmin);
     const overview=document.createElement('a');overview.href='meine-uebersicht.html';overview.append(icon('profil'),document.createTextNode('Meine Übersicht'));
