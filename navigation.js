@@ -76,9 +76,10 @@
     helpLink.append(helpIcon,document.createTextNode('Hilfe'));
     if(current==='hilfe.html'){helpLink.classList.add('active-page');helpLink.setAttribute('aria-current','page')}
     menu.insertBefore(helpLink,privacy);
+    const helpSection=document.createElement('div');helpSection.className='nt-section';helpSection.dataset.page='hilfe-rechtliches';helpSection.textContent='HILFE & RECHTLICHES';menu.insertBefore(helpSection,helpLink);
     const close=document.createElement('button');close.type='button';close.className='nt-close';close.innerHTML='<span>Netzbau Tafers</span><span aria-hidden="true">✕</span>';close.setAttribute('aria-label','Menü schliessen');menu.prepend(close);
     // Jede Seite verwendet dieselbe Reihenfolge, unabhängig von ihren ursprünglichen Menüeinträgen.
-    const menuOrder=['home','uebersicht','index','baustellen','fahrzeuge','verwaltung','fahrtenbuch','kabelreport','archiv','logs','profil','hilfe','datenschutz','benutzer','backup','logout'];
+    const menuOrder=['home','uebersicht','index','baustellen','fahrzeuge','verwaltung','fahrtenbuch','kabelreport','archiv','logs','profil','benutzer','backup','hilfe-rechtliches','hilfe','datenschutz','logout'];
     section.dataset.page='verwaltung';close.dataset.page='menu-close';
     for(const item of menu.children){
       if(item.dataset.page)continue;
