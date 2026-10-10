@@ -20,7 +20,7 @@
         worker?.addEventListener('statechange',()=>{if(worker.state==='activated'){clearTimeout(timeout);resolve();}else if(worker.state==='redundant'){clearTimeout(timeout);reject(new Error('Benachrichtigungsdienst konnte nicht gestartet werden.'));}});
       });
       const messaging=firebase.messaging();
-      messaging.onMessage(payload=>{if(activeUid)registration.showNotification(payload.notification?.title||'Lagermanager',{body:payload.notification?.body||'',icon:'favicon.png',data:{url:payload.fcmOptions?.link||'index.html'}});});
+      messaging.onMessage(payload=>{if(activeUid)registration.showNotification(payload.notification?.title||'Lagermanager',{body:payload.notification?.body||'',icon:'favicon.png',data:{url:payload.data?.url||payload.fcmOptions?.link||payload.fcm_options?.link||'index.html'}});});
       return {registration,messaging,call:(name,data)=>firebase.app().functions('europe-west1').httpsCallable(name)(data)};
     })().catch(error=>{setupPromise=null;throw error;});
     return setupPromise;
@@ -67,3 +67,4 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
+
