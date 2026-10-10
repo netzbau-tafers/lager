@@ -8,6 +8,7 @@
   const overview=Boolean(document.getElementById('myVehiclesSection'));
   let user=null,vehicles=[],favorites=new Set(),unsubVehicles=null,unsubFavorites=null,pending=null,saving=false,selectedScrolled=false;
   const selected=new URLSearchParams(location.search).get('fahrzeug'),scanRequested=!overview&&new URLSearchParams(location.search).get('scan')==='1';
+  let ownScrollId=null,ownScrollFrame=null;
   let scanHandled=false,selectedScrollFrame=null,selectedSearch=!overview&&Boolean(selected);
   const busy=new Set(),messages=new Map(),histories=new Map(),historyMonths=new Map(),openHistory=new Set();
   let unsubBackfills=null,backfills=[],recipientCache=null;
@@ -105,6 +106,14 @@
       const details=node('details');details.dataset.history=v.id;details.open=openHistory.has(v.id);details.append(node('summary','Nutzungs- und Tankverlauf'));const history=node('div');history.dataset.historyList=v.id;history.className='vehicle-history-scroll';history.tabIndex=0;history.setAttribute('role','region');history.setAttribute('aria-label','Nutzungs- und Tankverlauf für '+v.name);details.append(history);details.addEventListener('toggle',()=>{if(!details.isConnected)return;if(details.open){openHistory.add(v.id);if(!histories.has(historyKey(v.id)))void loadHistory(v.id);else historyList(v.id);}else{openHistory.delete(v.id);}});card.append(details);list.append(card);if(details.open){if(!histories.has(historyKey(v.id)))void loadHistory(v.id);else historyList(v.id);}
     }
     if(restore){const target=[...list.querySelectorAll('button')].find(n=>n.dataset.action===restore.action&&n.dataset.id===restore.id);target?.focus({preventScroll:true});}
+    if(ownScrollId&&vehicles.some(v=>v.id===ownScrollId&&v.active?.uid===user?.uid)){
+      if(ownScrollFrame!==null)cancelAnimationFrame(ownScrollFrame);
+      ownScrollFrame=requestAnimationFrame(()=>{
+        ownScrollFrame=null;
+        const card=document.getElementById('vehicle-'+ownScrollId);
+        if(card){card.scrollIntoView({behavior:'instant',block:'start'});ownScrollId=null;}
+      });
+    }
     if(!overview&&selected&&!selectedScrolled){
       // Live snapshots can replace the cards before the browser paints them.
       // Resolve the current card after rendering and avoid a stale smooth scroll.
@@ -219,7 +228,7 @@
   }
   async function act(v,action){
     if(busy.has(v.id))return;busy.add(v.id);messages.set(v.id,'Wird gespeichert …');render();
-    try{await actionCall({id:v.id,revision:v.revision,action,requestId:requestId()});messages.set(v.id,action==='start'?'Auf dich eingetragen.':'Fahrzeug freigegeben.');}
+    try{await actionCall({id:v.id,revision:v.revision,action,requestId:requestId()});if(action==='start')ownScrollId=v.id;messages.set(v.id,action==='start'?'Auf dich eingetragen.':'Fahrzeug freigegeben.');}
     catch(error){messages.set(v.id,errorText(error));}finally{busy.delete(v.id);render();}
   }
   list.addEventListener('click',async event=>{
@@ -272,12 +281,14 @@
         messages.set(v.id,'Auf dich eingetragen.');
       }
       else{const v=operation.vehicle;const data={id:v.id,revision:v.revision,action:operation.action,requestId:operation.requestId};if(operation.action==='fuel')data.km=Number(values.get('km'));await actionCall(data);messages.set(v.id,'Gespeichert.');}
+      if(['start','takeover','switch'].includes(operation.action))ownScrollId=operation.vehicle.id;
       dialog.close();pending=null;render();status.textContent=operation.action==='create'?'Fahrzeug hinzugefügt.':operation.action==='backfill'?(operation.backfillStatus==='confirmed'?'Eigene Nutzung gespeichert. Keine Bestätigung und keine Benachrichtigung nötig.':'Nachtrag gesendet. Die Person kann ihn im Bereich Fahrzeuge bestätigen; eine Smartphone-Benachrichtigung wird an ihre aktivierten Geräte gesendet.'):'Änderung gespeichert.';
     }catch(error){document.getElementById('dialogStatus').textContent=(operation.action==='switch'&&operation.released?operation.previousVehicle.name+' wurde freigegeben. Das gescannte Fahrzeug konnte noch nicht auf dich eingetragen werden. ':'')+errorText(error);if(error.code==='functions/failed-precondition'){save.disabled=true;document.getElementById('dialogStatus').textContent+=' Schliesse dieses Fenster und öffne die Aktion nochmals.';}}
     finally{saving=false;cancel.disabled=false;if(document.getElementById('dialogStatus').textContent.indexOf('Schliesse dieses Fenster')===-1)save.disabled=false;}
   });
   search?.addEventListener('input',()=>{selectedSearch=false;render();});onlyFavorites?.addEventListener('change',()=>{selectedSearch=false;render();});
   LagerAccess.onAuthStateChanged(current=>{
+    ownScrollId=null;if(ownScrollFrame!==null){cancelAnimationFrame(ownScrollFrame);ownScrollFrame=null;}
     user=current;unsubVehicles?.();unsubFavorites?.();unsubBackfills?.();backfills=[];recipientCache=null;renderInbox();histories.clear();historyMonths.clear();openHistory.clear();favorites.clear();vehicles=[];
     if(!user){const backfillId=new URLSearchParams(location.search).get('nachtrag');location.replace('home.html'+(scanRequested?'?vehicleScan='+encodeURIComponent(selected||''):backfillId?'?vehicleBackfill='+encodeURIComponent(backfillId):''));return;}
     if(overview){const hidden=!LagerAccess.read('fahrzeuge');document.getElementById('myVehiclesSection').hidden=hidden;document.getElementById('vehicleStat').hidden=hidden;if(hidden)return;}
