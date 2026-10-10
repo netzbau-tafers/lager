@@ -22,8 +22,8 @@ test('fuel, pending/rejected and type filters are explicit',()=>{
  assert.equal(matches(entry('2026-10-10T10:00Z','2026-10-10T11:00Z',{status:'rejected'}),r,'all'),false);
  assert.equal(matches(entry('2026-10-10T10:00Z','2026-10-10T11:00Z'),r,'fuel'),false);
 });
-function fixture(level='view'){
- const rows=new Map([['user_access/alice',{permissions:{fahrzeuge:level}}]]),calls=[];
+function fixture(level='edit'){
+ const rows=new Map([['user_access/alice',{permissions:{fahrtenbuch:level}}]]),calls=[];
  for(let i=0;i<41;i++)rows.set('fahrzeuge/car/verlauf/e'+i,entry('2026-10-09T10:00Z','2026-10-10T15:00Z',{actor:{uid:'alice',name:'Alice'}}));
  rows.set('fahrzeuge/car/verlauf/open',entry('2026-10-10T10:00Z',null));
  rows.set('fahrzeuge_archiv/car',{name:'Unimog',plate:'FR 123'});

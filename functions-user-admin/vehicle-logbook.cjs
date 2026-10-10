@@ -24,7 +24,7 @@ function createLogbook({db,auth,Timestamp,ErrorType}){
     if(!request.auth)fail('unauthenticated','Bitte anmelden.');
     const uid=request.auth.uid;
     const [user,deleted,access]=await Promise.all([auth.getUser(uid),db.collection('account_deletions').doc(uid).get(),db.collection('user_access').doc(uid).get()]);
-    if(user.disabled||deleted.exists||uid!==MASTER&&!['view','edit'].includes(access.data()?.permissions?.fahrzeuge))fail('permission-denied','Kein Zugriff auf das Fahrtenbuch.');
+    if(user.disabled||deleted.exists||uid!==MASTER&&access.data()?.permissions?.fahrtenbuch!=='edit')fail('permission-denied','Kein Zugriff auf das Fahrtenbuch.');
   }
   const serial=doc=>{const e=doc.data();return {id:doc.id,type:e.type,actor:e.actor||null,requestedBy:e.requestedBy||null,start:e.start?.toMillis?.()??null,end:e.end?.toMillis?.()??null,km:e.km??null,status:e.status||null,vehicleName:e.vehicleName||null,plate:e.plate||null,reason:e.reason||null,confirmedAt:e.confirmedAt?.toMillis?.()??null};};
   return {
