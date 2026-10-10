@@ -1,5 +1,6 @@
 'use strict';
 const {MASTER}=require('./service.cjs');
+const {assertNoUsageOverlap}=require('./vehicle-backfill.cjs');
 
 // Zurich's current civil day at 07:00, including DST. No client clock is trusted.
 function dayStart(ms){
@@ -95,6 +96,7 @@ function createVehicles({db,auth,Timestamp,ErrorType,now=Date.now}){
           if(active)fail('failed-precondition','Das Fahrzeug ist noch in Gebrauch. Zuerst freigeben oder übernehmen.');
           const start=Math.max(dayStart(ms),v.lastUseEnd?.toMillis?.()||0);
           if(start>=ms)fail('failed-precondition','Vor 07:00 oder ohne neue Nutzungszeit ist kein Ganztagseintrag möglich.');
+          await assertNoUsageOverlap(tx,ref,v,start,ms,fail);
           tx.create(event,{type:'day',actor:who,start:Timestamp.fromMillis(start),end:time,createdAt:time,reason:'nachgetragen'});
           change.lastUseEnd=time;
         }else{
