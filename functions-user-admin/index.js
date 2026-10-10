@@ -34,8 +34,17 @@ exports.lagerCreateVehicle=vehicleCall(vehicles.create);
 exports.lagerDeleteVehicle=vehicleCall(vehicles.remove);
 exports.lagerVehicleAction=vehicleCall(vehicles.action);
 
+const {onDocumentCreated}=require('firebase-functions/v2/firestore');
+const {createBackfill,createBackfillNotifier}=require('./vehicle-backfill.cjs');
+const backfill=createBackfill({db:getFirestore(),auth:getAuth(),Timestamp,ErrorType:HttpsError});
+exports.lagerVehicleBackfillUsers=vehicleCall(backfill.recipients);
+exports.lagerVehicleBackfill=vehicleCall(backfill.propose);
+exports.lagerVehicleBackfillReview=vehicleCall(backfill.review);
+exports.lagerVehicleBackfillNotify=onDocumentCreated({document:'fahrzeug_nachtraege/{requestId}',region:'europe-west1',maxInstances:2},createBackfillNotifier({db:getFirestore(),auth:getAuth(),messaging:getMessaging(),logger}));
+
 const {createVehicleReminder}=require('./vehicle-reminder.cjs');
 const remindVehicles=createVehicleReminder({db:getFirestore(),auth:getAuth(),messaging:getMessaging(),FieldValue,logger});
 const vehicleSchedule={timeZone:'Europe/Zurich',region:'europe-west1',maxInstances:1,timeoutSeconds:540,retryCount:0};
 exports.lagerVehiclePushReminderWeekdays=onSchedule({...vehicleSchedule,schedule:'10 17 * * 1-4'},remindVehicles);
 exports.lagerVehiclePushReminderFriday=onSchedule({...vehicleSchedule,schedule:'55 11 * * 5'},remindVehicles);
+

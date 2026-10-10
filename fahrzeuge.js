@@ -2,6 +2,7 @@
   'use strict';
   const db=firebase.firestore(),functions=firebase.app().functions('europe-west1');
   const actionCall=functions.httpsCallable('lagerVehicleAction'),createCall=functions.httpsCallable('lagerCreateVehicle'),deleteCall=functions.httpsCallable('lagerDeleteVehicle');
+  const backfillUsersCall=functions.httpsCallable('lagerVehicleBackfillUsers'),backfillCall=functions.httpsCallable('lagerVehicleBackfill'),reviewCall=functions.httpsCallable('lagerVehicleBackfillReview');
   const list=document.getElementById('vehicleList'),status=document.getElementById('vehicleStatus'),search=document.getElementById('vehicleSearch'),onlyFavorites=document.getElementById('onlyFavorites');
   const dialog=document.getElementById('vehicleDialog'),form=document.getElementById('vehicleForm'),fields=document.getElementById('dialogFields'),save=document.getElementById('dialogSave'),cancel=document.getElementById('dialogCancel');
   const overview=Boolean(document.getElementById('myVehiclesSection'));
@@ -9,6 +10,9 @@
   const selected=new URLSearchParams(location.search).get('fahrzeug'),scanRequested=!overview&&new URLSearchParams(location.search).get('scan')==='1';
   let scanHandled=false,selectedScrollFrame=null,selectedSearch=!overview&&Boolean(selected);
   const busy=new Set(),messages=new Map(),histories=new Map(),historyMonths=new Map(),openHistory=new Set();
+  let unsubBackfills=null,backfills=[],recipientCache=null;
+  const inbox=!overview?document.createElement('section'):null;
+  if(inbox){inbox.className='vehicle-confirmations';inbox.hidden=true;inbox.setAttribute('aria-label','Fahrzeugnutzung bestätigen');list.before(inbox);}
   function node(tag,value='',className=''){const element=document.createElement(tag);element.textContent=value;if(className)element.className=className;return element;}
   function date(value){return value?.toDate?.().toLocaleString('de-CH',{timeZone:'Europe/Zurich',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})||'–';}
   function km(value){return Number.isSafeInteger(value)?value.toLocaleString('de-CH')+' km':'Nicht hinterlegt';}
@@ -38,7 +42,10 @@
     const ordered=node('ol','','vehicle-history');
     for(const entry of data.entries){
       const row=node('li'),name=entry.actor?.name||'Unbekannte Person';
-      if(entry.type==='fuel'){row.append(node('strong','Tanken · '+km(entry.km)),node('p',name+' · '+date(entry.start)));}
+      if(entry.type==='backfill'){
+        row.append(node('strong',name+' · Nutzung nachgetragen'),node('p',date(entry.start)+' → '+date(entry.end)),node('p',entry.status==='pending'?'Bestätigung ausstehend':'Bestätigt'),node('small','Nachgetragen von '+(entry.requestedBy?.name||'Unbekannte Person')));
+      }
+      else if(entry.type==='fuel'){row.append(node('strong','Tanken · '+km(entry.km)),node('p',name+' · '+date(entry.start)));}
       else if(entry.type==='takeover'){row.append(node('strong','Fahrzeug übernommen'),node('p',(entry.from?.name||'Andere Person')+' → '+name),node('p',date(entry.start)));}
       else{row.append(node('strong',name+' · '+(entry.type==='day'?'Nutzung nachgetragen':'In Gebrauch')),node('p',date(entry.start)+' → '+(entry.end?date(entry.end):'Noch in Gebrauch')));if(entry.takenOverBy)row.append(node('p','Durch '+entry.takenOverBy.name+' übernommen.'));}
       ordered.append(row);
@@ -87,6 +94,7 @@
         else if(v.active.uid===user.uid)actions.append(button('Fahrzeug frei','free',v.id));
         else if(LagerAccess.write('fahrzeugeUebernehmen'))actions.append(button('Für mich übernehmen','takeover',v.id,'takeover'));
         actions.append(button('Tanken','fuel',v.id,'secondary'));
+        actions.append(button('Nutzung für eine Person nachtragen','backfill',v.id,'secondary'));
         if(!v.active)actions.append(button('Fahrzeug den ganzen Tag gebraucht','day',v.id,'secondary day-button'));
         if(ownVehicle){for(const control of actions.querySelectorAll('button')){if(['start','takeover','day'].includes(control.dataset.action)){control.disabled=true;control.title='Zuerst '+ownVehicle.name+' freigeben.';}}}
         card.append(actions);
@@ -153,10 +161,44 @@
     void act(v,'start');
   }
   function input(name,label,type,value,max){const wrapper=node('label',label),field=node('input');field.name=name;field.type=type;field.value=value;field.required=true;if(type==='number'){field.min='0';field.max='9999999';field.step='1';field.inputMode='numeric';}else field.maxLength=max;wrapper.append(field);fields.append(wrapper);return field;}
+  function todayZurich(){return new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Zurich',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}
+  async function backfillFields(operation){
+    save.disabled=true;
+    const personLabel=node('label','Person'),person=node('select');person.name='targetUid';person.required=true;
+    const placeholder=node('option','Person auswählen');placeholder.value='';person.append(placeholder);personLabel.append(person);fields.append(personLabel);
+    const checkLabel=node('label','','vehicle-check'),wholeDay=node('input');wholeDay.type='checkbox';wholeDay.name='wholeDay';checkLabel.append(wholeDay,node('span','Ganzer Tag (07:00–17:15 Uhr)'));fields.append(checkLabel);
+    const day=input('date','Datum','date',todayZurich()),start=input('start','Von (Schweizer Zeit)','datetime-local',todayZurich()+'T07:00'),end=input('end','Bis (Schweizer Zeit)','datetime-local',todayZurich()+'T17:15');
+    function mode(){day.disabled=!wholeDay.checked;day.required=wholeDay.checked;day.parentElement.hidden=!wholeDay.checked;for(const control of [start,end]){control.disabled=wholeDay.checked;control.required=!wholeDay.checked;control.parentElement.hidden=wholeDay.checked;}}
+    wholeDay.addEventListener('change',mode);mode();
+    try{
+      if(!recipientCache)recipientCache=(await backfillUsersCall({})).data.users;
+      if(pending!==operation||!dialog.open)return;
+      for(const recipient of recipientCache){const option=node('option',recipient.name);option.value=recipient.uid;person.append(option);}
+      if(!recipientCache.length){document.getElementById('dialogStatus').textContent='Keine aktiven Personen mit Fahrzeugzugriff gefunden.';return;}
+      save.disabled=false;
+    }catch(error){if(pending===operation)document.getElementById('dialogStatus').textContent=errorText(error);}
+  }
+  function renderInbox(){
+    if(!inbox)return;inbox.replaceChildren();inbox.hidden=!backfills.length;if(!backfills.length)return;
+    inbox.append(node('h2','Fahrzeugnutzung bestätigen'),node('p','Diese Nutzungen wurden für dich nachgetragen. Prüfe Fahrzeug und Zeitraum.'));
+    for(const request of backfills){
+      const card=node('article','','vehicle-card');card.append(node('h3',request.vehicleName+' · '+request.plate),node('p',date(request.start)+' → '+date(request.end)),node('p','Nachgetragen von '+request.requestedBy.name),node('p','Bestätigung ausstehend'));
+      const controls=node('div','','vehicle-actions'),feedback=node('p');feedback.setAttribute('role','status');
+      for(const [decision,label] of [['confirmed','Bestätigen'],['rejected','Ablehnen']]){
+        const control=node('button',label,decision==='rejected'?'secondary':'');control.type='button';
+        control.addEventListener('click',async()=>{
+          for(const button of controls.children)button.disabled=true;feedback.textContent='Wird gespeichert …';
+          try{await reviewCall({id:request.id,decision});status.textContent=decision==='confirmed'?'Nutzung bestätigt.':'Nachtrag abgelehnt und aus dem Verlauf entfernt.';}
+          catch(error){feedback.textContent=errorText(error);for(const button of controls.children)button.disabled=false;}
+        });controls.append(control);
+      }
+      card.append(controls,feedback);inbox.append(card);
+    }
+  }
   function openDialog(action,vehicle,previousVehicle){
     pending={action,vehicle,requestId:requestId()};
     if(action==='switch')Object.assign(pending,{previousVehicle,releaseRequestId:requestId(),released:false,targetAction:vehicle.active?'takeover':'start'});fields.replaceChildren();document.getElementById('dialogStatus').textContent='';save.disabled=false;cancel.disabled=false;
-    const titles={create:'Fahrzeug hinzufügen',fuel:'Tanken',takeover:'Fahrzeug für mich übernehmen',day:'Nutzung für heute nachtragen',free:'Fahrzeug zurückgeben',switch:'Fahrzeug wechseln'};
+    const titles={create:'Fahrzeug hinzufügen',fuel:'Tanken',takeover:'Fahrzeug für mich übernehmen',day:'Nutzung für heute nachtragen',free:'Fahrzeug zurückgeben',switch:'Fahrzeug wechseln',backfill:'Nutzung für eine Person nachtragen'};
     document.getElementById('dialogTitle').textContent=titles[action]+(vehicle?' · '+vehicle.name:'');
     const note=document.getElementById('dialogNote');note.textContent='';save.textContent='Speichern';
     if(action==='create'){input('name','Fahrzeugname','text','',100);input('plate','Kennzeichen','text','',30);input('km','Aktueller Kilometerstand','number','');}
@@ -169,6 +211,10 @@
     if(action==='takeover'){note.textContent='Die Nutzung von '+vehicle.active.name+' wird jetzt beendet und im Verlauf als Übernahme dokumentiert. Danach ist das Fahrzeug auf dich eingetragen.';save.textContent='Für mich übernehmen';}
     if(action==='day'){note.textContent='Deine Nutzung wird für heute von frühestens 07:00 oder vom Ende der letzten protokollierten Nutzung bis zum Speichern nachgetragen. Das Fahrzeug bleibt frei.';save.textContent='Nutzung nachtragen';}
     dialog.showModal();
+    if(action==='backfill'){
+      note.textContent='Die ausgewählte Person muss diesen Nachtrag bestätigen. Bis dahin steht im Verlauf „Bestätigung ausstehend“. Bei Ablehnung wird er aus dem Verlauf entfernt. Nur bereits abgeschlossene Zeiträume können nachgetragen werden. Die aktuelle Belegung bleibt unverändert.';
+      save.textContent='Zur Bestätigung senden';void backfillFields(pending);
+    }
   }
   async function act(v,action){
     if(busy.has(v.id))return;busy.add(v.id);messages.set(v.id,'Wird gespeichert …');render();
@@ -203,12 +249,16 @@
   document.addEventListener('click',event=>{for(const menu of list.querySelectorAll('.vehicle-menu[open]'))if(!menu.contains(event.target))menu.open=false;});
   document.addEventListener('keydown',event=>{if(event.key==='Escape')for(const menu of list.querySelectorAll('.vehicle-menu[open]')){menu.open=false;menu.querySelector('summary').focus();}});
   document.getElementById('addVehicle')?.addEventListener('click',()=>openDialog('create'));
-  cancel.addEventListener('click',()=>{if(!saving)dialog.close();});dialog.addEventListener('cancel',event=>{if(saving)event.preventDefault();});
+  cancel.addEventListener('click',()=>{if(!saving){dialog.close();pending=null;}});dialog.addEventListener('cancel',event=>{if(saving)event.preventDefault();else pending=null;});
   form.addEventListener('submit',async event=>{
     event.preventDefault();if(saving||!pending||!form.reportValidity())return;
     const operation=pending,values=new FormData(form);saving=true;save.disabled=true;cancel.disabled=true;document.getElementById('dialogStatus').textContent='Wird gespeichert …';
     try{
       if(operation.action==='create')await createCall({name:values.get('name').trim(),plate:values.get('plate').trim(),km:Number(values.get('km'))});
+      else if(operation.action==='backfill'){
+        await backfillCall({vehicleId:operation.vehicle.id,targetUid:values.get('targetUid'),requestId:operation.requestId,wholeDay:values.has('wholeDay'),date:values.get('date'),start:values.get('start'),end:values.get('end')});
+        invalidateHistory(operation.vehicle.id);messages.set(operation.vehicle.id,'Nachtrag gesendet · Bestätigung ausstehend.');
+      }
       else if(operation.action==='switch'){
         const previous=operation.previousVehicle,v=operation.vehicle;
         if(!operation.released){
@@ -220,17 +270,21 @@
         messages.set(v.id,'Auf dich eingetragen.');
       }
       else{const v=operation.vehicle;const data={id:v.id,revision:v.revision,action:operation.action,requestId:operation.requestId};if(operation.action==='fuel')data.km=Number(values.get('km'));await actionCall(data);messages.set(v.id,'Gespeichert.');}
-      dialog.close();pending=null;render();status.textContent=operation.action==='create'?'Fahrzeug hinzugefügt.':'Änderung gespeichert.';
+      dialog.close();pending=null;render();status.textContent=operation.action==='create'?'Fahrzeug hinzugefügt.':operation.action==='backfill'?'Nachtrag gesendet. Die Person kann ihn im Bereich Fahrzeuge bestätigen; eine Smartphone-Benachrichtigung wird an ihre aktivierten Geräte gesendet.':'Änderung gespeichert.';
     }catch(error){document.getElementById('dialogStatus').textContent=(operation.action==='switch'&&operation.released?operation.previousVehicle.name+' wurde freigegeben. Das gescannte Fahrzeug konnte noch nicht auf dich eingetragen werden. ':'')+errorText(error);if(error.code==='functions/failed-precondition'){save.disabled=true;document.getElementById('dialogStatus').textContent+=' Schliesse dieses Fenster und öffne die Aktion nochmals.';}}
     finally{saving=false;cancel.disabled=false;if(document.getElementById('dialogStatus').textContent.indexOf('Schliesse dieses Fenster')===-1)save.disabled=false;}
   });
   search?.addEventListener('input',()=>{selectedSearch=false;render();});onlyFavorites?.addEventListener('change',()=>{selectedSearch=false;render();});
   LagerAccess.onAuthStateChanged(current=>{
-    user=current;unsubVehicles?.();unsubFavorites?.();histories.clear();historyMonths.clear();openHistory.clear();favorites.clear();vehicles=[];
-    if(!user){location.replace('home.html'+(scanRequested?'?vehicleScan='+encodeURIComponent(selected||''):''));return;}
+    user=current;unsubVehicles?.();unsubFavorites?.();unsubBackfills?.();backfills=[];recipientCache=null;renderInbox();histories.clear();historyMonths.clear();openHistory.clear();favorites.clear();vehicles=[];
+    if(!user){const backfillId=new URLSearchParams(location.search).get('nachtrag');location.replace('home.html'+(scanRequested?'?vehicleScan='+encodeURIComponent(selected||''):backfillId?'?vehicleBackfill='+encodeURIComponent(backfillId):''));return;}
     if(overview){const hidden=!LagerAccess.read('fahrzeuge');document.getElementById('myVehiclesSection').hidden=hidden;document.getElementById('vehicleStat').hidden=hidden;if(hidden)return;}
     document.getElementById('appContent').style.display='block';const add=document.getElementById('addVehicle');if(add)add.hidden=!LagerAccess.write('fahrzeugeErstellen');
+    if(inbox)unsubBackfills=db.collection('fahrzeug_nachtraege').where('targetUid','==',user.uid).where('status','==','pending').onSnapshot(snapshot=>{
+      backfills=snapshot.docs.map(doc=>({...doc.data(),id:doc.id})).sort((a,b)=>b.createdAt.toMillis()-a.createdAt.toMillis());renderInbox();
+    },error=>{status.textContent='Bestätigungsanfragen konnten nicht geladen werden. '+errorText(error);});
     unsubVehicles=db.collection('fahrzeuge').onSnapshot(snapshot=>{const next=snapshot.docs.map(doc=>({...doc.data(),id:doc.id}));for(const previous of vehicles){if(next.find(v=>v.id===previous.id)?.revision!==previous.revision)invalidateHistory(previous.id);}vehicles=next;status.textContent=overview?'Belegung wird automatisch aktualisiert.':vehicles.length+' Fahrzeuge · Belegung wird automatisch aktualisiert';render();handleScan();},error=>{status.textContent=errorText(error);status.className='vehicle-error';});
     unsubFavorites=db.collection('fahrzeug_favoriten').doc(user.uid).collection('fahrzeuge').onSnapshot(snapshot=>{favorites=new Set(snapshot.docs.map(doc=>doc.id));render();},()=>{status.textContent='Favoriten konnten nicht geladen werden. Bitte die Firestore-Regeln prüfen.';});
   });
 })();
+

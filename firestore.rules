@@ -61,6 +61,10 @@ service cloud.firestore {
     }
     // Vehicle rights are opt-in; no legacy fallback. Status/history writes are server-only.
     function readVehicles() { return signedIn() && (master() || (configured() && get(/databases/$(database)/documents/user_access/$(request.auth.uid)).data.get('permissions', {}).get('fahrzeuge', 'none') in ['view','edit'])); }
+    match /fahrzeug_nachtraege/{requestId} {
+      allow read: if readVehicles() && resource.data.targetUid == request.auth.uid;
+      allow write: if false;
+    }
     match /fahrzeuge/{vehicleId} {
       allow read: if readVehicles();
       allow write: if false;
@@ -124,5 +128,6 @@ service cloud.firestore {
     }
   }
 }
+
 
 
