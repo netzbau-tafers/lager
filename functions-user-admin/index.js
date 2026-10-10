@@ -59,3 +59,12 @@ const {createVehicleActionCleanup}=require('./vehicle-action-cleanup.cjs');
 exports.lagerVehicleActionCleanup=onSchedule({...vehicleSchedule,schedule:'15 3 * * *'},async()=>{
   await createVehicleActionCleanup({db:getFirestore(),Timestamp,logger})();
 });
+
+const {createVehicleExport}=require('./vehicle-export.cjs');
+const vehicleExport=createVehicleExport({db:getFirestore(),auth:getAuth(),Timestamp,ErrorType:HttpsError});
+const exportCall=handler=>onCall({region:'europe-west1',maxInstances:2,timeoutSeconds:540,memory:'512MiB'},handler);
+exports.lagerVehicleExportPrepare=exportCall(vehicleExport.prepare);
+exports.lagerVehicleExportList=exportCall(vehicleExport.list);
+exports.lagerVehicleExportRead=exportCall(vehicleExport.read);
+exports.lagerVehicleExportDelete=exportCall(vehicleExport.remove);
+exports.lagerVehicleExportRestore=exportCall(vehicleExport.restore);

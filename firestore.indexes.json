@@ -13,6 +13,20 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "fahrtenbuch_exporte",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "preparedBy",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": [
@@ -51,6 +65,11 @@
           "queryScope": "COLLECTION_GROUP"
         }
       ]
+    },
+    {
+      "collectionGroup": "teile",
+      "fieldPath": "payload",
+      "indexes": []
     }
   ]
 }

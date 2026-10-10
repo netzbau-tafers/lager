@@ -33,7 +33,7 @@
     const token=++generation;session=user;busy=false;cursor=null;query=null;entries.clear();results.replaceChildren();controls();
     if(!user){location.replace('home.html');return;}
     $('appContent').style.display='block';status.textContent='Fahrzeugauswahl wird geladen …';
-    try{const response=await catalog({});if(token!==generation)return;vehicles=response.data.vehicles;select.replaceChildren(node('option','Fahrzeug auswählen'));select.firstChild.value='';for(const v of vehicles){const option=node('option',v.name+' · '+v.plate+(v.deleted?' (gelöscht)':''));option.value=v.id;select.append(option);}status.textContent=vehicles.length?'Fahrzeug und Datum auswählen, dann suchen.':'Keine Fahrzeuge vorhanden.';}
+    try{const response=await catalog({});if(token!==generation)return;vehicles=response.data.vehicles;window.dispatchEvent(new CustomEvent('logbook:vehicles',{detail:vehicles}));select.replaceChildren(node('option','Fahrzeug auswählen'));select.firstChild.value='';for(const v of vehicles){const option=node('option',v.name+' · '+v.plate+(v.deleted?' (gelöscht)':''));option.value=v.id;select.append(option);}status.textContent=vehicles.length?'Fahrzeug und Datum auswählen, dann suchen.':'Keine Fahrzeuge vorhanden.';}
     catch(error){if(token===generation)status.textContent=error.message||'Fahrzeuge konnten nicht geladen werden.';}
     finally{if(token===generation)controls();}
   });

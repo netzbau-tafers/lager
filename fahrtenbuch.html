@@ -38,6 +38,24 @@
 <p>Eine offene Nutzung bedeutet „Rückgabe nicht erfasst“. Nachträge mit ausstehender Bestätigung sind entsprechend gekennzeichnet.</p>
 <div id="logbookResults" class="vehicle-grid"></div>
 <button id="logbookMore" type="button" hidden>Weitere laden</button>
+<section class="logbook-export" aria-labelledby="exportTitle">
+<h2 id="exportTitle">Export und Aufräumen</h2>
+<p>Nutzungen und Tankungen für ein Fahrzeug oder alle Fahrzeuge exportieren. Zeitraum: höchstens ein Jahr. Empfehlenswert ist, die letzten zwölf Monate online zu behalten.</p>
+<form id="exportForm" class="export-controls">
+<label>Fahrzeug<select id="exportVehicle"><option value="all">Alle Fahrzeuge</option></select></label>
+<label>Von<input id="exportFrom" type="date" required></label>
+<label>Bis einschliesslich<input id="exportTo" type="date" required></label>
+<button id="exportPrepare" type="submit">Export erstellen</button>
+</form>
+<p id="exportStatus" role="status"></p>
+<div id="exportPreview"></div>
+<div class="vehicle-actions"><button id="exportCsv" type="button" class="secondary" disabled>CSV herunterladen</button><button id="exportPrint" type="button" class="secondary" disabled>PDF / Drucken</button><button id="exportJson" type="button" class="secondary" disabled>Wiederherstellungsdatei herunterladen</button></div>
+<p>In der Druckansicht kannst du „Als PDF speichern“ wählen. Die separate Sicherung bleibt für den Master-Admin wiederherstellbar; eine PDF allein reicht für eine Wiederherstellung nicht aus.</p>
+<label class="vehicle-check"><input id="exportVerified" type="checkbox"><span>Ich habe die Exportdateien gespeichert, geöffnet und auf Vollständigkeit geprüft.</span></label>
+<div class="vehicle-actions"><button id="exportDelete" type="button" hidden disabled>Gesicherte Einträge löschen</button><button id="exportRestore" type="button" class="secondary" hidden disabled>Sicherung wiederherstellen</button></div>
+<p>Nur der Master-Admin darf löschen. Offene Nutzungen, ausstehende Bestätigungen, Einträge über die Zeitraumgrenze und seit dem Export geänderte Einträge bleiben erhalten. Es wird nichts automatisch gelöscht.</p>
+<label>Gespeicherte Exporte<select id="exportExisting"><option value="">Gespeicherte Sicherung auswählen</option></select></label><button id="exportLoad" type="button" class="secondary" disabled>Sicherung laden</button>
+</section>
 </main>
 </div>
 
@@ -47,6 +65,6 @@ firebase.initializeApp({apiKey:'AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w',authDom
 const auth=firebase.auth();
 function logout(){if(confirm('Wirklich ausloggen?'))auth.signOut().then(()=>location.href='home.html');}
 </script>
-<script src="fahrtenbuch.js?v=20261010"></script><script src="navigation.js?v=20261010-fahrtenbuch"></script>
+<script src="fahrtenbuch.js?v=20261010-export"></script><script src="fahrtenbuch-export.js?v=20261010"></script><script src="navigation.js?v=20261010-fahrtenbuch"></script>
 </body>
 </html>
