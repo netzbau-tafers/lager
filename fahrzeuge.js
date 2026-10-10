@@ -10,7 +10,7 @@
   const selected=new URLSearchParams(location.search).get('fahrzeug'),scanRequested=!overview&&new URLSearchParams(location.search).get('scan')==='1';
   let ownScrollId=null,ownScrollFrame=null;
   let scanHandled=false,selectedScrollFrame=null,selectedSearch=!overview&&Boolean(selected);
-  const busy=new Set(),messages=new Map(),histories=new Map(),historyMonths=new Map(),openHistory=new Set();
+  const busy=new Set(),messages=new Map(),histories=new Map(),openHistory=new Set();
   let unsubBackfills=null,backfills=[],recipientCache=null;
   const inbox=!overview?document.createElement('section'):null;
   if(inbox){inbox.className='vehicle-confirmations';inbox.hidden=true;inbox.setAttribute('aria-label','Fahrzeugnutzung bestätigen');list.before(inbox);}
@@ -25,18 +25,9 @@
   }
   function button(label,action,id,className=''){const element=node('button',label,className);element.type='button';element.dataset.action=action;element.dataset.id=id;element.disabled=busy.has(id);return element;}
   const historyPageSize=20;
-  function historyKey(id){return id+'|'+(historyMonths.get(id)||'');}
-  function monthStart(year,month){
-    const utc=Date.UTC(year,month,1),parts=new Intl.DateTimeFormat('en-US',{timeZone:'Europe/Zurich',timeZoneName:'shortOffset'}).formatToParts(new Date(utc));
-    const offset=Number(parts.find(part=>part.type==='timeZoneName').value.replace('GMT',''));
-    return firebase.firestore.Timestamp.fromMillis(utc-offset*3600000);
-  }
   function historyList(id){
     const target=[...list.querySelectorAll('[data-history-list]')].find(n=>n.dataset.historyList===id);if(!target)return;
-    target.replaceChildren();const data=histories.get(historyKey(id));
-    const controls=node('div','','vehicle-history-controls'),label=node('label','Monat (leer = alle): '),month=node('input');
-    month.type='month';month.value=historyMonths.get(id)||'';month.dataset.historyMonth=id;month.disabled=Boolean(data?.loading);label.append(month);controls.append(label);
-    const refresh=button('Aktualisieren','history-refresh',id,'secondary');refresh.disabled=Boolean(data?.loading);controls.append(refresh);target.append(controls);
+    target.replaceChildren();const data=histories.get(id);
     if(!data){target.append(node('p','Verlauf wird geladen …'));return;}
     if(data.error)target.append(node('p','Verlauf konnte nicht geladen werden. Bitte erneut versuchen.','vehicle-error'));
     if(!data.entries.length)target.append(node('p',data.loading?'Verlauf wird geladen …':data.error?'': 'Keine Einträge für diese Auswahl.'));
@@ -55,16 +46,14 @@
     target.append(ordered);
     if(data.hasMore){const more=button(data.loading?'Wird geladen …':data.error?'Erneut versuchen':'Weitere 20 Einträge laden','more',id,'secondary');more.disabled=data.loading;target.append(more);}
   }
-  async function loadHistory(id,refresh=false){
-    const key=historyKey(id);let state=histories.get(key);
+  async function loadHistory(id){
+    const key=id;let state=histories.get(key);
     if(state?.loading)return;
-    if(refresh||!state){state={entries:[],cursor:null,hasMore:true,loading:false,error:false};histories.set(key,state);}
+    if(!state){state={entries:[],cursor:null,hasMore:true,loading:false,error:false};histories.set(key,state);}
     if(!state.hasMore)return;
     state.loading=true;state.error=false;historyList(id);
     try{
       let query=db.collection('fahrzeuge').doc(id).collection('verlauf').orderBy('createdAt','desc');
-      const month=historyMonths.get(id);
-      if(month){const [year,value]=month.split('-').map(Number);query=query.where('createdAt','>=',monthStart(year,value-1)).where('createdAt','<',monthStart(year,value));}
       if(state.cursor)query=query.startAfter(state.cursor);
       const snapshot=await query.limit(historyPageSize).get();
       if(histories.get(key)!==state)return;
@@ -72,9 +61,9 @@
       state.cursor=snapshot.docs[snapshot.docs.length-1]||state.cursor;
       state.hasMore=snapshot.docs.length===historyPageSize;
     }catch(error){if(histories.get(key)===state)state.error=true;}
-    finally{state.loading=false;if(histories.get(key)===state&&historyKey(id)===key)historyList(id);}
+    finally{state.loading=false;if(histories.get(key)===state)historyList(id);}
   }
-  function invalidateHistory(id){for(const key of histories.keys())if(key.startsWith(id+'|'))histories.delete(key);}
+  function invalidateHistory(id){histories.delete(id);}
   function render(){
     const focus=document.activeElement;const restore=focus?.dataset?.action?{action:focus.dataset.action,id:focus.dataset.id}:null;
     if(selectedSearch&&search){const vehicle=vehicles.find(v=>v.id===selected);if(vehicle)search.value=vehicle.plate;}
@@ -104,7 +93,7 @@
         if(!v.active)card.append(node('p','Nachtragen: heute ab 07:00 oder ab dem Ende der letzten Nutzung bis jetzt.','vehicle-help'));
       }
       const feedback=node('p',messages.get(v.id)||'','vehicle-feedback');feedback.setAttribute('role','status');card.append(feedback);
-      const details=node('details');details.dataset.history=v.id;details.open=openHistory.has(v.id);details.append(node('summary','Nutzungs- und Tankverlauf'));const history=node('div');history.dataset.historyList=v.id;history.className='vehicle-history-scroll';history.tabIndex=0;history.setAttribute('role','region');history.setAttribute('aria-label','Nutzungs- und Tankverlauf für '+v.name);details.append(history);details.addEventListener('toggle',()=>{if(!details.isConnected)return;if(details.open){openHistory.add(v.id);if(!histories.has(historyKey(v.id)))void loadHistory(v.id);else historyList(v.id);}else{openHistory.delete(v.id);}});card.append(details);list.append(card);if(details.open){if(!histories.has(historyKey(v.id)))void loadHistory(v.id);else historyList(v.id);}
+      const details=node('details');details.dataset.history=v.id;details.open=openHistory.has(v.id);details.append(node('summary','Nutzungs- und Tankverlauf'));const history=node('div');history.dataset.historyList=v.id;history.className='vehicle-history-scroll';history.tabIndex=0;history.setAttribute('role','region');history.setAttribute('aria-label','Nutzungs- und Tankverlauf für '+v.name);details.append(history);details.addEventListener('toggle',()=>{if(!details.isConnected)return;if(details.open){openHistory.add(v.id);if(!histories.has(v.id))void loadHistory(v.id);else historyList(v.id);}else{openHistory.delete(v.id);}});card.append(details);list.append(card);if(details.open){if(!histories.has(v.id))void loadHistory(v.id);else historyList(v.id);}
     }
     if(restore){const target=[...list.querySelectorAll('button')].find(n=>n.dataset.action===restore.action&&n.dataset.id===restore.id);target?.focus({preventScroll:true});}
     if(ownScrollId&&vehicles.some(v=>v.id===ownScrollId&&v.active?.uid===user?.uid)){
@@ -251,12 +240,10 @@
       catch(error){messages.set(v.id,errorText(error));}finally{busy.delete(v.id);render();}return;
     }
     if(action==='more'){void loadHistory(v.id);return;}
-    if(action==='history-refresh'){void loadHistory(v.id,true);return;}
     if(!LagerAccess.write('fahrzeuge'))return;
     if(action==='start'){await act(v,action);return;}
     openDialog(action,v);
   });
-  list.addEventListener('change',event=>{const id=event.target.dataset.historyMonth;if(!id)return;historyMonths.set(id,event.target.value);if(histories.has(historyKey(id)))historyList(id);else void loadHistory(id);});
   document.addEventListener('click',event=>{for(const menu of list.querySelectorAll('.vehicle-menu[open]'))if(!menu.contains(event.target))menu.open=false;});
   document.addEventListener('keydown',event=>{if(event.key==='Escape')for(const menu of list.querySelectorAll('.vehicle-menu[open]')){menu.open=false;menu.querySelector('summary').focus();}});
   document.getElementById('addVehicle')?.addEventListener('click',()=>openDialog('create'));
@@ -290,7 +277,7 @@
   search?.addEventListener('input',()=>{selectedSearch=false;render();});onlyFavorites?.addEventListener('change',()=>{selectedSearch=false;render();});
   LagerAccess.onAuthStateChanged(current=>{
     ownScrollId=null;if(ownScrollFrame!==null){cancelAnimationFrame(ownScrollFrame);ownScrollFrame=null;}
-    user=current;unsubVehicles?.();unsubFavorites?.();unsubBackfills?.();backfills=[];recipientCache=null;renderInbox();histories.clear();historyMonths.clear();openHistory.clear();favorites.clear();vehicles=[];
+    user=current;unsubVehicles?.();unsubFavorites?.();unsubBackfills?.();backfills=[];recipientCache=null;renderInbox();histories.clear();openHistory.clear();favorites.clear();vehicles=[];
     if(!user){const backfillId=new URLSearchParams(location.search).get('nachtrag');location.replace('home.html'+(scanRequested?'?vehicleScan='+encodeURIComponent(selected||''):backfillId?'?vehicleBackfill='+encodeURIComponent(backfillId):''));return;}
     if(overview){const hidden=!LagerAccess.read('fahrzeuge');document.getElementById('myVehiclesSection').hidden=hidden;document.getElementById('vehicleStat').hidden=hidden;if(hidden)return;}
     document.getElementById('appContent').style.display='block';const add=document.getElementById('addVehicle');if(add)add.hidden=!LagerAccess.write('fahrzeugeErstellen');
