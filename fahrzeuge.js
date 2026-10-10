@@ -2,6 +2,7 @@
   'use strict';
   const db=firebase.firestore(),functions=firebase.app().functions('europe-west1');
   const actionCall=functions.httpsCallable('lagerVehicleAction'),createCall=functions.httpsCallable('lagerCreateVehicle'),deleteCall=functions.httpsCallable('lagerDeleteVehicle'),editCall=functions.httpsCallable('lagerEditVehicle');
+  const serviceCall=functions.httpsCallable('lagerVehicleService');
   const backfillUsersCall=functions.httpsCallable('lagerVehicleBackfillUsers'),backfillCall=functions.httpsCallable('lagerVehicleBackfill'),reviewCall=functions.httpsCallable('lagerVehicleBackfillReview');
   const list=document.getElementById('vehicleList'),status=document.getElementById('vehicleStatus'),search=document.getElementById('vehicleSearch'),onlyFavorites=document.getElementById('onlyFavorites');
   const dialog=document.getElementById('vehicleDialog'),form=document.getElementById('vehicleForm'),fields=document.getElementById('dialogFields'),save=document.getElementById('dialogSave'),cancel=document.getElementById('dialogCancel');
@@ -94,7 +95,7 @@
       const card=node('article','','vehicle-card'+(v.id===selected||Boolean(user)&&v.active?.uid===user.uid?' vehicle-selected':''));card.id='vehicle-'+v.id;
       const header=node('header'),title=node('div');title.append(node('h2',v.name),node('p',v.plate,'vehicle-plate'));
       const favorite=button(favorites.has(v.id)?'★':'☆','favorite',v.id,'favorite');favorite.setAttribute('aria-label',favorites.has(v.id)?v.name+' aus Favoriten entfernen':v.name+' als Favorit speichern');favorite.setAttribute('aria-pressed',String(favorites.has(v.id)));const tools=node('div','','vehicle-card-tools');tools.append(favorite);
-      const menu=node('details');menu.className='vehicle-menu';const toggle=node('summary','⋮');toggle.setAttribute('aria-label','Fahrzeugmenü für '+v.name);toggle.title='Fahrzeugmenü';const menuItems=node('div','','vehicle-menu-items');menuItems.append(button('Informationen','info',v.id,'secondary'));if(LagerAccess.write('fahrzeugeErstellen'))menuItems.append(button('Bearbeiten','edit',v.id,'secondary'));menuItems.append(button('QR-Code herunterladen','qr',v.id,'secondary'));if(LagerAccess.write('fahrzeugeErstellen'))menuItems.append(button('Fahrzeug löschen','delete',v.id,'secondary'));menu.append(toggle,menuItems);tools.append(menu);header.append(title,tools);card.append(header);
+      const menu=node('details');menu.className='vehicle-menu';const toggle=node('summary','⋮');toggle.setAttribute('aria-label','Fahrzeugmenü für '+v.name);toggle.title='Fahrzeugmenü';const menuItems=node('div','','vehicle-menu-items');menuItems.append(button('Informationen','info',v.id,'secondary'));if(LagerAccess.write('fahrzeugeErstellen'))menuItems.append(button('Bearbeiten','edit',v.id,'secondary'));if(LagerAccess.write('fahrzeugeErstellen'))menuItems.append(button('Service erfassen','service',v.id,'secondary'));menuItems.append(button('QR-Code herunterladen','qr',v.id,'secondary'));if(LagerAccess.write('fahrzeugeErstellen'))menuItems.append(button('Fahrzeug löschen','delete',v.id,'secondary'));menu.append(toggle,menuItems);tools.append(menu);appendServiceDates(title,v);header.append(title,tools);card.append(header);
       card.append(node('p',v.active?'In Gebrauch von '+v.active.name:'Fahrzeug frei','vehicle-state'+(v.active?' busy':'')));
       if(v.active)card.append(node('p','Seit '+date(v.active.start),'vehicle-time'));
       const mileage=node('div','','vehicle-km');mileage.append(node('span','Kilometerstand für das Tankterminal'),node('strong',km(v.km)),node('small','Stand: '+date(v.kmAt)+(v.kmBy?.name?' · '+v.kmBy.name:'')));card.append(mileage);
@@ -132,6 +133,20 @@
       });
     }
   }
+  function appendServiceDates(target,v){
+    const today=Date.parse(todayZurich()+'T00:00:00Z');
+    for(const [key,label] of [['vehicle','Fahrzeugservice'],['crane','Kranservice']]){
+      const due=v.serviceDates?.[key];if(!due)continue;
+      const days=Math.round((Date.parse(due+'T00:00:00Z')-today)/86400000);
+      const state=days<0?'overdue':days<=30?'soon':'future';
+      const relative=days<0?Math.abs(days)+' Tage überfällig':days===0?'Heute fällig':days===1?'Morgen fällig':'in '+days+' Tagen';
+      const line=node('p',label+': '+due.split('-').reverse().join('.')+' · '+relative,'vehicle-service '+state);
+      target.append(line);
+    }
+  }
+  // Refresh date badges after midnight even when there are no database changes.
+  let serviceDay=todayZurich();
+  setInterval(()=>{const day=todayZurich();if(day!==serviceDay){serviceDay=day;if(user)render();}},60000);
   function downloadQr(v){
     const url=new URL('fahrzeuge.html',location.href);url.searchParams.set('fahrzeug',v.id);url.searchParams.set('scan','1');
     const qr=qrcode(0,'M');qr.addData(url.href);qr.make();
@@ -218,7 +233,7 @@
     loading(document.getElementById('dialogStatus'),false);
     pending={action,vehicle,requestId:requestId()};
     if(action==='switch')Object.assign(pending,{previousVehicle,releaseRequestId:requestId(),released:false,targetAction:vehicle.active?'takeover':'start'});fields.replaceChildren();save.hidden=false;cancel.textContent='Abbrechen';document.getElementById('dialogStatus').textContent='';save.disabled=false;cancel.disabled=false;
-    const titles={info:'Fahrzeuginformationen',edit:'Fahrzeug bearbeiten',create:'Fahrzeug hinzufügen',fuel:'Tanken',takeover:'Fahrzeug für mich übernehmen',day:'Nutzung für heute nachtragen',free:'Fahrzeug zurückgeben',switch:'Fahrzeug wechseln',backfill:'Nutzung für eine Person nachtragen'};
+    const titles={service:'Service erfassen',info:'Fahrzeuginformationen',edit:'Fahrzeug bearbeiten',create:'Fahrzeug hinzufügen',fuel:'Tanken',takeover:'Fahrzeug für mich übernehmen',day:'Nutzung für heute nachtragen',free:'Fahrzeug zurückgeben',switch:'Fahrzeug wechseln',backfill:'Nutzung für eine Person nachtragen'};
     document.getElementById('dialogTitle').textContent=titles[action]+(vehicle?' · '+vehicle.name:'');
     const note=document.getElementById('dialogNote');note.textContent='';save.textContent='Speichern';
     if(action==='create'||action==='edit'){
@@ -226,6 +241,12 @@
       if(action==='create')input('km','Aktueller Kilometerstand','number','');
       const responsible=input('responsible','Fahrzeugverantwortlicher','text',vehicle?.responsible||'',100);responsible.required=false;
       const label=node('label','Details'),details=node('textarea');details.name='details';details.value=vehicle?.details||'';details.maxLength=5000;details.rows=6;details.placeholder='Zum Beispiel: Traglast des Krans, Ausrüstung oder besondere Hinweise';label.append(details);fields.append(label);
+    }
+    if(action==='service'){
+      note.textContent='Nächste Fälligkeit eintragen. Leere Felder entfernen den jeweiligen Termin. Eine Erinnerung wird 30 Tage vorher per E-Mail gesendet; kurzfristig erfasste Termine bei der nächsten täglichen Prüfung.';
+      for(const [key,label] of [['vehicle','Fahrzeugservice fällig am'],['crane','Kranservice fällig am (optional)']]){
+        const field=input(key,label,'date',vehicle.serviceDates?.[key]||'');field.required=false;field.min='2000-01-01';field.max='2100-12-31';
+      }
     }
     if(action==='info'){
       fields.append(node('h3','Fahrzeugverantwortlicher'),node('p',vehicle.responsible||'Nicht hinterlegt'),node('h3','Details'),node('p',vehicle.details||'Keine weiteren Informationen hinterlegt.','vehicle-information'));
@@ -260,6 +281,7 @@
       catch(error){messages.set(v.id,errorText(error));}finally{busy.delete(v.id);render();}return;
     }
     if(action==='info'){openDialog('info',v);return;}
+    if(action==='service'){if(LagerAccess.write('fahrzeugeErstellen'))openDialog('service',v);return;}
     if(action==='edit'){if(LagerAccess.write('fahrzeugeErstellen'))openDialog('edit',v);return;}
     if(action==='qr'){downloadQr(v);return;}
     if(action==='delete'){
@@ -283,7 +305,8 @@
     event.preventDefault();if(saving||!pending||pending.action==='info'||!form.reportValidity())return;
     const operation=pending,values=new FormData(form);saving=true;save.disabled=true;cancel.disabled=true;loading(save,true);loading(document.getElementById('dialogStatus'),true);document.getElementById('dialogStatus').textContent='Wird gespeichert …';
     try{
-      if(operation.action==='create')await createCall({name:values.get('name').trim(),plate:values.get('plate').trim(),km:Number(values.get('km')),responsible:values.get('responsible').trim(),details:values.get('details').trim()});
+      if(operation.action==='service')await serviceCall({id:operation.vehicle.id,revision:operation.vehicle.revision,vehicle:values.get('vehicle')||null,crane:values.get('crane')||null});
+      else if(operation.action==='create')await createCall({name:values.get('name').trim(),plate:values.get('plate').trim(),km:Number(values.get('km')),responsible:values.get('responsible').trim(),details:values.get('details').trim()});
       else if(operation.action==='edit')await editCall({id:operation.vehicle.id,revision:operation.vehicle.revision,name:values.get('name').trim(),plate:values.get('plate').trim(),responsible:values.get('responsible').trim(),details:values.get('details').trim()});
       else if(operation.action==='backfill'){
         const result=await backfillCall({vehicleId:operation.vehicle.id,targetUid:values.get('targetUid'),requestId:operation.requestId,wholeDay:values.has('wholeDay'),date:values.get('date'),start:values.get('start'),end:values.get('end')});

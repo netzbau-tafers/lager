@@ -35,6 +35,22 @@ function createVehicles({db,auth,Timestamp,ErrorType,FieldValue,now=Date.now}){
     return {responsible:responsible.trim(),details:details.trim()};
   }
   return {
+    async service(request){
+      const who=await actor(request),data=request.data||{};
+      if(!string(data.id,128)||data.id.includes('/')||!Number.isSafeInteger(data.revision)||data.revision<0)fail('invalid-argument','Ungültiges Fahrzeug.');
+      const {validServiceDate}=require('./vehicle-service.cjs');
+      for(const key of ['vehicle','crane'])if(data[key]!==null&&!validServiceDate(data[key]))fail('invalid-argument','Gültiges Servicedatum angeben.');
+      const ref=db.collection('fahrzeuge').doc(data.id);
+      await db.runTransaction(async tx=>{
+        await permitted(tx,who.uid,true);
+        const snapshot=await tx.get(ref);
+        if(!snapshot.exists)fail('not-found','Fahrzeug nicht gefunden.');
+        const v=snapshot.data();
+        if(v.revision!==data.revision)fail('failed-precondition','Das Fahrzeug wurde gerade geändert. Bitte erneut öffnen.');
+        tx.update(ref,{serviceDates:{vehicle:data.vehicle,crane:data.crane},revision:v.revision+1,updatedAt:Timestamp.fromMillis(now()),updatedBy:who});
+      });
+      return {saved:true};
+    },
     async create(request){
       const who=await actor(request),data=request.data||{};
       if(!string(data.name,100)||!string(data.plate,30)||!validKm(data.km))fail('invalid-argument','Name, Kennzeichen und gültigen Kilometerstand angeben.');

@@ -121,3 +121,17 @@ test('vehicle information: optional fields, multiline details, edit rights and s
     await rejects(f.service.create(f.request('alice',{name:'Bus',plate:'FR 1',km:100,...invalid})),'invalid-argument');
   }
 });
+
+test('service dates enforce editing permission, valid dates and revision',async()=>{
+  const f=fixture(),id=await f.create();
+  const save=(uid,extra={})=>f.service.service(f.request(uid,{id,revision:f.vehicle(id).revision,vehicle:'2026-11-09',crane:null,...extra}));
+  await save('alice');
+  assert.deepEqual(f.vehicle(id).serviceDates,{vehicle:'2026-11-09',crane:null});
+  await rejects(save('alice',{vehicle:'2026-02-30'}),'invalid-argument');
+  await rejects(save('alice',{revision:0}),'failed-precondition');
+  f.user('bob',{fahrzeuge:'edit',fahrzeugeErstellen:'view'});
+  await rejects(save('bob'),'permission-denied');
+  await save('alice',{vehicle:null,crane:'2027-01-01'});
+  assert.equal(f.vehicle(id).serviceDates.vehicle,null);
+  assert.equal(f.vehicle(id).serviceDates.crane,'2027-01-01');
+});

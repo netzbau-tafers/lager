@@ -32,3 +32,5 @@ dialog textarea{display:block;width:100%;box-sizing:border-box;border:1px solid 
 .vehicle-history-scroll.vehicle-loading::before{display:block;margin:12px 0}
 @keyframes vehicle-spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.vehicle-loading::before{animation:none;border-right-color:currentColor;border-style:dotted}}
+
+.vehicle-service{font-size:13px;line-height:1.5;margin:9px 0 0;padding:7px 9px;border-radius:7px;border-left:4px solid #72869a;background:#f0f4f8;color:#354b61}.vehicle-service.soon{border-color:#cf7800;background:#fff3d9;color:#7a4700;font-weight:600}.vehicle-service.overdue{border-color:#c82b23;background:#ffebe9;color:#a21e18;font-weight:600}
