@@ -34,3 +34,20 @@ dialog textarea{display:block;width:100%;box-sizing:border-box;border:1px solid 
 @media(prefers-reduced-motion:reduce){.vehicle-loading::before{animation:none;border-right-color:currentColor;border-style:dotted}}
 
 .vehicle-service{font-size:13px;line-height:1.5;margin:9px 0 0;padding:7px 9px;border-radius:7px;border-left:4px solid #72869a;background:#f0f4f8;color:#354b61}.vehicle-service.soon{border-color:#cf7800;background:#fff3d9;color:#7a4700;font-weight:600}.vehicle-service.overdue{border-color:#c82b23;background:#ffebe9;color:#a21e18;font-weight:600}
+
+/* Fahrzeugverlauf: nach Tagen gegliedert und Ereignisse auf einen Blick unterscheidbar. */
+.vehicle-history{list-style:none;margin:0;padding:0}
+.vehicle-history li{list-style:none}
+.vehicle-history-day{position:sticky;top:0;z-index:1;margin:6px 0 2px;padding:8px 10px!important;border:0!important;border-radius:7px;background:#f1f6fc;color:#526478;font-size:13px!important;font-weight:700}
+.vehicle-history-entry{margin-left:5px;padding:12px 8px 12px 13px!important;border-left:3px solid #8ca0b3;border-bottom:1px solid #e1e7ee}
+.vehicle-history-entry.fuel{border-left-color:#16824b}
+.vehicle-history-entry.takeover{border-left-color:#b96b00}
+.vehicle-history-entry.backfill{border-left-color:#7252a3}
+.vehicle-history-entry.day{border-left-color:#1268c6}
+.vehicle-history-entry.usage{border-left-color:#51758d}
+.vehicle-history-kind{display:inline-block;margin:0 0 5px;padding:3px 8px;border-radius:999px;background:#edf2f7;color:#40566b;font-size:12px;font-weight:700}
+.vehicle-history-entry.fuel .vehicle-history-kind{background:#e4f5eb;color:#17643b}
+.vehicle-history-entry.takeover .vehicle-history-kind{background:#fff1d9;color:#80500a}
+.vehicle-history-entry.backfill .vehicle-history-kind{background:#f0eafe;color:#5b408c}
+.vehicle-history-entry.day .vehicle-history-kind{background:#e5f0ff;color:#1558a0}
+.vehicle-history-entry strong{display:block}
