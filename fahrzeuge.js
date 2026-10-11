@@ -159,11 +159,12 @@
     const qr=qrcode(0,'M');qr.addData(url.href);qr.make();
     const size=qr.getModuleCount()*8+64,namespace='http://www.w3.org/2000/svg';
     const svg=document.createElementNS(namespace,'svg');
-    // Keep the QR code and its quiet zone intact below the printed vehicle label.
+    // The upper panel carries the label and QR code; the equally high lower panel folds behind it to hide the NFC tag.
     const nameLines=String(v.name).match(/.{1,28}(?:\s|$)|\S{1,28}/g)||['Fahrzeug'];
     const headerHeight=32+nameLines.length*34+42;
-    svg.setAttribute('xmlns',namespace);svg.setAttribute('width',String(size));svg.setAttribute('height',String(size+headerHeight));
-    svg.setAttribute('viewBox','0 0 '+size+' '+(size+headerHeight));
+    const panelHeight=size+headerHeight,totalHeight=panelHeight*2;
+    svg.setAttribute('xmlns',namespace);svg.setAttribute('width',String(size));svg.setAttribute('height',String(totalHeight));
+    svg.setAttribute('viewBox','0 0 '+size+' '+totalHeight);
     const background=document.createElementNS(namespace,'rect');
     background.setAttribute('width','100%');background.setAttribute('height','100%');background.setAttribute('fill','#fff');svg.append(background);
     function label(value,y,fontSize,bold){
@@ -178,11 +179,19 @@
     label(String(v.plate||''),40+nameLines.length*34,24,false);
     const qrSvg=new DOMParser().parseFromString(qr.createSvgTag({cellSize:8,margin:32,scalable:true}),'image/svg+xml').documentElement;
     qrSvg.setAttribute('x','0');qrSvg.setAttribute('y',String(headerHeight));qrSvg.setAttribute('width',String(size));qrSvg.setAttribute('height',String(size));svg.append(qrSvg);
+    const cutLine=document.createElementNS(namespace,'rect');
+    cutLine.setAttribute('x','1');cutLine.setAttribute('y','1');cutLine.setAttribute('width',String(size-2));cutLine.setAttribute('height',String(totalHeight-2));
+    cutLine.setAttribute('fill','none');cutLine.setAttribute('stroke','#000');cutLine.setAttribute('stroke-width','1.5');cutLine.setAttribute('data-cut-line','');
+    svg.append(cutLine);
+    const foldLine=document.createElementNS(namespace,'line');
+    foldLine.setAttribute('x1','1');foldLine.setAttribute('x2',String(size-1));foldLine.setAttribute('y1',String(panelHeight));foldLine.setAttribute('y2',String(panelHeight));
+    foldLine.setAttribute('stroke','#000');foldLine.setAttribute('stroke-width','1.5');foldLine.setAttribute('stroke-dasharray','8 6');foldLine.setAttribute('data-fold-line','');
+    svg.append(foldLine);
     const blob=new Blob([new XMLSerializer().serializeToString(svg)],{type:'image/svg+xml'});
     const objectUrl=URL.createObjectURL(blob),link=document.createElement('a');link.href=objectUrl;
     link.download='QR-'+v.name.replace(/[^a-zA-Z0-9_-]/g,'_')+'.svg';document.body.append(link);link.click();link.remove();
     setTimeout(()=>URL.revokeObjectURL(objectUrl),60000);
-    messages.set(v.id,'QR-Code heruntergeladen. Zum Ausdrucken die Bilddatei öffnen.');render();
+    messages.set(v.id,'QR-Code mit Schnitt- und Falzlinie heruntergeladen. Die untere Hälfte lässt sich hinter die QR-Seite falten.');render();
   }
   function handleScan(){
     if(!scanRequested||scanHandled)return;scanHandled=true;
