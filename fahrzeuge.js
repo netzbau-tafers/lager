@@ -60,9 +60,15 @@
     // Bei einer Übernahme entstehen Nutzung und Übernahme mit demselben Zeitstempel.
     // Die neue Nutzung steht darüber, damit der Verlauf die zeitliche Abfolge zeigt.
     const entries=[...data.entries].sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0)||Number(a.type==='takeover')-Number(b.type==='takeover'));
+    let currentDay='';
     for(const entry of entries){
       if(entry.status==='rejected')continue;
-      const row=node('li'),name=entry.actor?.name||'Unbekannte Person';
+      const day=historyDay(entry.start||entry.createdAt);
+      if(day.key!==currentDay){ordered.append(node('li',day.label,'vehicle-history-day'));currentDay=day.key;}
+      const type=entry.type==='fuel'?'fuel':entry.type==='takeover'?'takeover':entry.type==='backfill'?'backfill':entry.type==='day'?'day':'usage';
+      const labels={fuel:'Tanken',takeover:'Übernahme',backfill:'Nachgetragen',day:'Ganzer Tag',usage:'Nutzung'};
+      const row=node('li','','vehicle-history-entry '+type),name=entry.actor?.name||'Unbekannte Person';
+      row.append(node('span',labels[type],'vehicle-history-kind'));
       if(entry.type==='backfill'){
         row.append(node('strong',name+' · Nutzung nachgetragen'),node('p',date(entry.start)+' → '+date(entry.end)),node('p',entry.status==='pending'?'Bestätigung ausstehend':'Bestätigt'),node('small','Nachgetragen von '+(entry.requestedBy?.name||'Unbekannte Person')));
       }
@@ -208,6 +214,14 @@
     void act(v,'start');
   }
   function input(name,label,type,value,max){const wrapper=node('label',label),field=node('input');field.name=name;field.type=type;field.value=value;field.required=true;if(type==='number'){field.min='0';field.max='9999999';field.step='1';field.inputMode='numeric';}else field.maxLength=max;wrapper.append(field);fields.append(wrapper);return field;}
+  function historyDay(value){
+    const instant=value?.toDate?.()||new Date();
+    const key=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Zurich',year:'numeric',month:'2-digit',day:'2-digit'}).format(instant);
+    const today=todayZurich(),yesterday=new Date(Date.now()-86400000);
+    const yesterdayKey=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Zurich',year:'numeric',month:'2-digit',day:'2-digit'}).format(yesterday);
+    const label=key===today?'Heute':key===yesterdayKey?'Gestern':new Intl.DateTimeFormat('de-CH',{timeZone:'Europe/Zurich',day:'2-digit',month:'long',year:'numeric'}).format(instant);
+    return {key,label};
+  }
   function todayZurich(){return new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Zurich',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}
   async function backfillFields(operation){
     save.disabled=true;
