@@ -557,6 +557,16 @@ label{
   color:#666;
 }
 
+.scanner-video-wrap{position:relative;background:#111;border-radius:12px;overflow:hidden;min-height:220px;display:flex;align-items:center;justify-content:center;margin:12px 0;}
+#materialScanVideo{width:100%;max-height:52vh;object-fit:cover;}
+.scan-pending-list{display:grid;gap:8px;margin:12px 0;max-height:28vh;overflow:auto;}
+.scan-pending-item{display:grid;grid-template-columns:minmax(0,1fr) 90px 40px;gap:8px;align-items:center;border:1px solid #d7dde5;border-radius:9px;padding:8px;background:#f8fafc;}
+.scan-pending-item input{margin:0;text-align:center;}
+.scan-pending-item button{margin:0;min-width:38px;padding:8px;}
+.scan-status{padding:10px 12px;border-radius:8px;background:#eef5ff;color:#23476d;font-size:14px;}
+.scan-unknown-box{padding:12px;background:#fff8e8;border:1px solid #eed18b;border-radius:10px;margin:10px 0;}
+.scan-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+@media(max-width:600px){.scanner-video-wrap{min-height:180px}.scan-pending-item{grid-template-columns:minmax(0,1fr) 72px 38px}}
 .modal{
   display:none;
   position:fixed;
@@ -1025,6 +1035,34 @@ dialog.vorlage-duplicate-dialog::backdrop{
   </div>
 </div>
 
+
+<div id="materialScanModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="materialScanTitle">
+  <div class="modal-content" style="width:560px;">
+    <h3 id="materialScanTitle">Material scannen</h3>
+    <p>Scanne den Code-128-Barcode der Materialvorlage. Erkannte Materialien werden hier gesammelt und erst nach «Speichern» auf die Baustelle übernommen.</p>
+    <div class="scanner-video-wrap"><video id="materialScanVideo" playsinline muted></video></div>
+    <div id="materialScanStatus" class="scan-status" role="status" aria-live="polite">Kamera wird gestartet …</div>
+    <div id="unknownScanBox" class="scan-unknown-box" style="display:none;">
+      <label for="unknownScanName">Dieser Barcode ist in den Materialvorlagen nicht vorhanden. Materialbezeichnung eingeben:</label>
+      <input id="unknownScanName" maxlength="120" placeholder="Materialbezeichnung">
+      <div class="scan-actions">
+        <button onclick="addUnknownScannedMaterial()"><i class="fa-solid fa-plus"></i> Zur Liste hinzufügen</button>
+        <button class="back" onclick="cancelUnknownScannedMaterial()">Überspringen</button>
+      </div>
+    </div>
+    <div id="materialScanPending" class="scan-pending-list"></div>
+    <div id="manualScanWrap" class="helper-text" style="display:none;">
+      Dieser Browser unterstützt das Scannen mit der Kamera nicht. Du kannst einen Code mit einem angeschlossenen Scanner eingeben.
+      <input id="manualScanCode" maxlength="80" placeholder="Barcode eingeben">
+      <button onclick="handleManualMaterialScan()"><i class="fa-solid fa-barcode"></i> Code übernehmen</button>
+    </div>
+    <div class="scan-actions">
+      <button id="saveScannedMaterialsButton" onclick="saveScannedMaterials()" disabled><i class="fa-solid fa-floppy-disk"></i> Gesammelte Materialien speichern</button>
+      <button class="back" onclick="closeMaterialScanner()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
+    </div>
+  </div>
+</div>
+
 <dialog id="vorlageDuplicateDialog" class="vorlage-duplicate-dialog" aria-labelledby="vorlageDuplicateTitle" aria-describedby="vorlageDuplicateMessage vorlageDuplicateHint">
   <h3 id="vorlageDuplicateTitle">Materialvorlage bereits vorhanden</h3>
   <p id="vorlageDuplicateMessage"></p>
@@ -1117,6 +1155,7 @@ let alleVorlagen = [];
 
 let editBaustelleId = null;
 let currentBaustelleId = null;
+let materialScanState = {baustelleId:null, pending:[], stream:null, detector:null, frame:null, processing:false, armed:true, missingSince:0, unknownCode:"", lastScanAt:0, audioContext:null};
 let editMaterialId = null;
 let editVorlageId = null;
 let openMaterialLists = {};
@@ -2565,6 +2604,7 @@ function createBaustelleCard(baustelle){
     actionsHtml = `
       <div class="card-actions">
         <button onclick="openMaterialModal('${baustelle.id}')" data-access-write="baustellen"><i class="fa-solid fa-plus"></i> Material hinzufügen</button>
+        <button onclick="openMaterialScanner('${baustelle.id}')" data-access-write="baustellen"><i class="fa-solid fa-barcode"></i> Material scannen</button>
         <button class="finish" onclick="finishBaustelle('${baustelle.id}')" data-access-write="baustellen"><i class="fa-solid fa-check"></i> Baustelle beenden</button>
 
         <div class="card-menu-wrap">
@@ -2832,6 +2872,290 @@ function saveBaustelle(){
       console.error("Fehler beim Erstellen der Baustelle:", error);
       alert("Fehler beim Speichern.");
     });
+  }
+}
+
+
+function setMaterialScanStatus(message){
+  const status = document.getElementById("materialScanStatus");
+  if(status) status.textContent = message;
+}
+
+function playMaterialScanBeep(){
+  try{
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if(!AudioContextClass) return;
+    const context = materialScanState.audioContext || new AudioContextClass();
+    materialScanState.audioContext = context;
+    if(context.state === "suspended") context.resume().catch(() => {});
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.value = 880;
+    gain.gain.value = 0.08;
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + 0.12);
+    oscillator.onended = () => context.close();
+  }catch(error){
+    console.warn("Scan-Ton konnte nicht abgespielt werden:", error);
+  }
+}
+
+function renderScannedMaterials(){
+  const list = document.getElementById("materialScanPending");
+  const saveButton = document.getElementById("saveScannedMaterialsButton");
+  if(!list || !saveButton) return;
+  list.innerHTML = materialScanState.pending.map((item,index) => `
+    <div class="scan-pending-item">
+      <div><strong>${escapeHtml(item.material)}</strong><div class="helper-text">${item.existingMaterialId ? "Wird in der Baustellenliste erhöht" : "Neue Position"}</div></div>
+      <input type="number" min="1" step="1" value="${Math.max(1, Number(item.anzahl) || 1)}" aria-label="Stückzahl für ${escapeHtml(item.material)}" onchange="updateScannedMaterialQuantity(${index}, this.value)">
+      <button class="delete" title="Aus der Liste entfernen" aria-label="Material entfernen" onclick="removeScannedMaterial(${index})"><i class="fa-solid fa-trash"></i></button>
+    </div>
+  `).join("");
+  saveButton.disabled = materialScanState.pending.length === 0;
+  saveButton.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> ${materialScanState.pending.length ? "Speichern ("+materialScanState.pending.length+")" : "Gesammelte Materialien speichern"}`;
+}
+
+function getScannedExistingMaterial(materialName, spontis){
+  const normalizedName = String(materialName || "").trim().toLocaleLowerCase("de");
+  const normalizedSpontis = String(spontis || "").trim().toLocaleLowerCase("de");
+  return alleMaterialien.find(item => item.baustelleId === materialScanState.baustelleId && (
+    (normalizedSpontis && String(item.spontis || "").trim().toLocaleLowerCase("de") === normalizedSpontis) ||
+    (!normalizedSpontis && String(item.material || "").trim().toLocaleLowerCase("de") === normalizedName)
+  )) || null;
+}
+
+function addScannedItem({key, material, spontis="", alteSpontis="", existingMaterial=null}){
+  let item = materialScanState.pending.find(entry => entry.key === key);
+  if(!item){
+    const existing = existingMaterial || getScannedExistingMaterial(material, spontis);
+    const oldCount = existing ? parseInt(String(existing.anzahl || "").match(/^\s*\d+/)?.[0] || "0",10) : 0;
+    item = {
+      key,
+      material: sanitizeInput(material,120),
+      spontis: sanitizeInput(spontis,60),
+      alteSpontis: sanitizeInput(alteSpontis,60),
+      existingMaterialId: existing ? existing.id : null,
+      anzahl: Math.max(0, oldCount) + 1
+    };
+    materialScanState.pending.push(item);
+  }else{
+    item.anzahl = (Number(item.anzahl) || 0) + 1;
+  }
+  renderScannedMaterials();
+}
+
+function handleMaterialBarcode(code){
+  const barcode = sanitizeBarcodeValue(code,80);
+  if(!barcode) return;
+  playMaterialScanBeep();
+  materialScanState.lastScanAt = Date.now();
+  const template = alleVorlagen.find(v => getVorlageBarcodeBySpontis(v.spontis || "") === barcode);
+  if(template){
+    addScannedItem({
+      key:"vorlage:"+template.id,
+      material:template.material,
+      spontis:template.spontis || "",
+      alteSpontis:template.alteSpontis || ""
+    });
+    setMaterialScanStatus("Erkannt: " + template.material + ". Noch einmal scannen, um die Stückzahl zu erhöhen.");
+    return;
+  }
+
+  const key = "barcode:"+barcode;
+  if(materialScanState.pending.some(item => item.key === key)){
+    const item = materialScanState.pending.find(entry => entry.key === key);
+    item.anzahl = (Number(item.anzahl) || 0) + 1;
+    renderScannedMaterials();
+    setMaterialScanStatus("Barcode erneut erkannt. Stückzahl erhöht.");
+    return;
+  }
+  materialScanState.unknownCode = barcode;
+  document.getElementById("unknownScanName").value = "";
+  document.getElementById("unknownScanBox").style.display = "block";
+  document.getElementById("unknownScanName").focus();
+  setMaterialScanStatus("Unbekannter Barcode. Bitte Materialbezeichnung eingeben.");
+}
+
+function updateScannedMaterialQuantity(index, value){
+  const item = materialScanState.pending[index];
+  if(!item) return;
+  item.anzahl = Math.max(1, parseInt(value,10) || 1);
+  renderScannedMaterials();
+}
+
+function removeScannedMaterial(index){
+  materialScanState.pending.splice(index,1);
+  renderScannedMaterials();
+}
+
+function addUnknownScannedMaterial(){
+  const name = sanitizeInput(document.getElementById("unknownScanName").value,120);
+  if(!materialScanState.unknownCode || !name){
+    alert("Bitte eine Materialbezeichnung eingeben.");
+    return;
+  }
+  addScannedItem({key:"barcode:"+materialScanState.unknownCode, material:name});
+  materialScanState.unknownCode = "";
+  document.getElementById("unknownScanBox").style.display = "none";
+  setMaterialScanStatus("Material übernommen. Weiter scannen oder die Liste speichern.");
+}
+
+function cancelUnknownScannedMaterial(){
+  materialScanState.unknownCode = "";
+  document.getElementById("unknownScanBox").style.display = "none";
+  setMaterialScanStatus("Barcode übersprungen. Du kannst weiter scannen.");
+}
+
+function handleManualMaterialScan(){
+  const input = document.getElementById("manualScanCode");
+  if(!input) return;
+  handleMaterialBarcode(input.value);
+  input.value = "";
+  if(materialScanState.unknownCode) document.getElementById("unknownScanName").focus();
+}
+
+async function openMaterialScanner(baustelleId){
+  if(!LagerAccess.requireWrite("baustellen")) return;
+  const baustelle = getBaustelleById(baustelleId);
+  if(!baustelle || baustelle.status !== "aktiv"){
+    alert("Material scannen ist nur bei aktiven Baustellen möglich.");
+    return;
+  }
+  let audioContext = null;
+  try{
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if(AudioContextClass){
+      audioContext = new AudioContextClass();
+      if(audioContext.state === "suspended") audioContext.resume().catch(() => {});
+    }
+  }catch(error){
+    console.warn("Scan-Ton ist nicht verfügbar:",error);
+  }
+  try{
+    await Promise.all([loadBaustellenMaterial(baustelleId), loadVorlagen()]);
+  }catch(error){
+    console.error("Scan-Daten konnten nicht geladen werden:",error);
+    alert("Materialliste oder Vorlagen konnten nicht geladen werden. Bitte erneut versuchen.");
+    return;
+  }
+  materialScanState = {baustelleId, pending:[], stream:null, detector:null, frame:null, processing:false, armed:true, missingSince:0, unknownCode:"", lastScanAt:0, audioContext};
+  renderScannedMaterials();
+  document.getElementById("unknownScanBox").style.display = "none";
+  document.getElementById("manualScanWrap").style.display = "none";
+  document.getElementById("materialScanModal").style.display = "block";
+  if(!navigator.mediaDevices?.getUserMedia || typeof window.BarcodeDetector !== "function"){
+    document.getElementById("manualScanWrap").style.display = "block";
+    setMaterialScanStatus("Kamera-Barcode-Scan wird von diesem Browser nicht unterstützt. Verwende einen angeschlossenen Scanner oder einen aktuellen Chrome-Browser.");
+    return;
+  }
+  try{
+    const formats = typeof BarcodeDetector.getSupportedFormats === "function" ? await BarcodeDetector.getSupportedFormats() : [];
+    const wanted = ["code_128","ean_13","ean_8","upc_a","upc_e","itf","qr_code"];
+    const supported = formats.length ? wanted.filter(format => formats.includes(format)) : wanted;
+    if(!supported.length) throw new Error("Keine passenden Barcodeformate verfügbar.");
+    materialScanState.detector = new BarcodeDetector({formats:supported});
+    materialScanState.stream = await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:"environment"}}});
+    const video = document.getElementById("materialScanVideo");
+    video.srcObject = materialScanState.stream;
+    await video.play();
+    setMaterialScanStatus("Kamera aktiv. Richte den Code-128-Barcode auf den Bildschirm.");
+    scanMaterialFrame();
+  }catch(error){
+    console.error("Kamera konnte nicht gestartet werden:",error);
+    stopMaterialScanCamera();
+    setMaterialScanStatus(error.name === "NotAllowedError" ? "Kamerazugriff verweigert. Erlaube den Kamerazugriff in den Browser-Einstellungen." : "Kamera konnte nicht gestartet werden. Prüfe die Kameraberechtigung und versuche es erneut.");
+  }
+}
+
+async function scanMaterialFrame(){
+  const state = materialScanState;
+  const video = document.getElementById("materialScanVideo");
+  if(!state.detector || !state.stream || document.getElementById("materialScanModal").style.display === "none") return;
+  if(state.processing){ state.frame = requestAnimationFrame(scanMaterialFrame); return; }
+  state.processing = true;
+  try{
+    if(video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA){
+      const results = await state.detector.detect(video);
+      if(results.length){
+        state.missingSince = 0;
+        if(state.armed && !state.unknownCode){
+          state.armed = false;
+          handleMaterialBarcode(results[0].rawValue || "");
+        }
+      }else{
+        if(!state.missingSince) state.missingSince = Date.now();
+        if(!state.unknownCode && Date.now() - state.missingSince > 850){
+          state.armed = true;
+          state.missingSince = 0;
+        }
+      }
+    }
+  }catch(error){
+    console.warn("Barcode konnte nicht gelesen werden:",error);
+  }finally{
+    state.processing = false;
+    if(state.stream) state.frame = requestAnimationFrame(scanMaterialFrame);
+  }
+}
+
+function stopMaterialScanCamera(){
+  const state = materialScanState;
+  if(state.frame) cancelAnimationFrame(state.frame);
+  if(state.stream) state.stream.getTracks().forEach(track => track.stop());
+  const video = document.getElementById("materialScanVideo");
+  if(video) video.srcObject = null;
+  state.frame = null;
+  state.stream = null;
+  state.detector = null;
+}
+
+function closeMaterialScanner(){
+  stopMaterialScanCamera();
+  document.getElementById("materialScanModal").style.display = "none";
+  const audioContext = materialScanState.audioContext;
+  materialScanState = {baustelleId:null, pending:[], stream:null, detector:null, frame:null, processing:false, armed:true, missingSince:0, unknownCode:"", lastScanAt:0, audioContext};
+}
+
+async function saveScannedMaterials(){
+  if(!LagerAccess.requireWrite("baustellen")) return;
+  const baustelle = getBaustelleById(materialScanState.baustelleId);
+  if(!baustelle || baustelle.status !== "aktiv" || !materialScanState.pending.length){
+    alert("Keine Materialien zum Speichern vorhanden.");
+    return;
+  }
+  const button = document.getElementById("saveScannedMaterialsButton");
+  button.disabled = true;
+  setMaterialScanStatus("Materialien werden gespeichert …");
+  try{
+    const batch = db.batch();
+    const details = [];
+    materialScanState.pending.forEach(item => {
+      if(item.existingMaterialId){
+        batch.update(materialCollection.doc(item.existingMaterialId),{anzahl:String(item.anzahl)});
+      }else{
+        const docRef = materialCollection.doc();
+        batch.set(docRef,{
+          baustelleId:baustelle.id,
+          material:item.material,
+          anzahl:String(item.anzahl),
+          spontis:item.spontis || "",
+          alteSpontis:item.alteSpontis || "",
+          createdAt:firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
+      details.push(item.material + " × " + item.anzahl);
+    });
+    await batch.commit();
+    writeLog("Baustellenmaterial","Materialien gescannt","baustelle",baustelle.id,details.join(" | "));
+    closeMaterialScanner();
+  }catch(error){
+    console.error("Fehler beim Speichern der gescannten Materialien:",error);
+    button.disabled = false;
+    setMaterialScanStatus("Speichern fehlgeschlagen. Bitte erneut versuchen.");
+    alert("Die gescannten Materialien konnten nicht gespeichert werden.");
   }
 }
 
