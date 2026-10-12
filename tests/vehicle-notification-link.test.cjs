@@ -6,7 +6,7 @@ function worker(){
   const events={},opened=[];
   const context={URL,self:{registration:{scope:'https://netzbau-tafers.github.io/lager/'},location:{origin:'https://netzbau-tafers.github.io'},addEventListener:(name,callback)=>events[name]=callback,skipWaiting(){}},clients:{openWindow:async url=>opened.push(url),claim:async()=>{}},importScripts(){},firebase:{initializeApp(){},messaging(){}}};
   vm.runInNewContext(fs.readFileSync(path.join(root,'firebase-messaging-sw.js'),'utf8'),context);
-  return {events,opened,async click(data){let stopped=false,closed=false,pending;events.notificationclick({notification:{data,close(){closed=true;}},stopImmediatePropagation(){stopped=true;},waitUntil(promise){pending=promise;}});await pending;assert.equal(stopped,true);assert.equal(closed,true);}};
+  return {events,opened,async click(data,tag=''){let stopped=false,closed=false,pending;events.notificationclick({notification:{data,tag,close(){closed=true;}},stopImmediatePropagation(){stopped=true;},waitUntil(promise){pending=promise;}});await pending;assert.equal(stopped,true);assert.equal(closed,true);}};
 }
 test('notification click opens exact request for foreground and Firebase background fields',async()=>{
   for(const data of [{url:target},{FCM_MSG:{data:{url:target}}},{FCM_MSG:{fcmOptions:{link:target}}},{FCM_MSG:{fcm_options:{link:target}}},{FCM_MSG:{webpush:{fcm_options:{link:target}}}}]){const w=worker();await w.click(data);assert.deepEqual(w.opened,[target]);}
@@ -17,6 +17,7 @@ test('already delivered vehicle links route to exact confirmation',async()=>{
 test('bobine and default links remain intact; foreign/out-of-scope links are rejected',async()=>{
   let w=worker();await w.click({url:'index.html?bobine=one'});assert.deepEqual(w.opened,['https://netzbau-tafers.github.io/lager/index.html?bobine=one']);
   w=worker();await w.click({});assert.deepEqual(w.opened,['https://netzbau-tafers.github.io/lager/index.html']);
+  w=worker();await w.click({},'bobine-bobine-123');assert.deepEqual(w.opened,['https://netzbau-tafers.github.io/lager/index.html?bobine=bobine-123']);
   for(const url of ['https://other.example/','https://netzbau-tafers.github.io/another/index.html']){w=worker();await w.click({url});assert.deepEqual(w.opened,[]);}
 });
 function confirmation({user={uid:'recipient'},allowed=true,requestStatus='pending'}={}){
