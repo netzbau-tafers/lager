@@ -1985,10 +1985,13 @@ async function printAllVorlagen(){
     const vorlagen = snapshot.docs.map(doc => {
       const data = doc.data() || {};
       return {
+        id: doc.id,
         material: sanitizeInput(data.material || "", 120),
+        suchbegriffe: sanitizeInput(data.suchbegriffe || "", 600),
         spontis: sanitizeInput(data.spontis || "", 60),
         alteSpontis: sanitizeInput(data.alteSpontis || "", 60),
         link: parseAndNormalizeUrl(data.link || "") || "",
+        imagePath: sanitizeInput(data.imagePath || "", 260),
         imageUrl: parseAndNormalizeUrl(data.imageUrl || "") || ""
       };
     }).sort((a, b) => String(a.material || "").localeCompare(String(b.material || ""), "de"));
