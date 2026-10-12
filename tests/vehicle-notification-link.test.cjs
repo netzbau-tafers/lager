@@ -14,6 +14,12 @@ test('notification click opens exact request for foreground and Firebase backgro
 test('already delivered vehicle links route to exact confirmation',async()=>{
   const w=worker();await w.click({FCM_MSG:{fcm_options:{link:target.replace('fahrzeug-bestaetigung.html','fahrzeuge.html')}}});assert.deepEqual(w.opened,[target]);
 });
+test('vehicle reminder opens its exact vehicle from new links and existing notification tags',async()=>{
+  const vehicleUrl='https://netzbau-tafers.github.io/lager/fahrzeuge.html?fahrzeug='+encodeURIComponent('truck-123');
+  let w=worker();await w.click({url:vehicleUrl},'vehicle-truck-123');assert.deepEqual(w.opened,[vehicleUrl]);
+  w=worker();await w.click({FCM_MSG:{fcm_options:{link:vehicleUrl}}},'vehicle-truck-123');assert.deepEqual(w.opened,[vehicleUrl]);
+  w=worker();await w.click({},'vehicle-truck-123');assert.deepEqual(w.opened,[vehicleUrl]);
+});
 test('bobine and default links remain intact; foreign/out-of-scope links are rejected',async()=>{
   let w=worker();await w.click({url:'index.html?bobine=one'});assert.deepEqual(w.opened,['https://netzbau-tafers.github.io/lager/index.html?bobine=one']);
   w=worker();await w.click({});assert.deepEqual(w.opened,['https://netzbau-tafers.github.io/lager/index.html']);
