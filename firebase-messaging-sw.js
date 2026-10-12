@@ -5,7 +5,9 @@ self.addEventListener('notificationclick',event=>{
   event.stopImmediatePropagation();
   event.notification.close();
   const data=event.notification.data||{},message=data.FCM_MSG||{};
-  const raw=data.url||message.data?.url||message.fcmOptions?.link||message.fcm_options?.link||message.webpush?.fcm_options?.link||'index.html';
+  const bobineTag=String(event.notification.tag||'').match(/^bobine-(.+)$/);
+  const bobineFallback=bobineTag?'index.html?bobine='+encodeURIComponent(bobineTag[1]):'';
+  const raw=data.url||message.data?.url||message.fcmOptions?.link||message.fcm_options?.link||message.webpush?.fcm_options?.link||bobineFallback||'index.html';
   const url=new URL(raw,self.registration.scope);
   if(url.origin!==self.location.origin||!url.pathname.startsWith(new URL(self.registration.scope).pathname))return;
   // Also route already delivered backfill notifications to their exact confirmation.

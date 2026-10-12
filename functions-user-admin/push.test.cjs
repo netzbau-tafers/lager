@@ -44,6 +44,7 @@ test('send only to responsible user; no duplicate next run; direct bobine link',
   await f.service.remind();await f.service.remind();
   assert.equal(f.messages.length,1);assert.equal(f.messages[0].token,'a'.repeat(40));
   assert.match(f.messages[0].webpush.fcmOptions.link,/index.html\?bobine=bobine-123$/);
+  assert.equal(f.messages[0].data.url,f.messages[0].webpush.fcmOptions.link);
 });
 test('deleted, disabled and read-only accounts receive no reminders',async()=>{
   for(const mode of ['deleted','disabled','view']){
