@@ -7,7 +7,9 @@ self.addEventListener('notificationclick',event=>{
   const data=event.notification.data||{},message=data.FCM_MSG||{};
   const bobineTag=String(event.notification.tag||'').match(/^bobine-(.+)$/);
   const bobineFallback=bobineTag?'index.html?bobine='+encodeURIComponent(bobineTag[1]):'';
-  const raw=data.url||message.data?.url||message.fcmOptions?.link||message.fcm_options?.link||message.webpush?.fcm_options?.link||bobineFallback||'index.html';
+  const vehicleTag=String(event.notification.tag||'').match(/^vehicle-(.+)$/);
+  const vehicleFallback=vehicleTag?'fahrzeuge.html?fahrzeug='+encodeURIComponent(vehicleTag[1]):'';
+  const raw=data.url||message.data?.url||message.fcmOptions?.link||message.fcm_options?.link||message.webpush?.fcm_options?.link||bobineFallback||vehicleFallback||'index.html';
   const url=new URL(raw,self.registration.scope);
   if(url.origin!==self.location.origin||!url.pathname.startsWith(new URL(self.registration.scope).pathname))return;
   // Also route already delivered backfill notifications to their exact confirmation.
