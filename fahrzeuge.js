@@ -12,6 +12,7 @@
   let ownScrollId=null,ownScrollFrame=null;
   let scanHandled=false,selectedScrollFrame=null,selectedSearch=!overview&&Boolean(selected);
   const busy=new Set(),messages=new Map(),histories=new Map(),openHistory=new Set();
+  if(selected&&new URLSearchParams(location.search).get('verlauf')==='1')openHistory.add(selected);
   let unsubBackfills=null,backfills=[],recipientCache=null;
   const inbox=!overview?document.createElement('section'):null;
   if(inbox){inbox.className='vehicle-confirmations';inbox.hidden=true;inbox.setAttribute('aria-label','Fahrzeugnutzung bestätigen');list.before(inbox);}
@@ -75,7 +76,7 @@
       else if(entry.type==='fuel'){row.append(node('strong','Tanken · '+km(entry.km)),node('p',name+' · '+date(entry.start)));}
       else if(entry.type==='takeover'){row.append(node('strong','Fahrzeug übernommen'),node('p',(entry.from?.name||'Andere Person')+' → '+name),node('p',date(entry.start)));}
       else{row.append(node('strong',name+' · '+(entry.type==='day'?'Nutzung nachgetragen':'In Gebrauch')),node('p',date(entry.start)+' → '+(entry.end?date(entry.end):'Noch in Gebrauch')));if(entry.takenOverBy)row.append(node('p','Durch '+entry.takenOverBy.name+' übernommen.'));}
-      if(entry.actor?.uid===user?.uid&&['use','day','backfill'].includes(entry.type)&&entry.end&&entry.status!=='pending'&&entry.status!=='rejected'&&!entry.takenOverBy&&LagerAccess.read('fahrzeuge')){
+      if(entry.actor?.uid===user?.uid&&['use','day','backfill'].includes(entry.type)&&entry.end&&entry.status!=='pending'&&entry.status!=='rejected'&&LagerAccess.read('fahrzeuge')){
         const edit=button('Nutzungszeit anpassen','editUsage',id,'secondary');edit.dataset.eventId=entry.id;row.append(edit);
       }
       ordered.append(row);
@@ -342,7 +343,7 @@
     if(action==='more'){void loadHistory(v.id);return;}
     if(action==='editUsage'){
       const entry=histories.get(v.id)?.entries.find(item=>item.id===control.dataset.eventId);
-      if(entry&&entry.actor?.uid===user?.uid&&entry.end&&['use','day','backfill'].includes(entry.type)&&entry.status!=='pending'&&entry.status!=='rejected'&&!entry.takenOverBy&&LagerAccess.read('fahrzeuge'))openDialog('editUsage',v,entry);
+      if(entry&&entry.actor?.uid===user?.uid&&entry.end&&['use','day','backfill'].includes(entry.type)&&entry.status!=='pending'&&entry.status!=='rejected'&&LagerAccess.read('fahrzeuge'))openDialog('editUsage',v,entry);
       return;
     }
     if(!LagerAccess.write('fahrzeuge'))return;
@@ -390,7 +391,7 @@
     ownScrollId=null;if(ownScrollFrame!==null){cancelAnimationFrame(ownScrollFrame);ownScrollFrame=null;}
     vehiclesLoading=true;favoritesLoading=true;loading(status,true);status.classList.remove('vehicle-error');
     user=current;unsubVehicles?.();unsubFavorites?.();unsubBackfills?.();backfills=[];recipientCache=null;renderInbox();histories.clear();openHistory.clear();favorites.clear();vehicles=[];
-    if(!user){const backfillId=new URLSearchParams(location.search).get('nachtrag');location.replace('home.html'+(scanRequested?'?vehicleScan='+encodeURIComponent(selected||''):backfillId?'?vehicleBackfill='+encodeURIComponent(backfillId):''));return;}
+    if(!user){const backfillId=new URLSearchParams(location.search).get('nachtrag');location.replace('home.html'+(selected&&new URLSearchParams(location.search).get('verlauf')==='1'?'?vehicleHistory='+encodeURIComponent(selected):scanRequested?'?vehicleScan='+encodeURIComponent(selected||''):backfillId?'?vehicleBackfill='+encodeURIComponent(backfillId):''));return;}
     if(overview){const hidden=!LagerAccess.read('fahrzeuge');document.getElementById('myVehiclesSection').hidden=hidden;document.getElementById('vehicleStat').hidden=hidden;if(hidden)return;}
     document.getElementById('appContent').style.display='block';const add=document.getElementById('addVehicle');if(add)add.hidden=!LagerAccess.write('fahrzeugeErstellen');
     if(inbox)unsubBackfills=db.collection('fahrzeug_nachtraege').where('targetUid','==',user.uid).where('status','==','pending').onSnapshot(snapshot=>{

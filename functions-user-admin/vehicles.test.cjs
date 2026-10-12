@@ -9,7 +9,7 @@ function fixture(){
   const data=new Map(),audit=[],users=new Map(),versions=new Map();let serial=0,queue=Promise.resolve(),clock=Date.parse('2026-10-09T08:00:00Z');
   const snapshot=path=>({exists:data.has(path),data:()=>data.get(path)});
   const doc=path=>({path,id:path.split('/').at(-1),get:async()=>snapshot(path),collection:name=>collection(path+'/'+name)});
-  const collection=path=>({doc:id=>doc(path+'/'+(id||'auto'+(++serial))),where(field,op,value){return {get:async()=>({docs:[...data].filter(([key,row])=>key.startsWith(path+'/')&&key.split('/').length===path.split('/').length+1&&row[field]?.toMillis?.()>value.getTime()).map(([,row])=>({data:()=>row}))})};}});
+  const collection=path=>({doc:id=>doc(path+'/'+(id||'auto'+(++serial))),where(field,op,value){return {get:async()=>({docs:[...data].filter(([key,row])=>key.startsWith(path+'/')&&key.split('/').length===path.split('/').length+1&&row[field]?.toMillis?.()>(value.toMillis?.()??value.getTime?.())).map(([key,row])=>({id:key.split('/').at(-1),data:()=>row}))})};}});
   const db={collection,recursiveDelete:async ref=>{for(const path of data.keys())if(path===ref.path||path.startsWith(ref.path+'/'))data.delete(path);},runTransaction(callback){
     const result=queue.then(async()=>{
       const writes=[];let writing=false;
@@ -26,7 +26,7 @@ function fixture(){
   async function create(uid='alice'){const result=await service.create(request(uid,{name:'Bus',plate:'FR 123',km:100}));return result.id;}
   const vehicle=id=>data.get('fahrzeuge/'+id);
   const events=id=>[...data.entries()].filter(([path])=>path.startsWith('fahrzeuge/'+id+'/verlauf/')).map(([,value])=>value);
-  async function action(id,kind,uid='alice',extra={}){return service.action(request(uid,{id,revision:vehicle(id).revision,action:kind,requestId:'request_'+(++serial)+'_abcdefghijk',...extra}));}
+  async function action(id,kind,uid='alice',extra={}){return service.action(request(uid,{id,revision:vehicle(id).revision,action:kind,...(kind==='free'?{endTime:new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Zurich',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(clock)}:{}),requestId:'request_'+(++serial)+'_abcdefghijk',...extra}));}
   return {service,request,data,users,create,vehicle,events,action,user,setClock:ms=>clock=typeof ms==='string'?Date.parse(ms):ms};
 }
 const rejects=(promise,code)=>assert.rejects(promise,error=>error.code===code);
@@ -141,4 +141,14 @@ test('service dates allow vehicle access, enforce valid dates and revision',asyn
   await save('alice',{vehicle:null,crane:'2027-01-01'});
   assert.equal(f.vehicle(id).serviceDates.vehicle,null);
   assert.equal(f.vehicle(id).serviceDates.crane,'2027-01-01');
+});
+
+test('previous driver can shorten taken-over usage, cannot extend into new usage or edit another driver',async()=>{
+  const f=fixture(),id=await f.create();await f.action(id,'start');f.setClock('2026-10-09T08:30Z');await f.action(id,'takeover','bob');
+  const [path]=[...f.data].find(([key,row])=>key.startsWith('fahrzeuge/'+id+'/verlauf/')&&row.type==='use'&&row.actor.uid==='alice');
+  const values={vehicleId:id,eventId:path.split('/').at(-1),startTime:'10:00',endTime:'10:20'};
+  await f.service.editOwnUsage(f.request('alice',values));assert.equal(f.data.get(path).end.toMillis(),Date.parse('2026-10-09T08:20Z'));
+  await rejects(f.service.editOwnUsage(f.request('alice',{...values,endTime:'10:31'})),'invalid-argument');
+  f.setClock('2026-10-09T09:00Z');await rejects(f.service.editOwnUsage(f.request('alice',{...values,endTime:'10:31'})),'failed-precondition');
+  await rejects(f.service.editOwnUsage(f.request('bob',values)),'permission-denied');
 });
