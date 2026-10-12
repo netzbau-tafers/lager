@@ -2,7 +2,7 @@
   'use strict';
   const db=firebase.firestore(),functions=firebase.app().functions('europe-west1');
   const actionCall=functions.httpsCallable('lagerVehicleAction'),createCall=functions.httpsCallable('lagerCreateVehicle'),deleteCall=functions.httpsCallable('lagerDeleteVehicle'),editCall=functions.httpsCallable('lagerEditVehicle');
-  const serviceCall=functions.httpsCallable('lagerVehicleService');
+  const serviceCall=functions.httpsCallable('lagerVehicleService'),editUsageCall=functions.httpsCallable('lagerVehicleEditOwnUsage');
   const backfillUsersCall=functions.httpsCallable('lagerVehicleBackfillUsers'),backfillCall=functions.httpsCallable('lagerVehicleBackfill'),reviewCall=functions.httpsCallable('lagerVehicleBackfillReview');
   const list=document.getElementById('vehicleList'),status=document.getElementById('vehicleStatus'),search=document.getElementById('vehicleSearch'),onlyFavorites=document.getElementById('onlyFavorites');
   const dialog=document.getElementById('vehicleDialog'),form=document.getElementById('vehicleForm'),fields=document.getElementById('dialogFields'),save=document.getElementById('dialogSave'),cancel=document.getElementById('dialogCancel');
@@ -75,6 +75,9 @@
       else if(entry.type==='fuel'){row.append(node('strong','Tanken · '+km(entry.km)),node('p',name+' · '+date(entry.start)));}
       else if(entry.type==='takeover'){row.append(node('strong','Fahrzeug übernommen'),node('p',(entry.from?.name||'Andere Person')+' → '+name),node('p',date(entry.start)));}
       else{row.append(node('strong',name+' · '+(entry.type==='day'?'Nutzung nachgetragen':'In Gebrauch')),node('p',date(entry.start)+' → '+(entry.end?date(entry.end):'Noch in Gebrauch')));if(entry.takenOverBy)row.append(node('p','Durch '+entry.takenOverBy.name+' übernommen.'));}
+      if(entry.actor?.uid===user?.uid&&['use','day','backfill'].includes(entry.type)&&entry.end&&entry.status!=='pending'&&entry.status!=='rejected'&&!entry.takenOverBy&&LagerAccess.read('fahrzeuge')){
+        const edit=button('Nutzungszeit anpassen','editUsage',id,'secondary');edit.dataset.eventId=entry.id;row.append(edit);
+      }
       ordered.append(row);
     }
     target.append(ordered);
@@ -91,7 +94,7 @@
       if(state.cursor)query=query.startAfter(state.cursor);
       const snapshot=await query.limit(historyPageSize).get();
       if(histories.get(key)!==state)return;
-      state.entries.push(...snapshot.docs.map(doc=>doc.data()));
+      state.entries.push(...snapshot.docs.map(doc=>({...doc.data(),id:doc.id})));
       state.cursor=snapshot.docs[snapshot.docs.length-1]||state.cursor;
       state.hasMore=snapshot.docs.length===historyPageSize;
     }catch(error){if(histories.get(key)===state)state.error=true;}
@@ -261,11 +264,19 @@
   }
   function openDialog(action,vehicle,previousVehicle){
     loading(document.getElementById('dialogStatus'),false);
-    pending={action,vehicle,requestId:requestId()};
+    pending={action,vehicle,entry:action==='editUsage'?previousVehicle:null,requestId:requestId()};
     if(action==='switch')Object.assign(pending,{previousVehicle,releaseRequestId:requestId(),released:false,targetAction:vehicle.active?'takeover':'start'});fields.replaceChildren();save.hidden=false;cancel.textContent='Abbrechen';document.getElementById('dialogStatus').textContent='';save.disabled=false;cancel.disabled=false;
-    const titles={service:'Service erfassen',info:'Fahrzeuginformationen',edit:'Fahrzeug bearbeiten',create:'Fahrzeug hinzufügen',fuel:'Tanken',takeover:'Fahrzeug für mich übernehmen',day:'Nutzung für heute nachtragen',free:'Fahrzeug zurückgeben',switch:'Fahrzeug wechseln',backfill:'Nutzung für eine Person nachtragen'};
+    const titles={editUsage:'Eigene Nutzungszeit anpassen',service:'Service erfassen',info:'Fahrzeuginformationen',edit:'Fahrzeug bearbeiten',create:'Fahrzeug hinzufügen',fuel:'Tanken',takeover:'Fahrzeug für mich übernehmen',day:'Nutzung für heute nachtragen',free:'Fahrzeug zurückgeben',switch:'Fahrzeug wechseln',backfill:'Nutzung für eine Person nachtragen'};
     document.getElementById('dialogTitle').textContent=titles[action]+(vehicle?' · '+vehicle.name:'');
     const note=document.getElementById('dialogNote');note.textContent='';save.textContent='Speichern';
+    if(action==='editUsage'){
+      const entry=pending.entry;
+      const time=value=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Zurich',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(value.toDate());
+      note.textContent='Das Datum ist fest vorgegeben. Du kannst nur die Uhrzeiten deiner eigenen Nutzung ändern.';
+      fields.append(node('p','Datum: '+new Intl.DateTimeFormat('de-CH',{timeZone:'Europe/Zurich',dateStyle:'long'}).format(entry.start.toDate())));
+      input('startTime','Von (Schweizer Zeit)','time',time(entry.start));
+      input('endTime','Bis (Schweizer Zeit)','time',time(entry.end));
+    }
     if(action==='create'||action==='edit'){
       input('name','Fahrzeugname','text',vehicle?.name||'',100);input('plate','Kennzeichen','text',vehicle?.plate||'',30);
       if(action==='create')input('km','Aktueller Kilometerstand','number','');
@@ -286,7 +297,13 @@
       note.textContent='Du hast '+previousVehicle.name+' ('+previousVehicle.plate+') in Gebrauch. Möchtest du dieses Fahrzeug freigeben und '+vehicle.name+' ('+vehicle.plate+') '+(vehicle.active?'von '+vehicle.active.name+' übernehmen?':'in Gebrauch nehmen?');
       save.textContent='Fahrzeug wechseln';
     }
-    if(action==='free'){note.textContent='Möchtest du das Fahrzeug wieder freigeben?';save.textContent='Fahrzeug zurückgeben';}
+    if(action==='free'){
+      note.textContent='Rückgabezeit prüfen und bei Bedarf korrigieren. Das Datum bleibt unveränderbar. Eine Rückgabe in der Zukunft ist nicht möglich.';
+      const now=new Date(),time=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Zurich',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(now);
+      fields.append(node('p','Datum: '+new Intl.DateTimeFormat('de-CH',{timeZone:'Europe/Zurich',dateStyle:'long'}).format(now)));
+      const end=input('endTime','Rückgabezeit (Schweizer Zeit)','time',time);end.max=time;
+      save.textContent='Fahrzeug zurückgeben';
+    }
     if(action==='fuel'){note.textContent='Lies den aktuellen Kilometerstand am Fahrzeug ab. Nach dem Speichern steht er gross auf der Karte für das Bezahlen am Tankterminal.';const field=input('km','Aktueller Kilometerstand','number','');field.min=String(vehicle.km||0);}
     if(action==='takeover'){note.textContent='Die Nutzung von '+vehicle.active.name+' wird jetzt beendet und im Verlauf als Übernahme dokumentiert. Danach ist das Fahrzeug auf dich eingetragen.';save.textContent='Für mich übernehmen';}
     if(action==='day'){note.textContent='Deine Nutzung wird für heute von frühestens 07:00 oder vom Ende der letzten protokollierten Nutzung bis zum Speichern nachgetragen. Das Fahrzeug bleibt frei.';save.textContent='Nutzung nachtragen';}
@@ -323,6 +340,11 @@
       catch(error){messages.set(v.id,errorText(error));}finally{busy.delete(v.id);render();}return;
     }
     if(action==='more'){void loadHistory(v.id);return;}
+    if(action==='editUsage'){
+      const entry=histories.get(v.id)?.entries.find(item=>item.id===control.dataset.eventId);
+      if(entry&&entry.actor?.uid===user?.uid&&entry.end&&['use','day','backfill'].includes(entry.type)&&entry.status!=='pending'&&entry.status!=='rejected'&&!entry.takenOverBy&&LagerAccess.read('fahrzeuge'))openDialog('editUsage',v,entry);
+      return;
+    }
     if(!LagerAccess.write('fahrzeuge'))return;
     if(action==='start'){await act(v,action);return;}
     openDialog(action,v);
@@ -335,7 +357,11 @@
     event.preventDefault();if(saving||!pending||pending.action==='info'||!form.reportValidity())return;
     const operation=pending,values=new FormData(form);saving=true;save.disabled=true;cancel.disabled=true;loading(save,true);loading(document.getElementById('dialogStatus'),true);document.getElementById('dialogStatus').textContent='Wird gespeichert …';
     try{
-      if(operation.action==='service')await serviceCall({id:operation.vehicle.id,revision:operation.vehicle.revision,vehicle:values.get('vehicle')||null,crane:values.get('crane')||null});
+      if(operation.action==='editUsage'){
+        await editUsageCall({vehicleId:operation.vehicle.id,eventId:operation.entry.id,startTime:values.get('startTime'),endTime:values.get('endTime')});
+        invalidateHistory(operation.vehicle.id);messages.set(operation.vehicle.id,'Eigene Nutzungszeit angepasst.');
+      }
+      else if(operation.action==='service')await serviceCall({id:operation.vehicle.id,revision:operation.vehicle.revision,vehicle:values.get('vehicle')||null,crane:values.get('crane')||null});
       else if(operation.action==='create')await createCall({name:values.get('name').trim(),plate:values.get('plate').trim(),km:Number(values.get('km')),responsible:values.get('responsible').trim(),details:values.get('details').trim()});
       else if(operation.action==='edit')await editCall({id:operation.vehicle.id,revision:operation.vehicle.revision,name:values.get('name').trim(),plate:values.get('plate').trim(),responsible:values.get('responsible').trim(),details:values.get('details').trim()});
       else if(operation.action==='backfill'){
@@ -353,7 +379,7 @@
         await actionCall({id:v.id,revision:v.revision,action:operation.targetAction,requestId:operation.requestId});
         messages.set(v.id,'Auf dich eingetragen.');
       }
-      else{const v=operation.vehicle;const data={id:v.id,revision:v.revision,action:operation.action,requestId:operation.requestId};if(operation.action==='fuel')data.km=Number(values.get('km'));await actionCall(data);messages.set(v.id,'Gespeichert.');}
+      else{const v=operation.vehicle;const data={id:v.id,revision:v.revision,action:operation.action,requestId:operation.requestId};if(operation.action==='fuel')data.km=Number(values.get('km'));if(operation.action==='free')data.endTime=values.get('endTime');await actionCall(data);messages.set(v.id,'Gespeichert.');}
       if(!overview&&['start','takeover','switch'].includes(operation.action))ownScrollId=operation.vehicle.id;
       dialog.close();pending=null;render();status.textContent=operation.action==='create'?'Fahrzeug hinzugefügt.':operation.action==='backfill'?(operation.backfillStatus==='confirmed'?'Eigene Nutzung gespeichert. Keine Bestätigung und keine Benachrichtigung nötig.':'Nachtrag gesendet. Die Person kann ihn im Bereich Fahrzeuge bestätigen; eine Smartphone-Benachrichtigung wird an ihre aktivierten Geräte gesendet.'):'Änderung gespeichert.';
     }catch(error){document.getElementById('dialogStatus').textContent=(operation.action==='switch'&&operation.released?operation.previousVehicle.name+' wurde freigegeben. Das gescannte Fahrzeug konnte noch nicht auf dich eingetragen werden. ':'')+errorText(error);if(error.code==='functions/failed-precondition'){save.disabled=true;document.getElementById('dialogStatus').textContent+=' Schliesse dieses Fenster und öffne die Aktion nochmals.';}}

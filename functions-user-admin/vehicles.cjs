@@ -1,6 +1,6 @@
 'use strict';
 const {MASTER}=require('./service.cjs');
-const {assertNoUsageOverlap}=require('./vehicle-backfill.cjs');
+const {assertNoUsageOverlap,zurichMillis}=require('./vehicle-backfill.cjs');
 
 // Zurich's current civil day at 07:00, including DST. No client clock is trusted.
 function dayStart(ms){
@@ -35,7 +35,56 @@ function createVehicles({db,auth,Timestamp,ErrorType,FieldValue,now=Date.now}){
     if(typeof details!=='string'||details.trim().length>5000||/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(details))fail('invalid-argument','Details: höchstens 5000 Zeichen.');
     return {responsible:responsible.trim(),details:details.trim()};
   }
+  function civilDay(ms){
+    return new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Zurich',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(ms));
+  }
+  const validTime=value=>typeof value==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+  async function checkOverlap(tx,ref,vehicle,start,end,excludeId){
+    if(vehicle.active&&vehicle.active.sessionId!==excludeId&&vehicle.active.start?.toMillis?.()<end)
+      fail('failed-precondition','Das Fahrzeug wird in diesem Zeitraum bereits benutzt.');
+    const query=await tx.get(ref.collection('verlauf').where('end','>',Timestamp.fromMillis(start)));
+    for(const doc of query.docs){
+      if(doc.id===excludeId)continue;
+      const entry=doc.data(),begin=entry.start?.toMillis?.(),finish=entry.end?.toMillis?.();
+      if(['use','day','backfill'].includes(entry.type)&&entry.status!=='rejected'&&Number.isFinite(begin)&&Number.isFinite(finish)&&begin<end&&finish>start)
+        fail('failed-precondition','Die Nutzungszeit überschneidet sich mit einer anderen Nutzung.');
+    }
+  }
   return {
+    async editOwnUsage(request){
+      const who=await actor(request),data=request.data||{};
+      if(!string(data.vehicleId,128)||!/^[a-zA-Z0-9_-]+$/.test(data.vehicleId)||
+         !string(data.eventId,128)||!/^[a-zA-Z0-9_-]+$/.test(data.eventId)||
+         !validTime(data.startTime)||!validTime(data.endTime))
+        fail('invalid-argument','Ungültige Nutzungszeit.');
+      const ref=db.collection('fahrzeuge').doc(data.vehicleId),eventRef=ref.collection('verlauf').doc(data.eventId);
+      await db.runTransaction(async tx=>{
+        await permitted(tx,who.uid,false,false,true);
+        const [vehicleSnap,eventSnap]=await Promise.all([tx.get(ref),tx.get(eventRef)]);
+        if(!vehicleSnap.exists||!eventSnap.exists)fail('not-found','Nutzung nicht gefunden.');
+        const vehicle=vehicleSnap.data(),entry=eventSnap.data();
+        if(entry.actor?.uid!==who.uid)fail('permission-denied','Du darfst nur deine eigene Nutzungszeit anpassen.');
+        if(!['use','day','backfill'].includes(entry.type)||!entry.end||['pending','rejected'].includes(entry.status)||entry.takenOverBy)
+          fail('failed-precondition','Dieser Verlaufseintrag kann nicht geändert werden.');
+        if(vehicle.active?.sessionId===data.eventId)fail('failed-precondition','Eine laufende Nutzung kann nicht geändert werden.');
+        const previousStart=entry.start?.toMillis?.(),previousEnd=entry.end?.toMillis?.();
+        if(!Number.isFinite(previousStart)||!Number.isFinite(previousEnd))fail('failed-precondition','Zeitstempel fehlen.');
+        const day=civilDay(previousStart),start=zurichMillis(day+'T'+data.startTime),end=zurichMillis(day+'T'+data.endTime);
+        if(!Number.isFinite(start)||!Number.isFinite(end)||start>=end||end>now()||civilDay(end)!==day)
+          fail('invalid-argument','Beginn und Ende müssen am unveränderbaren Datum liegen und dürfen nicht in der Zukunft sein.');
+        await checkOverlap(tx,ref,vehicle,start,end,data.eventId);
+        const time=Timestamp.fromMillis(now()),historyTime=FieldValue?.serverTimestamp?.()||time;
+        let proposalRef=null,proposal=null;
+        if(entry.type==='backfill'&&entry.requestId){
+          proposalRef=db.collection('fahrzeug_nachtraege').doc(entry.requestId);
+          proposal=await tx.get(proposalRef);
+        }
+        tx.update(eventRef,{start:Timestamp.fromMillis(start),end:Timestamp.fromMillis(end),updatedAt:historyTime,editedAt:time,editedBy:who});
+        if(proposal?.exists)tx.update(proposalRef,{start:Timestamp.fromMillis(start),end:Timestamp.fromMillis(end)});
+        tx.update(ref,{revision:vehicle.revision+1,updatedAt:time});
+      });
+      return {saved:true};
+    },
     async service(request){
       const who=await actor(request),data=request.data||{};
       if(!string(data.id,128)||data.id.includes('/')||!Number.isSafeInteger(data.revision)||data.revision<0)fail('invalid-argument','Ungültiges Fahrzeug.');
@@ -97,13 +146,14 @@ function createVehicles({db,auth,Timestamp,ErrorType,FieldValue,now=Date.now}){
     async action(request){
       const who=await actor(request),data=request.data||{};
       if(!string(data.id,128)||data.id.includes('/')||!Number.isSafeInteger(data.revision)||data.revision<0||!['start','free','takeover','day','fuel'].includes(data.action)||typeof data.requestId!=='string'||!/^[a-zA-Z0-9_-]{16,80}$/.test(data.requestId))fail('invalid-argument','Ungültige Fahrzeugaktion.');
+      if(data.action==='free'&&!validTime(data.endTime))fail('invalid-argument','Gültige Rückgabezeit angeben.');
       if(data.action==='fuel'&&!validKm(data.km))fail('invalid-argument','Gültigen aktuellen Kilometerstand angeben.');
       const ref=db.collection('fahrzeuge').doc(data.id),event=ref.collection('verlauf').doc(),operation=ref.collection('aktionen').doc(who.uid+'_'+data.requestId);
       await db.runTransaction(async tx=>{
         await permitted(tx,who.uid,false,data.action==='takeover');
         const lockRef=db.collection('fahrzeug_nutzung').doc(who.uid);
         const [snapshot,previous,lock]=await Promise.all([tx.get(ref),tx.get(operation),tx.get(lockRef)]);
-        if(previous.exists){if(previous.data().action!==data.action||previous.data().km!==(data.km??null))fail('invalid-argument','Diese Anfrage wurde bereits anders verwendet.');return;}
+        if(previous.exists){if(previous.data().action!==data.action||previous.data().km!==(data.km??null)||previous.data().endTime!==(data.endTime??null))fail('invalid-argument','Diese Anfrage wurde bereits anders verwendet.');return;}
         if(!snapshot.exists)fail('not-found','Fahrzeug nicht gefunden.');
         const v=snapshot.data();
         if(v.revision!==data.revision)fail('failed-precondition','Das Fahrzeug wurde gerade geändert. Bitte den aktuellen Stand prüfen und erneut klicken.');
@@ -129,8 +179,12 @@ function createVehicles({db,auth,Timestamp,ErrorType,FieldValue,now=Date.now}){
           tx.create(event,{...metadata,type:'use',actor:who,start:time,end:null,createdAt:time,reason:'normal'});
         }else if(data.action==='free'){
           if(!active||active.uid!==who.uid)fail('permission-denied','Nur die eingetragene Person darf das Fahrzeug freigeben. Verwende sonst die Übernahme.');
-          tx.update(ref.collection('verlauf').doc(active.sessionId),{...metadata,end:time,closedBy:who});
-          change.status='frei';change.active=null;change.lastUseEnd=time;
+          const endMs=zurichMillis(civilDay(ms)+'T'+data.endTime);
+          if(!Number.isFinite(endMs)||endMs>ms||endMs<active.start?.toMillis?.())fail('invalid-argument','Rückgabezeit muss nach dem Nutzungsbeginn liegen und darf nicht in der Zukunft sein.');
+          await checkOverlap(tx,ref,v,active.start.toMillis(),endMs,active.sessionId);
+          const end=Timestamp.fromMillis(endMs);
+          tx.update(ref.collection('verlauf').doc(active.sessionId),{...metadata,end,closedBy:who});
+          change.status='frei';change.active=null;change.lastUseEnd=end;
           if(lock.data()?.vehicleId===data.id)tx.set(lockRef,{vehicleId:null,updatedAt:time});
         }else if(data.action==='day'){
           if(active)fail('failed-precondition','Das Fahrzeug ist noch in Gebrauch. Zuerst freigeben oder übernehmen.');
@@ -145,7 +199,7 @@ function createVehicles({db,auth,Timestamp,ErrorType,FieldValue,now=Date.now}){
           change.km=data.km;change.kmAt=time;change.kmBy=who;
         }
         tx.update(ref,change);
-        tx.create(operation,{action:data.action,km:data.km??null,createdAt:time});
+        tx.create(operation,{action:data.action,km:data.km??null,endTime:data.endTime??null,createdAt:time});
       });
       return {saved:true};
     }
