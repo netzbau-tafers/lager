@@ -26,7 +26,7 @@
       const tr=node('tr','','logbook-row '+kind);
       const vehicleName=e.vehicleName||selectedVehicle?.name||'Fahrzeug';
       const plate=e.plate||selectedVehicle?.plate||'';
-      const period=isFuel?pretty(e.start):pretty(e.start)+' → '+(e.end==null?'Rückgabe nicht erfasst':pretty(e.end));
+      const period=isFuel?pretty(e.start):pretty(e.start)+' → '+(e.end==null?'Offen':pretty(e.end));
       const type=node('span',kindLabel,'logbook-type '+kind);
       const vehicleCell=node('span',vehicleName,'logbook-vehicle-name');
       if(plate)vehicleCell.append(node('small',plate,'logbook-plate'));
