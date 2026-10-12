@@ -80,3 +80,6 @@ exports.lagerVehicleService=vehicleCall(vehicles.service);
 exports.lagerVehicleServiceReminder=onSchedule({...vehicleSchedule,schedule:'0 7 * * *',secrets:[serviceBrevoKey,serviceMailSender,serviceMailRecipient]},async()=>{
   await createServiceReminder({db:getFirestore(),FieldValue,logger,apiKey:serviceBrevoKey.value(),sender:serviceMailSender.value(),recipient:serviceMailRecipient.value()})();
 });
+
+const {createTakeoverNotifier}=require('./vehicle-takeover.cjs');
+exports.lagerVehicleTakeoverNotify=onDocumentCreated({document:'fahrzeuge/{vehicleId}/verlauf/{eventId}',region:'europe-west1',maxInstances:2,retry:false},createTakeoverNotifier({db:getFirestore(),auth:getAuth(),messaging:getMessaging(),logger}));

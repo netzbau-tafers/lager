@@ -64,7 +64,7 @@ function createVehicles({db,auth,Timestamp,ErrorType,FieldValue,now=Date.now}){
         if(!vehicleSnap.exists||!eventSnap.exists)fail('not-found','Nutzung nicht gefunden.');
         const vehicle=vehicleSnap.data(),entry=eventSnap.data();
         if(entry.actor?.uid!==who.uid)fail('permission-denied','Du darfst nur deine eigene Nutzungszeit anpassen.');
-        if(!['use','day','backfill'].includes(entry.type)||!entry.end||['pending','rejected'].includes(entry.status)||entry.takenOverBy)
+        if(!['use','day','backfill'].includes(entry.type)||!entry.end||['pending','rejected'].includes(entry.status))
           fail('failed-precondition','Dieser Verlaufseintrag kann nicht geändert werden.');
         if(vehicle.active?.sessionId===data.eventId)fail('failed-precondition','Eine laufende Nutzung kann nicht geändert werden.');
         const previousStart=entry.start?.toMillis?.(),previousEnd=entry.end?.toMillis?.();
@@ -172,7 +172,7 @@ function createVehicles({db,auth,Timestamp,ErrorType,FieldValue,now=Date.now}){
             if(previousLockSnapshot?.data()?.vehicleId===data.id)tx.set(previousLock,{vehicleId:null,updatedAt:time});
             change.lastUseEnd=time;
             tx.update(ref.collection('verlauf').doc(active.sessionId),{...metadata,end:time,closedBy:who,reason:'übernommen',takenOverBy:who});
-            tx.create(ref.collection('verlauf').doc(),{...metadata,type:'takeover',createdAt:time,actor:who,from:{uid:active.uid,name:active.name},start:time,end:time});
+            tx.create(ref.collection('verlauf').doc(),{...metadata,type:'takeover',createdAt:time,actor:who,from:{uid:active.uid,name:active.name},usageId:active.sessionId,start:time,end:time});
           }
           change.status='inGebrauch';change.active={...who,start:time,sessionId:event.id};
           tx.set(lockRef,{vehicleId:data.id,updatedAt:time});

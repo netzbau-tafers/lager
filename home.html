@@ -687,6 +687,8 @@ document.addEventListener("DOMContentLoaded", loadHomeInfos);
 
 LagerAccess.onAuthStateChanged((user) => {
   if(user){
+    const historyId=new URLSearchParams(location.search).get('vehicleHistory');
+    if(historyId&&/^[a-zA-Z0-9_-]{1,128}$/.test(historyId)){location.replace('fahrzeuge.html?fahrzeug='+encodeURIComponent(historyId)+'&verlauf=1');return;}
     const scanId=new URLSearchParams(location.search).get('vehicleScan');
     if(scanId&&scanId.length<=128&&!scanId.includes('/')){location.replace('fahrzeuge.html?fahrzeug='+encodeURIComponent(scanId)+'&scan=1');return;}
     const backfillId=new URLSearchParams(location.search).get('vehicleBackfill');
