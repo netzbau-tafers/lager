@@ -2884,9 +2884,12 @@ function setMaterialScanStatus(message){
 }
 
 function playMaterialScanBeep(){
+  if(typeof navigator.vibrate === "function"){
+    try{ navigator.vibrate(45); }catch(error){ console.info("Vibration wird von diesem Gerät nicht unterstützt:",error); }
+  }
+
   const context = materialScanState.audioContext;
   if(!context || context.state === "closed"){
-    if(navigator.vibrate) navigator.vibrate(45);
     return;
   }
 
@@ -2918,10 +2921,9 @@ function playMaterialScanBeep(){
   }else{
     context.resume().then(() => {
       if(context.state === "running") play();
-      else if(navigator.vibrate) navigator.vibrate(45);
+      
     }).catch(error => {
       console.warn("Scan-Ton konnte nicht freigeschaltet werden:",error);
-      if(navigator.vibrate) navigator.vibrate(45);
     });
   }
 }
