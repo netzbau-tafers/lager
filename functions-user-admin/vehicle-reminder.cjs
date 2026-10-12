@@ -42,12 +42,13 @@ function createVehicleReminder({db,auth,messaging,FieldValue,logger,clock=Date.n
             const data=live.data();
             if(!latest.exists||latest.data().uid!==uid||data?.status!=='inGebrauch'||data.active?.uid!==uid||data.active?.sessionId!==session||reminderDay(clock())!==day)continue;
             try{
-              await messaging.send({token:latest.data().token,webpush:{
+              const vehicleLink='https://netzbau-tafers.github.io/lager/fahrzeuge.html?fahrzeug='+encodeURIComponent(vehicle.id);
+              await messaging.send({token:latest.data().token,data:{url:vehicleLink,kind:'vehicle-reminder',vehicleId:vehicle.id},webpush:{
                 headers:{TTL:'600'},notification:{
                   title:'Fahrzeug noch in Gebrauch?',
                   body:'Benutzt du '+String(data.name||'das Fahrzeug').slice(0,100)+' noch? Bitte gib es frei, wenn du fertig bist.',
                   icon:'https://netzbau-tafers.github.io/lager/favicon.png',tag:'vehicle-'+vehicle.id
-                },fcmOptions:{link:'https://netzbau-tafers.github.io/lager/fahrzeuge.html'}
+                },fcmOptions:{link:vehicleLink}
               }});
               delivered=true;
             }catch(error){
