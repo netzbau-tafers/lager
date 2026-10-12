@@ -104,7 +104,8 @@ function createPush({db,auth,messaging,FieldValue,ErrorType,logger,clock=Date.no
             if(!latest.exists||latest.data().uid!==uid||!currentBobine.exists||currentBobine.data().inGebrauchVonUid!==uid||String(time(currentBobine.data().inGebrauchAm))!==usage||!due(currentBobine.data(),clock()))continue;
             try{
               const window=workWindow(clock());if(!window.allowed)break;
-              await messaging.send({token:latest.data().token,webpush:{headers:{TTL:String(window.ttl)},notification:{title:'Bobine noch in Gebrauch',body:'Bobine '+String(b.nummer||'ohne Nummer').slice(0,80)+' ist seit über 48 Stunden in Gebrauch. Bitte prüfen.',icon:'https://netzbau-tafers.github.io/lager/favicon.png',tag:'bobine-'+bobine.id},fcmOptions:{link:'https://netzbau-tafers.github.io/lager/index.html?bobine='+encodeURIComponent(bobine.id)}}});
+              const bobineLink='https://netzbau-tafers.github.io/lager/index.html?bobine='+encodeURIComponent(bobine.id);
+              await messaging.send({token:latest.data().token,data:{url:bobineLink},webpush:{headers:{TTL:String(window.ttl)},notification:{title:'Bobine noch in Gebrauch',body:'Bobine '+String(b.nummer||'ohne Nummer').slice(0,80)+' ist seit über 48 Stunden in Gebrauch. Bitte prüfen.',icon:'https://netzbau-tafers.github.io/lager/favicon.png',tag:'bobine-'+bobine.id},fcmOptions:{link:bobineLink}}});
               delivered=true;
             }catch(error){
               if(['messaging/registration-token-not-registered','messaging/invalid-registration-token'].includes(error.code)){await device.ref.delete();await syncPreference(uid);}
