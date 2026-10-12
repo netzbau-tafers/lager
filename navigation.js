@@ -18,7 +18,7 @@
     const toggle=bar.querySelector('button');
     const backdrop=document.createElement('div');backdrop.className='nt-backdrop';backdrop.setAttribute('aria-hidden','true');host.append(backdrop);
     menu.classList.remove('open');menu.setAttribute('role','navigation');menu.setAttribute('aria-label','Hauptnavigation');host.append(menu);
-    const iconPaths={uebersicht:'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',fahrzeuge:'M3 15V9l2-5h14l2 5v6M3 9h18M3 15h18M5 15v5M19 15v5M6 12h2M16 12h2',home:'M3 10 12 3 21 10v11h-6v-7H9v7H3z',index:'M20 12a8 8 0 1 1-16 0 8 8 0 0 1 16 0M17 12a5 5 0 1 1-10 0 5 5 0 0 1 10 0M18 18l3 3',baustellen:'M4 17v-4a8 8 0 0 1 16 0v4M9 5v7M15 5v7M2 17h20v4H2z',archiv:'M3 7h18v14H3zM2 3h20v4H2zM9 11h6',logs:'M5 2h14v20H5zM8 7h8M8 12h8M8 17h5',kabelreport:'M3 21h18M6 17v-5M12 17V4M18 17V8',profil:'M16 6a4 4 0 1 1-8 0 4 4 0 0 1 8 0M4 22v-4c0-6 16-6 16 0v4z',benutzer:'M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M2 21v-3c0-5 14-5 14 0v3M16 4a3 3 0 0 1 0 6M19 14c2 1 3 2 3 4v3',backup:'M4 4h16v16H4zM8 4v6h8V4M8 20v-6h8v6',datenschutz:'M12 2 21 6v6c0 5-9 10-9 10S3 17 3 12V6zM12 7v8',logout:'M10 3H3v18h7M8 12h14M17 7l5 5-5 5'};
+    const iconPaths={uebersicht:'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',fahrzeuge:'M3 15V9l2-5h14l2 5v6M3 9h18M3 15h18M5 15v5M19 15v5M6 12h2M16 12h2',home:'M3 10 12 3 21 10v11h-6v-7H9v7H3z',index:'M20 12a8 8 0 1 1-16 0 8 8 0 0 1 16 0M17 12a5 5 0 1 1-10 0 5 5 0 0 1 10 0M18 18l3 3',baustellen:'M4 17v-4a8 8 0 0 1 16 0v4M9 5v7M15 5v7M2 17h20v4H2z',archiv:'M3 7h18v14H3zM2 3h20v4H2zM9 11h6',logs:'M5 2h14v20H5zM8 7h8M8 12h8M8 17h5',fahrtenbuch:'M5 20c0-5 7-3 7-8s7-4 7-8M5 20h.01M19 4h.01',kabelreport:'M3 21h18M6 17v-5M12 17V4M18 17V8',profil:'M16 6a4 4 0 1 1-8 0 4 4 0 0 1 8 0M4 22v-4c0-6 16-6 16 0v4z',benutzer:'M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M2 21v-3c0-5 14-5 14 0v3M16 4a3 3 0 0 1 0 6M19 14c2 1 3 2 3 4v3',backup:'M4 4h16v16H4zM8 4v6h8V4M8 20v-6h8v6',datenschutz:'M12 2 21 6v6c0 5-9 10-9 10S3 17 3 12V6zM12 7v8',logout:'M10 3H3v18h7M8 12h14M17 7l5 5-5 5'};
     function icon(key){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');const path=document.createElementNS(svg.namespaceURI,'path');path.setAttribute('d',iconPaths[key]||iconPaths.logs);svg.append(path);return svg}
     function decorateUserAdmin(){
       const vehicle=menu.querySelector('[data-page="fahrzeuge"]');
@@ -57,7 +57,7 @@
     // Existing vehicle buttons use the same position as dynamically added links.
     const vehicle=menu.querySelector('[data-page="fahrzeuge"]');
     if(vehicle&&report)menu.insertBefore(vehicle,report);
-    const logbook=document.createElement('a');logbook.href='fahrtenbuch.html';logbook.dataset.page='fahrtenbuch';logbook.style.display='none';logbook.append(icon('logs'),document.createTextNode('Fahrtenbuch'));
+    const logbook=document.createElement('a');logbook.href='fahrtenbuch.html';logbook.dataset.page='fahrtenbuch';logbook.style.display='none';logbook.append(icon('fahrtenbuch'),document.createTextNode('Fahrtenbuch'));
     if(current==='fahrtenbuch.html'){logbook.classList.add('active-page');logbook.setAttribute('aria-current','page');}
     if(report)menu.insertBefore(logbook,report);else if(vehicle)vehicle.after(logbook);else menu.append(logbook);
     const section=document.createElement('div');section.className='nt-section';section.textContent='VERWALTUNG';
