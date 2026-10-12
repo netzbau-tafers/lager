@@ -26,7 +26,7 @@ function createLogbook({db,auth,Timestamp,ErrorType}){
     const [user,deleted,access]=await Promise.all([auth.getUser(uid),db.collection('account_deletions').doc(uid).get(),db.collection('user_access').doc(uid).get()]);
     if(user.disabled||deleted.exists||uid!==MASTER&&access.data()?.permissions?.fahrtenbuch!=='edit')fail('permission-denied','Kein Zugriff auf das Fahrtenbuch.');
   }
-  const serial=doc=>{const e=doc.data();return {id:doc.id,type:e.type,actor:e.actor||null,requestedBy:e.requestedBy||null,start:e.start?.toMillis?.()??null,end:e.end?.toMillis?.()??null,km:e.km??null,status:e.status||null,vehicleName:e.vehicleName||null,plate:e.plate||null,reason:e.reason||null,confirmedAt:e.confirmedAt?.toMillis?.()??null};};
+  const serial=(doc,includePath=false)=>{const e=doc.data();return {id:includePath?doc.ref.path:doc.id,type:e.type,actor:e.actor||null,requestedBy:e.requestedBy||null,start:e.start?.toMillis?.()??null,end:e.end?.toMillis?.()??null,km:e.km??null,status:e.status||null,vehicleName:e.vehicleName||null,plate:e.plate||null,reason:e.reason||null,confirmedAt:e.confirmedAt?.toMillis?.()??null};};
   return {
     async catalog(request){
       await allowed(request);
@@ -37,19 +37,27 @@ function createLogbook({db,auth,Timestamp,ErrorType}){
     },
     async search(request){
       await allowed(request);const d=request.data||{};
-      if(typeof d.vehicleId!=='string'||!/^[-\w]{1,128}$/.test(d.vehicleId)||typeof d.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(d.date)||!['all','use','fuel'].includes(d.kind||'all')||d.time&& !/^\d{2}:\d{2}$/.test(d.time))fail('invalid-argument','Fahrzeug und gültiges Datum auswählen.');
+      if(typeof d.vehicleId!=='string'||d.vehicleId!=='all'&&!/^[-\w]{1,128}$/.test(d.vehicleId)||typeof d.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(d.date)||!['all','use','fuel'].includes(d.kind||'all')||d.time&& !/^\d{2}:\d{2}$/.test(d.time))fail('invalid-argument','Fahrzeug und gültiges Datum auswählen.');
       const range=bounds(d.date,d.time);if(!range)fail('invalid-argument','Ungültige oder bei der Zeitumstellung mehrdeutige Schweizer Uhrzeit.');
-      const history=db.collection('fahrzeuge').doc(d.vehicleId).collection('verlauf');
+      const all=d.vehicleId==='all';
+      const history=all?db.collectionGroup('verlauf'):db.collection('fahrzeuge').doc(d.vehicleId).collection('verlauf');
       let query=history.where('end','>=',Timestamp.fromMillis(range.start)).where('start','<',Timestamp.fromMillis(range.end)).orderBy('end').orderBy('start');
       if(d.cursor){
-        if(typeof d.cursor!=='string'||!/^[-\w]{1,240}$/.test(d.cursor))fail('invalid-argument','Ungültige Fortsetzung.');
-        const cursor=await history.doc(d.cursor).get();if(!cursor.exists)fail('failed-precondition','Die Ergebnisse haben sich geändert. Bitte neu suchen.');
+        let cursor;
+        if(all){
+          if(typeof d.cursor!=='string'||!/^fahrzeuge(?:_archiv)?\/[-\w]{1,128}\/verlauf\/[-\w]{1,128}$/.test(d.cursor))fail('invalid-argument','Ungültige Fortsetzung.');
+          cursor=await db.doc(d.cursor).get();
+        }else{
+          if(typeof d.cursor!=='string'||!/^[-\w]{1,128}$/.test(d.cursor))fail('invalid-argument','Ungültige Fortsetzung.');
+          cursor=await history.doc(d.cursor).get();
+        }
+        if(!cursor.exists)fail('failed-precondition','Die Ergebnisse haben sich geändert. Bitte neu suchen.');
         if(!cursor.data().end||cursor.data().end.toMillis()<range.start||cursor.data().start.toMillis()>=range.end)fail('invalid-argument','Fortsetzung gehört nicht zur Suche.');
         query=query.startAfter(cursor);
       }
       // Open sessions have null end, so they must be queried separately. Never load a year's history.
       const [closed,open]=await Promise.all([query.limit(PAGE).get(),!d.cursor&&d.kind!=='fuel'?history.where('end','==',null).where('start','<',Timestamp.fromMillis(range.end)).orderBy('start').limit(PAGE).get():Promise.resolve({docs:[]})]);
-      return {entries:[...open.docs,...closed.docs].filter(doc=>matches(doc.data(),range,d.kind||'all')).map(serial),cursor:closed.docs.length===PAGE?closed.docs.at(-1).id:null,openWarning:open.docs.length===PAGE};
+      return {entries:[...open.docs,...closed.docs].filter(doc=>matches(doc.data(),range,d.kind||'all')).map(doc=>serial(doc,all)),cursor:closed.docs.length===PAGE?(all?closed.docs.at(-1).ref.path:closed.docs.at(-1).id):null,openWarning:open.docs.length===PAGE};
     }
   };
 }
