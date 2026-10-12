@@ -842,6 +842,9 @@ dialog.vorlage-duplicate-dialog::backdrop{
 .workspace-search button{ margin:0; }
 .template-search{ grid-template-columns:minmax(0,1fr) auto; }
 .workspace-results{ margin:12px 0 0; color:#586778; }
+.template-heading-actions{ display:flex; align-items:center; justify-content:flex-end; gap:8px; flex-wrap:wrap; }
+.template-heading-actions > button,.template-heading-actions #neueVorlageWrap > button{ margin:0; }
+.template-heading-actions #neueVorlageWrap{ display:flex; }
 @media(max-width:680px){
   .header{
     display:grid;
@@ -975,7 +978,10 @@ dialog.vorlage-duplicate-dialog::backdrop{
     <div class="search-box workspace-toolbar">
       <div class="workspace-heading">
         <div><h2>Materialvorlagen</h2><div class="workspace-count" id="vorlagenTotalCount"></div></div>
-        <div id="neueVorlageWrap" style="display:none;"><button onclick="openVorlageModal()" data-access-write="materialvorlagen"><i class="fa-solid fa-plus"></i> Neue Vorlage</button></div>
+        <div class="template-heading-actions">
+          <button type="button" class="print-btn" onclick="printAllVorlagen()"><i class="fa-solid fa-print"></i> Alle Vorlagen drucken</button>
+          <div id="neueVorlageWrap" style="display:none;"><button onclick="openVorlageModal()" data-access-write="materialvorlagen"><i class="fa-solid fa-plus"></i> Neue Vorlage</button></div>
+        </div>
       </div>
       <div class="workspace-search template-search">
         <input id="vorlagenSearchInput" type="text" aria-label="Materialvorlagen suchen" placeholder="Nach Material oder Spontis Nummer suchen" oninput="renderVorlagen()" maxlength="120">
@@ -1964,6 +1970,116 @@ function renderAll(){
     activeWorkspaceTab === "beendete"
       ? beendete.length + " von " + total + " Baustellen"
       : aktive.length + " von " + total + " Baustellen";
+}
+
+async function printAllVorlagen(){
+  const printWindow = window.open("", "_blank", "width=1000,height=800");
+  if(!printWindow){
+    alert("Das Druckfenster konnte nicht geöffnet werden. Bitte Popups erlauben.");
+    return;
+  }
+
+  try{
+    const snapshot = await vorlagenCollection.get({source:"server"});
+    if(!auth.currentUser || printWindow.closed) return;
+    const vorlagen = snapshot.docs.map(doc => {
+      const data = doc.data() || {};
+      return {
+        id: doc.id,
+        material: sanitizeInput(data.material || "", 120),
+        suchbegriffe: sanitizeInput(data.suchbegriffe || "", 600),
+        spontis: sanitizeInput(data.spontis || "", 60),
+        alteSpontis: sanitizeInput(data.alteSpontis || "", 60),
+        link: parseAndNormalizeUrl(data.link || "") || "",
+        imagePath: sanitizeInput(data.imagePath || "", 260),
+        imageUrl: parseAndNormalizeUrl(data.imageUrl || "") || ""
+      };
+    }).sort((a, b) => String(a.material || "").localeCompare(String(b.material || ""), "de"));
+
+    setVorlagen(vorlagen);
+    saveVorlagenToCache(vorlagen);
+
+    const cards = vorlagen.length ? vorlagen.map(v => {
+      const hasAlteSpontis = hasAlteSpontisNummer(v.alteSpontis);
+      const neueNummer = v.spontis || "";
+      const alteNummer = v.alteSpontis || "";
+      return `
+        <article class="template-card">
+          <h2>${escapeHtml(v.material || "Material ohne Bezeichnung")}</h2>
+          <div class="template-details">
+            <div class="template-number">
+              <strong>${escapeHtml(getSpontisLabel(hasAlteSpontis))}</strong>
+              <span>${escapeHtml(neueNummer || "—")}</span>
+              ${neueNummer ? createBarcodeSvgMarkup(getBarcodeValueFromSpontis(neueNummer)) : ""}
+            </div>
+            <div class="template-number">
+              <strong>Alte Spontis Nummer</strong>
+              <span>${escapeHtml(alteNummer || "—")}</span>
+              ${alteNummer ? createBarcodeSvgMarkup(getBarcodeValueFromSpontis(alteNummer)) : ""}
+            </div>
+          </div>
+          ${v.link ? `<div class="template-link"><strong>Link:</strong> <span>${escapeHtml(v.link)}</span></div>` : ""}
+          ${v.imageUrl ? `<img class="template-image" src="${escapeHtml(v.imageUrl)}" alt="Bild für ${escapeHtml(v.material || "Materialvorlage")}">` : ""}
+        </article>
+      `;
+    }).join("") : '<p class="empty">Keine Materialvorlagen vorhanden.</p>';
+
+    const html = `<!DOCTYPE html>
+      <html lang="de">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Materialvorlagen drucken</title>
+        <style>
+          @page{ size:A4 portrait; margin:12mm; }
+          *{ box-sizing:border-box; }
+          body{ font-family:Arial,sans-serif; color:#202832; margin:0; font-size:10pt; }
+          header{ display:flex; justify-content:space-between; align-items:flex-end; gap:12px; border-bottom:2px solid #273746; padding-bottom:8px; margin-bottom:12px; }
+          h1{ margin:0; font-size:19pt; }
+          .subtitle{ color:#536273; font-size:9pt; text-align:right; }
+          .template-list{ display:grid; grid-template-columns:1fr 1fr; gap:8px; align-items:start; }
+          .template-card{ border:1px solid #b8c2cc; border-radius:5px; padding:8px; break-inside:avoid; page-break-inside:avoid; overflow-wrap:anywhere; }
+          .template-card h2{ font-size:11pt; margin:0 0 7px; padding-bottom:5px; border-bottom:1px solid #d5dce3; }
+          .template-details{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+          .template-number{ min-width:0; }
+          .template-number strong{ display:block; font-size:8pt; color:#526170; margin-bottom:3px; }
+          .template-number span{ display:block; font-weight:bold; min-height:13px; }
+          .barcode-svg{ display:block; width:100%; max-width:185px; height:38px; margin-top:3px; }
+          .barcode-number{ font-size:8pt; margin-top:3px; }
+          .template-link{ margin-top:6px; font-size:8pt; }
+          .template-image{ display:block; max-width:100%; max-height:32mm; object-fit:contain; margin:6px auto 0; }
+          .empty{ color:#536273; }
+          @media print{ .template-card{ -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+        </style>
+      </head>
+      <body>
+        <header><h1>Materialvorlagen</h1><div class="subtitle">${vorlagen.length} Vorlagen · Erstellt am ${escapeHtml(new Date().toLocaleString("de-CH"))}</div></header>
+        <main class="template-list">${cards}</main>
+      </body>
+      </html>`;
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+
+    const images = Array.from(printWindow.document.images);
+    await Promise.all(images.map(img => {
+      if(img.complete) return Promise.resolve();
+      return new Promise(resolve => {
+        img.onload = resolve;
+        img.onerror = resolve;
+        setTimeout(resolve, 3000);
+      });
+    }));
+    if(!printWindow.closed){
+      printWindow.focus();
+      printWindow.print();
+    }
+  }catch(error){
+    if(!printWindow.closed) printWindow.close();
+    console.error("Fehler beim Erstellen der Druckübersicht:", error);
+    if(auth.currentUser) alert("Die Materialvorlagen konnten nicht geladen werden. Bitte erneut versuchen.");
+  }
 }
 
 function renderVorlagen(){
