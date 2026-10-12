@@ -557,8 +557,8 @@ label{
   color:#666;
 }
 
-.scanner-video-wrap{position:relative;background:#111;border-radius:12px;overflow:hidden;min-height:220px;display:flex;align-items:center;justify-content:center;margin:12px 0;}
-#materialScanVideo{width:100%;max-height:52vh;object-fit:cover;cursor:crosshair;}
+.scanner-video-wrap{position:relative;width:100%;max-width:400px;height:250px;min-height:0;background:#111;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;margin:12px auto;}
+#materialScanVideo{display:block;width:100%;height:100%;max-height:none;object-fit:cover;cursor:crosshair;}
 .camera-focus-reticle{position:absolute;width:54px;height:54px;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.45);pointer-events:none;transform:translate(-50%,-50%) scale(.75);opacity:0;transition:opacity .12s ease,transform .12s ease;}
 .camera-focus-reticle.visible{opacity:1;transform:translate(-50%,-50%) scale(1);}
 .scan-pending-list{display:grid;gap:8px;margin:12px 0;max-height:28vh;overflow:auto;}
@@ -568,7 +568,7 @@ label{
 .scan-status{padding:10px 12px;border-radius:8px;background:#eef5ff;color:#23476d;font-size:14px;}
 .scan-unknown-box{padding:12px;background:#fff8e8;border:1px solid #eed18b;border-radius:10px;margin:10px 0;}
 .scan-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
-@media(max-width:600px){.scanner-video-wrap{min-height:180px}.scan-pending-item{grid-template-columns:minmax(0,1fr) 72px 38px}}
+@media(max-width:600px){.scanner-video-wrap{height:220px}.scan-pending-item{grid-template-columns:minmax(0,1fr) 72px 38px}}
 .modal{
   display:none;
   position:fixed;
@@ -1039,7 +1039,7 @@ dialog.vorlage-duplicate-dialog::backdrop{
 
 
 <div id="materialScanModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="materialScanTitle">
-  <div class="modal-content" style="width:560px;">
+  <div class="modal-content" style="width:460px;">
     <h3 id="materialScanTitle">Material scannen</h3>
     <p>Scanne den Code-128-Barcode der Materialvorlage. Erkannte Materialien werden hier gesammelt und erst nach «Speichern» auf die Baustelle übernommen.</p>
     <div class="scanner-video-wrap"><video id="materialScanVideo" playsinline muted onpointerup="focusMaterialCamera(event)" aria-label="Kameravorschau. Tippe auf einen Punkt, um dort zu fokussieren."></video><span id="cameraFocusReticle" class="camera-focus-reticle" aria-hidden="true"></span></div>
@@ -3086,10 +3086,11 @@ async function openMaterialScanner(baustelleId){
     if(!supported.length) throw new Error("Keine passenden Barcodeformate verfügbar.");
     materialScanState.detector = new BarcodeDetector({formats:supported});
     materialScanState.stream = await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:"environment"}}});
+    await initializeMaterialCameraFocus(materialScanState.stream.getVideoTracks()[0]);
     const video = document.getElementById("materialScanVideo");
     video.srcObject = materialScanState.stream;
     await video.play();
-    setMaterialScanStatus("Kamera aktiv. Richte den Code-128-Barcode auf den Bildschirm.");
+    setMaterialScanStatus("Kamera aktiv. Die Kamera fokussiert automatisch. Tippe bei Bedarf auf den Barcode.");
     scanMaterialFrame();
   }catch(error){
     console.error("Kamera konnte nicht gestartet werden:",error);
@@ -3099,10 +3100,26 @@ async function openMaterialScanner(baustelleId){
 }
 
 
+
+async function initializeMaterialCameraFocus(track){
+  if(!track || typeof track.applyConstraints !== "function") return;
+  try{
+    const capabilities = typeof track.getCapabilities === "function" ? track.getCapabilities() : {};
+    const modes = Array.isArray(capabilities.focusMode) ? capabilities.focusMode : [];
+    const preferredMode = modes.includes("continuous") ? "continuous" : (modes.includes("single-shot") ? "single-shot" : "");
+    if(preferredMode){
+      await track.applyConstraints({advanced:[{focusMode:preferredMode}]});
+    }
+  }catch(error){
+    console.info("Automatischer Kamerafokus wird vom Gerät nicht steuerbar angeboten:",error);
+  }
+}
+
 async function focusMaterialCamera(event){
   const video = document.getElementById("materialScanVideo");
   const track = materialScanState.stream?.getVideoTracks?.()[0];
   if(!video || !track) return;
+  event.preventDefault?.();
   const rect = video.getBoundingClientRect();
   if(!rect.width || !rect.height) return;
   const point = {
