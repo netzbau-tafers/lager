@@ -38,7 +38,7 @@ function createVehicles({db,auth,Timestamp,ErrorType,FieldValue,now=Date.now}){
   function civilDay(ms){
     return new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Zurich',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(ms));
   }
-  const validTime=value=>typeof value==='string'&&/^([01]\\d|2[0-3]):[0-5]\\d$/.test(value);
+  const validTime=value=>typeof value==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(value);
   async function checkOverlap(tx,ref,vehicle,start,end,excludeId){
     if(vehicle.active&&vehicle.active.sessionId!==excludeId&&vehicle.active.start?.toMillis?.()<end)
       fail('failed-precondition','Das Fahrzeug wird in diesem Zeitraum bereits benutzt.');
@@ -74,12 +74,13 @@ function createVehicles({db,auth,Timestamp,ErrorType,FieldValue,now=Date.now}){
           fail('invalid-argument','Beginn und Ende müssen am unveränderbaren Datum liegen und dürfen nicht in der Zukunft sein.');
         await checkOverlap(tx,ref,vehicle,start,end,data.eventId);
         const time=Timestamp.fromMillis(now()),historyTime=FieldValue?.serverTimestamp?.()||time;
-        tx.update(eventRef,{start:Timestamp.fromMillis(start),end:Timestamp.fromMillis(end),updatedAt:historyTime,editedAt:time,editedBy:who});
+        let proposalRef=null,proposal=null;
         if(entry.type==='backfill'&&entry.requestId){
-          const proposalRef=db.collection('fahrzeug_nachtraege').doc(entry.requestId);
-          const proposal=await tx.get(proposalRef);
-          if(proposal.exists)tx.update(proposalRef,{start:Timestamp.fromMillis(start),end:Timestamp.fromMillis(end)});
+          proposalRef=db.collection('fahrzeug_nachtraege').doc(entry.requestId);
+          proposal=await tx.get(proposalRef);
         }
+        tx.update(eventRef,{start:Timestamp.fromMillis(start),end:Timestamp.fromMillis(end),updatedAt:historyTime,editedAt:time,editedBy:who});
+        if(proposal?.exists)tx.update(proposalRef,{start:Timestamp.fromMillis(start),end:Timestamp.fromMillis(end)});
         tx.update(ref,{revision:vehicle.revision+1,updatedAt:time});
       });
       return {saved:true};
