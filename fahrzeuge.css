@@ -80,3 +80,6 @@ dialog textarea{display:block;width:100%;box-sizing:border-box;border:1px solid 
   .logbook-table td:first-child,.logbook-table td:last-child{grid-column:1/-1}
   .logbook-table td:first-child{white-space:normal;font-weight:600}
 }
+
+/* Eigene Nutzungszeit: Aktion unter den Angaben statt neben dem Nachtragenden. */
+.vehicle-history-entry>button[data-action="editUsage"]{display:block;margin-top:10px;max-width:100%;text-align:left}
