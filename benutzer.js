@@ -16,7 +16,7 @@
     {title:'Benutzerverwaltung',description:'Konten ansehen oder Benutzer und Berechtigungen verwalten',keys:['benutzer']},
     {title:'Fahrzeuge',description:'Fahrzeugseite und Fahrzeugaktionen in Meine Übersicht',keys:['fahrzeuge','fahrzeugeUebernehmen','fahrzeugeErstellen']},
     {title:'Fahrtenbuch',description:'Nutzungs- und Tankverlauf sowie Export und Aufräumen auf der Fahrtenbuchseite',keys:['fahrtenbuch','fahrtenbuchExport']},
-    {title:'Baustellenmaterial und Archiv',description:'Materialvorlagen und beendete Baustellen gehören zum Baustellenmaterial; das Archiv hat eine eigene Seite.',keys:['baustellen','materialvorlagen','beendete','archiv']},
+    {title:'Baustellenmaterial und Archiv',description:'Materialvorlagen und beendete Baustellen gehören zum Baustellenmaterial; das Archiv hat eine eigene Seite.',keys:['baustellen','materialScannen','materialvorlagen','beendete','archiv']},
     {title:'Kabellager',keys:['kabellager']},
     {title:'Berichte und Protokoll',description:'Separate Seiten für Kabel Report und Protokoll',keys:['kabelreport','logs']},
     {title:'Spiel',keys:['spiel']}
@@ -44,6 +44,7 @@
     for(const key of ['beendete','materialvorlagen']){
       if(row.access&&!(key in (row.access.permissions||{})))permissions[key]=defaults[key]==='edit'&&permissions.baustellen==='edit'?'edit':'none';
     }
+    if(!row.access?.permissions?.materialScannen)permissions.materialScannen=permissions.baustellen==='edit'?'edit':'none';
     return permissions;
   }
   function titleFor(row){
@@ -83,7 +84,7 @@
       titleSelect.value=titleFor(row);titleSelect.disabled=master||!LagerAccess.write('benutzer');titleLabel.append(titleSelect);card.append(titleLabel);
       const grid=document.createElement('div');grid.className='permission-grid';const selects={},groupGrids=groupPermissions(grid);
       const permissions=effectivePermissions(row);
-      for(const [key,name]of Object.entries(LagerAccess.areas)){const label=text('label',name),select=document.createElement('select');for(const [value,title]of (['fahrtenbuch','fahrtenbuchExport'].includes(key)?[['none','Gesperrt'],['edit','Ansehen und bearbeiten']]:['materialvorlagen','beendete','fahrzeugeErstellen','fahrzeugeUebernehmen'].includes(key)?[['none','Nicht erlaubt'],['edit',key==='fahrzeugeUebernehmen'?'Belegte Fahrzeuge übernehmen':key==='fahrzeugeErstellen'?'Neue Fahrzeuge hinzufügen':key==='beendete'?'Archivieren, bearbeiten, wiederherstellen und löschen':'Erstellen, bearbeiten und löschen']]:[['none','Gesperrt'],['view','Nur ansehen'],['edit','Ansehen und bearbeiten']])){const option=text('option',title);option.value=value;select.append(option);}select.value=master?'edit':permissions[key]||'none';select.disabled=master||row.id===auth.currentUser?.uid||!LagerAccess.write('benutzer');colorPermission(select);selects[key]=select;label.append(select);groupGrids[key].append(label);}
+      for(const [key,name]of Object.entries(LagerAccess.areas)){const label=text('label',name),select=document.createElement('select');for(const [value,title]of (key==='materialScannen'?[['none','Deaktiviert'],['edit','Aktiviert']]:['fahrtenbuch','fahrtenbuchExport'].includes(key)?[['none','Gesperrt'],['edit','Ansehen und bearbeiten']]:['materialvorlagen','beendete','fahrzeugeErstellen','fahrzeugeUebernehmen'].includes(key)?[['none','Nicht erlaubt'],['edit',key==='fahrzeugeUebernehmen'?'Belegte Fahrzeuge übernehmen':key==='fahrzeugeErstellen'?'Neue Fahrzeuge hinzufügen':key==='beendete'?'Archivieren, bearbeiten, wiederherstellen und löschen':'Erstellen, bearbeiten und löschen']]:[['none','Gesperrt'],['view','Nur ansehen'],['edit','Ansehen und bearbeiten']])){const option=text('option',title);option.value=value;select.append(option);}select.value=master?'edit':permissions[key]||'none';select.disabled=master||row.id===auth.currentUser?.uid||!LagerAccess.write('benutzer');colorPermission(select);selects[key]=select;label.append(select);groupGrids[key].append(label);}
       const permissionsPanel=document.createElement('details');permissionsPanel.className='permissions-panel';permissionsPanel.append(text('summary','Berechtigungen'),grid);card.append(permissionsPanel);const save=text('button','Änderungen speichern');save.type='button';save.hidden=!LagerAccess.write('benutzer')||(master&&auth.currentUser?.uid!==LagerAccess.MASTER);const feedback=text('p','');feedback.className='user-feedback';feedback.setAttribute('role','status');card.append(save,feedback);
       const remove=text('button','Konto löschen');remove.type='button';remove.className='delete-account';remove.disabled=master||!LagerAccess.write('benutzer')||row.id===auth.currentUser?.uid;remove.title=master?'Das Hauptadministrator-Konto ist geschützt.':'Anmeldekonto dauerhaft löschen';card.insertBefore(remove,feedback);
       if(auth.currentUser?.uid===LagerAccess.MASTER){
@@ -154,7 +155,7 @@
   const newGroupGrids=groupPermissions(document.getElementById('newUserPermissions'));
   for(const [key,name]of Object.entries(LagerAccess.areas)){
     const label=text('label',name),select=document.createElement('select');
-    const choices=['fahrtenbuch','fahrtenbuchExport'].includes(key)?[['none','Gesperrt'],['edit','Ansehen und bearbeiten']]:['materialvorlagen','beendete','fahrzeugeErstellen','fahrzeugeUebernehmen'].includes(key)?[['none','Nicht erlaubt'],['edit','Erlaubt']]:[['none','Gesperrt'],['view','Nur ansehen'],['edit','Ansehen und bearbeiten']];
+    const choices=key==='materialScannen'?[['none','Deaktiviert'],['edit','Aktiviert']]:['fahrtenbuch','fahrtenbuchExport'].includes(key)?[['none','Gesperrt'],['edit','Ansehen und bearbeiten']]:['materialvorlagen','beendete','fahrzeugeErstellen','fahrzeugeUebernehmen'].includes(key)?[['none','Nicht erlaubt'],['edit','Erlaubt']]:[['none','Gesperrt'],['view','Nur ansehen'],['edit','Ansehen und bearbeiten']];
     for(const [value,title]of choices){const option=text('option',title);option.value=value;select.append(option);}
     colorPermission(select);
     newSelects[key]=select;label.append(select);newGroupGrids[key].append(label);

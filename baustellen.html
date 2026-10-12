@@ -2606,7 +2606,7 @@ function createBaustelleCard(baustelle){
     actionsHtml = `
       <div class="card-actions">
         <button onclick="openMaterialModal('${baustelle.id}')" data-access-write="baustellen"><i class="fa-solid fa-plus"></i> Material hinzufügen</button>
-        <button onclick="openMaterialScanner('${baustelle.id}')" data-access-write="baustellen"><i class="fa-solid fa-barcode"></i> Material scannen</button>
+        <button onclick="openMaterialScanner('${baustelle.id}')" data-access-write="materialScannen"><i class="fa-solid fa-barcode"></i> Material scannen</button>
         <button class="finish" onclick="finishBaustelle('${baustelle.id}')" data-access-write="baustellen"><i class="fa-solid fa-check"></i> Baustelle beenden</button>
 
         <div class="card-menu-wrap">
@@ -3043,7 +3043,7 @@ function handleManualMaterialScan(){
 }
 
 async function openMaterialScanner(baustelleId){
-  if(!LagerAccess.requireWrite("baustellen")) return;
+  if(!LagerAccess.requireWrite("baustellen") || !LagerAccess.requireWrite("materialScannen")) return;
   const baustelle = getBaustelleById(baustelleId);
   if(!baustelle || baustelle.status !== "aktiv"){
     alert("Material scannen ist nur bei aktiven Baustellen möglich.");
@@ -3206,7 +3206,7 @@ function closeMaterialScanner(){
 }
 
 async function saveScannedMaterials(){
-  if(!LagerAccess.requireWrite("baustellen")) return;
+  if(!LagerAccess.requireWrite("baustellen") || !LagerAccess.requireWrite("materialScannen")) return;
   const baustelle = getBaustelleById(materialScanState.baustelleId);
   if(!baustelle || baustelle.status !== "aktiv" || !materialScanState.pending.length){
     alert("Keine Materialien zum Speichern vorhanden.");
