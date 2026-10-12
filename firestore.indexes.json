@@ -15,6 +15,20 @@
       ]
     },
     {
+      "collectionGroup": "verlauf",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "end",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "start",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "fahrtenbuch_exporte",
       "queryScope": "COLLECTION",
       "fields": [
