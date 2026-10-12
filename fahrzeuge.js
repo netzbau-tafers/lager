@@ -60,7 +60,7 @@
     const ordered=node('ol','','vehicle-history');
     // Bei einer Übernahme entstehen Nutzung und Übernahme mit demselben Zeitstempel.
     // Die neue Nutzung steht darüber, damit der Verlauf die zeitliche Abfolge zeigt.
-    const entries=[...data.entries].sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0)||Number(a.type==='takeover')-Number(b.type==='takeover'));
+    const entries=[...data.entries].sort((a,b)=>((b.start||b.createdAt)?.toMillis?.()||0)-((a.start||a.createdAt)?.toMillis?.()||0)||Number(a.type==='takeover')-Number(b.type==='takeover'));
     let currentDay='';
     for(const entry of entries){
       if(entry.status==='rejected')continue;
@@ -91,7 +91,7 @@
     if(!state.hasMore)return;
     state.loading=true;state.error=false;historyList(id);
     try{
-      let query=db.collection('fahrzeuge').doc(id).collection('verlauf').orderBy('createdAt','desc');
+      let query=db.collection('fahrzeuge').doc(id).collection('verlauf').orderBy('start','desc');
       if(state.cursor)query=query.startAfter(state.cursor);
       const snapshot=await query.limit(historyPageSize).get();
       if(histories.get(key)!==state)return;
