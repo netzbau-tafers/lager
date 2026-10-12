@@ -3087,7 +3087,7 @@ async function scanMaterialFrame(){
         }
       }else{
         if(!state.missingSince) state.missingSince = Date.now();
-        if(Date.now() - state.missingSince > 850){
+        if(!state.unknownCode && Date.now() - state.missingSince > 850){
           state.armed = true;
           state.missingSince = 0;
         }
