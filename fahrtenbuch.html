@@ -4,7 +4,7 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fahrtenbuch | Lagermanager</title>
 <link rel="icon" href="favicon.png"><link rel="manifest" href="site.webmanifest"><link rel="apple-touch-icon" href="favicon.png">
-<link rel="stylesheet" href="navigation.css?v=20261005-menu-style"><link rel="stylesheet" href="fahrzeuge.css?v=20261010-logbook-align">
+<link rel="stylesheet" href="navigation.css?v=20261005-menu-style"><link rel="stylesheet" href="fahrzeuge.css?v=20261012-fahrtenbuch-tabelle">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -36,7 +36,7 @@
 </form>
 <p id="logbookStatus" role="status">Bitte anmelden …</p>
 <p>Eine offene Nutzung bedeutet „Rückgabe nicht erfasst“. Nachträge mit ausstehender Bestätigung sind entsprechend gekennzeichnet.</p>
-<div id="logbookResults" class="vehicle-grid"></div>
+<div id="logbookResults" class="logbook-results"></div>
 <button id="logbookMore" type="button" hidden>Weitere laden</button>
 <section id="exportSection" hidden class="logbook-export" aria-labelledby="exportTitle">
 <h2 id="exportTitle">Export und Aufräumen</h2>
@@ -65,7 +65,7 @@ firebase.initializeApp({apiKey:'AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w',authDom
 const auth=firebase.auth();
 function logout(){if(confirm('Wirklich ausloggen?'))auth.signOut().then(()=>location.href='home.html');}
 </script>
-<script src="fahrtenbuch.js?v=20261010-export"></script><script src="fahrtenbuch-export.js?v=20261010-export-recht"></script><script src="navigation.js?v=20261010-verwaltung-reihenfolge"></script>
+<script src="fahrtenbuch.js?v=20261012-tabelle"></script><script src="fahrtenbuch-export.js?v=20261010-export-recht"></script><script src="navigation.js?v=20261010-verwaltung-reihenfolge"></script>
 </body>
 </html>
 

@@ -7,17 +7,49 @@
   $('logbookDate').value=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Zurich',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   function node(tag,text,cls){const n=document.createElement(tag);n.textContent=text;if(cls)n.className=cls;return n;}
   function render(){
-    results.replaceChildren();const vehicle=vehicles.find(v=>v.id===query?.vehicleId);
-    for(const e of [...entries.values()].sort((a,b)=>a.start-b.start)){
-      const card=node('article','','vehicle-card');
-      card.append(node('h2',(e.type==='fuel'?'Tanken':'Nutzung')+' · '+(e.actor?.name||'Unbekannte Person')));
-      card.append(node('p',(e.vehicleName||vehicle?.name||'Fahrzeug')+' · '+(e.plate||vehicle?.plate||'')));
-      card.append(node('p',e.type==='fuel'?pretty(e.start):pretty(e.start)+' → '+(e.end===null?'Rückgabe nicht erfasst':pretty(e.end))));
-      if(e.type==='fuel')card.append(node('strong',Number(e.km).toLocaleString('de-CH')+' km'));
-      if(e.type==='backfill'){card.append(node('p',e.status==='pending'?'Bestätigung ausstehend':'Bestätigter Nachtrag'),node('small','Nachgetragen von '+(e.requestedBy?.name||'Unbekannte Person')));}
-      if(e.reason==='übernommen')card.append(node('p','Nutzung durch Übernahme beendet.'));
-      results.append(card);
+    results.replaceChildren();
+    const selectedVehicle=vehicles.find(v=>v.id===query?.vehicleId);
+    const ordered=[...entries.values()].sort((a,b)=>a.start-b.start);
+    if(!ordered.length)return;
+
+    const table=node('table','','logbook-table');
+    const head=document.createElement('thead'),headerRow=document.createElement('tr');
+    for(const label of ['Zeitpunkt','Art','Fahrzeug','Person','Hinweise']){
+      const th=node('th',label);th.scope='col';headerRow.append(th);
     }
+    head.append(headerRow);table.append(head);
+    const body=document.createElement('tbody');
+    for(const e of ordered){
+      const isFuel=e.type==='fuel',isBackfill=e.type==='backfill';
+      const kind=isFuel?'fuel':isBackfill?'backfill':'usage';
+      const kindLabel=isFuel?'Tanken':isBackfill?'Nachtrag':'Nutzung';
+      const tr=node('tr','','logbook-row '+kind);
+      const vehicleName=e.vehicleName||selectedVehicle?.name||'Fahrzeug';
+      const plate=e.plate||selectedVehicle?.plate||'';
+      const period=isFuel?pretty(e.start):pretty(e.start)+' → '+(e.end==null?'Offen':pretty(e.end));
+      const type=node('span',kindLabel,'logbook-type '+kind);
+      const vehicleCell=node('span',vehicleName,'logbook-vehicle-name');
+      if(plate)vehicleCell.append(node('small',plate,'logbook-plate'));
+      let details='';
+      if(isFuel)details=Number(e.km).toLocaleString('de-CH')+' km';
+      else if(isBackfill){
+        details=e.status==='pending'?'Bestätigung ausstehend':'Bestätigter Nachtrag';
+        if(e.requestedBy?.name)details+=' · nachgetragen von '+e.requestedBy.name;
+      }else if(e.end==null)details='Rückgabe nicht erfasst';
+      else if(e.reason==='übernommen')details='Nutzung durch Übernahme beendet.';
+      const cells=[
+        ['Zeitpunkt',node('span',period)],
+        ['Art',type],
+        ['Fahrzeug',vehicleCell],
+        ['Person',node('span',e.actor?.name||'Unbekannte Person')],
+        ['Hinweise',node('span',details||'–',details?'logbook-detail':'logbook-empty')]
+      ];
+      for(const [label,content] of cells){
+        const td=document.createElement('td');td.dataset.label=label;td.append(content);tr.append(td);
+      }
+      body.append(tr);
+    }
+    table.append(body);results.append(table);
   }
   function controls(){submit.disabled=busy||!session||!vehicles.length;more.disabled=busy;more.hidden=!cursor;}
   async function load(reset){

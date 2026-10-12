@@ -51,3 +51,32 @@ dialog textarea{display:block;width:100%;box-sizing:border-box;border:1px solid 
 .vehicle-history-entry.backfill .vehicle-history-kind{background:#f0eafe;color:#5b408c}
 .vehicle-history-entry.day .vehicle-history-kind{background:#e5f0ff;color:#1558a0}
 .vehicle-history-entry strong{display:block}
+
+/* Fahrtenbuch: kompakte, am PC schnell vergleichbare Ereignistabelle. */
+.logbook-results{width:100%;margin:16px 0 22px;overflow-x:auto;border:1px solid #d3dfeb;border-radius:12px;background:#fff;box-shadow:0 3px 12px #17354e08}
+.logbook-table{width:100%;border-collapse:separate;border-spacing:0;text-align:left;color:#24364a}
+.logbook-table th{padding:13px 16px;background:#edf3f9;color:#425970;font-size:13px;text-transform:uppercase;letter-spacing:.035em;border-bottom:1px solid #d3dfeb;white-space:nowrap}
+.logbook-table td{padding:13px 16px;border-bottom:1px solid #e4eaf0;vertical-align:middle}
+.logbook-table tbody tr:last-child td{border-bottom:0}
+.logbook-table tbody tr:nth-child(even){background:#f8fafc}
+.logbook-table tbody tr:hover{background:#eef6ff}
+.logbook-table td:first-child{font-variant-numeric:tabular-nums;white-space:nowrap}
+.logbook-type{display:inline-block;min-width:68px;text-align:center;padding:5px 9px;border-radius:999px;background:#e8eef4;color:#40566b;font-size:13px;font-weight:700}
+.logbook-type.fuel{background:#e4f5eb;color:#17643b}
+.logbook-type.backfill{background:#f0eafe;color:#5b408c}
+.logbook-vehicle-name{display:block;font-weight:600;color:#173852}
+.logbook-plate{display:block;margin-top:3px;color:#64758a;font-size:13px}
+.logbook-detail{color:#334b62}
+.logbook-empty{color:#8492a1}
+@media(max-width:760px){
+  .logbook-results{overflow:visible;border:0;background:transparent;box-shadow:none}
+  .logbook-table,.logbook-table tbody{display:block;width:100%}
+  .logbook-table thead{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .logbook-table tbody tr{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;margin:0 0 12px;padding:5px 14px;background:#fff;border:1px solid #d7e1ec;border-radius:11px;box-shadow:0 2px 8px #17354e08}
+  .logbook-table tbody tr:nth-child(even){background:#fff}
+  .logbook-table tbody tr:hover{background:#fff}
+  .logbook-table td{display:flex;flex-direction:column;gap:4px;padding:9px 0;border:0;min-width:0;overflow-wrap:anywhere}
+  .logbook-table td::before{content:attr(data-label);color:#64758a;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.035em}
+  .logbook-table td:first-child,.logbook-table td:last-child{grid-column:1/-1}
+  .logbook-table td:first-child{white-space:normal;font-weight:600}
+}
