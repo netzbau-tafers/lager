@@ -35,6 +35,7 @@ exports.lagerCreateVehicle=vehicleCall(vehicles.create);
 exports.lagerEditVehicle=vehicleCall(vehicles.edit);
 exports.lagerDeleteVehicle=vehicleCall(vehicles.remove);
 exports.lagerVehicleAction=vehicleCall(vehicles.action);
+exports.lagerVehicleEditOwnUsage=vehicleCall(vehicles.editOwnUsage);
 
 const {onDocumentCreated}=require('firebase-functions/v2/firestore');
 const {createBackfill,createBackfillNotifier}=require('./vehicle-backfill.cjs');
