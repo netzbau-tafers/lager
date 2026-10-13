@@ -49,6 +49,15 @@ test('start and free produce one session with correct person and times',async()=
   const f=fixture(),id=await f.create();await f.action(id,'start');const v=f.vehicle(id);assert.equal(v.active.uid,'alice');assert.equal(v.status,'inGebrauch');assert.equal(f.events(id)[0].end,null);
   f.setClock('2026-10-09T09:00Z');await rejects(f.action(id,'free','bob'),'permission-denied');await f.action(id,'free');assert.equal(f.vehicle(id).active,null);assert.equal(f.vehicle(id).status,'frei');assert.equal(f.events(id).length,1);assert.equal(f.events(id)[0].start.toMillis(),Date.parse('2026-10-09T08:00Z'));assert.equal(f.events(id)[0].end.toMillis(),Date.parse('2026-10-09T09:00Z'));
 });
+test('free accepts an earlier return date and rejects dates before start or in the future',async()=>{
+  const f=fixture(),id=await f.create();await f.action(id,'start');f.setClock('2026-10-10T10:00Z');
+  await f.action(id,'free','alice',{endDate:'2026-10-09',endTime:'17:00'});
+  assert.equal(f.events(id)[0].end.toMillis(),Date.parse('2026-10-09T15:00Z'));
+  const other=await f.create('alice');await f.action(other,'start');
+  await rejects(f.action(other,'free','alice',{endDate:'2026-10-08',endTime:'17:00'}),'invalid-argument');
+  await rejects(f.action(other,'free','alice',{endDate:'2026-10-11',endTime:'12:00'}),'invalid-argument');
+  await rejects(f.action(other,'free','alice',{endDate:'2026-02-30',endTime:'12:00'}),'invalid-argument');
+});
 test('concurrent starts: exactly one succeeds, loser cannot overwrite',async()=>{
   const f=fixture(),id=await f.create();const results=await Promise.allSettled(['alice','bob'].map(uid=>f.service.action(f.request(uid,{id,revision:0,action:'start',requestId:uid+'_same_revision_01'}))));assert.equal(results.filter(r=>r.status==='fulfilled').length,1);assert.equal(f.events(id).length,1);assert.equal(f.vehicle(id).revision,1);
 });
