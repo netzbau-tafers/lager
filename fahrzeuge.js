@@ -276,9 +276,22 @@
       note.textContent='Du kannst Datum und Uhrzeiten deiner eigenen Nutzung anpassen. Ein Datum in der Zukunft ist nicht möglich.';
       const day=value=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Zurich',year:'numeric',month:'2-digit',day:'2-digit'}).format(value.toDate());
       const startDate=input('startDate','Beginn am','date',day(entry.start));startDate.min='2000-01-01';startDate.max=todayZurich();
-      input('startTime','Beginn um (Schweizer Zeit)','time',time(entry.start));
-      const endDate=input('endDate','Ende am','date',day(entry.end));endDate.min='2000-01-01';endDate.max=todayZurich();
-      input('endTime','Ende um (Schweizer Zeit)','time',time(entry.end));
+      const startTime=input('startTime','Beginn um (Schweizer Zeit)','time',time(entry.start));
+      const endDate=input('endDate','Ende am','date',day(entry.end));endDate.min=startDate.value;endDate.max=todayZurich();
+      const endTime=input('endTime','Ende um (Schweizer Zeit)','time',time(entry.end));
+      const dateError=node('p','','vehicle-error');dateError.setAttribute('role','alert');fields.append(dateError);
+      function validateUsageRange(){
+        const beforeStart=endDate.value<startDate.value;
+        const sameDay=endDate.value===startDate.value;
+        const beforeTime=sameDay&&endTime.value<=startTime.value;
+        const message=beforeStart?'Das Enddatum darf nicht vor dem Beginn liegen.':beforeTime?'Das Ende muss nach dem Beginn liegen.':'';
+        endDate.min=startDate.value;
+        endDate.setCustomValidity(beforeStart?'Das Enddatum darf nicht vor dem Beginn liegen.':'');
+        endTime.setCustomValidity(beforeTime?'Das Ende muss nach dem Beginn liegen.':'');
+        dateError.textContent=message;
+      }
+      for(const field of [startDate,startTime,endDate,endTime])field.addEventListener('input',validateUsageRange);
+      validateUsageRange();
     }
     if(action==='create'||action==='edit'){
       input('name','Fahrzeugname','text',vehicle?.name||'',100);input('plate','Kennzeichen','text',vehicle?.plate||'',30);
