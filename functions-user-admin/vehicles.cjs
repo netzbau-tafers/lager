@@ -39,6 +39,7 @@ function createVehicles({db,auth,Timestamp,ErrorType,FieldValue,now=Date.now}){
     return new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Zurich',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(ms));
   }
   const validTime=value=>typeof value==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+  const civilTime=ms=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Zurich',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(ms));
   async function checkOverlap(tx,ref,vehicle,start,end,excludeId){
     if(vehicle.active&&vehicle.active.sessionId!==excludeId&&vehicle.active.start?.toMillis?.()<end)
       fail('failed-precondition','Das Fahrzeug wird in diesem Zeitraum bereits benutzt.');
@@ -151,14 +152,15 @@ function createVehicles({db,auth,Timestamp,ErrorType,FieldValue,now=Date.now}){
     async action(request){
       const who=await actor(request),data=request.data||{};
       if(!string(data.id,128)||data.id.includes('/')||!Number.isSafeInteger(data.revision)||data.revision<0||!['start','free','takeover','day','fuel'].includes(data.action)||typeof data.requestId!=='string'||!/^[a-zA-Z0-9_-]{16,80}$/.test(data.requestId))fail('invalid-argument','Ungültige Fahrzeugaktion.');
-      if(data.action==='free'&&!validTime(data.endTime))fail('invalid-argument','Gültige Rückgabezeit angeben.');
+      if(data.action==='free'&&data.endTime!==undefined&&!validTime(data.endTime))fail('invalid-argument','Gültige Rückgabezeit angeben.');
+      if(data.action==='free'&&data.endDate!==undefined&&(typeof data.endDate!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(data.endDate)))fail('invalid-argument','Gültiges Rückgabedatum angeben.');
       if(data.action==='fuel'&&!validKm(data.km))fail('invalid-argument','Gültigen aktuellen Kilometerstand angeben.');
       const ref=db.collection('fahrzeuge').doc(data.id),event=ref.collection('verlauf').doc(),operation=ref.collection('aktionen').doc(who.uid+'_'+data.requestId);
       await db.runTransaction(async tx=>{
         await permitted(tx,who.uid,false,data.action==='takeover');
         const lockRef=db.collection('fahrzeug_nutzung').doc(who.uid);
         const [snapshot,previous,lock]=await Promise.all([tx.get(ref),tx.get(operation),tx.get(lockRef)]);
-        if(previous.exists){if(previous.data().action!==data.action||previous.data().km!==(data.km??null)||previous.data().endTime!==(data.endTime??null))fail('invalid-argument','Diese Anfrage wurde bereits anders verwendet.');return;}
+        if(previous.exists){if(previous.data().action!==data.action||previous.data().km!==(data.km??null)||previous.data().endTime!==(data.endTime??null)||(previous.data().endDate??null)!==(data.endDate??null))fail('invalid-argument','Diese Anfrage wurde bereits anders verwendet.');return;}
         if(!snapshot.exists)fail('not-found','Fahrzeug nicht gefunden.');
         const v=snapshot.data();
         if(v.revision!==data.revision)fail('failed-precondition','Das Fahrzeug wurde gerade geändert. Bitte den aktuellen Stand prüfen und erneut klicken.');
@@ -184,8 +186,9 @@ function createVehicles({db,auth,Timestamp,ErrorType,FieldValue,now=Date.now}){
           tx.create(event,{...metadata,type:'use',actor:who,start:time,end:null,createdAt:time,reason:'normal'});
         }else if(data.action==='free'){
           if(!active||active.uid!==who.uid)fail('permission-denied','Nur die eingetragene Person darf das Fahrzeug freigeben. Verwende sonst die Übernahme.');
-          const endMs=zurichMillis(civilDay(ms)+'T'+data.endTime);
-          if(!Number.isFinite(endMs)||endMs>ms||endMs<active.start?.toMillis?.())fail('invalid-argument','Rückgabezeit muss nach dem Nutzungsbeginn liegen und darf nicht in der Zukunft sein.');
+          const endDay=data.endDate||civilDay(ms),endTime=data.endTime||civilTime(ms);
+          const endMs=zurichMillis(endDay+'T'+endTime);
+          if(!Number.isFinite(endMs)||civilDay(endMs)!==endDay||endMs>ms||endMs<active.start?.toMillis?.())fail('invalid-argument','Rückgabedatum und Rückgabezeit müssen nach dem Nutzungsbeginn liegen und dürfen nicht in der Zukunft sein.');
           await checkOverlap(tx,ref,v,active.start.toMillis(),endMs,active.sessionId);
           const end=Timestamp.fromMillis(endMs);
           tx.update(ref.collection('verlauf').doc(active.sessionId),{...metadata,end,closedBy:who});
@@ -204,7 +207,7 @@ function createVehicles({db,auth,Timestamp,ErrorType,FieldValue,now=Date.now}){
           change.km=data.km;change.kmAt=time;change.kmBy=who;
         }
         tx.update(ref,change);
-        tx.create(operation,{action:data.action,km:data.km??null,endTime:data.endTime??null,createdAt:time});
+        tx.create(operation,{action:data.action,km:data.km??null,endTime:data.endTime??null,endDate:data.endDate??null,createdAt:time});
       });
       return {saved:true};
     }
