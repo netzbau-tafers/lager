@@ -301,10 +301,12 @@
       save.textContent='Fahrzeug wechseln';
     }
     if(action==='free'){
-      note.textContent='Rückgabezeit prüfen und bei Bedarf korrigieren. Das Datum bleibt unveränderbar. Eine Rückgabe in der Zukunft ist nicht möglich.';
-      const now=new Date(),time=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Zurich',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(now);
-      fields.append(node('p','Datum: '+new Intl.DateTimeFormat('de-CH',{timeZone:'Europe/Zurich',dateStyle:'long'}).format(now)));
-      const end=input('endTime','Rückgabezeit (Schweizer Zeit)','time',time);end.max=time;
+      note.textContent='Rückgabedatum und Rückgabezeit prüfen und bei Bedarf korrigieren. Die Rückgabe darf nicht vor dem Nutzungsbeginn oder in der Zukunft liegen.';
+      const now=new Date(),today=todayZurich(),time=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Zurich',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(now);
+      const startDate=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Zurich',year:'numeric',month:'2-digit',day:'2-digit'}).format(vehicle.active.start.toDate());
+      const endDate=input('endDate','Rückgabedatum','date',today);endDate.min=startDate;endDate.max=today;
+      const end=input('endTime','Rückgabezeit (Schweizer Zeit)','time',time);end.max=today===endDate.value?time:'';
+      endDate.addEventListener('change',()=>{end.max=endDate.value===today?time:'';});
       save.textContent='Fahrzeug zurückgeben';
     }
     if(action==='fuel'){note.textContent='Lies den aktuellen Kilometerstand am Fahrzeug ab. Nach dem Speichern steht er gross auf der Karte für das Bezahlen am Tankterminal.';const field=input('km','Aktueller Kilometerstand','number','');field.min=String(vehicle.km||0);}
@@ -382,7 +384,7 @@
         await actionCall({id:v.id,revision:v.revision,action:operation.targetAction,requestId:operation.requestId});
         messages.set(v.id,'Auf dich eingetragen.');
       }
-      else{const v=operation.vehicle;const data={id:v.id,revision:v.revision,action:operation.action,requestId:operation.requestId};if(operation.action==='fuel')data.km=Number(values.get('km'));if(operation.action==='free')data.endTime=values.get('endTime');await actionCall(data);messages.set(v.id,'Gespeichert.');}
+      else{const v=operation.vehicle;const data={id:v.id,revision:v.revision,action:operation.action,requestId:operation.requestId};if(operation.action==='fuel')data.km=Number(values.get('km'));if(operation.action==='free'){data.endDate=values.get('endDate');data.endTime=values.get('endTime');}await actionCall(data);messages.set(v.id,'Gespeichert.');}
       if(!overview&&['start','takeover','switch'].includes(operation.action))ownScrollId=operation.vehicle.id;
       dialog.close();pending=null;render();status.textContent=operation.action==='create'?'Fahrzeug hinzugefügt.':operation.action==='backfill'?(operation.backfillStatus==='confirmed'?'Eigene Nutzung gespeichert. Keine Bestätigung und keine Benachrichtigung nötig.':'Nachtrag gesendet. Die Person kann ihn im Bereich Fahrzeuge bestätigen; eine Smartphone-Benachrichtigung wird an ihre aktivierten Geräte gesendet.'):'Änderung gespeichert.';
     }catch(error){document.getElementById('dialogStatus').textContent=(operation.action==='switch'&&operation.released?operation.previousVehicle.name+' wurde freigegeben. Das gescannte Fahrzeug konnte noch nicht auf dich eingetragen werden. ':'')+errorText(error);if(error.code==='functions/failed-precondition'){save.disabled=true;document.getElementById('dialogStatus').textContent+=' Schliesse dieses Fenster und öffne die Aktion nochmals.';}}
