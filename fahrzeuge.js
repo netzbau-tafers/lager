@@ -273,8 +273,9 @@
     if(action==='editUsage'){
       const entry=pending.entry;
       const time=value=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Zurich',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(value.toDate());
-      note.textContent='Das Datum ist fest vorgegeben. Du kannst nur die Uhrzeiten deiner eigenen Nutzung ändern.';
-      fields.append(node('p','Datum: '+new Intl.DateTimeFormat('de-CH',{timeZone:'Europe/Zurich',dateStyle:'long'}).format(entry.start.toDate())));
+      note.textContent='Du kannst Datum und Uhrzeiten deiner eigenen Nutzung anpassen. Ein Datum in der Zukunft ist nicht möglich.';
+      const day=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Zurich',year:'numeric',month:'2-digit',day:'2-digit'}).format(entry.start.toDate());
+      const dateField=input('date','Datum','date',day);dateField.min='2000-01-01';dateField.max=todayZurich();
       input('startTime','Von (Schweizer Zeit)','time',time(entry.start));
       input('endTime','Bis (Schweizer Zeit)','time',time(entry.end));
     }
@@ -359,7 +360,7 @@
     const operation=pending,values=new FormData(form);saving=true;save.disabled=true;cancel.disabled=true;loading(save,true);loading(document.getElementById('dialogStatus'),true);document.getElementById('dialogStatus').textContent='Wird gespeichert …';
     try{
       if(operation.action==='editUsage'){
-        await editUsageCall({vehicleId:operation.vehicle.id,eventId:operation.entry.id,startTime:values.get('startTime'),endTime:values.get('endTime')});
+        await editUsageCall({vehicleId:operation.vehicle.id,eventId:operation.entry.id,date:values.get('date'),startTime:values.get('startTime'),endTime:values.get('endTime')});
         invalidateHistory(operation.vehicle.id);messages.set(operation.vehicle.id,'Eigene Nutzungszeit angepasst.');
       }
       else if(operation.action==='service')await serviceCall({id:operation.vehicle.id,revision:operation.vehicle.revision,vehicle:values.get('vehicle')||null,crane:values.get('crane')||null});
