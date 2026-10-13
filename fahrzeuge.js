@@ -11,7 +11,7 @@
   const selected=new URLSearchParams(location.search).get('fahrzeug'),scanRequested=!overview&&new URLSearchParams(location.search).get('scan')==='1';
   let ownScrollId=null,ownScrollFrame=null;
   let scanHandled=false,selectedScrollFrame=null,selectedSearch=!overview&&Boolean(selected);
-  const busy=new Set(),messages=new Map(),histories=new Map(),openHistory=new Set();
+  const busy=new Set(),messages=new Map(),histories=new Map(),openHistory=new Set(),openService=new Set();
   if(selected&&new URLSearchParams(location.search).get('verlauf')==='1')openHistory.add(selected);
   let unsubBackfills=null,backfills=[],recipientCache=null;
   const inbox=!overview?document.createElement('section'):null;
@@ -151,15 +151,22 @@
     }
   }
   function appendServiceDates(target,v){
+    const dates=[['vehicle','Fahrzeugservice'],['crane','Kranservice']].filter(([key])=>v.serviceDates?.[key]);
+    if(!dates.length)return;
+    const details=node('details','','vehicle-service-group');
+    details.open=openService.has(v.id);
+    const summary=node('summary','Service & Wartung');
+    details.append(summary);
+    details.addEventListener('toggle',()=>{if(details.open)openService.add(v.id);else openService.delete(v.id);});
     const today=Date.parse(todayZurich()+'T00:00:00Z');
-    for(const [key,label] of [['vehicle','Fahrzeugservice'],['crane','Kranservice']]){
-      const due=v.serviceDates?.[key];if(!due)continue;
+    for(const [key,label] of dates){
+      const due=v.serviceDates[key];
       const days=Math.round((Date.parse(due+'T00:00:00Z')-today)/86400000);
       const state=days<0?'overdue':days<=30?'soon':'future';
       const relative=days<0?Math.abs(days)+' Tage überfällig':days===0?'Heute fällig':days===1?'Morgen fällig':'in '+days+' Tagen';
-      const line=node('p',label+': '+due.split('-').reverse().join('.')+' · '+relative,'vehicle-service '+state);
-      target.append(line);
+      details.append(node('p',label+': '+due.split('-').reverse().join('.')+' · '+relative,'vehicle-service '+state));
     }
+    target.append(details);
   }
   // Refresh date badges after midnight even when there are no database changes.
   let serviceDay=todayZurich();
