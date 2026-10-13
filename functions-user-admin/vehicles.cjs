@@ -55,6 +55,9 @@ function createVehicles({db,auth,Timestamp,ErrorType,FieldValue,now=Date.now}){
       const who=await actor(request),data=request.data||{};
       if(!string(data.vehicleId,128)||!/^[a-zA-Z0-9_-]+$/.test(data.vehicleId)||
          !string(data.eventId,128)||!/^[a-zA-Z0-9_-]+$/.test(data.eventId)||
+         ((data.startDate!==undefined||data.endDate!==undefined)&&
+           (typeof data.startDate!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(data.startDate)||
+            typeof data.endDate!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(data.endDate)))||
          (data.date!==undefined&&(typeof data.date!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(data.date)))||
          !validTime(data.startTime)||!validTime(data.endTime))
         fail('invalid-argument','Ungültiges Datum oder ungültige Nutzungszeit.');
@@ -70,9 +73,10 @@ function createVehicles({db,auth,Timestamp,ErrorType,FieldValue,now=Date.now}){
         if(vehicle.active?.sessionId===data.eventId)fail('failed-precondition','Eine laufende Nutzung kann nicht geändert werden.');
         const previousStart=entry.start?.toMillis?.(),previousEnd=entry.end?.toMillis?.();
         if(!Number.isFinite(previousStart)||!Number.isFinite(previousEnd))fail('failed-precondition','Zeitstempel fehlen.');
-        const day=data.date||civilDay(previousStart),start=zurichMillis(day+'T'+data.startTime),end=zurichMillis(day+'T'+data.endTime);
-        if(!Number.isFinite(start)||!Number.isFinite(end)||civilDay(start)!==day||start>=end||end>now()||civilDay(end)!==day)
-          fail('invalid-argument','Datum und Uhrzeiten müssen gültig sein, am selben Schweizer Kalendertag liegen und dürfen nicht in der Zukunft liegen.');
+        const startDay=data.startDate||data.date||civilDay(previousStart),endDay=data.endDate||data.date||civilDay(previousEnd);
+        const start=zurichMillis(startDay+'T'+data.startTime),end=zurichMillis(endDay+'T'+data.endTime);
+        if(!Number.isFinite(start)||!Number.isFinite(end)||civilDay(start)!==startDay||start>=end||end>now()||civilDay(end)!==endDay)
+          fail('invalid-argument','Beginn und Ende müssen gültige Schweizer Datums- und Zeitangaben sein; das Ende darf nicht in der Zukunft liegen.');
         await checkOverlap(tx,ref,vehicle,start,end,data.eventId);
         const time=Timestamp.fromMillis(now()),historyTime=FieldValue?.serverTimestamp?.()||time;
         let proposalRef=null,proposal=null;
