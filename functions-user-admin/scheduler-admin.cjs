@@ -6,8 +6,7 @@ const MASTER='pmyu29TlC3QM7JIysmy2EmiHSWW2';
 const GROUPS={
  bobinen:['lagerBobinenPushReminder'],
  fahrzeuge:['lagerVehiclePushReminderWeekdays','lagerVehiclePushReminderFriday'],
- service:['lagerVehicleServiceReminder'],
- bereinigung:['lagerVehicleActionCleanup']
+ service:['lagerVehicleServiceReminder']
 };
 const authClient=new GoogleAuth({scopes:['https://www.googleapis.com/auth/cloud-platform']});
 async function master(request){
