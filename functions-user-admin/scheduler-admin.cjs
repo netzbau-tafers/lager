@@ -18,7 +18,7 @@ async function master(request){
 async function scheduler(path,method='GET'){
  const client=await authClient.getClient();
  const token=await client.getAccessToken();
- const response=await fetch('https://cloudscheduler.googleapis.com/v1/'+path,{method,headers:{Authorization:'Bearer '+token.token}});
+ const response=await fetch('https://cloudscheduler.googleapis.com/v1/'+path,{method,headers:{Authorization:'Bearer '+token.token,...(method==='POST'?{'Content-Type':'application/json'}:{})},...(method==='POST'?{body:'{}'}:{})});
  const data=await response.json().catch(()=>({}));
  if(!response.ok){console.error('Scheduler API',response.status,data.error?.message);throw new HttpsError('internal','Cloud Scheduler Fehler ('+response.status+'). IAM-Berechtigungen und aktivierte API prüfen.');}
  return data;
