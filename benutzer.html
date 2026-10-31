@@ -291,6 +291,22 @@ function logout(){if(confirm('Wirklich ausloggen?'))auth.signOut().then(()=>loca
   dialog.addEventListener('close',()=>opener.focus());
 })();
 </script>
+<section id="schedulerPanel" class="card" style="max-width:1000px;margin:24px auto" hidden>
+<h2><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Hintergrundprozesse</h2>
+<p class="muted">Geplante Cloud-Scheduler-Aufrufe für alle Benutzer zentral pausieren oder aktivieren.</p>
+<div id="schedulerJobs"></div><p id="schedulerStatus" role="status" aria-live="polite"></p>
+<p class="muted">Bereits laufende Prozesse können noch fertiglaufen. Andere Firebase-Kosten werden dadurch nicht abgeschaltet.</p>
+</section>
+<style>
+#schedulerPanel .scheduler-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 0;border-bottom:1px solid #e5eaf0}
+#schedulerPanel .scheduler-row:last-child{border-bottom:0}
+#schedulerPanel .scheduler-row strong{display:block;margin-bottom:5px}
+#schedulerPanel .scheduler-row small{display:block;color:#526478;line-height:1.5}
+#schedulerPanel .scheduler-row button{min-width:120px}
+#schedulerPanel .scheduler-row button.pause{background:#64748b}
+@media(max-width:680px){#schedulerPanel .scheduler-row{align-items:stretch;flex-direction:column}#schedulerPanel .scheduler-row button{width:100%}}
+</style>
+<script src="scheduler-admin.js?v=20261031"></script>
 <script src="navigation.js?v=20261010-verwaltung-reihenfolge"></script>
 </body></html>
 
