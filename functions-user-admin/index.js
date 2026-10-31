@@ -83,3 +83,7 @@ exports.lagerVehicleServiceReminder=onSchedule({...vehicleSchedule,schedule:'0 7
 
 const {createTakeoverNotifier}=require('./vehicle-takeover.cjs');
 exports.lagerVehicleTakeoverNotify=onDocumentCreated({document:'fahrzeuge/{vehicleId}/verlauf/{eventId}',region:'europe-west1',maxInstances:2,retry:false},createTakeoverNotifier({db:getFirestore(),auth:getAuth(),messaging:getMessaging(),logger}));
+
+const schedulerAdmin=require('./scheduler-admin.cjs');
+exports.lagerSchedulerStatus=onCall({region:'europe-west1',maxInstances:2},schedulerAdmin.status);
+exports.lagerSchedulerSet=onCall({region:'europe-west1',maxInstances:2},schedulerAdmin.set);
