@@ -291,46 +291,6 @@ function logout(){if(confirm('Wirklich ausloggen?'))auth.signOut().then(()=>loca
   dialog.addEventListener('close',()=>opener.focus());
 })();
 </script>
-<section id="christmasPreviewPanel" class="card" style="max-width:1000px;margin:24px auto" hidden>
-  <h2><i class="fa-solid fa-snowflake" aria-hidden="true"></i> Weihnachtsdesign – Vorschau</h2>
-  <p class="muted">Teste das Weihnachtsbild auf der Startseite. Nur dieser Browser-Tab wird beeinflusst. Die automatische Anzeige vom 1. bis 31. Dezember bleibt unverändert.</p>
-  <div class="christmas-preview-actions" role="group" aria-label="Weihnachtsdesign Vorschau">
-    <button type="button" data-preview="on"><i class="fa-solid fa-snowflake" aria-hidden="true"></i> Test EIN</button>
-    <button type="button" data-preview="off">Test AUS</button>
-    <button type="button" data-preview="auto">Automatik</button>
-  </div>
-  <p id="christmasPreviewStatus" class="muted" role="status" aria-live="polite"></p>
-  <a href="home.html">Zur Startseite und Vorschau ansehen</a>
-</section>
-<style>
-#christmasPreviewPanel .christmas-preview-actions{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
-#christmasPreviewPanel .christmas-preview-actions button[aria-pressed="true"]{outline:3px solid #153352;outline-offset:2px}
-@media(max-width:680px){#christmasPreviewPanel .christmas-preview-actions button{flex:1 1 120px}}
-</style>
-<script>
-(function(){
-  const panel=document.getElementById('christmasPreviewPanel');
-  const status=document.getElementById('christmasPreviewStatus');
-  const buttons=panel.querySelectorAll('[data-preview]');
-  function current(){try{return sessionStorage.getItem('lager-christmas-preview')||'auto'}catch(_){return 'auto'}}
-  function render(){
-    const choice=current();
-    buttons.forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.preview===choice)));
-    status.textContent=choice==='on'?'Vorschau eingeschaltet. Auf der Startseite wird das Weihnachtsdesign angezeigt.':choice==='off'?'Vorschau ausgeschaltet. Auf der Startseite wird das Standardbild angezeigt.':'Automatik aktiv: Weihnachtsdesign jeweils vom 1. bis 31. Dezember (Schweizer Zeit).';
-  }
-  buttons.forEach(button=>button.addEventListener('click',()=>{
-    try{
-      if(button.dataset.preview==='auto')sessionStorage.removeItem('lager-christmas-preview');
-      else sessionStorage.setItem('lager-christmas-preview',button.dataset.preview);
-    }catch(_){}
-    render();
-  }));
-  LagerAccess.onAuthStateChanged(user=>{
-    panel.hidden=!user||!LagerAccess.write('benutzer');
-  });
-  render();
-})();
-</script>
 <section id="schedulerPanel" class="card" style="max-width:1000px;margin:24px auto" hidden>
 <h2><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Hintergrundprozesse</h2>
 <p class="muted">Geplante Cloud-Scheduler-Aufrufe für alle Benutzer zentral pausieren oder aktivieren.</p>
