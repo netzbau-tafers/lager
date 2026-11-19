@@ -318,6 +318,35 @@ button:hover{
   stroke-linecap:round;
   stroke-linejoin:round;
 }
+
+/* Dezenter Schneefall nur auf der Startseite im Dezember. */
+.home-snowfall{
+  position:fixed;
+  inset:0;
+  overflow:hidden;
+  pointer-events:none;
+  z-index:1200;
+  contain:layout style paint;
+}
+.home-snowflake{
+  position:absolute;
+  top:-16px;
+  left:var(--snow-left);
+  width:var(--snow-size);
+  height:var(--snow-size);
+  border-radius:50%;
+  background:rgba(255,255,255,var(--snow-opacity));
+  box-shadow:0 0 3px 1px rgba(145,183,219,.32);
+  animation:home-snow-fall var(--snow-duration) linear var(--snow-delay) infinite;
+  will-change:transform;
+}
+@keyframes home-snow-fall{
+  from{transform:translate3d(0,-20px,0);}
+  to{transform:translate3d(var(--snow-drift),calc(100vh + 32px),0);}
+}
+@media (prefers-reduced-motion:reduce){
+  .home-snowfall{display:none;}
+}
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="zugriffsrechte.js?v=20261010-fahrtenbuch"></script>
@@ -458,6 +487,45 @@ function setSeasonalHomeLogo(){
 }
 
 
+
+
+/** Baut den reinen Dekorationseffekt auf der Startseite mit genau 65 Flocken auf. */
+function createHomeSnowfall(){
+  if(document.getElementById("homeSnowfall")) return;
+  const layer = document.createElement("div");
+  layer.id = "homeSnowfall";
+  layer.className = "home-snowfall";
+  layer.setAttribute("aria-hidden", "true");
+  const fragment = document.createDocumentFragment();
+  for(let i = 0; i < 65; i++){
+    const flake = document.createElement("span");
+    flake.className = "home-snowflake";
+    const size = 2 + Math.random() * 3.2;
+    const duration = 12 + Math.random() * 16;
+    flake.style.setProperty("--snow-left", (Math.random() * 100).toFixed(2) + "%");
+    flake.style.setProperty("--snow-size", size.toFixed(2) + "px");
+    flake.style.setProperty("--snow-opacity", (0.45 + Math.random() * 0.45).toFixed(2));
+    flake.style.setProperty("--snow-duration", duration.toFixed(2) + "s");
+    flake.style.setProperty("--snow-delay", (-Math.random() * duration).toFixed(2) + "s");
+    flake.style.setProperty("--snow-drift", ((Math.random() - .5) * 100).toFixed(1) + "px");
+    fragment.appendChild(flake);
+  }
+  layer.appendChild(fragment);
+  document.body.appendChild(layer);
+}
+
+function updateSeasonalHomeSnowfall(){
+  const isDecemberInSwitzerland = Number(new Intl.DateTimeFormat("en-US", {
+    timeZone: "Europe/Zurich",
+    month: "numeric"
+  }).format(new Date())) === 12;
+  const homepageVisible = document.getElementById("appContent")?.style.display !== "none";
+  if(isDecemberInSwitzerland && homepageVisible){
+    createHomeSnowfall();
+  }else{
+    document.getElementById("homeSnowfall")?.remove();
+  }
+}
 
 function setNavigationVisibility(user){
   const isAdminUser = !!(user && isAdminUid(user.uid));
@@ -708,6 +776,9 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("DOMContentLoaded", setSeasonalHomeLogo);
+document.addEventListener("DOMContentLoaded", updateSeasonalHomeSnowfall);
+// Auch bei einem offenen Tab zum Monatswechsel automatisch aktualisieren.
+setInterval(() => { setSeasonalHomeLogo(); updateSeasonalHomeSnowfall(); }, 60000);
 document.addEventListener("DOMContentLoaded", markActiveMenu);
 document.addEventListener("DOMContentLoaded", loadHomeInfos);
 
@@ -722,11 +793,13 @@ LagerAccess.onAuthStateChanged((user) => {
     setNavigationVisibility(user);
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
+    updateSeasonalHomeSnowfall();
   }else{
     setNavigationVisibility(null);
     closeMenu();
     document.getElementById("loginScreen").style.display = "flex";
     document.getElementById("appContent").style.display = "none";
+    updateSeasonalHomeSnowfall();
   }
 });
 </script>
