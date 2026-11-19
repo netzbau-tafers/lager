@@ -242,21 +242,6 @@ button:hover{
   display:block;
 }
 
-/* Weihnachtliche Gestaltung nur vom 1. bis 31. Dezember (Schweizer Zeit). */
-.christmas-overlay{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit:fill;
-  pointer-events:none;
-  z-index:2;
-  display:none;
-}
-.hero-image-wrap.is-christmas .christmas-overlay{
-  display:block;
-}
-
 .home-infos{
   padding:20px;
   border-top:1px solid #e1e6ed;
@@ -411,9 +396,8 @@ button:hover{
       </a>
     </div>
 
-    <div class="hero-image-wrap" id="seasonalHero">
+    <div class="hero-image-wrap">
       <img src="ChatGPT Image 10. März 2026, 21_46_18.png" alt="Netzbau Elite Tafers" class="hero-image">
-      <img src="weihnachten-overlay.svg" alt="" aria-hidden="true" class="christmas-overlay">
       <a href="strommast-game.html" class="hero-game-link" aria-label="Mast Runner öffnen"></a>
     </div>
 
@@ -700,21 +684,6 @@ document.addEventListener("click", (event) => {
 
 document.addEventListener("DOMContentLoaded", markActiveMenu);
 document.addEventListener("DOMContentLoaded", loadHomeInfos);
-
-// Kalenderdatum in der Zeitzone Schweiz, unabhängig von der Geräte-Zeitzone.
-function updateSeasonalHero(){
-  const hero = document.getElementById("seasonalHero");
-  if(!hero) return;
-  const month = new Intl.DateTimeFormat("en-US",{
-    timeZone:"Europe/Zurich",month:"numeric"
-  }).format(new Date());
-  // Nur eine lokale Vorschau; die automatische Dezember-Regel bleibt unverändert.
-  let preview = null;
-  try { preview = sessionStorage.getItem("lager-christmas-preview"); } catch (_) {}
-  hero.classList.toggle("is-christmas", preview === "on" ? true : preview === "off" ? false : month === "12");
-}
-document.addEventListener("DOMContentLoaded",updateSeasonalHero);
-setInterval(updateSeasonalHero,60 * 1000);
 
 LagerAccess.onAuthStateChanged((user) => {
   if(user){
