@@ -1714,7 +1714,11 @@ function formatMultilineText(value){
   return escapeHtml(value || "").replace(/\n/g, "<br>");
 }
 
+let reserviertVonPrefillVersion = 0;
+
 function toggleReserviertVonInput(checkboxId, inputId){
+  // Laufende Namensabfragen beim Umschalten ungültig machen.
+  reserviertVonPrefillVersion++;
   const checkbox = document.getElementById(checkboxId);
   const input = document.getElementById(inputId);
 
@@ -1728,6 +1732,36 @@ function toggleReserviertVonInput(checkboxId, inputId){
   if(!sichtbar){
     input.value = "";
   }
+}
+
+function prefillReserviertVon(checkboxId, inputId){
+  const checkbox = document.getElementById(checkboxId);
+  const input = document.getElementById(inputId);
+  const user = auth.currentUser;
+
+  // Vorhandene (auch manuell eingetragene) Namen nie ersetzen.
+  if(!user || !checkbox || !checkbox.checked || !input || input.value.trim()){
+    return;
+  }
+
+  const version = reserviertVonPrefillVersion;
+  // Sofort eine verfügbare Bezeichnung anzeigen, danach den Profilnamen bevorzugen.
+  const fallbackName = sanitizeInput(user.displayName || getStoredUsername() || user.email || "", 120);
+  input.value = fallbackName;
+
+  usersCollection.doc(user.uid).get().then(doc => {
+    const profil = doc.exists ? (doc.data() || {}) : {};
+    const profilName = sanitizeInput(profil.username || "", 120);
+    if(profilName
+      && reserviertVonPrefillVersion === version
+      && auth.currentUser && auth.currentUser.uid === user.uid
+      && checkbox.checked && input.value === fallbackName){
+      input.value = profilName;
+    }
+  }).catch(error => {
+    // Fallback bleibt erhalten, falls das Benutzerprofil nicht geladen werden kann.
+    console.warn("Benutzername für Reservierung konnte nicht geladen werden:", error);
+  });
 }
 
 function formatDatum(value){
@@ -3294,14 +3328,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const reserviertCheckbox = document.getElementById("reserviert");
   if(reserviertCheckbox){
-    reserviertCheckbox.addEventListener("change", () => toggleReserviertVonInput("reserviert", "reserviertVon"));
+    reserviertCheckbox.addEventListener("change", () => {
+      toggleReserviertVonInput("reserviert", "reserviertVon");
+      prefillReserviertVon("reserviert", "reserviertVon");
+    });
   }
   toggleReserviertVonInput("reserviert", "reserviertVon");
 
   const returnReserviertCheckbox = document.getElementById("returnReserviert");
   if(returnReserviertCheckbox){
-    returnReserviertCheckbox.addEventListener("change", () => toggleReserviertVonInput("returnReserviert", "returnReserviertVon"));
+    returnReserviertCheckbox.addEventListener("change", () => {
+      toggleReserviertVonInput("returnReserviert", "returnReserviertVon");
+      prefillReserviertVon("returnReserviert", "returnReserviertVon");
+    });
   }
+
+  // Nutzeränderungen haben immer Vorrang vor einer noch laufenden Profilabfrage.
+  ["reserviertVon", "returnReserviertVon"].forEach(id => {
+    document.getElementById(id)?.addEventListener("input", () => {
+      reserviertVonPrefillVersion++;
+    });
+  });
 });
 
 function saveBobine(){
@@ -3664,6 +3711,7 @@ function deleteBobine(id){
 }
 
 function closeModal(){
+  reserviertVonPrefillVersion++;
   document.getElementById("modal").style.display = "none";
   document.getElementById("returnModal").style.display = "none";
   document.getElementById("usageNumbersModal").style.display = "none";
