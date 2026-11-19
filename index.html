@@ -290,6 +290,16 @@ th{
   background:#fff3a3;
 }
 
+/* Reapro: dezentes Blau nur für verfügbare Lager-Bobinen. */
+.main-row.instock.reapro:not(.reserved),
+.mobile-card.instock.reapro:not(.reserved){
+  background:#d8eaf8;
+}
+.bobinen-badge.reapro-badge{
+  background:#c4dff3;
+  color:#174c73;
+}
+
 .main-row td{
   vertical-align:middle;
 }
@@ -1217,6 +1227,14 @@ textarea{
       </select>
     </div>
 
+    <details class="advanced-search" style="margin-top:10px;">
+      <summary style="cursor:pointer;font-weight:bold;padding:8px 0;">Erweiterte Suche</summary>
+      <label class="checkbox-row" style="max-width:320px;">
+        <input type="checkbox" id="reaproFilter" onchange="renderFilteredTable(true)">
+        <span class="checkbox-label-text">Reapro (nur markierte Kabel)</span>
+      </label>
+    </details>
+
     <div style="margin-top:15px;">
       <button onclick="openAdd()" data-access-write="kabellager"><i class="fa-solid fa-plus"></i> Neue Bobine hinzufügen</button>
     </div>
@@ -1349,6 +1367,10 @@ textarea{
 
       <input id="laenge" placeholder="Länge (m)" maxlength="40">
       <input id="baustelle" placeholder="Baustelle" maxlength="120">
+      <label class="checkbox-row hidden" id="reaproRow">
+        <input type="checkbox" id="reapro">
+        <span class="checkbox-label-text">Reapro</span>
+      </label>
       <input id="hersteller" placeholder="Hersteller" maxlength="120">
       <textarea id="infos" placeholder="Infos" maxlength="500" rows="4"></textarea>
 
@@ -1438,6 +1460,26 @@ const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "pmyu29TlC3QM7JIysmy2EmiHSWW
 const LIMITED_ACCESS_UIDS = ["POSB6W7xeDZ8Dlba03ZP3J02dMC3", "AX08qKp7lte6vslQMFn76FVqxw53", "KYqiqNKTmkQQYVWAa6bp6vSvTlV2"];
 const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
 const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
+
+const REAPRO_KABELTYPEN = new Set([
+  "GKN 3x10/10mm² Cu",
+  "GKN 3x25/25mm² Cu",
+  "GKN 3x50/50mm² Cu",
+  "GKN 3x95/95mm² Cu Flex"
+]);
+
+function isReaproKabeltyp(typ){
+  return REAPRO_KABELTYPEN.has(sanitizeInput(typ || "", 120));
+}
+
+function updateReaproVisibility(){
+  const row = document.getElementById("reaproRow");
+  const checkbox = document.getElementById("reapro");
+  if(!row || !checkbox) return;
+  const erlaubt = isReaproKabeltyp(getSelectedTyp());
+  row.classList.toggle("hidden", !erlaubt);
+  if(!erlaubt) checkbox.checked = false;
+}
 
 const PREDEFINED_KABELTYPEN = [
   "GKN 3x6/6mm² Cu",
@@ -2105,6 +2147,7 @@ function handleTypChange(){
     typCustom.classList.add("hidden");
     typCustom.value = "";
   }
+  updateReaproVisibility();
 }
 
 function getSelectedTyp(){
@@ -2144,6 +2187,7 @@ function setTypFields(typValue){
     typCustom.value = "";
     typCustom.classList.add("hidden");
   }
+  updateReaproVisibility();
 }
 
 function toggleMenu(event){
@@ -2425,7 +2469,7 @@ function renderDesktopTable(data){
     const isInUse = b.status === "In Gebrauch";
     const inGebrauchVon = b.inGebrauchVonName || b.inGebrauchVonEmail || "Unbekannt";
     const isDetailOpen = openDetailsRows.has(docItem.id);
-    const bobinenBadge = getBobinenBadgeHtml(!!b.istDreiBobinen, !!b.mehrereKabelAufBobine);
+    const bobinenBadge = getBobinenBadgeHtml(!!b.istDreiBobinen, !!b.mehrereKabelAufBobine) + (b.reapro ? ' <span class="bobinen-badges"><span class="bobinen-badge reapro-badge">Reapro</span></span>' : "");
 
     const statusButtonText = b.status === "Lager" ? "In Gebrauch" : "Zurück ins Lager";
     const statusButtonIcon = b.status === "Lager" ? "fa-arrow-right" : "fa-rotate-left";
@@ -2437,7 +2481,7 @@ function renderDesktopTable(data){
     mainRow.id = "overview-bobine-" + docItem.id;
     const statusClass = b.status === "Lager" ? "instock" : "inuse";
     const reserviertClass = b.status === "Lager" && b.reserviert ? " reserved" : "";
-    mainRow.className = "main-row " + statusClass + reserviertClass;
+    mainRow.className = "main-row " + statusClass + reserviertClass + (b.reapro ? " reapro" : "");
 
     mainRow.innerHTML = `
       <td><div class="desktop-nummer-cell"><span class="desktop-nummer-value">${escapeHtml(b.nummer || "")}</span>${bobinenBadge}</div></td>
@@ -2583,13 +2627,13 @@ function renderMobileCards(data){
     const statusButtonIcon = b.status === "Lager" ? "fa-arrow-right" : "fa-rotate-left";
     const statusClass = b.status === "Lager" ? "instock" : "inuse";
     const reserviertClass = b.status === "Lager" && b.reserviert ? " reserved" : "";
-    const bobinenBadge = getBobinenBadgeHtml(!!b.istDreiBobinen, !!b.mehrereKabelAufBobine);
+    const bobinenBadge = getBobinenBadgeHtml(!!b.istDreiBobinen, !!b.mehrereKabelAufBobine) + (b.reapro ? ' <span class="bobinen-badges"><span class="bobinen-badge reapro-badge">Reapro</span></span>' : "");
     const inUseCaptureButton = b.status === "In Gebrauch"
       ? '<button type="button" class="capture-btn js-open-usage-numbers" data-access-write="kabellager"><i class="fa-solid fa-ruler"></i> Nummern</button>'
       : "";
 
     const card = document.createElement("div");
-    card.className = "mobile-card " + statusClass + reserviertClass;
+    card.className = "mobile-card " + statusClass + reserviertClass + (b.reapro ? " reapro" : "");
     card.id = "overview-mobile-bobine-" + docItem.id;
 
     const mobileStatusDetailsHtml = `
@@ -2876,6 +2920,7 @@ function renderFilteredTable(filterChanged = false){
   if(filterChanged){focusedBobineId = null; overviewBobineId = null;}
   let overviewTarget = null;
   if(overviewBobineId){
+    document.getElementById("reaproFilter").checked = false;
     overviewTarget = alleBobinen.find(item => item.id === overviewBobineId);
     if(overviewTarget){
       document.getElementById('searchInput').value = String(overviewTarget.data().nummer || '');
@@ -2886,6 +2931,7 @@ function renderFilteredTable(filterChanged = false){
   }
   const suchbegriff = document.getElementById("searchInput").value.trim().toLowerCase();
   const statusFilter = document.getElementById("statusFilter").value;
+  const reaproFilter = document.getElementById("reaproFilter").checked;
 
   const gefiltert = alleBobinen.filter(docItem => {
     if(focusedBobineId && docItem.id !== focusedBobineId) return false;
@@ -2912,7 +2958,7 @@ function renderFilteredTable(filterChanged = false){
       (statusFilter === "Reserviert" && status === "Lager" && !!b.reserviert) ||
       status === statusFilter;
 
-    return textPasst && statusPasst;
+    return textPasst && statusPasst && (!reaproFilter || b.reapro === true);
   });
 
   gefiltert.sort(compareBobinenByNummer);
@@ -2952,6 +2998,7 @@ function resetSearch(){
   focusedBobineId = null; overviewBobineId = null;
   document.getElementById("searchInput").value = "";
   document.getElementById("statusFilter").value = "Alle";
+  document.getElementById("reaproFilter").checked = false;
   renderFilteredTable();
 }
 
@@ -2981,6 +3028,8 @@ function openAdd(){
   setBobinenHinweisSelection(false, false);
   document.getElementById("laenge").value = "";
   document.getElementById("baustelle").value = "";
+  document.getElementById("reapro").checked = false;
+  updateReaproVisibility();
   document.getElementById("hersteller").value = "";
   document.getElementById("infos").value = "";
   document.getElementById("reserviert").checked = false;
@@ -3009,6 +3058,8 @@ function editBobine(id){
     setBobinenHinweisSelection(!!b.istDreiBobinen, !!b.mehrereKabelAufBobine);
     document.getElementById("laenge").value = sanitizeInput(b.laenge || "", 40);
     document.getElementById("baustelle").value = sanitizeInput(b.baustelle || "", 120);
+    document.getElementById("reapro").checked = isReaproKabeltyp(b.typ) && b.reapro === true;
+    updateReaproVisibility();
     document.getElementById("hersteller").value = sanitizeInput(b.hersteller || "", 120);
     document.getElementById("infos").value = sanitizeInput(b.infos || "", 500);
     document.getElementById("reserviert").checked = !!b.reserviert;
@@ -3162,6 +3213,7 @@ function saveBobine(){
   const mehrereKabelAufBobine = !istDreiBobinen && document.getElementById("mehrereKabelAufBobine").checked;
   const laenge = sanitizeInput(document.getElementById("laenge").value, 40);
   const baustelle = sanitizeInput(document.getElementById("baustelle").value, 120);
+  const reapro = isReaproKabeltyp(typ) && document.getElementById("reapro").checked;
   const hersteller = sanitizeInput(document.getElementById("hersteller").value, 120);
   const infos = sanitizeInput(document.getElementById("infos").value, 500);
   const reserviert = document.getElementById("reserviert").checked;
@@ -3195,6 +3247,7 @@ function saveBobine(){
     mehrereKabelAufBobine: mehrereKabelAufBobine,
     laenge: laenge,
     baustelle: baustelle,
+    reapro: reapro,
     hersteller: hersteller,
     infos: infos,
     reserviert: reserviert,
@@ -3231,6 +3284,7 @@ function saveBobine(){
             " | Mehrere Kabel auf einer Bobine: " + (mehrereKabelAufBobine ? "Ja" : "Nein") +
             " | Länge: " + laenge +
             " | Baustelle: " + baustelle +
+            " | Reapro: " + (reapro ? "Ja" : "Nein") +
             " | Hersteller: " + hersteller +
             " | Infos: " + infos +
             " | Reserviert: " + (reserviert ? "Ja" : "Nein") +
@@ -3272,6 +3326,7 @@ function saveBobine(){
           " | Mehrere Kabel auf einer Bobine: " + (mehrereKabelAufBobine ? "Ja" : "Nein") +
           " | Länge: " + laenge +
           " | Baustelle: " + baustelle +
+            " | Reapro: " + (reapro ? "Ja" : "Nein") +
           " | Hersteller: " + hersteller +
           " | Infos: " + infos +
           " | Reserviert: " + (reserviert ? "Ja" : "Nein") +
