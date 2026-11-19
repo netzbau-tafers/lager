@@ -226,6 +226,40 @@ button i{
   margin:0;
 }
 
+/* Kompakte, responsive Farblegende für die Bobinenübersicht. */
+.status-legend{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px;
+  margin:8px 0 16px;
+}
+.status-legend-item{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 11px;
+  background:#f5f7fa;
+  border:1px solid #e4e9ef;
+  border-radius:999px;
+  color:#334155;
+  font-size:12px;
+  font-weight:600;
+  white-space:nowrap;
+}
+.status-legend-dot{
+  display:inline-block;
+  flex:0 0 13px;
+  width:13px;
+  height:13px;
+  border-radius:50%;
+  border:1px solid rgba(0,0,0,.13);
+}
+.status-legend-dot.instock{background:#d9ffd9;}
+.status-legend-dot.inuse{background:#ffd9d9;}
+.status-legend-dot.reserved{background:#fff3a3;}
+.status-legend-dot.reapro{background:#d8eaf8;}
+
 .print-btn{
   background:#2d7d46;
 }
@@ -1240,6 +1274,13 @@ textarea{
     <button type="button" class="print-btn" onclick="printInventoryReport()">
       <i class="fa-solid fa-print"></i> Drucken
     </button>
+  </div>
+
+  <div class="status-legend" aria-label="Bedeutung der Bobinenfarben">
+    <span class="status-legend-item"><span class="status-legend-dot instock" aria-hidden="true"></span>Im Lager</span>
+    <span class="status-legend-item"><span class="status-legend-dot inuse" aria-hidden="true"></span>In Gebrauch</span>
+    <span class="status-legend-item"><span class="status-legend-dot reserved" aria-hidden="true"></span>Reserviert</span>
+    <span class="status-legend-item"><span class="status-legend-dot reapro" aria-hidden="true"></span>Reapro</span>
   </div>
 
   <div class="desktop-table-wrap">
