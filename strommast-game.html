@@ -661,9 +661,151 @@ canvas{
     font-size:13px;
   }
 }
+
+/* Mobile Startübersicht – getrennt von Spielgrafik und Spielmechanik. */
+#mrMobileLanding{display:none}
+@media(max-width:700px){
+  body.auth-loading #mrMobileLanding{display:none!important}
+  body:not(.mr-playing) .game-wrap{display:none}
+  body:not(.mr-playing)>.app-footer{display:none}
+  #mrMobileLanding{display:block;margin:0 auto;max-width:570px;min-height:100dvh;background:#f4f7fa;color:#132c42;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+  body.mr-playing #mrMobileLanding{display:none}
+  #mrMobileLanding *{box-sizing:border-box}
+  #mrMobileLanding button{font:inherit;cursor:pointer;box-shadow:none;transform:none;transition:background .18s,border-color .18s,transform .18s}
+  #mrMobileLanding button:focus-visible,#mrMobileLanding summary:focus-visible{outline:3px solid #4aa9ff;outline-offset:3px}
+  .mr-header{background:#102a43;color:#fff;padding:max(18px,env(safe-area-inset-top)) 22px 19px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .mr-brand{display:flex;gap:11px;align-items:center;min-width:0}
+  .mr-mark{width:42px;height:42px;border:1px solid rgba(174,219,255,.17);border-radius:13px;display:grid;place-items:center;background:rgba(138,199,249,.14);flex:none}
+  .mr-mark svg{width:25px;height:25px}
+  .mr-brand small{display:block;font-size:10px;font-weight:800;letter-spacing:.13em;color:#acc8d9;margin-bottom:4px}
+  .mr-brand strong{font-size:18px;letter-spacing:-.04em}
+  #mrMobileLanding .mr-back{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.13);padding:11px 12px;border-radius:13px;color:#fff;font-size:12px;font-weight:700;white-space:nowrap}
+  .mr-back svg{width:16px;height:16px}
+  .mr-hero{background:linear-gradient(160deg,#102a43,#16415c 92%);color:#fff;padding:24px 22px 0;overflow:hidden}
+  .mr-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.15em;font-weight:800;color:#b6dfef;display:flex;align-items:center;gap:9px}
+  .mr-dot{width:7px;height:7px;background:#79dcb5;border-radius:50%;box-shadow:0 0 0 4px rgba(121,220,181,.11)}
+  #mrMobileLanding .mr-hero h1{margin:10px 0 6px;color:#fff;font-size:clamp(39px,9.3vw,56px);line-height:1.03;font-weight:850;letter-spacing:-.075em}
+  .mr-hero p{margin:0;color:#bfd4e3;font-size:14px;line-height:1.55;max-width:310px}
+  .mr-scene{height:155px;position:relative;overflow:hidden;margin:20px -22px 0}
+  .mr-scene svg{width:100%;height:100%;display:block}
+  .mr-scene::after{content:"";height:9px;position:absolute;left:0;right:0;bottom:0;background:#234960}
+  .mr-scene-figure{position:absolute;z-index:1;bottom:12px;left:20%;width:46px;height:46px;display:grid;place-items:center;border-radius:50%;font-size:29px;background:#fff;border:4px solid #d6ecfa;box-shadow:0 8px 18px rgba(9,32,49,.23)}
+  .mr-main{padding:0 16px 28px}
+  .mr-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 12px}
+  .mr-stat{background:#fff;padding:14px 17px 13px;border:1px solid #e5edf3;border-radius:0 0 17px 17px;min-width:0}
+  .mr-stat-label{color:#6c8190;font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase}
+  .mr-stat-label span{color:#2884c6;margin-right:5px}
+  .mr-stat-value{font-size:28px;letter-spacing:-.055em;font-weight:850;margin-top:5px;line-height:1.2;font-variant-numeric:tabular-nums}
+  .mr-card{border:1px solid #e3ebf0;box-shadow:0 15px 30px rgba(14,42,65,.075);background:#fff;border-radius:22px;margin-top:14px;overflow:hidden}
+  .mr-pick{padding:21px 0 17px}
+  .mr-section-head{padding:0 19px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  #mrMobileLanding h2{font-size:19px;line-height:1.15;letter-spacing:-.045em;margin:0;font-weight:800;color:#132c42}
+  .mr-section-sub{font-size:12px;line-height:1.5;color:#768898;margin:6px 0 0}
+  .mr-tag{background:#edf6fb;border:1px solid #dfedf7;color:#3c7197;padding:5px 9px;border-radius:100px;font-size:11px;font-weight:750;white-space:nowrap}
+  .mr-characters{display:flex;gap:9px;overflow-x:auto;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;padding:18px 19px 10px;scrollbar-width:thin;scrollbar-color:#c4d7e7 transparent}
+  #mrMobileLanding .mr-character{min-width:110px;max-width:110px;min-height:136px;padding:15px 8px 12px;scroll-snap-align:center;background:#f7fafd;border:1.5px solid #e6edf3;border-radius:16px;color:#132c42;display:flex;align-items:center;flex-direction:column;gap:5px;position:relative;text-align:center}
+  #mrMobileLanding .mr-character[aria-pressed="true"]{background:#e9f5ff;border-color:#3289d5;box-shadow:inset 0 0 0 1px #3289d5}
+  .mr-character[aria-pressed="true"]::after{content:"✓";position:absolute;right:8px;top:7px;background:#2378ca;color:#fff;width:19px;height:19px;line-height:19px;text-align:center;border-radius:50%;font-size:11px;font-weight:800}
+  .mr-character .mr-emoji{font-size:32px;line-height:1.3;margin:8px 0 5px}
+  .mr-character strong{font-size:12px;white-space:nowrap;letter-spacing:-.015em}
+  .mr-character small{font-size:10px;line-height:1.3;max-width:95px;color:#758d9d}
+  .mr-pick-caption{padding:5px 19px 0;display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11px}
+  #mrChosenCharacter{color:#51758d;font-weight:700}
+  .mr-swipe{color:#8ca0b0}
+  .mr-action{padding:15px 19px 19px}
+  #mrMobileLanding .mr-start{width:100%;display:flex;align-items:center;justify-content:center;gap:11px;background:linear-gradient(135deg,#268ce0,#116cbf);color:white;border:0;border-radius:14px;padding:16px 20px;font-size:16px;font-weight:850;box-shadow:0 9px 20px rgba(25,113,198,.18)}
+  .mr-play-icon{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.18);font-size:12px;padding-left:2px}
+  .mr-micro-help{display:flex;justify-content:center;gap:7px;align-items:center;margin:13px 0 0;font-size:11px;color:#8395a2}
+  .mr-ranking-wrap{padding:20px 19px 5px}
+  .mr-rank-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}
+  .mr-rank-heading{display:flex;align-items:center;gap:10px}
+  .mr-trophy{font-size:24px;color:#d7a550}
+  .mr-ranking{list-style:none;padding:0;margin:0}
+  .mr-ranking li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:11px;padding:12px 0;border-top:1px solid #f0f3f5}
+  .mr-rank-num{height:27px;width:27px;display:grid;place-items:center;background:#f0f4f7;color:#718294;border-radius:9px;font-size:12px;font-weight:850}
+  .mr-ranking li:first-child .mr-rank-num{background:#fff1d5;color:#bd8524}
+  .mr-rank-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:750}
+  .mr-rank-score{white-space:nowrap;font-size:13px;font-weight:850;font-variant-numeric:tabular-nums;color:#31516b}
+  .mr-rank-score small{font-weight:500;color:#8496a4;font-size:10px}
+  #mrMobileLanding .mr-more{width:100%;background:#f4f8fb;border:0;border-radius:11px;color:#3d7094;font-size:12px;font-weight:800;padding:12px;margin:8px 0 16px}
+  #mrMobileLanding .mr-more[hidden]{display:none}
+  .mr-rules{margin-top:14px;background:#fff;border:1px solid #e3ebf0;border-radius:18px;overflow:hidden}
+  .mr-rules summary{list-style:none;padding:18px 19px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-size:13px;font-weight:780}
+  .mr-rules summary::-webkit-details-marker{display:none}
+  .mr-rule-body{padding:0 19px 16px;color:#647d90;font-size:12px;line-height:1.6}
+  .mr-rule-body p{margin:0 0 8px}
+  .mr-footer{color:#a4b0b9;font-size:11px;text-align:center;padding:20px 12px max(16px,env(safe-area-inset-bottom))}
+}
+@media(max-width:370px){
+  #mrMobileLanding .mr-header,#mrMobileLanding .mr-hero{padding-left:16px;padding-right:16px}
+  #mrMobileLanding .mr-scene{margin-left:-16px;margin-right:-16px}
+  #mrMobileLanding .mr-main{padding-left:12px;padding-right:12px}
+  #mrMobileLanding .mr-brand strong{font-size:16px}
+}
+
 </style>
 </head>
 <body class="auth-loading">
+
+  <!-- Die mobile Übersicht ist ein reiner Launcher; die bestehende Spieloberfläche bleibt darunter unverändert. -->
+  <div id="mrMobileLanding" aria-label="Mast Runner Spielübersicht">
+    <header class="mr-header">
+      <div class="mr-brand">
+        <div class="mr-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="#a8dcfa" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M16 3 8 29M16 3l8 26M11 12h10M8 21h16M11 12l12 9M21 12 9 21M5 29h22"/></svg></div>
+        <div><small>NETZBAU TAFERS</small><strong>Mast Runner</strong></div>
+      </div>
+      <button class="mr-back" type="button" onclick="window.location.href='home.html'" aria-label="Zur Startseite">← Zurück</button>
+    </header>
+    <section class="mr-hero">
+      <div class="mr-eyebrow"><span class="mr-dot"></span>Das Netzelektriker-Arcade-Spiel</div>
+      <h1>Mast<br>Runner<span style="color:#69bcef">.</span></h1>
+      <p>Spring über Hindernisse, sammle Punkte und kämpfe um die Top 10.</p>
+      <div class="mr-scene"><svg viewBox="0 0 560 155" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+  <defs><linearGradient id="mrSky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#286281"/><stop offset="1" stop-color="#7aacc1"/></linearGradient></defs>
+  <rect width="560" height="155" fill="url(#mrSky)"/>
+  <g fill="#d4e8ec" opacity=".65"><path d="M26 57c0-9 8-16 18-16 5-15 27-19 39-6 14-1 25 9 25 22z"/><path d="M357 33c0-8 7-13 16-13 9-11 25-10 31 3 13-1 20 4 21 10z"/></g>
+  <path d="M0 115Q75 79 148 115T300 112T560 103V155H0Z" fill="#9fbead"/>
+  <path d="M0 124Q84 91 170 125T390 119T560 123V155H0Z" fill="#86a89d"/>
+  <g fill="none" stroke="#d3e4e7" stroke-width="2.3" opacity=".9"><path d="M402 41 379 150M402 41l23 109M387 72h30M382 91h41M378 112h49M384 72l38 40M419 72l-40 40"/><path d="M502 63 485 150M502 63l17 87M491 85h23M487 104h31M489 85l28 19M514 85l-26 19"/><path d="M402 42q50 12 100 20M402 54q50 11 100 20" stroke-width="1.7"/></g>
+  <path d="M0 141h560" stroke="#d7d2b0" stroke-width="3"/>
+  <g fill="#3a6b6c"><path d="M292 123l15-37 15 37zM299 122v20h17v-20M331 128l10-24 10 24zM336 127v15h10v-15"/></g>
+  <path d="M0 147h560" stroke="#30566a" stroke-width="6"/>
+</svg><div class="mr-scene-figure" id="mrSceneFigure" aria-hidden="true">👷</div></div>
+    </section>
+    <main class="mr-main">
+      <section class="mr-stats" aria-label="Spielstatistik">
+        <div class="mr-stat"><div class="mr-stat-label"><span>◷</span> Punkte</div><div class="mr-stat-value" id="mrCurrentScore">0</div></div>
+        <div class="mr-stat"><div class="mr-stat-label"><span>♜</span> Dein Rekord</div><div class="mr-stat-value" id="mrBestScore">0</div></div>
+      </section>
+      <section class="mr-card mr-pick" aria-labelledby="mrCharactersTitle">
+        <div class="mr-section-head"><div><h2 id="mrCharactersTitle">Deine Spielfigur</h2><p class="mr-section-sub">Wähle deinen Favoriten aus.</p></div><div class="mr-tag">7 Figuren</div></div>
+        <div class="mr-characters" role="group" aria-label="Figur auswählen">
+<button type="button" class="mr-character" data-character="worker" aria-pressed="true"><span class="mr-emoji">👷</span><strong>Lehrling</strong><small>Starter</small></button>
+<button type="button" class="mr-character" data-character="frog" aria-pressed="false"><span class="mr-emoji">🐸</span><strong>Santivastler</strong><small>Sprungfreudig</small></button>
+<button type="button" class="mr-character" data-character="donkey" aria-pressed="false"><span class="mr-emoji">🫏</span><strong>Düdinger</strong><small>Robust</small></button>
+<button type="button" class="mr-character" data-character="unimog" aria-pressed="false"><span class="mr-emoji">🚛</span><strong>Unimog</strong><small>Breit gebaut</small></button>
+<button type="button" class="mr-character" data-character="sprinter" aria-pressed="false"><span class="mr-emoji">🚐</span><strong>Käta</strong><small>Flach gebaut</small></button>
+<button type="button" class="mr-character" data-character="chef" aria-pressed="false"><span class="mr-emoji">👑</span><strong>Chef</strong><small>Mit Stil</small></button>
+<button type="button" class="mr-character" data-character="buezer" aria-pressed="false"><span class="mr-emoji">💪</span><strong>Büezer</strong><small>Volle Energie</small></button>
+        </div>
+        <div class="mr-pick-caption"><span id="mrChosenCharacter">✓ Lehrling ausgewählt</span><span class="mr-swipe">← Wischen →</span></div>
+        <div class="mr-action">
+          <button id="mrStartButton" class="mr-start" type="button"><span class="mr-play-icon" aria-hidden="true">▶</span>Spiel starten</button>
+          <p class="mr-micro-help">♧ Im Spiel tippen, um zu springen</p>
+        </div>
+      </section>
+      <section class="mr-card mr-ranking-wrap" aria-labelledby="mrRankingTitle">
+        <div class="mr-rank-head"><div class="mr-rank-heading"><span class="mr-trophy" aria-hidden="true">🏆</span><div><h2 id="mrRankingTitle">Bestenliste</h2><p class="mr-section-sub">Top 10 · Live in der App</p></div></div><span class="mr-tag">TOP 10</span></div>
+        <ol id="mrRanking" class="mr-ranking" aria-live="polite"><li>Noch keine Einträge</li></ol>
+        <button id="mrRankingToggle" class="mr-more" type="button" aria-expanded="false" hidden>Alle 10 Plätze anzeigen ⌄</button>
+      </section>
+      <details class="mr-rules"><summary>ⓘ &nbsp; So funktioniert Mast Runner <span aria-hidden="true">⌄</span></summary>
+        <div class="mr-rule-body"><p>Tippe auf das Spielfeld, um zu springen. Am Computer funktionieren auch die Leertaste und die Pfeiltaste nach oben.</p><p>Weiche Hindernissen aus und versuche, in die Top 10 der Bestenliste zu kommen.</p></div>
+      </details>
+    </main>
+    <footer class="mr-footer">Mast Runner · Netzbau Tafers</footer>
+  </div>
+
   <div class="game-wrap" id="gameWrap">
     <div class="topbar">
       <div class="topbar-left">
@@ -989,6 +1131,7 @@ function renderRanking(){
     : "<li>Noch keine Einträge</li>";
 
   liveRankingList.innerHTML = html;
+  mrRenderRanking(ranking);
 }
 
 function canScoreReachLeaderboard(scoreValue, ranking = cloudRanking.length ? cloudRanking : loadRanking()){
@@ -2355,6 +2498,94 @@ LagerAccess.onAuthStateChanged((user) => {
 
   initializeGame();
 });
+
+
+/* Oberfläche des mobilen Startbildschirms. Keine Änderungen an Spielphysik oder Punkten. */
+let mrSelectedCharacter = "worker";
+let mrShowWholeRanking = false;
+
+function mrSyncStats(){
+  const current = document.getElementById("mrCurrentScore");
+  const record = document.getElementById("mrBestScore");
+  if(current) current.textContent = scoreEl.textContent;
+  if(record) record.textContent = bestScoreEl.textContent;
+}
+
+function mrRenderRanking(ranking){
+  const container = document.getElementById("mrRanking");
+  const toggle = document.getElementById("mrRankingToggle");
+  if(!container || !toggle) return;
+  const entries = Array.isArray(ranking) ? ranking.slice(0,10) : [];
+  container.replaceChildren();
+  if(!entries.length){
+    const empty = document.createElement("li");
+    empty.textContent = "Noch keine Einträge";
+    container.appendChild(empty);
+  }
+  entries.slice(0,mrShowWholeRanking ? 10 : 3).forEach((entry,index) => {
+    const li = document.createElement("li");
+    const number = document.createElement("span");
+    const name = document.createElement("span");
+    const value = document.createElement("span");
+    number.className = "mr-rank-num";
+    name.className = "mr-rank-name";
+    value.className = "mr-rank-score";
+    number.textContent = String(index + 1);
+    name.textContent = String(entry.name || "Unbekannt");
+    value.textContent = Number(entry.score || 0).toLocaleString("de-CH") + " Pkt.";
+    li.append(number,name,value);
+    container.appendChild(li);
+  });
+  toggle.hidden = entries.length <= 3;
+  toggle.setAttribute("aria-expanded", String(mrShowWholeRanking));
+  toggle.textContent = mrShowWholeRanking ? "Weniger anzeigen ⌃" : "Alle " + entries.length + " Plätze anzeigen ⌄";
+}
+
+function mrOpenOverview(){
+  if(gameRunning) return;
+  document.body.classList.remove("mr-playing");
+  mrSyncStats();
+  mrRenderRanking(cloudRanking.length ? cloudRanking : loadRanking());
+  window.scrollTo(0,0);
+}
+
+function mrInitLanding(){
+  const landing = document.getElementById("mrMobileLanding");
+  const start = document.getElementById("mrStartButton");
+  const toggle = document.getElementById("mrRankingToggle");
+  if(!landing || !start || !toggle) return;
+  landing.querySelectorAll(".mr-character").forEach(button => {
+    button.addEventListener("click", () => {
+      mrSelectedCharacter = button.dataset.character;
+      landing.querySelectorAll(".mr-character").forEach(item => {
+        item.setAttribute("aria-pressed",String(item === button));
+      });
+      document.getElementById("mrSceneFigure").textContent = button.querySelector(".mr-emoji").textContent;
+      document.getElementById("mrChosenCharacter").textContent = "✓ " + button.querySelector("strong").textContent + " ausgewählt";
+    });
+  });
+  start.addEventListener("click", () => {
+    const original = document.querySelector(".character-button[data-character='" + mrSelectedCharacter + "']");
+    if(!original || original.disabled) return;
+    original.click();
+    document.body.classList.add("mr-playing");
+    window.scrollTo(0,0);
+    startGame();
+  });
+  toggle.addEventListener("click", () => {
+    mrShowWholeRanking = !mrShowWholeRanking;
+    mrRenderRanking(cloudRanking.length ? cloudRanking : loadRanking());
+  });
+  const backButton = document.createElement("button");
+  backButton.type = "button";
+  backButton.textContent = "Zur Übersicht";
+  backButton.id = "mrBackToOverview";
+  backButton.addEventListener("click",mrOpenOverview);
+  document.querySelector("#gameOverOverlay .overlay-actions")?.appendChild(backButton);
+  mrSyncStats();
+  mrRenderRanking(cloudRanking.length ? cloudRanking : loadRanking());
+}
+mrInitLanding();
 
 characterButtons.forEach((button) => {
   button.addEventListener("click", () => {
