@@ -1,6 +1,6 @@
 'use strict';
 // Monatlicher Kabel-Report-Abschluss. Die Berechnung entspricht kabel-report.html.
-// Nur fehlende Monats-Snapshots anlegen; vorhandene Dokumente niemals überschreiben.
+// Vorläufige Zwischenstände vervollständigen, endgültige Abschlüsse nicht überschreiben.
 const ZONE='Europe/Zurich';
 const clock=new Intl.DateTimeFormat('en-CA',{timeZone:ZONE,year:'numeric',month:'2-digit',day:'2-digit'});
 const round=value=>Math.round(Number(value||0)*100)/100;
@@ -59,11 +59,42 @@ function payload(year,monthIndex,entries){
   const rows=[...grouped.values()].map(x=>({...x,meter:round(x.meter)})).sort((a,b)=>b.meter-a.meter||a.typ.localeCompare(b.typ,'de',{sensitivity:'base'}));
   return {periodKey,year,month:monthIndex+1,monthIndex,status:'ready',rows,totalMeters:round(entries.reduce((s,e)=>s+e.meter,0)),totalBookings:entries.length,totalReturns:returns,totalDeletes:deletes,sourceLogCount:entries.length,sourceKeys:[...sourceKeys].sort()};
 }
+// Bereits archivierte Buchungen behalten; neue Ereignisse nur einmal übernehmen.
+function mergeInterimSnapshot(existing,year,monthIndex,entries){
+  const full=payload(year,monthIndex,entries);
+  if(!existing)return full;
+  const keys=new Set(Array.isArray(existing.sourceKeys)?existing.sourceKeys:[]);
+  const generatedAt=existing.generatedAt||existing.updatedAt||existing.createdAt;
+  const createdMillis=generatedAt&&typeof generatedAt.toMillis==='function'?generatedAt.toMillis():0;
+  const onlyNew=entries.filter(e=>{
+    const key=[sanitize(e.typ||'Unbekannter Typ',200)||'Unbekannter Typ',sanitize(e.nummer,200),round(e.meter),sanitize(e.source,100),e.month,e.timestamp].join('|');
+    if(keys.has(key))return false;
+    // Legacy snapshots without sourceKeys: use the original timestamp to avoid
+    // re-adding the same historical events. Empty snapshots have no old rows.
+    if(keys.size===0&&Array.isArray(existing.rows)&&existing.rows.length>0&&createdMillis&&e.timestamp<=createdMillis)return false;
+    keys.add(key);return true;
+  });
+  if(keys.size===0&&(!existing.rows||existing.rows.length===0))return full;
+  const grouped=new Map();
+  for(const row of [...(Array.isArray(existing.rows)?existing.rows:[]),...payload(year,monthIndex,onlyNew).rows]){
+    const previous=grouped.get(row.typ)||{typ:row.typ,meter:0,count:0,returnsCount:0,deletesCount:0};
+    for(const field of ['meter','count','returnsCount','deletesCount'])previous[field]+=Number(row[field]||0);
+    grouped.set(row.typ,previous);
+  }
+  const rows=[...grouped.values()].map(row=>({...row,meter:round(row.meter)}))
+    .sort((a,b)=>b.meter-a.meter||a.typ.localeCompare(b.typ,'de',{sensitivity:'base'}));
+  return {...full,rows,totalMeters:round(rows.reduce((sum,row)=>sum+row.meter,0)),
+    totalBookings:rows.reduce((sum,row)=>sum+row.count,0),
+    totalReturns:rows.reduce((sum,row)=>sum+row.returnsCount,0),
+    totalDeletes:rows.reduce((sum,row)=>sum+row.deletesCount,0),
+    sourceLogCount:keys.size,sourceKeys:[...keys].sort()};
+}
 function createMonthlyCableSnapshot({db,Timestamp,FieldValue,logger,now=()=>new Date()}){
   return async function run(){
     const {year,monthIndex}=previousMonth(now()),key=year+'-'+String(monthIndex+1).padStart(2,'0');
     const ref=db.collection('kabel_report_snapshots').doc(key);
-    if((await ref.get()).exists){logger.info('Kabel-Snapshot bereits vorhanden',{key});return {key,status:'exists'};}
+    const initial=await ref.get();
+    if(initial.exists&&initial.data().finalized===true){logger.info('Kabel-Monat bereits abgeschlossen',{key});return {key,status:'finalized'};}
     // Das Frontend verarbeitet ebenfalls alle Protokolle des betreffenden Kalenderjahres.
     // Plus ein UTC-Puffertag je Grenze, damit die Schweizer Ortszeit korrekt bleibt.
     const from=Timestamp.fromDate(new Date(Date.UTC(year,0,1)-86400000));
@@ -79,12 +110,19 @@ function createMonthlyCableSnapshot({db,Timestamp,FieldValue,logger,now=()=>new 
       cursor=page.docs[page.docs.length-1];
     }
     const entries=entriesForMonth(logs,year,monthIndex);
-    const data={...payload(year,monthIndex,entries),generatedAt:FieldValue.serverTimestamp(),generatedByUid:'',generatedByEmail:'',generatedAutomatically:true};
-    // create() schlägt fehl, wenn ein Benutzer oder ein zweiter Lauf bereits gespeichert hat.
-    try{await ref.create(data);}
-    catch(error){if(error.code===6||error.code==='already-exists'){logger.info('Kabel-Snapshot zeitgleich erstellt',{key});return {key,status:'exists'};}throw error;}
-    logger.info('Kabel-Monatssnapshot erstellt',{key,meters:data.totalMeters,bookings:data.totalBookings,logs:logs.length});
-    return {key,status:'created',meters:data.totalMeters};
+    // In der Transaktion erneut prüfen: parallele manuelle Speicherungen oder
+    // Scheduler-Retries dürfen den Abschluss nicht überschreiben.
+    const result=await db.runTransaction(async transaction=>{
+      const current=await transaction.get(ref);
+      if(current.exists&&current.data().finalized===true)return {key,status:'finalized'};
+      const data=mergeInterimSnapshot(current.exists?current.data():null,year,monthIndex,entries);
+      transaction.set(ref,{...data,finalized:true,interim:false,
+        finalizedAt:FieldValue.serverTimestamp(),generatedAt:FieldValue.serverTimestamp(),
+        generatedByUid:'',generatedByEmail:'',generatedAutomatically:true});
+      return {key,status:'created',meters:data.totalMeters,bookings:data.totalBookings};
+    });
+    logger.info('Kabel-Monatsabschluss',{...result,logs:logs.length});
+    return result;
   };
 }
-module.exports={createMonthlyCableSnapshot,previousMonth,entriesForMonth,payload};
+module.exports={createMonthlyCableSnapshot,previousMonth,entriesForMonth,payload,mergeInterimSnapshot};

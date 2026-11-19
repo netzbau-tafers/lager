@@ -694,6 +694,7 @@ tr.total-row td{
       <p>Der Kabel Report berücksichtigt nur dokumentierte Einzüge. Wird ein Kabel ausgetragen und anschliessend ins Lager zurückgeschrieben, werden ausschliesslich die dabei als eingezogen erfassten Meter gerechnet.</p>
       <p>Beim vollständigen Löschen einer Bobine werden die zugehörigen Meter ebenfalls als eingezogen gewertet – sowohl wenn die Bobine zuvor ausgetragen wurde als auch wenn sie ohne vorherige Austragung gelöscht wird.</p>
       <p>Wichtig: Einzüge von Kabeln, die nicht im Kabellager gespeichert sind, können im Kabel Report nicht berücksichtigt werden.</p>
+      <p>Manuell gespeicherte Zwischenstände des laufenden Monats werden beim automatischen Abschluss am 1. des Folgemonats vervollständigt. Bereits abgeschlossene Monate sind vor manuellen Änderungen geschützt.</p>
     </div>
   </details>
 
@@ -1659,11 +1660,15 @@ function renderMonths(data){
     const snapshotId = getSnapshotDocumentId(year, monthIndex);
     const snapshot = getSnapshotByMonth(year, monthIndex);
     const isSavingSnapshot = savingSnapshotKeys.has(snapshotId);
+    const now = new Date();
+    const isCurrentMonth = year === now.getFullYear() && monthIndex === now.getMonth();
     const snapshotMeta = snapshot
-      ? `Snapshot gespeichert: ${escapeHtml(formatTimestamp(snapshot.generatedAt || snapshot.updatedAt || snapshot.createdAt) || "Zeitpunkt unbekannt")}`
+      ? snapshot.finalized === true
+        ? `Monat abgeschlossen: ${escapeHtml(formatTimestamp(snapshot.finalizedAt || snapshot.generatedAt) || "Zeitpunkt unbekannt")}`
+        : `Zwischenstand gespeichert: ${escapeHtml(formatTimestamp(snapshot.generatedAt || snapshot.updatedAt || snapshot.createdAt) || "Zeitpunkt unbekannt")}`
       : "Noch kein Snapshot gespeichert.";
-    const actionButton = allowManualSnapshotSave
-      ? `<button type="button" class="secondary-btn js-save-snapshot" data-year="${escapeHtml(String(year))}" data-month="${escapeHtml(String(monthIndex))}" ${isSavingSnapshot ? "disabled" : ""}><i class="fa-solid fa-camera"></i> ${isSavingSnapshot ? "Speichert..." : snapshot ? "Snapshot aktualisieren" : "Snapshot speichern"}</button>`
+    const actionButton = allowManualSnapshotSave && isCurrentMonth && !(snapshot && snapshot.finalized)
+      ? `<button type="button" class="secondary-btn js-save-snapshot" data-year="${escapeHtml(String(year))}" data-month="${escapeHtml(String(monthIndex))}" ${isSavingSnapshot ? "disabled" : ""}><i class="fa-solid fa-camera"></i> ${isSavingSnapshot ? "Speichert..." : snapshot ? "Zwischenstand aktualisieren" : "Zwischenstand speichern"}</button>`
       : "";
     const tableRows = monthData.rows.length
       ? monthData.rows.map(row => `
@@ -1823,11 +1828,20 @@ async function saveSnapshotForMonth(year, monthIndex){
     return;
   }
 
+  const now = new Date();
+  if(year !== now.getFullYear() || monthIndex !== now.getMonth()){
+    alert("Manuelle Zwischenstände sind nur für den laufenden Monat erlaubt. Frühere Monate werden automatisch abgeschlossen.");
+    return;
+  }
   const snapshotId = getSnapshotDocumentId(year, monthIndex);
   const monthLabel = getMonthLabel(monthIndex);
   const snapshotRef = reportSnapshotsCollection.doc(snapshotId);
   const localSnapshot = getSnapshotByMonth(year, monthIndex);
-  if(localSnapshot && !confirm(`Snapshot für ${monthLabel} ${year} aktualisieren?`)){
+  if(localSnapshot && localSnapshot.finalized === true){
+    alert("Dieser Monat ist bereits abgeschlossen und gegen manuelle Änderungen geschützt.");
+    return;
+  }
+  if(localSnapshot && !confirm(`Zwischenstand für ${monthLabel} ${year} aktualisieren?`)){
     return;
   }
 
@@ -1839,6 +1853,9 @@ async function saveSnapshotForMonth(year, monthIndex){
     const existingSnapshot = existingSnapshotDoc.exists
       ? { id: existingSnapshotDoc.id, ...existingSnapshotDoc.data() }
       : localSnapshot;
+    if(existingSnapshot && existingSnapshot.finalized === true){
+      throw new Error("Der Monat ist bereits endgültig abgeschlossen.");
+    }
     const monthData = buildReportEntriesForMonth(year, monthIndex);
     let payload = monthData.reportEntries.length
       ? buildSnapshotPayload(year, monthIndex, monthData.reportEntries, monthData.reportEntries.length)
@@ -1851,9 +1868,23 @@ async function saveSnapshotForMonth(year, monthIndex){
     payload.generatedAt = firebase.firestore.FieldValue.serverTimestamp();
     payload.generatedByUid = user.uid || "";
     payload.generatedByEmail = user.email || "";
+    payload.interim = true;
+    payload.finalized = false;
 
-    await snapshotRef.set(payload, { merge: true });
-    alert(`Snapshot für ${monthLabel} ${year} wurde gespeichert.`);
+    await db.runTransaction(async transaction => {
+      const latest = await transaction.get(snapshotRef);
+      if(latest.exists && latest.data().finalized === true){
+        throw new Error("Der Monat ist bereits endgültig abgeschlossen.");
+      }
+      // Bei einer parallelen Speicherung die aktuellen Daten erneut abgleichen.
+      const result = latest.exists
+        ? buildMergedSnapshotPayload(latest.data(), year, monthIndex, monthData.reportEntries)
+        : payload;
+      transaction.set(snapshotRef, { ...result, generatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        generatedByUid: user.uid || "", generatedByEmail: user.email || "",
+        interim: true, finalized: false }, { merge: true });
+    });
+    alert(`Zwischenstand für ${monthLabel} ${year} wurde gespeichert.`);
   }catch(error){
     console.error("Monats-Snapshot konnte nicht gespeichert werden:", error);
     showError(`Der Snapshot für ${monthLabel} ${year} konnte nicht gespeichert werden.`);
@@ -1931,7 +1962,7 @@ function startSnapshotListener(){
     allSnapshots = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     hasLoadedSnapshots = true;
     buildYearOptions();
-    ensurePreviousMonthSnapshot();
+    // Monatsabschluss wird ausschliesslich vom Cloud Scheduler durchgeführt.
     renderReport();
   }, error => {
     console.error("Fehler beim Laden der Kabel-Report-Snapshots:", error);
@@ -1963,7 +1994,7 @@ function startLogsListener(){
     allLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     hasLoadedLogs = true;
     buildYearOptions();
-    ensurePreviousMonthSnapshot();
+    // Monatsabschluss wird ausschliesslich vom Cloud Scheduler durchgeführt.
     renderReport();
   }, error => {
       console.error("Fehler beim Laden des Kabel-Reports:", error);
