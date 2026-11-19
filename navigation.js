@@ -61,6 +61,41 @@
     if(current==='fahrtenbuch.html'){logbook.classList.add('active-page');logbook.setAttribute('aria-current','page');}
     if(report)menu.insertBefore(logbook,report);else if(vehicle)vehicle.after(logbook);else menu.append(logbook);
     const section=document.createElement('div');section.className='nt-section';section.textContent='VERWALTUNG';
+    // Admin-Vorschau: bleibt in diesem Browser-Tab und beeinflusst keinen anderen Nutzer.
+    const christmasPreview=document.createElement('button');
+    christmasPreview.type='button';
+    christmasPreview.dataset.page='christmas-preview';
+    christmasPreview.style.display='none';
+    christmasPreview.title='Temporäre Vorschau nur in diesem Browser-Tab; Dezember-Automatik bleibt bestehen';
+    christmasPreview.append(icon('home'),document.createTextNode(' Weihnachtsdesign testen'));
+    function refreshChristmasPreview(){
+      let preview=null;
+      try{preview=sessionStorage.getItem('lager-christmas-preview')}catch(_){}
+      christmasPreview.lastChild.textContent=preview==='on'?' Weihnachtsdesign: Test EIN':preview==='off'?' Weihnachtsdesign: Test AUS':' Weihnachtsdesign testen';
+    }
+    christmasPreview.addEventListener('click',()=>{
+      let preview=null;
+      try{preview=sessionStorage.getItem('lager-christmas-preview')}catch(_){}
+      if(preview==='on'||preview==='off'){
+        try{sessionStorage.removeItem('lager-christmas-preview')}catch(_){}
+      }else{
+        const month=new Intl.DateTimeFormat('en-US',{timeZone:'Europe/Zurich',month:'numeric'}).format(new Date());
+        try{sessionStorage.setItem('lager-christmas-preview',month==='12'?'off':'on')}catch(_){}
+      }
+      refreshChristmasPreview();
+      if(location.pathname.endsWith('/home.html'))window.updateSeasonalHero?.();
+      else location.href='home.html';
+      window.closeMenu?.();
+    });
+    refreshChristmasPreview();
+    // Nur Administratoren sehen den Testschalter.
+    try{
+      firebase.auth().onAuthStateChanged(user=>{
+        christmasPreview.style.display=user&&typeof isAdminUid==='function'&&isAdminUid(user.uid)?'flex':'none';
+      });
+    }catch(_){}
+
+    section.after(christmasPreview);
     const firstAdmin=logbook||report||menu.querySelector('[data-page="logs"], [data-page="profil"]');if(firstAdmin)menu.insertBefore(section,firstAdmin);
     const overview=document.createElement('a');overview.href='meine-uebersicht.html';overview.dataset.page='uebersicht';overview.append(icon('uebersicht'),document.createTextNode('Meine Übersicht'));
     if(current==='meine-uebersicht.html'){overview.classList.add('active-page');overview.setAttribute('aria-current','page')}
@@ -79,7 +114,7 @@
     const helpSection=document.createElement('div');helpSection.className='nt-section';helpSection.dataset.page='hilfe-rechtliches';helpSection.textContent='HILFE & RECHTLICHES';menu.insertBefore(helpSection,helpLink);
     const close=document.createElement('button');close.type='button';close.className='nt-close';close.innerHTML='<span>Netzbau Tafers</span><span aria-hidden="true">✕</span>';close.setAttribute('aria-label','Menü schliessen');menu.prepend(close);
     // Jede Seite verwendet dieselbe Reihenfolge, unabhängig von ihren ursprünglichen Menüeinträgen.
-    const menuOrder=['home','uebersicht','index','baustellen','fahrzeuge','verwaltung','fahrtenbuch','kabelreport','archiv','logs','profil','benutzer','backup','hilfe-rechtliches','hilfe','datenschutz','logout'];
+    const menuOrder=['home','uebersicht','index','baustellen','fahrzeuge','verwaltung','christmas-preview','fahrtenbuch','kabelreport','archiv','logs','profil','benutzer','backup','hilfe-rechtliches','hilfe','datenschutz','logout'];
     section.dataset.page='verwaltung';close.dataset.page='menu-close';
     for(const item of menu.children){
       if(item.dataset.page)continue;
