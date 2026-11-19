@@ -708,7 +708,10 @@ function updateSeasonalHero(){
   const month = new Intl.DateTimeFormat("en-US",{
     timeZone:"Europe/Zurich",month:"numeric"
   }).format(new Date());
-  hero.classList.toggle("is-christmas",month === "12");
+  // Nur eine lokale Vorschau; die automatische Dezember-Regel bleibt unverändert.
+  let preview = null;
+  try { preview = sessionStorage.getItem("lager-christmas-preview"); } catch (_) {}
+  hero.classList.toggle("is-christmas", preview === "on" ? true : preview === "off" ? false : month === "12");
 }
 document.addEventListener("DOMContentLoaded",updateSeasonalHero);
 setInterval(updateSeasonalHero,60 * 1000);
