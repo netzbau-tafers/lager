@@ -232,7 +232,8 @@ button i{
   flex-wrap:wrap;
   align-items:center;
   gap:8px;
-  margin:8px 0 16px;
+  margin:0;
+  flex:1;
 }
 .status-legend-item{
   display:inline-flex;
@@ -254,6 +255,15 @@ button i{
   height:13px;
   border-radius:50%;
   border:1px solid rgba(0,0,0,.13);
+}
+.status-legend-count{
+  font-variant-numeric:tabular-nums;
+  font-weight:700;
+  color:#1e293b;
+}
+.status-legend-item.total{
+  background:#edf2f7;
+  border-color:#d8e0e9;
 }
 .status-legend-dot.instock{background:#d9ffd9;}
 .status-legend-dot.inuse{background:#ffd9d9;}
@@ -1277,17 +1287,16 @@ textarea{
 
 
   <div class="result-bar">
-    <div class="info-box" id="resultInfo"></div>
+    <div class="status-legend" aria-label="Bobinenanzahl und Bedeutung der Farben">
+      <span class="status-legend-item total">Angezeigte Bobinen: <span class="status-legend-count" id="countAngezeigt">0</span></span>
+      <span class="status-legend-item"><span class="status-legend-dot instock" aria-hidden="true"></span>Im Lager: <span class="status-legend-count" id="countLager">0</span></span>
+      <span class="status-legend-item"><span class="status-legend-dot inuse" aria-hidden="true"></span>In Gebrauch: <span class="status-legend-count" id="countAusgeschrieben">0</span></span>
+      <span class="status-legend-item"><span class="status-legend-dot reserved" aria-hidden="true"></span>Reserviert: <span class="status-legend-count" id="countReserviert">0</span></span>
+      <span class="status-legend-item"><span class="status-legend-dot reapro" aria-hidden="true"></span>Reapro: <span class="status-legend-count" id="countReapro">0</span></span>
+    </div>
     <button type="button" class="print-btn" onclick="printInventoryReport()">
       <i class="fa-solid fa-print"></i> Drucken
     </button>
-  </div>
-
-  <div class="status-legend" aria-label="Bedeutung der Bobinenfarben">
-    <span class="status-legend-item"><span class="status-legend-dot instock" aria-hidden="true"></span>Im Lager</span>
-    <span class="status-legend-item"><span class="status-legend-dot inuse" aria-hidden="true"></span>In Gebrauch</span>
-    <span class="status-legend-item"><span class="status-legend-dot reserved" aria-hidden="true"></span>Reserviert</span>
-    <span class="status-legend-item"><span class="status-legend-dot reapro" aria-hidden="true"></span>Reapro</span>
   </div>
 
   <div class="desktop-table-wrap">
@@ -3046,12 +3055,13 @@ function renderFilteredTable(filterChanged = false){
   }).length;
 
   const reaproAnzahl = gefiltert.filter(docItem => docItem.data().reapro === true).length;
+  const lagerAnzahl = gefiltert.filter(docItem => String(docItem.data().status || "Lager") === "Lager").length;
 
-  document.getElementById("resultInfo").innerText =
-    "Angezeigte Bobinen: " + gefiltert.length +
-    " | Ausgeschrieben: " + ausgeschriebenAnzahl +
-    " | Reserviert: " + reserviertAnzahl +
-    " | Reapro: " + reaproAnzahl;
+  document.getElementById("countAngezeigt").textContent = gefiltert.length;
+  document.getElementById("countLager").textContent = lagerAnzahl;
+  document.getElementById("countAusgeschrieben").textContent = ausgeschriebenAnzahl;
+  document.getElementById("countReserviert").textContent = reserviertAnzahl;
+  document.getElementById("countReapro").textContent = reaproAnzahl;
 
   renderPrintReport();
 }
