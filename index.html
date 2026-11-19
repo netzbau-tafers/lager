@@ -1260,6 +1260,13 @@ textarea{
         <option value="Reserviert">Reserviert</option>
         <option value="Reapro">Reapro</option>
       </select>
+      <select id="sortFilter" aria-label="Bobinen sortieren" onchange="renderFilteredTable()">
+        <option value="nummer">Sortierung: Nummer aufsteigend</option>
+        <option value="querschnittAsc">Querschnitt: aufsteigend</option>
+        <option value="querschnittDesc">Querschnitt: absteigend</option>
+        <option value="datumDesc">Hinzugefügt am: neueste zuerst</option>
+        <option value="datumAsc">Hinzugefügt am: älteste zuerst</option>
+      </select>
     </div>
 
     <div style="margin-top:15px;">
@@ -2806,6 +2813,46 @@ function compareBobinenByNummer(a, b){
   return aNummer.localeCompare(bNummer, "de", { numeric: true, sensitivity: "base" });
 }
 
+/* Der Hauptleiterquerschnitt ist die letzte Zahl einer x-Kette
+   vor einem möglichen Schirm-/Neutralleiterquerschnitt (z.B. 3x1x240/80). */
+function getHauptleiterQuerschnitt(typ){
+  const match = String(typ || "").match(/(?:\d+\s*x\s*)+(\d+(?:[.,]\d+)?)/i);
+  return match ? Number(match[1].replace(",", ".")) : null;
+}
+
+function getHinzugefuegtMillis(value){
+  if(!value) return null;
+  const date = typeof value.toDate === "function"
+    ? value.toDate()
+    : typeof value.seconds === "number"
+      ? new Date(value.seconds * 1000)
+      : new Date(value);
+  const zeit = date.getTime();
+  return Number.isFinite(zeit) ? zeit : null;
+}
+
+function compareBobinen(a, b, sortierung){
+  if(sortierung === "querschnittAsc" || sortierung === "querschnittDesc"){
+    const aWert = getHauptleiterQuerschnitt(a.data().typ);
+    const bWert = getHauptleiterQuerschnitt(b.data().typ);
+    if(aWert === null && bWert !== null) return 1;
+    if(bWert === null && aWert !== null) return -1;
+    if(aWert !== null && bWert !== null && aWert !== bWert){
+      return sortierung === "querschnittAsc" ? aWert - bWert : bWert - aWert;
+    }
+  }
+  if(sortierung === "datumAsc" || sortierung === "datumDesc"){
+    const aZeit = getHinzugefuegtMillis(a.data().hinzugefuegtAm);
+    const bZeit = getHinzugefuegtMillis(b.data().hinzugefuegtAm);
+    if(aZeit === null && bZeit !== null) return 1;
+    if(bZeit === null && aZeit !== null) return -1;
+    if(aZeit !== null && bZeit !== null && aZeit !== bZeit){
+      return sortierung === "datumAsc" ? aZeit - bZeit : bZeit - aZeit;
+    }
+  }
+  return compareBobinenByNummer(a, b);
+}
+
 function createPrintTableMarkup(items){
   if(!items.length){
     return '<p class="print-empty">Keine Bobinen in diesem Bereich vorhanden.</p>';
@@ -2972,7 +3019,8 @@ function renderFilteredTable(filterChanged = false){
     return textPasst && statusPasst;
   });
 
-  gefiltert.sort(compareBobinenByNummer);
+  const sortierung = document.getElementById("sortFilter").value;
+  gefiltert.sort((a, b) => compareBobinen(a, b, sortierung));
 
   const noResults = document.getElementById("noResults");
   if(gefiltert.length === 0){
@@ -3012,6 +3060,7 @@ function resetSearch(){
   focusedBobineId = null; overviewBobineId = null;
   document.getElementById("searchInput").value = "";
   document.getElementById("statusFilter").value = "Alle";
+  document.getElementById("sortFilter").value = "nummer";
   renderFilteredTable();
 }
 
