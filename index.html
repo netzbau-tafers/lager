@@ -270,6 +270,41 @@ button i{
 .status-legend-dot.reserved{background:#fff3a3;}
 .status-legend-dot.reapro{background:#d8eaf8;}
 
+/* Smartphone: übersichtliches 2-Spalten-Raster statt unterschiedlich langer Chips. */
+@media (max-width: 680px){
+  .status-legend{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:9px;
+    width:100%;
+  }
+  .status-legend-item{
+    display:flex;
+    min-width:0;
+    min-height:45px;
+    box-sizing:border-box;
+    padding:10px 12px;
+    gap:7px;
+    border-radius:12px;
+    font-size:13px;
+    white-space:normal;
+    line-height:1.25;
+  }
+  .status-legend-item.total{
+    grid-column:1 / -1;
+    justify-content:space-between;
+    background:#e9f0f8;
+    border-color:#cddded;
+  }
+  .status-legend-item:not(.total) .status-legend-count{
+    margin-left:auto;
+  }
+  .status-legend-dot{
+    flex:0 0 13px;
+  }
+}
+
+
 .print-btn{
   background:#2d7d46;
 }
@@ -3059,7 +3094,7 @@ function renderFilteredTable(filterChanged = false){
   const reaproAnzahl = alleBobinen.filter(docItem => docItem.data().reapro === true).length;
   const lagerAnzahl = alleBobinen.filter(docItem => String(docItem.data().status || "Lager") === "Lager").length;
 
-  document.getElementById("countAngezeigt").textContent = alleBobinen.length;
+  document.getElementById("countAngezeigt").textContent = gefiltert.length;
   document.getElementById("countLager").textContent = lagerAnzahl;
   document.getElementById("countAusgeschrieben").textContent = ausgeschriebenAnzahl;
   document.getElementById("countReserviert").textContent = reserviertAnzahl;
