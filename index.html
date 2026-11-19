@@ -1367,7 +1367,7 @@ textarea{
 
       <input id="laenge" placeholder="Länge (m)" maxlength="40">
       <input id="baustelle" placeholder="Baustelle" maxlength="120">
-      <label class="checkbox-row hidden" id="reaproRow">
+      <label class="checkbox-row" id="reaproRow">
         <input type="checkbox" id="reapro">
         <span class="checkbox-label-text">Reapro</span>
       </label>
@@ -1460,26 +1460,6 @@ const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "pmyu29TlC3QM7JIysmy2EmiHSWW
 const LIMITED_ACCESS_UIDS = ["POSB6W7xeDZ8Dlba03ZP3J02dMC3", "AX08qKp7lte6vslQMFn76FVqxw53", "KYqiqNKTmkQQYVWAa6bp6vSvTlV2"];
 const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
 const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
-
-const REAPRO_KABELTYPEN = new Set([
-  "GKN 3x10/10mm² Cu",
-  "GKN 3x25/25mm² Cu",
-  "GKN 3x50/50mm² Cu",
-  "GKN 3x95/95mm² Cu Flex"
-]);
-
-function isReaproKabeltyp(typ){
-  return REAPRO_KABELTYPEN.has(sanitizeInput(typ || "", 120));
-}
-
-function updateReaproVisibility(){
-  const row = document.getElementById("reaproRow");
-  const checkbox = document.getElementById("reapro");
-  if(!row || !checkbox) return;
-  const erlaubt = isReaproKabeltyp(getSelectedTyp());
-  row.classList.toggle("hidden", !erlaubt);
-  if(!erlaubt) checkbox.checked = false;
-}
 
 const PREDEFINED_KABELTYPEN = [
   "GKN 3x6/6mm² Cu",
@@ -2147,7 +2127,6 @@ function handleTypChange(){
     typCustom.classList.add("hidden");
     typCustom.value = "";
   }
-  updateReaproVisibility();
 }
 
 function getSelectedTyp(){
@@ -2187,7 +2166,6 @@ function setTypFields(typValue){
     typCustom.value = "";
     typCustom.classList.add("hidden");
   }
-  updateReaproVisibility();
 }
 
 function toggleMenu(event){
@@ -3029,7 +3007,6 @@ function openAdd(){
   document.getElementById("laenge").value = "";
   document.getElementById("baustelle").value = "";
   document.getElementById("reapro").checked = false;
-  updateReaproVisibility();
   document.getElementById("hersteller").value = "";
   document.getElementById("infos").value = "";
   document.getElementById("reserviert").checked = false;
@@ -3058,9 +3035,8 @@ function editBobine(id){
     setBobinenHinweisSelection(!!b.istDreiBobinen, !!b.mehrereKabelAufBobine);
     document.getElementById("laenge").value = sanitizeInput(b.laenge || "", 40);
     document.getElementById("baustelle").value = sanitizeInput(b.baustelle || "", 120);
-    document.getElementById("reapro").checked = isReaproKabeltyp(b.typ) && b.reapro === true;
-    updateReaproVisibility();
-    document.getElementById("hersteller").value = sanitizeInput(b.hersteller || "", 120);
+    document.getElementById("reapro").checked = b.reapro === true;
+      document.getElementById("hersteller").value = sanitizeInput(b.hersteller || "", 120);
     document.getElementById("infos").value = sanitizeInput(b.infos || "", 500);
     document.getElementById("reserviert").checked = !!b.reserviert;
     document.getElementById("reserviertVon").value = sanitizeInput(b.reserviertVon || "", 120);
@@ -3213,7 +3189,7 @@ function saveBobine(){
   const mehrereKabelAufBobine = !istDreiBobinen && document.getElementById("mehrereKabelAufBobine").checked;
   const laenge = sanitizeInput(document.getElementById("laenge").value, 40);
   const baustelle = sanitizeInput(document.getElementById("baustelle").value, 120);
-  const reapro = isReaproKabeltyp(typ) && document.getElementById("reapro").checked;
+  const reapro = document.getElementById("reapro").checked;
   const hersteller = sanitizeInput(document.getElementById("hersteller").value, 120);
   const infos = sanitizeInput(document.getElementById("infos").value, 500);
   const reserviert = document.getElementById("reserviert").checked;
