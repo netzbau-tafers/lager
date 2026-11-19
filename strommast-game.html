@@ -663,7 +663,8 @@ canvas{
 }
 
 /* Mobile Startübersicht – getrennt von Spielgrafik und Spielmechanik. */
-#mrMobileLanding{display:none}
+#mrMobileLanding,#mrBackToOverview{display:none}
+@media(max-width:700px){#mrBackToOverview{display:inline-flex}}
 @media(max-width:700px){
   body.auth-loading #mrMobileLanding{display:none!important}
   body:not(.mr-playing) .game-wrap{display:none}
