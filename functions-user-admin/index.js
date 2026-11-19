@@ -87,3 +87,7 @@ exports.lagerVehicleTakeoverNotify=onDocumentCreated({document:'fahrzeuge/{vehic
 const schedulerAdmin=require('./scheduler-admin.cjs');
 exports.lagerSchedulerStatus=onCall({region:'europe-west1',maxInstances:2},schedulerAdmin.status);
 exports.lagerSchedulerSet=onCall({region:'europe-west1',maxInstances:2},schedulerAdmin.set);
+
+// Monatsabschluss am 1. jedes Monats um 03:30 Schweizer Zeit, auch ohne offenen Browser.
+const {createMonthlyCableSnapshot}=require('./cable-monthly-snapshot.cjs');
+exports.lagerCableMonthlySnapshot=onSchedule({schedule:'30 3 1 * *',timeZone:'Europe/Zurich',region:'europe-west1',maxInstances:1,timeoutSeconds:540,retryCount:1},createMonthlyCableSnapshot({db:getFirestore(),Timestamp,FieldValue,logger}));
