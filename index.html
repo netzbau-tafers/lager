@@ -3048,16 +3048,18 @@ function renderFilteredTable(filterChanged = false){
     if(target){target.style.scrollMarginTop = '90px';target.scrollIntoView({block:'center'});}
   });}
 
-  const ausgeschriebenAnzahl = gefiltert.filter(docItem => String(docItem.data().status || "") === "In Gebrauch").length;
-  const reserviertAnzahl = gefiltert.filter(docItem => {
+  // Die Statusübersicht zeigt immer den vollständigen aktuellen Bestand.
+  // Suche, Statusfilter und Sortierung betreffen ausschliesslich die Bobinenliste.
+  const ausgeschriebenAnzahl = alleBobinen.filter(docItem => String(docItem.data().status || "") === "In Gebrauch").length;
+  const reserviertAnzahl = alleBobinen.filter(docItem => {
     const bobine = docItem.data();
     return String(bobine.status || "") === "Lager" && !!bobine.reserviert;
   }).length;
 
-  const reaproAnzahl = gefiltert.filter(docItem => docItem.data().reapro === true).length;
-  const lagerAnzahl = gefiltert.filter(docItem => String(docItem.data().status || "Lager") === "Lager").length;
+  const reaproAnzahl = alleBobinen.filter(docItem => docItem.data().reapro === true).length;
+  const lagerAnzahl = alleBobinen.filter(docItem => String(docItem.data().status || "Lager") === "Lager").length;
 
-  document.getElementById("countAngezeigt").textContent = gefiltert.length;
+  document.getElementById("countAngezeigt").textContent = alleBobinen.length;
   document.getElementById("countLager").textContent = lagerAnzahl;
   document.getElementById("countAusgeschrieben").textContent = ausgeschriebenAnzahl;
   document.getElementById("countReserviert").textContent = reserviertAnzahl;
