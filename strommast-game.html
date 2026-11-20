@@ -668,9 +668,9 @@ canvas{
 @media(max-width:700px){
   body.auth-loading #mrMobileLanding{display:none!important}
   body:not(.mr-playing) .game-wrap{display:none}
-  body:not(.mr-playing)>.app-footer{display:none}
+  body>.app-footer{display:none}
   #mrMobileLanding{display:block;margin:0 auto;max-width:570px;min-height:100dvh;background:#f4f7fa;color:#132c42;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
-  body.mr-playing #mrMobileLanding{display:none}
+  body.mr-playing #mrMobileLanding{display:block}
   #mrMobileLanding *{box-sizing:border-box}
   #mrMobileLanding button{font:inherit;cursor:pointer;box-shadow:none;transform:none;transition:background .18s,border-color .18s,transform .18s}
   #mrMobileLanding button:focus-visible,#mrMobileLanding summary:focus-visible{outline:3px solid #4aa9ff;outline-offset:3px}
@@ -736,6 +736,49 @@ canvas{
   .mr-rule-body{padding:0 19px 16px;color:#647d90;font-size:12px;line-height:1.6}
   .mr-rule-body p{margin:0 0 8px}
   .mr-footer{color:#a4b0b9;font-size:11px;text-align:center;padding:20px 12px max(16px,env(safe-area-inset-bottom))}
+
+  /* Der laufende Spielbereich ersetzt nur die Illustration. Der Rest der
+     mobilen Oberfläche bleibt beim Start und nach Spielende sichtbar. */
+  body.mr-playing .mr-scene{height:220px}
+  body.mr-playing .mr-scene > svg,
+  body.mr-playing .mr-scene-figure{display:none}
+  body.mr-playing .mr-pick,
+  body.mr-playing .mr-rules{display:none}
+  .mr-game-slot{display:none;position:absolute;inset:0;z-index:6;background:#dbe9f7}
+  body.mr-playing .mr-game-slot{display:block}
+  .mr-game-slot .game-wrap{
+    display:block;width:100%;height:100%;min-height:0;margin:0;
+    background:#dbe9f7;border:0;border-radius:0;box-shadow:none;overflow:hidden
+  }
+  .mr-game-slot .topbar,
+  .mr-game-slot .game-dashboard{display:none}
+  .mr-game-slot .canvas-wrap{display:flex;width:100%;height:100%;align-items:stretch;overflow:hidden}
+  .mr-game-slot canvas{width:100%;height:100%;min-height:0;max-width:100%;aspect-ratio:auto}
+  .mr-game-slot .overlay{align-items:center;overflow:auto;padding:10px}
+  .mr-game-slot .overlay-box{
+    width:min(100%,310px);max-height:100%;margin:0;
+    padding:13px 12px;border-radius:14px
+  }
+  .mr-game-slot .overlay-box h2{font-size:21px;margin:0 0 5px}
+  .mr-game-slot .overlay-box p{font-size:12px;line-height:1.35;margin:6px 0}
+  .mr-game-slot .overlay-actions{gap:8px;margin-top:8px;flex-direction:row}
+  .mr-game-slot .overlay-actions button{flex:1;min-height:39px;font-size:12px;padding:8px 6px}
+  .mr-game-slot .fs-btn{width:36px;height:36px;right:8px;bottom:8px;border-radius:10px}
+  .mr-game-slot .fs-btn svg{width:19px;height:19px}
+  .mr-game-slot .exit-fullscreen-btn{top:9px;bottom:auto;transform:none}
+  .mr-game-slot .game-wrap:fullscreen,
+  .mr-game-slot .game-wrap:-webkit-full-screen{
+    width:100%;height:100%;min-height:0;border-radius:0;
+    display:flex;align-items:center;justify-content:center
+  }
+  .mr-game-slot .game-wrap:fullscreen .canvas-wrap,
+  .mr-game-slot .game-wrap:-webkit-full-screen .canvas-wrap{
+    height:auto;max-height:100%;align-items:center
+  }
+  .mr-game-slot .game-wrap:fullscreen canvas,
+  .mr-game-slot .game-wrap:-webkit-full-screen canvas{
+    height:auto;max-height:100%;aspect-ratio:1000 / 320
+  }
 }
 @media(max-width:370px){
   #mrMobileLanding .mr-header,#mrMobileLanding .mr-hero{padding-left:16px;padding-right:16px}
@@ -771,7 +814,7 @@ canvas{
   <path d="M0 141h560" stroke="#d7d2b0" stroke-width="3"/>
   <g fill="#3a6b6c"><path d="M292 123l15-37 15 37zM299 122v20h17v-20M331 128l10-24 10 24zM336 127v15h10v-15"/></g>
   <path d="M0 147h560" stroke="#30566a" stroke-width="6"/>
-</svg><div class="mr-scene-figure" id="mrSceneFigure" aria-hidden="true">👷</div></div>
+</svg><div class="mr-scene-figure" id="mrSceneFigure" aria-hidden="true">👷</div><div class="mr-game-slot" id="mrGameSlot" aria-label="Spielfeld"></div></div>
     </section>
     <main class="mr-main">
       <section class="mr-stats" aria-label="Spielstatistik">
@@ -2587,6 +2630,38 @@ function mrInitLanding(){
   mrRenderRanking(cloudRanking.length ? cloudRanking : loadRanking());
 }
 mrInitLanding();
+
+/* Ein und dasselbe Canvas wird auf kleinen Displays in die Vorschau
+   eingebettet. Spielzustand, Kollisionslogik und Eventhandler bleiben erhalten. */
+const mrDesktopGamePosition = document.createComment("Originale Position des Mast-Runner-Spiels");
+gameWrap.before(mrDesktopGamePosition);
+const mrMobileMedia = window.matchMedia("(max-width: 700px)");
+function mrPositionGameWrap(){
+  // Vollbild nicht durch eine DOM-Verschiebung unterbrechen.
+  if(document.fullscreenElement === gameWrap || document.webkitFullscreenElement === gameWrap) return;
+  const slot = document.getElementById("mrGameSlot");
+  if(mrMobileMedia.matches && slot){
+    if(gameWrap.parentElement !== slot) slot.appendChild(gameWrap);
+    if(gameRunning) document.body.classList.add("mr-playing");
+  }else{
+    if(gameWrap.previousSibling !== mrDesktopGamePosition) mrDesktopGamePosition.after(gameWrap);
+    document.body.classList.remove("mr-playing");
+  }
+}
+mrPositionGameWrap();
+if(mrMobileMedia.addEventListener){
+  mrMobileMedia.addEventListener("change",mrPositionGameWrap);
+}else if(mrMobileMedia.addListener){
+  mrMobileMedia.addListener(mrPositionGameWrap);
+}
+document.addEventListener("fullscreenchange",mrPositionGameWrap);
+document.addEventListener("webkitfullscreenchange",mrPositionGameWrap);
+
+/* Die zwei Zahlen in der mobilen Kopfübersicht entsprechen immer
+   den originalen Punkte- und Rekordwerten des unveränderten Spiels. */
+const mrStatsObserver = new MutationObserver(mrSyncStats);
+mrStatsObserver.observe(scoreEl,{childList:true,characterData:true,subtree:true});
+mrStatsObserver.observe(bestScoreEl,{childList:true,characterData:true,subtree:true});
 
 characterButtons.forEach((button) => {
   button.addEventListener("click", () => {
