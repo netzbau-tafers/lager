@@ -190,7 +190,8 @@
 <form id="newUserForm">
 <label for="newUserEmail">E-Mail</label><input id="newUserEmail" type="email" required maxlength="254" autocomplete="off">
 <label for="newUserName">Benutzername</label><input id="newUserName" type="text" required maxlength="120" autocomplete="off">
-<p class="muted">Wähle die Rechte. Der Benutzer legt sein Passwort über den Link fest, den du nach dem Erstellen erhältst. Es wird keine E-Mail automatisch versendet.</p>
+<label for="newUserRole">Titel</label><select id="newUserRole" required style="width:100%;padding:10px;border:1px solid #ccd5df;border-radius:8px;background:white;font:inherit;margin:6px 0 12px"></select>
+<p class="muted">Der Titel füllt die Berechtigungen automatisch aus. Du kannst sie vor dem Erstellen individuell anpassen. Der Benutzer legt sein Passwort über den Link fest, den du nach dem Erstellen erhältst. Es wird keine E-Mail automatisch versendet.</p>
 <details class="permissions-panel" id="newUserPermissionsPanel"><summary>Berechtigungen</summary><div id="newUserPermissions" class="permission-grid"></div></details>
 <div class="dialog-actions"><button id="cancelNewUser" type="button" class="logout-safe">Abbrechen</button><button id="newUserSubmit" type="submit"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Konto erstellen</button></div>
 <p id="newUserStatus" role="status" aria-live="polite"></p>
@@ -270,7 +271,7 @@
 
 function logout(){if(confirm('Wirklich ausloggen?'))auth.signOut().then(()=>location.href='home.html');}
 </script>
-<script src="benutzer.js?v=20261120-protect-admin-accounts"></script>
+<script src="benutzer.js?v=20261120-create-title-presets"></script>
 <script>
 (function(){
   const dialog=document.getElementById('newUserPanel'),opener=document.getElementById('openNewUser'),submit=document.getElementById('newUserSubmit');
