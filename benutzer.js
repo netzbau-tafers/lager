@@ -39,6 +39,14 @@
   }
   const titles={hauptadministrator:'Hauptadministrator',administrator:'Administrator',baustellenverantwortlicher:'Baustellenverantwortlicher',mitarbeiter:'Mitarbeiter',techniker:'Techniker',leseberechtigter:'Leseberechtigter'};
   const titleOrder=Object.keys(titles);
+  const rolePresets={
+    administrator:{benutzer:'edit',fahrzeuge:'edit',fahrzeugeUebernehmen:'edit',fahrzeugeErstellen:'edit',fahrtenbuch:'edit',fahrtenbuchExport:'edit',baustellen:'edit',materialScannen:'edit',materialvorlagen:'edit',beendete:'edit',archiv:'edit',kabellager:'edit',kabelreport:'edit',logs:'edit',spiel:'edit'},
+    baustellenverantwortlicher:{benutzer:'none',fahrzeuge:'edit',fahrzeugeUebernehmen:'edit',fahrzeugeErstellen:'none',fahrtenbuch:'edit',fahrtenbuchExport:'none',baustellen:'edit',materialScannen:'edit',materialvorlagen:'edit',beendete:'edit',archiv:'edit',kabellager:'edit',kabelreport:'view',logs:'none',spiel:'edit'},
+    mitarbeiter:{benutzer:'none',fahrzeuge:'edit',fahrzeugeUebernehmen:'none',fahrzeugeErstellen:'none',fahrtenbuch:'edit',fahrtenbuchExport:'none',baustellen:'edit',materialScannen:'edit',materialvorlagen:'none',beendete:'none',archiv:'view',kabellager:'edit',kabelreport:'view',logs:'none',spiel:'edit'},
+    techniker:{benutzer:'none',fahrzeuge:'view',fahrzeugeUebernehmen:'none',fahrzeugeErstellen:'none',fahrtenbuch:'none',fahrtenbuchExport:'none',baustellen:'view',materialScannen:'none',materialvorlagen:'none',beendete:'none',archiv:'view',kabellager:'view',kabelreport:'view',logs:'none',spiel:'edit'},
+    leseberechtigter:{benutzer:'none',fahrzeuge:'view',fahrzeugeUebernehmen:'none',fahrzeugeErstellen:'none',fahrtenbuch:'none',fahrtenbuchExport:'none',baustellen:'view',materialScannen:'none',materialvorlagen:'none',beendete:'none',archiv:'view',kabellager:'view',kabelreport:'view',logs:'none',spiel:'view'}
+  };
+
   function effectivePermissions(row){
     const defaults=LagerAccess.defaults(row.id),permissions={...defaults,...row.access?.permissions};
     for(const key of ['beendete','materialvorlagen']){
@@ -171,18 +179,38 @@
     colorPermission(select);
     newSelects[key]=select;label.append(select);newGroupGrids[key].append(label);
   }
+  const newRole=document.getElementById('newUserRole');
+  for(const [key,label] of Object.entries(titles)){
+    if(key==='hauptadministrator')continue;
+    const option=text('option',label);option.value=key;newRole.append(option);
+  }
+  function applyNewRolePreset(){
+    const preset=rolePresets[newRole.value];
+    if(!preset)return;
+    for(const [key,select] of Object.entries(newSelects)){
+      select.value=preset[key]||'none';
+      select.dataset.permission=select.value;
+    }
+  }
+  newRole.addEventListener('change',applyNewRolePreset);
+  function resetNewUserPreset(){newRole.value='mitarbeiter';applyNewRolePreset();}
+  resetNewUserPreset();
   let creating=false;
   newForm.addEventListener('submit',async event=>{
     event.preventDefault();if(!LagerAccess.requireWrite('benutzer'))return;if(creating||!newForm.reportValidity())return;
+    if(auth.currentUser?.uid!==LagerAccess.MASTER&&newRole.value==='administrator'){
+      newStatus.textContent='Nur der Hauptadministrator darf Administratoren erstellen.';
+      return;
+    }
     if(auth.currentUser?.uid!==LagerAccess.MASTER&&['kabellager','baustellen','archiv','materialvorlagen','beendete'].every(key=>newSelects[key]?.value==='edit')){
       newStatus.textContent='Nur der Hauptadministrator darf Konten mit Administratorrechten erstellen.';
       return;
     }
     creating=true;newSubmit.disabled=true;newResult.hidden=true;newLink.value='';newStatus.textContent='Konto wird erstellt …';
-    const email=document.getElementById('newUserEmail').value.trim(),username=document.getElementById('newUserName').value.trim(),permissions=Object.fromEntries(Object.entries(newSelects).map(([key,select])=>[key,select.value]));
+    const email=document.getElementById('newUserEmail').value.trim(),username=document.getElementById('newUserName').value.trim(),adminTitle=newRole.value,permissions=Object.fromEntries(Object.entries(newSelects).map(([key,select])=>[key,select.value]));
     try{
-      const result=await createAccount({email,username,permissions});if(result.data?.created!==true||!result.data.uid)throw Error('Ungültige Serverantwort');
-      newForm.reset();Object.values(newSelects).forEach(select=>{select.dataset.permission=select.value;});newLink.value=result.data.setupLink||'';newResult.hidden=!result.data.setupLink;
+      const result=await createAccount({email,username,adminTitle,permissions});if(result.data?.created!==true||!result.data.uid)throw Error('Ungültige Serverantwort');
+      newForm.reset();resetNewUserPreset();newLink.value=result.data.setupLink||'';newResult.hidden=!result.data.setupLink;
       newStatus.textContent=result.data.setupLink?'Konto erstellt. Kopiere den Passwort-Link und gib ihn dem neuen Benutzer weiter.':'Konto erstellt. Der Passwort-Link konnte nicht erzeugt werden. Der Benutzer kann auf der Anmeldeseite sein Passwort zurücksetzen.';
       await load();
     }catch(error){newStatus.textContent=error.code==='functions/already-exists'?'Diese E-Mail hat bereits ein Konto.':error.code==='functions/invalid-argument'?'Bitte E-Mail, Benutzername und Rechte prüfen.':error.code==='functions/internal'?(error.message||'Erstellen fehlgeschlagen. Bitte die Kontoliste prüfen.'):'Erstellen fehlgeschlagen. Prüfe, ob lagerCreateUser in Firebase veröffentlicht ist. Bei einem Verbindungsfehler zuerst die Kontoliste aktualisieren.';}
