@@ -10,7 +10,8 @@ const write=api.httpsCallable('lagerSchedulerSet');
 const groups=[
  ['bobinen','Bobinen-Erinnerungen','Montag–Freitag um 16:45 Uhr'],
  ['fahrzeuge','Fahrzeug-Erinnerungen','Montag–Donnerstag 17:10 Uhr, Freitag 11:55 Uhr'],
- ['service','Fahrzeugservice','Tägliche Service-Erinnerung']
+ ['bereinigung','Fahrzeug-Bereinigung','Täglich um 03:15 Uhr · löscht technische Fahrzeugaktionen nach 7 Tagen'],
+ ['service','Fahrzeug- und Kranservice-Termine','Täglich um 07:00 Uhr · prüft Fälligkeiten und verschickt bei Bedarf E-Mails']
 ];
 function message(value){status.textContent=value;}
 async function refresh(){
