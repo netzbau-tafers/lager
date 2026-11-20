@@ -174,6 +174,10 @@
   let creating=false;
   newForm.addEventListener('submit',async event=>{
     event.preventDefault();if(!LagerAccess.requireWrite('benutzer'))return;if(creating||!newForm.reportValidity())return;
+    if(auth.currentUser?.uid!==LagerAccess.MASTER&&['kabellager','baustellen','archiv','materialvorlagen','beendete'].every(key=>newSelects[key]?.value==='edit')){
+      newStatus.textContent='Nur der Hauptadministrator darf Konten mit Administratorrechten erstellen.';
+      return;
+    }
     creating=true;newSubmit.disabled=true;newResult.hidden=true;newLink.value='';newStatus.textContent='Konto wird erstellt …';
     const email=document.getElementById('newUserEmail').value.trim(),username=document.getElementById('newUserName').value.trim(),permissions=Object.fromEntries(Object.entries(newSelects).map(([key,select])=>[key,select.value]));
     try{
