@@ -215,9 +215,27 @@ button i{
   justify-content:flex-end;
 }
 
-/* Dasselbe Sortierfeld wird auf Smartphones direkt vor den Bobinen angezeigt. */
+/* Sortierung: PC rechts neben den Statuskarten, Smartphone darunter. */
 .sort-filter-slot{
   min-width:0;
+}
+.result-bar .sort-filter-slot{
+  width:270px;
+  max-width:100%;
+  flex-shrink:0;
+  align-self:center;
+}
+.result-bar .sort-filter-slot #sortFilter{
+  display:block;
+  width:100%;
+  margin:0;
+  padding:10px 12px;
+  font-size:14px;
+}
+@media (min-width:681px) and (max-width:900px){
+  .result-bar .sort-filter-slot{
+    align-self:flex-end;
+  }
 }
 .mobile-sort-row{
   display:none;
@@ -1460,23 +1478,8 @@ textarea{
       <button class="reset" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
     </div>
 
-    <div class="filter-row">
-      <select id="statusFilter" onchange="renderFilteredTable(true)">
-        <option value="Alle">Alle</option>
-        <option value="In Gebrauch">In Gebrauch</option>
-        <option value="Lager">Lager</option>
-        <option value="Reserviert">Reserviert</option>
-        <option value="Reapro">Reapro</option>
-      </select>
-      <div id="sortFilterSlot" class="sort-filter-slot"><select id="sortFilter" aria-label="Bobinen sortieren" onchange="renderFilteredTable()">
-        <option value="nummer">Sortierung: Nummer Aufsteigend</option>
-        <option value="nummerDesc">Sortierung: Nummer Absteigend</option>
-        <option value="querschnittAsc">Querschnitt: Aufsteigend</option>
-        <option value="querschnittDesc">Querschnitt: Absteigend</option>
-        <option value="datumDesc">Hinzugefügt am: Neueste zuerst</option>
-        <option value="datumAsc">Hinzugefügt am: Älteste zuerst</option>
-      </select></div>
-    </div>
+    <!-- Filterzustand bleibt intern bestehen; die Statuskarten übernehmen die Auswahl. -->
+    <input type="hidden" id="statusFilter" value="Alle">
 
     <div style="margin-top:15px;">
       <button onclick="openAdd()" data-access-write="kabellager"><i class="fa-solid fa-plus"></i> Neue Bobine hinzufügen</button>
@@ -1492,6 +1495,16 @@ textarea{
       <button type="button" class="status-legend-item status-legend-filter" data-status-filter="In Gebrauch" aria-pressed="false" onclick="toggleLegendFilter('In Gebrauch')"><span class="status-legend-dot inuse" aria-hidden="true"></span>In Gebrauch: <span class="status-legend-count" id="countAusgeschrieben">0</span></button>
       <button type="button" class="status-legend-item status-legend-filter" data-status-filter="Reserviert" aria-pressed="false" onclick="toggleLegendFilter('Reserviert')"><span class="status-legend-dot reserved" aria-hidden="true"></span>Reserviert: <span class="status-legend-count" id="countReserviert">0</span></button>
       <button type="button" class="status-legend-item status-legend-filter" data-status-filter="Reapro" aria-pressed="false" onclick="toggleLegendFilter('Reapro')"><span class="status-legend-dot reapro" aria-hidden="true"></span>Reapro: <span class="status-legend-count" id="countReapro">0</span></button>
+    </div>
+    <div id="sortFilterSlot" class="sort-filter-slot">
+      <select id="sortFilter" aria-label="Bobinen sortieren" onchange="renderFilteredTable()">
+        <option value="nummer">Sortierung: Nummer Aufsteigend</option>
+        <option value="nummerDesc">Sortierung: Nummer Absteigend</option>
+        <option value="querschnittAsc">Querschnitt: Aufsteigend</option>
+        <option value="querschnittDesc">Querschnitt: Absteigend</option>
+        <option value="datumDesc">Hinzugefügt am: Neueste zuerst</option>
+        <option value="datumAsc">Hinzugefügt am: Älteste zuerst</option>
+      </select>
     </div>
   </div>
 
