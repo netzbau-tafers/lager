@@ -21,3 +21,34 @@ test('listing supports pages and returns only necessary fields',async()=>{const 
 test('delegated view lists users but cannot create or delete',async()=>{const f=fixture();f.records.set('user_access/viewer',{permissions:{benutzer:'view'}});assert((await f.service.list({auth:{uid:'viewer'},data:{}})).users.length);for(const method of ['create','remove'])await assert.rejects(f.service[method]({...f.request,auth:{uid:'viewer'}}),e=>e.code==='permission-denied');});
 test('delegated editor can delete another account but cannot delete master or itself',async()=>{const f=fixture();f.records.set('user_access/editor',{permissions:{benutzer:'edit'}});for(const uid of [MASTER,'editor'])await assert.rejects(f.service.remove({auth:{uid:'editor'},data:{uid,confirmUid:uid}}),e=>e.code==='failed-precondition');await f.service.remove({...f.request,auth:{uid:'editor'}});assert.equal(f.records.get('account_deletions/worker').deletedBy,'editor');});
 test('deleted delegated administrator is denied',async()=>{const f=fixture();f.records.set('user_access/editor',{permissions:{benutzer:'edit'}});f.records.set('account_deletions/editor',{});await assert.rejects(f.service.list({auth:{uid:'editor'}}),e=>e.code==='permission-denied');});
+
+test('delegated editor cannot delete an Administrator account',async()=>{
+  const f=fixture();
+  f.records.set('user_access/editor',{permissions:{benutzer:'edit'}});
+  f.records.set('users/administrator',{adminTitle:'administrator'});
+  f.records.set('user_access/administrator',{permissions:{kabellager:'edit'}});
+  await assert.rejects(f.service.remove({auth:{uid:'editor'},data:{uid:'administrator',confirmUid:'administrator'}}),e=>e.code==='permission-denied');
+  assert(!f.records.has('account_deletions/administrator'));
+  assert.deepEqual(f.events,[]);
+});
+test('main admin can delete an Administrator account',async()=>{
+  const f=fixture();
+  f.records.set('users/administrator',{adminTitle:'administrator'});
+  await f.service.remove({auth:{uid:MASTER},data:{uid:'administrator',confirmUid:'administrator'}});
+  assert(f.records.has('account_deletions/administrator'));
+  assert(!f.records.has('users/administrator'));
+});
+test('delegated editor cannot delete a legacy-derived Administrator',async()=>{
+  const f=fixture();
+  f.records.set('user_access/editor',{permissions:{benutzer:'edit'}});
+  f.records.set('users/administrator',{username:'Old admin'});
+  f.records.set('user_access/administrator',{permissions:{kabellager:'edit',baustellen:'edit',archiv:'edit',materialvorlagen:'edit',beendete:'edit'}});
+  await assert.rejects(f.service.remove({auth:{uid:'editor'},data:{uid:'administrator',confirmUid:'administrator'}}),e=>e.code==='permission-denied');
+  assert(!f.records.has('account_deletions/administrator'));
+});
+test('delegated editor cannot create a new account with administrator-level rights',async()=>{
+  const f=fixture();
+  f.records.set('user_access/editor',{permissions:{benutzer:'edit'}});
+  const permissions=Object.fromEntries(['kabellager','baustellen','archiv','kabelreport','logs','spiel','materialvorlagen','beendete'].map(key=>[key,'edit']));
+  await assert.rejects(f.service.create({auth:{uid:'editor'},data:{email:'admin@example.com',username:'Admin',permissions}}),e=>e.code==='permission-denied');
+});
