@@ -9,6 +9,35 @@ service cloud.firestore {
     function userAdminRead() { return signedIn() && (master() || (configured() && level('benutzer') in ['view','edit'])); }
     function userAdminWrite() { return signedIn() && (master() || (configured() && level('benutzer') == 'edit')); }
     function protectedMaster(userId) { return userId == 'pmyu29TlC3QM7JIysmy2EmiHSWW2'; }
+    // Protect explicit administrator titles and legacy admin titles inferred from permissions.
+    // Read both states to prevent downgrade and upgrade in one transaction.
+    function legacyNamedAdmin(userId) { return userId in ['smnnQd4RhEQZR3uuNN0otNALUqi1', 'pmyu29TlC3QM7JIysmy2EmiHSWW2', 'PAtM8Lv1TBNLSiQzBLJK9Oda8KK2', 'hwZEme8xvkasSAGrmOtQRLOnnXn1', 'PKDpb7Cb7ig8ZKZRMm23FOKnCHQ2', 'Tgj9KT6C21XjeistBWRiSVYqTDC2', 'DSMERv7Uu4b4eEYQx5SKbjvdher2']; }
+    function legacyLimitedUser(userId) { return userId in ['POSB6W7xeDZ8Dlba03ZP3J02dMC3', 'AX08qKp7lte6vslQMFn76FVqxw53', 'KYqiqNKTmkQQYVWAa6bp6vSvTlV2']; }
+    function isAdministratorTitle(userId, profile, permissions) {
+      let title = profile.get('adminTitle', '');
+      let oldAdmin = legacyNamedAdmin(userId);
+      let site = permissions.get('baustellen', legacyLimitedUser(userId) ? 'none' : 'edit');
+      return title == 'administrator' || (
+        !(title in ['administrator','baustellenverantwortlicher','mitarbeiter','techniker','leseberechtigter','hauptadministrator']) &&
+        permissions.get('kabellager', 'edit') == 'edit' && site == 'edit' &&
+        permissions.get('archiv', oldAdmin ? 'edit' : 'none') == 'edit' &&
+        permissions.get('materialvorlagen', oldAdmin ? 'edit' : 'none') == 'edit' &&
+        permissions.get('beendete', oldAdmin ? 'edit' : 'none') == 'edit'
+      );
+    }
+    function adminAccountBefore(userId) {
+      let p=/databases/$(database)/documents/users/$(userId);
+      let a=/databases/$(database)/documents/user_access/$(userId);
+      return isAdministratorTitle(userId, exists(p) ? get(p).data : {}, exists(a) ? get(a).data.get('permissions',{}) : {});
+    }
+    function adminAccountAfter(userId) {
+      let p=/databases/$(database)/documents/users/$(userId);
+      let a=/databases/$(database)/documents/user_access/$(userId);
+      return isAdministratorTitle(userId, existsAfter(p) ? getAfter(p).data : {}, existsAfter(a) ? getAfter(a).data.get('permissions',{}) : {});
+    }
+    function mayManageAccount(userId) {
+      return master() || (!protectedMaster(userId) && !adminAccountBefore(userId) && !adminAccountAfter(userId));
+    }
     function legacy(area) {
       return area == 'baustellen' ? (limited() ? 'none' : 'edit') :
         area == 'archiv' || area == 'logs' ? (admin() ? 'edit' : 'none') :
@@ -46,16 +75,16 @@ service cloud.firestore {
     match /user_access/{userId} {
       allow get: if userAdminRead() || (signedIn() && request.auth.uid == userId);
       allow list: if userAdminRead();
-      allow create, update: if userAdminWrite() && !protectedMaster(userId) && userId != request.auth.uid && !exists(/databases/$(database)/documents/account_deletions/$(userId)) && validAccess();
-      allow delete: if userAdminWrite() && !protectedMaster(userId) && userId != request.auth.uid;
+      allow create, update: if userAdminWrite() && mayManageAccount(userId) && userId != request.auth.uid && !exists(/databases/$(database)/documents/account_deletions/$(userId)) && validAccess();
+      allow delete: if userAdminWrite() && mayManageAccount(userId) && userId != request.auth.uid;
     }
     match /users/{userId} {
       allow read: if userAdminRead() || (signedIn() && request.auth.uid == userId);
-      allow create: if (userAdminWrite() && (master() || !protectedMaster(userId)) && !exists(/databases/$(database)/documents/account_deletions/$(userId))) || (signedIn() && request.auth.uid == userId &&
+      allow create: if (userAdminWrite() && mayManageAccount(userId) && !exists(/databases/$(database)/documents/account_deletions/$(userId))) || (signedIn() && request.auth.uid == userId &&
         request.resource.data.keys().hasOnly(['email','updatedAt','lastSeenAt']) && validOwnProfile());
-      allow update: if (userAdminWrite() && (master() || !protectedMaster(userId)) && !exists(/databases/$(database)/documents/account_deletions/$(userId))) || (signedIn() && request.auth.uid == userId &&
+      allow update: if (userAdminWrite() && mayManageAccount(userId) && !exists(/databases/$(database)/documents/account_deletions/$(userId))) || (signedIn() && request.auth.uid == userId &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['email','updatedAt','lastSeenAt']) && validOwnProfile());
-      allow delete: if userAdminWrite() && !protectedMaster(userId) && userId != request.auth.uid;
+      allow delete: if userAdminWrite() && mayManageAccount(userId) && userId != request.auth.uid;
     }
     // Users read their own status; the master can list statuses for user administration.
     match /push_preferences/{userId} {
