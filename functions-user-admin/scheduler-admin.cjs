@@ -7,7 +7,8 @@ const GROUPS={
  bobinen:['lagerBobinenPushReminder'],
  fahrzeuge:['lagerVehiclePushReminderWeekdays','lagerVehiclePushReminderFriday'],
  bereinigung:['lagerVehicleActionCleanup'],
- service:['lagerVehicleServiceReminder']
+ service:['lagerVehicleServiceReminder'],
+ kabelreport:['lagerCableMonthlySnapshot']
 };
 const authClient=new GoogleAuth({scopes:['https://www.googleapis.com/auth/cloud-platform']});
 async function master(request){
