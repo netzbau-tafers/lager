@@ -27,6 +27,43 @@ const levels=value=>Object.fromEntries(areas.map(key=>[key,value]));
   const admin=env.authenticatedContext('smnnQd4RhEQZR3uuNN0otNALUqi1').firestore();await assertFails(getDocs(collection(admin,'users')));await assertFails(updateDoc(doc(admin,'users/worker'),{username:'forged'}));
   await setRights({...levels('edit'),beendete:'none'});await assertSucceeds(updateDoc(doc(worker,'baustellen/a'),{name:'Aktiv bearbeitet'}));await assertSucceeds(getDoc(doc(worker,'baustellen/c')));await assertFails(updateDoc(doc(worker,'baustellen/c'),{name:'Verboten'}));await assertFails(updateDoc(doc(worker,'baustellen/c'),{status:'aktiv'}));await assertFails(updateDoc(doc(worker,'baustellen/c'),{status:'archiviert'}));await assertFails(deleteDoc(doc(worker,'baustellen/c')));await assertFails(updateDoc(doc(worker,'baustellen_material/c'),{anzahl:2}));await assertFails(deleteDoc(doc(worker,'baustellen_material/c')));await assertFails(updateDoc(doc(worker,'baustellen/a'),{status:'archiviert'}));
   await setRights({...levels('edit'),beendete:'edit'});await assertSucceeds(updateDoc(doc(worker,'baustellen/c'),{name:'Erlaubt'}));await assertSucceeds(updateDoc(doc(worker,'baustellen_material/c'),{anzahl:2}));await assertSucceeds(updateDoc(doc(worker,'baustellen/c'),{status:'aktiv'}));await assertSucceeds(updateDoc(doc(worker,'baustellen/c'),{status:'rausschreiben'}));await assertSucceeds(updateDoc(doc(worker,'baustellen/c'),{status:'archiviert'}));await assertSucceeds(deleteDoc(doc(worker,'baustellen_material/c')));await assertSucceeds(deleteDoc(doc(worker,'baustellen/c')));
+  // Delegated user administrators must not modify, delete, promote or demote administrator accounts.
+  await env.withSecurityRulesDisabled(async context=>{
+    const db=context.firestore();
+    for(const [path,data]of Object.entries({
+      'users/editor':{username:'Editor',adminTitle:'mitarbeiter'},
+      'user_access/editor':{permissions:{...levels('view'),benutzer:'edit'}},
+      'users/protectedAdmin':{username:'Admin',adminTitle:'administrator'},
+      'user_access/protectedAdmin':{permissions:{...levels('view'),benutzer:'edit'}},
+      'users/subordinate':{username:'Techniker',adminTitle:'techniker'},
+      'user_access/subordinate':{permissions:levels('view')},
+      'users/implicitAdmin':{username:'Legacy Admin'},
+      'user_access/implicitAdmin':{permissions:{...levels('edit'),materialvorlagen:'edit',beendete:'edit'}},
+      'users/untitled':{username:'Ohne Titel'},
+      'user_access/untitled':{permissions:levels('view')}
+    }))await setDoc(doc(db,path),data);
+  });
+  const editor=env.authenticatedContext('editor',{email:'editor@example.com'}).firestore();
+  const fullAdminRights={...levels('edit'),materialvorlagen:'edit',beendete:'edit'};
+  await assertSucceeds(getDoc(doc(editor,'users/protectedAdmin')));
+  await assertFails(updateDoc(doc(editor,'users/protectedAdmin'),{username:'Geändert'}));
+  await assertFails(updateDoc(doc(editor,'users/protectedAdmin'),{adminTitle:'mitarbeiter'}));
+  await assertFails(deleteDoc(doc(editor,'users/protectedAdmin')));
+  await assertFails(setDoc(doc(editor,'user_access/protectedAdmin'),{permissions:levels('view'),updatedAt:serverTimestamp(),updatedBy:'editor'}));
+  await assertFails(deleteDoc(doc(editor,'user_access/protectedAdmin')));
+  await assertFails(updateDoc(doc(editor,'users/implicitAdmin'),{username:'Geändert'}));
+  await assertFails(setDoc(doc(editor,'user_access/implicitAdmin'),{permissions:levels('view'),updatedAt:serverTimestamp(),updatedBy:'editor'}));
+  await assertFails(updateDoc(doc(editor,'users/subordinate'),{adminTitle:'administrator'}));
+  await assertFails(setDoc(doc(editor,'user_access/untitled'),{permissions:fullAdminRights,updatedAt:serverTimestamp(),updatedBy:'editor'}));
+  await assertSucceeds(updateDoc(doc(editor,'users/subordinate'),{username:'Geändert'}));
+  await assertSucceeds(setDoc(doc(editor,'user_access/subordinate'),{permissions:levels('view'),updatedAt:serverTimestamp(),updatedBy:'editor'}));
+  const roleBatch=writeBatch(editor);
+  roleBatch.set(doc(editor,'users/protectedAdmin'),{adminTitle:'mitarbeiter'},{merge:true});
+  roleBatch.set(doc(editor,'user_access/protectedAdmin'),{permissions:levels('view'),updatedAt:serverTimestamp(),updatedBy:'editor'});
+  await assertFails(roleBatch.commit());
+  await assertSucceeds(updateDoc(doc(master,'users/protectedAdmin'),{username:'Durch Hauptadministrator geändert'}));
+  await assertSucceeds(setDoc(doc(master,'user_access/protectedAdmin'),{permissions:levels('view'),updatedAt:serverTimestamp(),updatedBy:MASTER}));
+
   const sixRights=levels('view');delete sixRights.gespart;await setRights(sixRights);await assertFails(getDoc(doc(worker,'gespart_tarife/a')));await assertSucceeds(getDoc(doc(worker,'bobinen/a')));
   const batch=writeBatch(master);batch.set(doc(master,'users/worker'),{username:'Batch name'},{merge:true});batch.set(doc(master,'user_access/worker'),{permissions:levels('view'),updatedAt:serverTimestamp(),updatedBy:MASTER});await assertSucceeds(batch.commit());
 

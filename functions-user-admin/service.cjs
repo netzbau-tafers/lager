@@ -1,6 +1,24 @@
 'use strict';
 const {randomBytes}=require('node:crypto');
 const MASTER='pmyu29TlC3QM7JIysmy2EmiHSWW2';
+const LEGACY_ADMINS=new Set(['smnnQd4RhEQZR3uuNN0otNALUqi1',MASTER,'PAtM8Lv1TBNLSiQzBLJK9Oda8KK2','hwZEme8xvkasSAGrmOtQRLOnnXn1','PKDpb7Cb7ig8ZKZRMm23FOKnCHQ2','Tgj9KT6C21XjeistBWRiSVYqTDC2','DSMERv7Uu4b4eEYQx5SKbjvdher2']);
+const LEGACY_LIMITED=new Set(['POSB6W7xeDZ8Dlba03ZP3J02dMC3','AX08qKp7lte6vslQMFn76FVqxw53','KYqiqNKTmkQQYVWAa6bp6vSvTlV2']);
+const TITLES=new Set(['administrator','baustellenverantwortlicher','mitarbeiter','techniker','leseberechtigter','hauptadministrator']);
+// Keep legacy title detection in sync with benutzer.js titleFor().
+function isAdministratorTitle(uid,profile,assigned){
+  const title=profile?.adminTitle;
+  if(title==='administrator')return true;
+  if(TITLES.has(title))return false;
+  const legacy=LEGACY_ADMINS.has(uid),defaults={
+    kabellager:'edit',baustellen:LEGACY_LIMITED.has(uid)?'none':'edit',
+    archiv:legacy?'edit':'none',materialvorlagen:legacy?'edit':'none',beendete:legacy?'edit':'none'
+  };
+  const p={...defaults,...(assigned||{})};
+  for(const key of ['materialvorlagen','beendete']){
+    if(assigned&&!Object.hasOwn(assigned,key))p[key]=defaults[key]==='edit'&&p.baustellen==='edit'?'edit':'none';
+  }
+  return ['kabellager','baustellen','archiv','materialvorlagen','beendete'].every(key=>p[key]==='edit');
+}
 function createService({auth,db,timestamp,ErrorType}){
   async function requireMaster(request){
     if(!request.auth)throw new ErrorType('unauthenticated','Bitte anmelden.');
@@ -18,6 +36,17 @@ function createService({auth,db,timestamp,ErrorType}){
     const level=access.data()?.permissions?.benutzer;
     if(caller.disabled||deleted.exists||!(write?level==='edit':['view','edit'].includes(level)))throw new ErrorType('permission-denied','Keine Berechtigung für die Benutzerverwaltung.');
   }
+  async function requireManageableTarget(request,target){
+    if(request.auth.uid===MASTER)return;
+    if(target===MASTER)throw new ErrorType('permission-denied','Das Hauptadministrator-Konto ist geschützt.');
+    const [profile,access]=await Promise.all([
+      db.collection('users').doc(target).get(),
+      db.collection('user_access').doc(target).get()
+    ]);
+    if(isAdministratorTitle(target,profile.data(),access.exists?access.data()?.permissions||{}:null)){
+      throw new ErrorType('permission-denied','Administratorkonten dürfen nur vom Hauptadministrator verwaltet werden.');
+    }
+  }
   function uid(value){if(typeof value!=='string'||!value||value.length>128||value.includes('/'))throw new ErrorType('invalid-argument','Ungültige Benutzer-ID.');return value;}
   return {
     async ownResetLink(request){
@@ -34,8 +63,7 @@ function createService({auth,db,timestamp,ErrorType}){
     async resetLink(request){
       await requireUserAdmin(request,true);
       const target=uid(request.data?.uid);
-      // Andere Administratoren dürfen die Hauptadministration nicht übernehmen.
-      if(target===MASTER&&request.auth.uid!==MASTER)throw new ErrorType('permission-denied','Das Hauptadministrator-Konto ist geschützt.');
+      await requireManageableTarget(request,target);
       if((await db.collection('account_deletions').doc(target).get()).exists)throw new ErrorType('failed-precondition','Dieses Konto wurde gelöscht.');
       let user;
       try{user=await auth.getUser(target);}catch(error){if(error.code==='auth/user-not-found')throw new ErrorType('not-found','Konto nicht gefunden. Bitte die Liste aktualisieren.');throw error;}
@@ -51,6 +79,9 @@ function createService({auth,db,timestamp,ErrorType}){
       if(!p||typeof p!=='object'||Array.isArray(p)||Object.keys(p).some(key=>![...keys,'materialScannen','benutzer','fahrtenbuch','fahrtenbuchExport','fahrzeuge','fahrzeugeErstellen','fahrzeugeUebernehmen'].includes(key))||Object.keys(p).length<keys.length||!keys.every(key=>['materialvorlagen','beendete'].includes(key)?['none','edit'].includes(p[key]):['none','view','edit'].includes(p[key])))throw new ErrorType('invalid-argument','Ungültige Zugriffsrechte.');
       if(('materialScannen' in p&&!['none','edit'].includes(p.materialScannen))||('benutzer' in p&&!['none','view','edit'].includes(p.benutzer))||('fahrtenbuchExport' in p&&!['none','edit'].includes(p.fahrtenbuchExport))||('fahrtenbuch' in p&&!['none','edit'].includes(p.fahrtenbuch))||('fahrzeuge' in p&&!['none','view','edit'].includes(p.fahrzeuge))||('fahrzeugeErstellen' in p&&!['none','edit'].includes(p.fahrzeugeErstellen))||('fahrzeugeUebernehmen' in p&&!['none','edit'].includes(p.fahrzeugeUebernehmen)))throw new ErrorType('invalid-argument','Ungültige Fahrzeugrechte.');
       const permissions={materialScannen:p.materialScannen||'none',benutzer:p.benutzer||'none',...Object.fromEntries(keys.map(key=>[key,p[key]])),fahrtenbuch:p.fahrtenbuch||'none',fahrtenbuchExport:p.fahrtenbuchExport||'none',fahrzeuge:p.fahrzeuge||'none',fahrzeugeErstellen:p.fahrzeugeErstellen||'none',fahrzeugeUebernehmen:p.fahrzeugeUebernehmen||'none'};
+      if(request.auth.uid!==MASTER&&isAdministratorTitle('',{},permissions)){
+        throw new ErrorType('permission-denied','Nur der Hauptadministrator darf Administratorkonten erstellen.');
+      }
       let user;
       try{user=await auth.createUser({email,displayName:username,password:randomBytes(32).toString('base64url'),disabled:true,emailVerified:false});}
       catch(error){if(error.code==='auth/email-already-exists')throw new ErrorType('already-exists','Diese E-Mail hat bereits ein Konto.');if(error.code==='auth/invalid-email')throw new ErrorType('invalid-argument','Ungültige E-Mail.');throw error;}
@@ -80,6 +111,7 @@ function createService({auth,db,timestamp,ErrorType}){
       const target=uid(request.data?.uid);
       if(target===MASTER||target===request.auth.uid)throw new ErrorType('failed-precondition','Das Master-Admin-Konto kann nicht gelöscht werden.');
       if(request.data?.confirmUid!==target)throw new ErrorType('invalid-argument','Löschbestätigung fehlt.');
+      await requireManageableTarget(request,target);
       // Auth and Firestore cannot share a transaction. Block old tokens first,
       // then delete Auth and atomically remove the profile and access settings.
       // Keep the tombstone so a cached ID token cannot recreate a profile or use legacy rights.

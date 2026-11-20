@@ -1,7 +1,7 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {createService,MASTER}=require('./service.cjs');
 class E extends Error{constructor(code,message){super(message);this.code=code;}}
-function fixture({deleted=false,disabled=false,accessLevel='none',callerDeleted=false,callerDisabled=false}={}){
+function fixture({deleted=false,disabled=false,accessLevel='none',callerDeleted=false,callerDisabled=false,targetTitle='',targetPermissions={}}={}){
   const generated=[];
   const auth={
     async getUser(id){
@@ -14,8 +14,9 @@ function fixture({deleted=false,disabled=false,accessLevel='none',callerDeleted=
   };
   const db={collection(name){return {doc(id){return {async get(){
     if(name==='account_deletions')return {exists:id==='target'||id==='self'?deleted:callerDeleted};
-    if(name==='user_access')return {exists:true,data:()=>({permissions:{benutzer:accessLevel}})};
-    return {exists:false};
+    if(name==='user_access')return {exists:true,data:()=>({permissions:id==='target'?{...targetPermissions}:{benutzer:accessLevel}})};
+    if(name==='users')return {exists:id==='target',data:()=>({adminTitle:targetTitle})};
+    return {exists:false,data:()=>({})};
   }};}};}};
   return {generated,service:createService({auth,db,ErrorType:E})};
 }
@@ -71,4 +72,30 @@ test('own link requires authentication and an active existing account',async()=>
     await assert.rejects(f.service.ownResetLink({auth:{uid:'self'}}),error=>error.code==='failed-precondition');
     assert.equal(f.generated.length,0);
   }
+});
+
+test('delegated editors cannot reset another Administrator account',async()=>{
+  const f=fixture({accessLevel:'edit',targetTitle:'administrator'});
+  await assert.rejects(f.service.resetLink({auth:{uid:'editor'},data:{uid:'target'}}),e=>e.code==='permission-denied');
+  assert.deepEqual(f.generated,[]);
+});
+test('the main administrator can reset an Administrator account',async()=>{
+  const f=fixture({targetTitle:'administrator'});
+  const result=await f.service.resetLink({auth:{uid:MASTER},data:{uid:'target'}});
+  assert.equal(result.email,'current@example.com');
+  assert.equal(f.generated.length,1);
+});
+test('derived legacy admin titles are protected even without saved adminTitle',async()=>{
+  const f=fixture({accessLevel:'edit',targetPermissions:{
+    kabellager:'edit',baustellen:'edit',archiv:'edit',materialvorlagen:'edit',beendete:'edit'
+  }});
+  await assert.rejects(f.service.resetLink({auth:{uid:'editor'},data:{uid:'target'}}),e=>e.code==='permission-denied');
+  assert.deepEqual(f.generated,[]);
+});
+test('other explicit titles remain manageable by delegated editors',async()=>{
+  const f=fixture({accessLevel:'edit',targetTitle:'mitarbeiter',targetPermissions:{
+    kabellager:'edit',baustellen:'edit',archiv:'edit',materialvorlagen:'edit',beendete:'edit'
+  }});
+  assert.equal((await f.service.resetLink({auth:{uid:'editor'},data:{uid:'target'}})).uid,'target');
+  assert.equal(f.generated.length,1);
 });
