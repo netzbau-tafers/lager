@@ -725,6 +725,10 @@ canvas{
   .mr-ranking li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:11px;padding:12px 0;border-top:1px solid #f0f3f5}
   .mr-rank-num{height:27px;width:27px;display:grid;place-items:center;background:#f0f4f7;color:#718294;border-radius:9px;font-size:12px;font-weight:850}
   .mr-ranking li:first-child .mr-rank-num{background:#fff1d5;color:#bd8524}
+  .mr-rank-num.mr-rank-gold{background:#fff1d5;color:#bd8524}
+  .mr-rank-num.mr-rank-silver{background:#eef3f8;color:#8194a7}
+  .mr-rank-num.mr-rank-bronze{background:#fff0e7;color:#ad7349}
+  .mr-rank-num svg{width:21px;height:21px;display:block}
   .mr-rank-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:750}
   .mr-rank-score{white-space:nowrap;font-size:13px;font-weight:850;font-variant-numeric:tabular-nums;color:#31516b}
   .mr-rank-score small{font-weight:500;color:#8496a4;font-size:10px}
@@ -2574,7 +2578,15 @@ function mrRenderRanking(ranking){
     number.className = "mr-rank-num";
     name.className = "mr-rank-name";
     value.className = "mr-rank-score";
-    number.textContent = String(index + 1);
+    const place = index + 1;
+    if(place <= 3){
+      // Die Podestplätze erhalten farbige Pokale statt Rangzahlen.
+      number.classList.add(place === 1 ? "mr-rank-gold" : place === 2 ? "mr-rank-silver" : "mr-rank-bronze");
+      number.setAttribute("aria-label", "Platz " + place);
+      number.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 3.5h10v6a5 5 0 0 1-10 0v-6Z" fill="currentColor"/><path d="M7 5H4v2a4 4 0 0 0 4 4m9-6h3v2a4 4 0 0 1-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12 14.5v4m-3.5 2h7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+    }else{
+      number.textContent = String(place);
+    }
     name.textContent = String(entry.name || "Unbekannt");
     value.textContent = Number(entry.score || 0).toLocaleString("de-CH") + " Pkt.";
     li.append(number,name,value);
