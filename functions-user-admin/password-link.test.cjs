@@ -1,31 +1,74 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {createService,MASTER}=require('./service.cjs');
 class E extends Error{constructor(code,message){super(message);this.code=code;}}
-function fixture({deleted=false,disabled=false}={}){
+function fixture({deleted=false,disabled=false,accessLevel='none',callerDeleted=false,callerDisabled=false}={}){
   const generated=[];
-  const auth={async getUser(uid){return uid===MASTER?{disabled:false}:{email:'current@example.com',disabled};},async generatePasswordResetLink(email){generated.push(email);return 'https://example.com/reset?secret=test';},sendPasswordResetEmail(){throw Error('Email must never be sent');}};
-  const db={collection:()=>({doc:()=>({get:async()=>({exists:deleted})})})};
+  const auth={
+    async getUser(id){
+      if(id===MASTER)return {email:'master@example.com',disabled:false};
+      if(id==='editor'||id==='viewer'||id==='other')return {email:'caller@example.com',disabled:callerDisabled};
+      return {email:'current@example.com',disabled};
+    },
+    async generatePasswordResetLink(email){generated.push(email);return 'https://example.com/reset?secret=test';},
+    sendPasswordResetEmail(){throw Error('Email must never be sent');}
+  };
+  const db={collection(name){return {doc(id){return {async get(){
+    if(name==='account_deletions')return {exists:id==='target'||id==='self'?deleted:callerDeleted};
+    if(name==='user_access')return {exists:true,data:()=>({permissions:{benutzer:accessLevel}})};
+    return {exists:false};
+  }};}};}};
   return {generated,service:createService({auth,db,ErrorType:E})};
 }
-test('returns link using the current account email without sending email',async()=>{
-  const f=fixture();const result=await f.service.resetLink({auth:{uid:MASTER},data:{uid:'target',email:'untrusted@example.com'}});
-  assert.equal(result.uid,'target');assert.equal(result.email,'current@example.com');assert.equal(result.resetLink,'https://example.com/reset?secret=test');assert.deepEqual(f.generated,['current@example.com']);
+test('master can generate link for an existing account, using verified account email',async()=>{
+  const f=fixture(),result=await f.service.resetLink({auth:{uid:MASTER},data:{uid:'target',email:'untrusted@example.com'}});
+  assert.deepEqual(result,{uid:'target',email:'current@example.com',resetLink:'https://example.com/reset?secret=test'});
+  assert.deepEqual(f.generated,['current@example.com']);
 });
-test('non-master and unauthenticated callers cannot generate links',async()=>{
-  const f=fixture();for(const auth of [undefined,{uid:'other'}])await assert.rejects(f.service.resetLink({auth,data:{uid:'target'}}));assert.equal(f.generated.length,0);
+test('user administration edit permission can generate links for other accounts',async()=>{
+  const f=fixture({accessLevel:'edit'});
+  const result=await f.service.resetLink({auth:{uid:'editor'},data:{uid:'target',email:'untrusted@example.com'}});
+  assert.equal(result.email,'current@example.com');
+  assert.deepEqual(f.generated,['current@example.com']);
 });
-test('deleted and disabled accounts cannot generate links',async()=>{
-  for(const option of [{deleted:true},{disabled:true}]){const f=fixture(option);await assert.rejects(f.service.resetLink({auth:{uid:MASTER},data:{uid:'target'}}),e=>e.code==='failed-precondition');assert.equal(f.generated.length,0);}
+test('view, none and unauthenticated callers cannot generate reset links',async()=>{
+  for(const accessLevel of ['view','none']){
+    const f=fixture({accessLevel});
+    await assert.rejects(f.service.resetLink({auth:{uid:'viewer'},data:{uid:'target'}}),error=>error.code==='permission-denied');
+    assert.equal(f.generated.length,0);
+  }
+  const f=fixture({accessLevel:'edit'});
+  await assert.rejects(f.service.resetLink({data:{uid:'target'}}),error=>error.code==='unauthenticated');
+  assert.equal(f.generated.length,0);
 });
-
+test('editor may not generate a link for the master account',async()=>{
+  const f=fixture({accessLevel:'edit'});
+  await assert.rejects(f.service.resetLink({auth:{uid:'editor'},data:{uid:MASTER}}),error=>error.code==='permission-denied');
+  assert.equal(f.generated.length,0);
+});
+test('disabled or deleted user-admin callers cannot generate links even with edit permission',async()=>{
+  for(const option of [{callerDeleted:true},{callerDisabled:true}]){
+    const f=fixture({...option,accessLevel:'edit'});
+    await assert.rejects(f.service.resetLink({auth:{uid:'editor'},data:{uid:'target'}}),error=>error.code==='permission-denied');
+    assert.equal(f.generated.length,0);
+  }
+});
+test('deleted or disabled target accounts cannot generate links',async()=>{
+  for(const option of [{deleted:true},{disabled:true}]){
+    const f=fixture(option);
+    await assert.rejects(f.service.resetLink({auth:{uid:MASTER},data:{uid:'target'}}),error=>error.code==='failed-precondition');
+    assert.equal(f.generated.length,0);
+  }
+});
 test('own link ignores supplied target and email, and sends no email',async()=>{
-  const f=fixture();const result=await f.service.ownResetLink({auth:{uid:'self'},data:{uid:MASTER,email:'attacker@example.com'}});
+  const f=fixture(),result=await f.service.ownResetLink({auth:{uid:'self'},data:{uid:MASTER,email:'attacker@example.com'}});
   assert.deepEqual(result,{resetLink:'https://example.com/reset?secret=test'});
   assert.deepEqual(f.generated,['current@example.com']);
 });
 test('own link requires authentication and an active existing account',async()=>{
-  await assert.rejects(fixture().service.ownResetLink({data:{}}),e=>e.code==='unauthenticated');
+  await assert.rejects(fixture().service.ownResetLink({data:{}}),error=>error.code==='unauthenticated');
   for(const option of [{deleted:true},{disabled:true}]){
-    const f=fixture(option);await assert.rejects(f.service.ownResetLink({auth:{uid:'self'}}),e=>e.code==='failed-precondition');assert.equal(f.generated.length,0);
+    const f=fixture(option);
+    await assert.rejects(f.service.ownResetLink({auth:{uid:'self'}}),error=>error.code==='failed-precondition');
+    assert.equal(f.generated.length,0);
   }
 });

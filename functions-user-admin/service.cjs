@@ -32,8 +32,10 @@ function createService({auth,db,timestamp,ErrorType}){
       return {resetLink};
     },
     async resetLink(request){
-      await requireMaster(request);
+      await requireUserAdmin(request,true);
       const target=uid(request.data?.uid);
+      // Andere Administratoren dürfen die Hauptadministration nicht übernehmen.
+      if(target===MASTER&&request.auth.uid!==MASTER)throw new ErrorType('permission-denied','Das Hauptadministrator-Konto ist geschützt.');
       if((await db.collection('account_deletions').doc(target).get()).exists)throw new ErrorType('failed-precondition','Dieses Konto wurde gelöscht.');
       let user;
       try{user=await auth.getUser(target);}catch(error){if(error.code==='auth/user-not-found')throw new ErrorType('not-found','Konto nicht gefunden. Bitte die Liste aktualisieren.');throw error;}

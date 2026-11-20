@@ -13,7 +13,7 @@
     update();
   }
   const permissionGroups=[
-    {title:'Benutzerverwaltung',description:'Konten ansehen oder Benutzer und Berechtigungen verwalten',keys:['benutzer']},
+    {title:'Benutzerverwaltung',description:'Konten ansehen; mit Bearbeitungsrecht auch Passwörter zurücksetzen und Benutzer sowie Berechtigungen verwalten',keys:['benutzer']},
     {title:'Fahrzeuge',description:'Fahrzeugseite und Fahrzeugaktionen in Meine Übersicht',keys:['fahrzeuge','fahrzeugeUebernehmen','fahrzeugeErstellen']},
     {title:'Fahrtenbuch',description:'Nutzungs- und Tankverlauf sowie Export und Aufräumen auf der Fahrtenbuchseite',keys:['fahrtenbuch','fahrtenbuchExport']},
     {title:'Baustellenmaterial und Archiv',description:'Materialvorlagen und beendete Baustellen gehören zum Baustellenmaterial; das Archiv hat eine eigene Seite.',keys:['baustellen','materialScannen','materialvorlagen','beendete','archiv']},
@@ -87,7 +87,8 @@
       for(const [key,name]of Object.entries(LagerAccess.areas)){const label=text('label',name),select=document.createElement('select');for(const [value,title]of (key==='materialScannen'?[['none','Deaktiviert'],['edit','Aktiviert']]:['fahrtenbuch','fahrtenbuchExport'].includes(key)?[['none','Gesperrt'],['edit','Ansehen und bearbeiten']]:['materialvorlagen','beendete','fahrzeugeErstellen','fahrzeugeUebernehmen'].includes(key)?[['none','Nicht erlaubt'],['edit',key==='fahrzeugeUebernehmen'?'Belegte Fahrzeuge übernehmen':key==='fahrzeugeErstellen'?'Neue Fahrzeuge hinzufügen':key==='beendete'?'Archivieren, bearbeiten, wiederherstellen und löschen':'Erstellen, bearbeiten und löschen']]:[['none','Gesperrt'],['view','Nur ansehen'],['edit','Ansehen und bearbeiten']])){const option=text('option',title);option.value=value;select.append(option);}select.value=master?'edit':permissions[key]||'none';select.disabled=master||row.id===auth.currentUser?.uid||!LagerAccess.write('benutzer');colorPermission(select);selects[key]=select;label.append(select);groupGrids[key].append(label);}
       const permissionsPanel=document.createElement('details');permissionsPanel.className='permissions-panel';permissionsPanel.append(text('summary','Berechtigungen'),grid);card.append(permissionsPanel);const save=text('button','Änderungen speichern');save.type='button';save.hidden=!LagerAccess.write('benutzer')||(master&&auth.currentUser?.uid!==LagerAccess.MASTER);const feedback=text('p','');feedback.className='user-feedback';feedback.setAttribute('role','status');card.append(save,feedback);
       const remove=text('button','Konto löschen');remove.type='button';remove.className='delete-account';remove.disabled=master||!LagerAccess.write('benutzer')||row.id===auth.currentUser?.uid;remove.title=master?'Das Hauptadministrator-Konto ist geschützt.':'Anmeldekonto dauerhaft löschen';card.insertBefore(remove,feedback);
-      if(auth.currentUser?.uid===LagerAccess.MASTER){
+      // Bearbeitungsrecht erlaubt Passwort-Links; das Master-Konto bleibt geschützt.
+      if(LagerAccess.write('benutzer')&&(!master||auth.currentUser?.uid===LagerAccess.MASTER)){
         const reset=text('button','Passwort zurücksetzen');reset.type='button';
         const icon=document.createElement('i');icon.className='fa-solid fa-key';icon.setAttribute('aria-hidden','true');reset.prepend(icon);
         reset.disabled=!row.email;reset.title='Link zum Zurücksetzen erzeugen';card.insertBefore(reset,feedback);
@@ -101,7 +102,7 @@
           catch(_){linkInput.focus();linkInput.select();feedback.textContent='Bitte den markierten Link kopieren.';}
         });
         reset.addEventListener('click',async()=>{
-          if(reset.disabled||auth.currentUser?.uid!==LagerAccess.MASTER)return;
+          if(reset.disabled||!LagerAccess.requireWrite('benutzer')||(master&&auth.currentUser?.uid!==LagerAccess.MASTER))return;
           reset.disabled=true;linkPanel.hidden=true;linkInput.value='';feedback.style.color='';feedback.textContent='Passwort-Link wird erstellt …';
           try{
             const result=await generateResetLink({uid:row.id}),data=result.data;
