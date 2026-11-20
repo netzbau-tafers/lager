@@ -179,6 +179,33 @@ button i{
   align-items:center;
 }
 
+.archiv-live-search-option{
+  display:inline-flex;
+  align-items:center;
+  gap:9px;
+  margin-top:14px;
+  cursor:pointer;
+  font-size:14px;
+  line-height:1.5;
+}
+
+.archiv-live-search-option input[type="checkbox"]{
+  width:18px;
+  height:18px;
+  padding:0;
+  margin:0;
+  flex:0 0 auto;
+  accent-color:#26683e;
+  cursor:pointer;
+}
+
+.archiv-live-search-status{
+  margin-top:6px;
+  font-size:13px;
+  line-height:1.5;
+  color:#59626a;
+}
+
 input{
   width:100%;
   padding:10px;
@@ -500,9 +527,14 @@ input{
   <div class="search-box">
     <div class="search-title">Archiv durchsuchen</div>
     <div class="search-row">
-      <input id="searchInput" type="text" placeholder="Baustellen suchen · Material/Barcode nur in bereits geladenen Listen" oninput="handleArchivSearchInput()" maxlength="120">
+      <input id="searchInput" type="text" placeholder="Baustelle, Material, Spontis oder Barcode suchen" oninput="handleArchivSearchInput()" maxlength="120">
       <button class="back" onclick="resetSearch()"><i class="fa-solid fa-rotate-left"></i> Suche zurücksetzen</button>
     </div>
+    <label class="archiv-live-search-option" for="archivLiveSearchToggle">
+      <input id="archivLiveSearchToggle" type="checkbox" onchange="toggleArchivLiveSearch()" aria-describedby="archivLiveSearchStatus">
+      Live-Suche auch in geschlossenen Materiallisten
+    </label>
+    <div id="archivLiveSearchStatus" class="archiv-live-search-status" role="status" aria-live="polite">Standard: Material wird nur in bereits geöffneten Listen durchsucht.</div>
   </div>
 
   <div id="resultInfo" class="info-box"></div>
@@ -559,6 +591,16 @@ let openMaterialLists = {};
 let isAdminUser = false;
 let archivVisibleCount = 30;
 const ARCHIV_PAGE_SIZE = 30;
+
+// Erweiterte Suche liest Material nur nach ausdrücklicher Aktivierung.
+let archivLiveSearchUnsubscribe = null;
+let archivLiveSearchEnabled = false;
+let archivLiveSearchLoading = false;
+let archivLiveSearchLoaded = false;
+let archivLiveSearchError = "";
+let archivLiveSearchVersion = 0;
+let archivLiveSearchDocuments = [];
+let archivLiveSearchIndex = new Map();
 
 function setLogsMenuVisibility(isAdmin){
   const logsButton = document.getElementById("logsMenuButton");
@@ -653,6 +695,7 @@ function saveVorlagenToCache(vorlagen){
 
 function setVorlagen(vorlagen){
   alleVorlagen = Array.isArray(vorlagen) ? vorlagen : [];
+  if(archivLiveSearchLoaded) rebuildArchivLiveSearchIndex();
   renderArchiv();
 }
 
@@ -937,6 +980,10 @@ function logout(){
 }
 
 function stopListeners(){
+  stopArchivLiveSearch();
+  const liveSearchCheckbox = document.getElementById("archivLiveSearchToggle");
+  if(liveSearchCheckbox) liveSearchCheckbox.checked = false;
+  archivLiveSearchError = "";
   if(unsubscribeBaustellen){
     unsubscribeBaustellen();
     unsubscribeBaustellen = null;
@@ -1019,6 +1066,69 @@ function loadArchivMaterial(id){
   return promise;
 }
 
+function rebuildArchivLiveSearchIndex(){
+  const index = new Map();
+  archivLiveSearchDocuments.forEach(material => {
+    const baustelleId = String(material.baustelleId || "");
+    if(!baustelleId) return;
+    const text = [
+      material.material,
+      material.anzahl,
+      material.spontis,
+      getMaterialBarcodeValue(material)
+    ].map(value => String(value ?? "").toLowerCase()).join(" ");
+    index.set(baustelleId, (index.get(baustelleId) || "") + "\n" + text);
+  });
+  archivLiveSearchIndex = index;
+}
+
+function stopArchivLiveSearch(){
+  archivLiveSearchVersion++;
+  if(archivLiveSearchUnsubscribe){
+    archivLiveSearchUnsubscribe();
+    archivLiveSearchUnsubscribe = null;
+  }
+  archivLiveSearchEnabled = false;
+  archivLiveSearchLoading = false;
+  archivLiveSearchLoaded = false;
+  archivLiveSearchDocuments = [];
+  archivLiveSearchIndex.clear();
+}
+
+function toggleArchivLiveSearch(){
+  const checkbox = document.getElementById("archivLiveSearchToggle");
+  if(!checkbox) return;
+  archivLiveSearchError = "";
+  stopArchivLiveSearch();
+  archivVisibleCount = ARCHIV_PAGE_SIZE;
+  if(!checkbox.checked){
+    renderArchiv();
+    return;
+  }
+
+  archivLiveSearchEnabled = true;
+  archivLiveSearchLoading = true;
+  const version = archivLiveSearchVersion;
+  renderArchiv();
+
+  // Ein Listener statt einer Abfrage pro archivierter Baustelle oder Such-Tastendruck.
+  archivLiveSearchUnsubscribe = materialCollection.onSnapshot(snapshot => {
+    if(version !== archivLiveSearchVersion || !archivLiveSearchEnabled) return;
+    archivLiveSearchDocuments = snapshot.docs.map(doc => doc.data());
+    rebuildArchivLiveSearchIndex();
+    archivLiveSearchLoaded = true;
+    archivLiveSearchLoading = false;
+    renderArchiv();
+  }, error => {
+    if(version !== archivLiveSearchVersion || !archivLiveSearchEnabled) return;
+    console.error("Fehler bei der erweiterten Archivsuche:", error);
+    stopArchivLiveSearch();
+    checkbox.checked = false;
+    archivLiveSearchError = "Live-Suche konnte nicht geladen werden. Bitte erneut aktivieren.";
+    renderArchiv();
+  });
+}
+
 function handleArchivSearchInput(){
   archivVisibleCount = ARCHIV_PAGE_SIZE;
   renderArchiv();
@@ -1069,7 +1179,9 @@ function baustellePasstZurSuche(baustelle){
     name.includes(suchbegriff) ||
     nummer.includes(suchbegriff) ||
     verantwortlicher.includes(suchbegriff) ||
-    materialPasst
+    materialPasst ||
+    (archivLiveSearchEnabled && archivLiveSearchLoaded &&
+      (archivLiveSearchIndex.get(String(baustelle.id)) || "").includes(suchbegriff))
   );
 }
 
@@ -1084,9 +1196,22 @@ function renderArchiv(){
   const sichtbareArchivierte = archivierte.slice(0, archivVisibleCount);
 
   if(archivierte.length === 0){
-    container.innerHTML = '<div class="empty-box">Keine archivierten Baustellen gefunden.</div>';
+    container.innerHTML = '<div class="empty-box">' +
+      (archivLiveSearchLoading && getSuchbegriff()
+        ? 'Materiallisten werden für die Suche geladen …'
+        : 'Keine archivierten Baustellen gefunden.') + '</div>';
   }else{
     sichtbareArchivierte.forEach(b => container.appendChild(createBaustelleCard(b)));
+  }
+
+  const searchStatus = document.getElementById("archivLiveSearchStatus");
+  if(searchStatus){
+    searchStatus.textContent = archivLiveSearchError ||
+      (archivLiveSearchEnabled
+        ? (archivLiveSearchLoading
+          ? "Materialdaten für die Live-Suche werden geladen …"
+          : "Live-Suche aktiv: Auch geschlossene Materiallisten werden durchsucht.")
+        : "Standard: Material wird nur in bereits geöffneten Listen durchsucht.");
   }
 
   const loadMoreButton = document.getElementById("archivLoadMoreButton");
