@@ -66,7 +66,10 @@
     const filtered=rows.filter(row=>[row.id,row.username,row.email,titles[titleFor(row)]].some(value=>String(value||'').toLocaleLowerCase('de-CH').includes(query))).sort(compareUsers);
     if(!filtered.length){list.append(text('p','Keine Benutzerprofile gefunden.'));return;}
     for(const row of filtered){
-      const master=row.id===LagerAccess.MASTER,card=text('article','');card.className='user-card';
+      const master=row.id===LagerAccess.MASTER,protectedAccount=master||titleFor(row)==='administrator';
+      const isMainAdmin=auth.currentUser?.uid===LagerAccess.MASTER;
+      const mayManage=LagerAccess.write('benutzer')&&(isMainAdmin||!protectedAccount);
+      const card=text('article','');card.className='user-card';
       card.append(text('h2',(row.username||row.email||'Benutzer ohne Namen')+' · '+titles[titleFor(row)]));
       const date=row.lastSeenAt?.toDate?.();const meta=text('p',(row.email||'Keine E-Mail hinterlegt')+' · UID: '+row.id+' · Letzte Aktivität: '+(date?date.toLocaleString('de-CH'):'Noch nicht erfasst'));meta.className='user-meta';card.append(meta);
       const preference=row.pushPreference,activeUntil=preference?.activeUntil?.toMillis?.();
@@ -74,21 +77,28 @@
       const pushLabels={enabled:'Aktiviert',disabled:'Nicht aktiviert',expired:'Registrierung abgelaufen',unknown:'Status nicht verfügbar'};
       const pushStatus=text('p','Benachrichtigungen: '+pushLabels[pushState]);pushStatus.className='user-push-status';pushStatus.dataset.state=pushState;
       pushStatus.title='Gespeicherter Status für mindestens ein Gerät. Änderungen in den Browser- oder Smartphone-Einstellungen sind nicht immer erkennbar.';card.append(pushStatus);
-      const label=text('label','Benutzername');const input=document.createElement('input');input.type='text';input.maxLength=120;input.value=row.username||'';input.readOnly=master&&auth.currentUser?.uid!==LagerAccess.MASTER||!LagerAccess.write('benutzer');label.append(input);card.append(label);
+      const label=text('label','Benutzername');const input=document.createElement('input');input.type='text';input.maxLength=120;input.value=row.username||'';input.readOnly=!mayManage;label.append(input);card.append(label);
       const titleLabel=text('label','Titel'),titleSelect=document.createElement('select');
       titleSelect.style.cssText='width:100%;max-width:100%;min-width:0;padding:10px;border:1px solid #ccd5df;border-radius:8px;background:white;font:inherit;margin:6px 0 12px';
       for(const [value,name] of Object.entries(titles)){
         if(!master&&value==='hauptadministrator')continue;
         const option=text('option',name);option.value=value;titleSelect.append(option);
       }
-      titleSelect.value=titleFor(row);titleSelect.disabled=master||!LagerAccess.write('benutzer');titleLabel.append(titleSelect);card.append(titleLabel);
+      titleSelect.value=titleFor(row);titleSelect.disabled=master||!mayManage;titleLabel.append(titleSelect);card.append(titleLabel);
       const grid=document.createElement('div');grid.className='permission-grid';const selects={},groupGrids=groupPermissions(grid);
       const permissions=effectivePermissions(row);
-      for(const [key,name]of Object.entries(LagerAccess.areas)){const label=text('label',name),select=document.createElement('select');for(const [value,title]of (key==='materialScannen'?[['none','Deaktiviert'],['edit','Aktiviert']]:['fahrtenbuch','fahrtenbuchExport'].includes(key)?[['none','Gesperrt'],['edit','Ansehen und bearbeiten']]:['materialvorlagen','beendete','fahrzeugeErstellen','fahrzeugeUebernehmen'].includes(key)?[['none','Nicht erlaubt'],['edit',key==='fahrzeugeUebernehmen'?'Belegte Fahrzeuge übernehmen':key==='fahrzeugeErstellen'?'Neue Fahrzeuge hinzufügen':key==='beendete'?'Archivieren, bearbeiten, wiederherstellen und löschen':'Erstellen, bearbeiten und löschen']]:[['none','Gesperrt'],['view','Nur ansehen'],['edit','Ansehen und bearbeiten']])){const option=text('option',title);option.value=value;select.append(option);}select.value=master?'edit':permissions[key]||'none';select.disabled=master||row.id===auth.currentUser?.uid||!LagerAccess.write('benutzer');colorPermission(select);selects[key]=select;label.append(select);groupGrids[key].append(label);}
-      const permissionsPanel=document.createElement('details');permissionsPanel.className='permissions-panel';permissionsPanel.append(text('summary','Berechtigungen'),grid);card.append(permissionsPanel);const save=text('button','Änderungen speichern');save.type='button';save.hidden=!LagerAccess.write('benutzer')||(master&&auth.currentUser?.uid!==LagerAccess.MASTER);const feedback=text('p','');feedback.className='user-feedback';feedback.setAttribute('role','status');card.append(save,feedback);
-      const remove=text('button','Konto löschen');remove.type='button';remove.className='delete-account';remove.disabled=master||!LagerAccess.write('benutzer')||row.id===auth.currentUser?.uid;remove.title=master?'Das Hauptadministrator-Konto ist geschützt.':'Anmeldekonto dauerhaft löschen';card.insertBefore(remove,feedback);
-      // Bearbeitungsrecht erlaubt Passwort-Links; das Master-Konto bleibt geschützt.
-      if(LagerAccess.write('benutzer')&&(!master||auth.currentUser?.uid===LagerAccess.MASTER)){
+      for(const [key,name]of Object.entries(LagerAccess.areas)){const label=text('label',name),select=document.createElement('select');for(const [value,title]of (key==='materialScannen'?[['none','Deaktiviert'],['edit','Aktiviert']]:['fahrtenbuch','fahrtenbuchExport'].includes(key)?[['none','Gesperrt'],['edit','Ansehen und bearbeiten']]:['materialvorlagen','beendete','fahrzeugeErstellen','fahrzeugeUebernehmen'].includes(key)?[['none','Nicht erlaubt'],['edit',key==='fahrzeugeUebernehmen'?'Belegte Fahrzeuge übernehmen':key==='fahrzeugeErstellen'?'Neue Fahrzeuge hinzufügen':key==='beendete'?'Archivieren, bearbeiten, wiederherstellen und löschen':'Erstellen, bearbeiten und löschen']]:[['none','Gesperrt'],['view','Nur ansehen'],['edit','Ansehen und bearbeiten']])){const option=text('option',title);option.value=value;select.append(option);}select.value=master?'edit':permissions[key]||'none';select.disabled=(protectedAccount&&!isMainAdmin)||master||row.id===auth.currentUser?.uid||!mayManage;colorPermission(select);selects[key]=select;label.append(select);groupGrids[key].append(label);}
+      const permissionsPanel=document.createElement('details');permissionsPanel.className='permissions-panel';permissionsPanel.append(text('summary','Berechtigungen'),grid);card.append(permissionsPanel);const save=text('button','Änderungen speichern');save.type='button';save.hidden=!mayManage;save.disabled=!mayManage;const feedback=text('p','');feedback.className='user-feedback';feedback.setAttribute('role','status');card.append(save,feedback);
+      const remove=text('button','Konto löschen');remove.type='button';remove.className='delete-account';remove.disabled=master||!mayManage||row.id===auth.currentUser?.uid;
+      remove.hidden=!mayManage||master;
+      remove.title=protectedAccount?'Administratorkonten können nur vom Hauptadministrator gelöscht werden.':'Anmeldekonto dauerhaft löschen';
+      card.insertBefore(remove,feedback);
+      if(protectedAccount&&!isMainAdmin){
+        const notice=text('p','Dieses Administratorkonto kann nur vom Hauptadministrator geändert werden.');
+        notice.className='muted';card.insertBefore(notice,feedback);
+      }
+      // Passwort-Links für Administratoren erstellt ausschliesslich der Hauptadministrator.
+      if(mayManage){
         const reset=text('button','Passwort zurücksetzen');reset.type='button';
         const icon=document.createElement('i');icon.className='fa-solid fa-key';icon.setAttribute('aria-hidden','true');reset.prepend(icon);
         reset.disabled=!row.email;reset.title='Link zum Zurücksetzen erzeugen';card.insertBefore(reset,feedback);
@@ -102,7 +112,7 @@
           catch(_){linkInput.focus();linkInput.select();feedback.textContent='Bitte den markierten Link kopieren.';}
         });
         reset.addEventListener('click',async()=>{
-          if(reset.disabled||!LagerAccess.requireWrite('benutzer')||(master&&auth.currentUser?.uid!==LagerAccess.MASTER))return;
+          if(reset.disabled||!mayManage||!LagerAccess.requireWrite('benutzer'))return;
           reset.disabled=true;linkPanel.hidden=true;linkInput.value='';feedback.style.color='';feedback.textContent='Passwort-Link wird erstellt …';
           try{
             const result=await generateResetLink({uid:row.id}),data=result.data;
@@ -116,14 +126,14 @@
         });
       }
       remove.addEventListener('click',async()=>{
-        if(master||row.id===auth.currentUser?.uid||!LagerAccess.requireWrite('benutzer'))return;
+        if(master||!mayManage||row.id===auth.currentUser?.uid||!LagerAccess.requireWrite('benutzer'))return;
         const answer=prompt('Konto dauerhaft löschen?\n\n'+(row.email||row.username||row.id)+'\nUID: '+row.id+'\n\nDas Anmeldekonto, Profil und die Rechte werden gelöscht. Baustellen und Protokolle bleiben erhalten.\n\nZum Bestätigen bitte LÖSCHEN eingeben.');
         if(answer?.trim().toLocaleUpperCase('de-CH')!=='LÖSCHEN')return;
         save.disabled=true;remove.disabled=true;refresh.disabled=true;feedback.textContent='Konto wird gelöscht …';
         try{const result=await deleteAccount({uid:row.id,confirmUid:row.id});if(result.data?.deleted!==true||result.data.uid!==row.id)throw Error('Ungültige Serverantwort');rows=rows.filter(entry=>entry.id!==row.id);render();status.textContent='Konto gelöscht.';}catch(error){console.error(error);feedback.style.color='#b3261e';feedback.textContent='Löschen fehlgeschlagen. Prüfe, ob lagerDeleteUser in Firebase veröffentlicht ist. Bei einem Serverfehler kann das Konto bereits gesperrt oder gelöscht sein; bitte erneut versuchen.';}finally{save.disabled=false;remove.disabled=false;refresh.disabled=false;}
       });
       save.addEventListener('click',async()=>{
-        if(!LagerAccess.requireWrite('benutzer')||(master&&auth.currentUser?.uid!==LagerAccess.MASTER))return;
+        if(!mayManage||!LagerAccess.requireWrite('benutzer'))return;
         save.disabled=true;remove.disabled=true;feedback.textContent='Wird gespeichert …';
         try{
           // Profile names and access rights change atomically; metadata stays intact.
@@ -132,7 +142,7 @@
           const selected=Object.fromEntries(Object.entries(selects).map(([key,select])=>[key,select.value]));
           if(!master&&row.id!==auth.currentUser?.uid)batch.set(db.collection('user_access').doc(row.id),{permissions:selected,updatedAt:timestamp,updatedBy:auth.currentUser.uid});
           await batch.commit();row.username=username;row.adminTitle=master?'hauptadministrator':titleSelect.value;if(!master)row.access={permissions:selected};input.value=username;feedback.style.color='#1b5e20';render();status.textContent='Gespeichert. Die Liste wurde nach Titel sortiert.';
-        }catch(error){console.error(error);feedback.style.color='#b3261e';feedback.textContent='Speichern fehlgeschlagen. Prüfe, ob die neuen Firestore-Regeln veröffentlicht sind.';}finally{save.disabled=false;remove.disabled=master||!LagerAccess.write('benutzer')||row.id===auth.currentUser?.uid;}
+        }catch(error){console.error(error);feedback.style.color='#b3261e';feedback.textContent='Speichern fehlgeschlagen. Prüfe, ob die neuen Firestore-Regeln veröffentlicht sind.';}finally{save.disabled=!mayManage;remove.disabled=master||!mayManage||row.id===auth.currentUser?.uid;}
       });list.append(card);
     }
   }
