@@ -215,6 +215,39 @@ button i{
   justify-content:flex-end;
 }
 
+/* Dasselbe Sortierfeld wird auf Smartphones direkt vor den Bobinen angezeigt. */
+.sort-filter-slot{
+  min-width:0;
+}
+.mobile-sort-row{
+  display:none;
+}
+@media (max-width: 680px){
+  .mobile-sort-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin:12px 0 16px;
+  }
+  .mobile-sort-row label{
+    color:#475569;
+    font-size:14px;
+    font-weight:600;
+    flex-shrink:0;
+  }
+  .mobile-sort-row #sortFilter{
+    width:65%;
+    max-width:270px;
+    min-width:0;
+    margin:0;
+    height:44px;
+    padding:8px 10px;
+    font-size:14px;
+    text-overflow:ellipsis;
+  }
+}
+
 .result-bar{
   display:flex;
   justify-content:space-between;
@@ -1435,13 +1468,14 @@ textarea{
         <option value="Reserviert">Reserviert</option>
         <option value="Reapro">Reapro</option>
       </select>
-      <select id="sortFilter" aria-label="Bobinen sortieren" onchange="renderFilteredTable()">
+      <div id="sortFilterSlot" class="sort-filter-slot"><select id="sortFilter" aria-label="Bobinen sortieren" onchange="renderFilteredTable()">
         <option value="nummer">Sortierung: Nummer Aufsteigend</option>
+        <option value="nummerDesc">Sortierung: Nummer Absteigend</option>
         <option value="querschnittAsc">Querschnitt: Aufsteigend</option>
         <option value="querschnittDesc">Querschnitt: Absteigend</option>
         <option value="datumDesc">Hinzugefügt am: Neueste zuerst</option>
         <option value="datumAsc">Hinzugefügt am: Älteste zuerst</option>
-      </select>
+      </select></div>
     </div>
 
     <div style="margin-top:15px;">
@@ -1459,6 +1493,10 @@ textarea{
       <button type="button" class="status-legend-item status-legend-filter" data-status-filter="Reserviert" aria-pressed="false" onclick="toggleLegendFilter('Reserviert')"><span class="status-legend-dot reserved" aria-hidden="true"></span>Reserviert: <span class="status-legend-count" id="countReserviert">0</span></button>
       <button type="button" class="status-legend-item status-legend-filter" data-status-filter="Reapro" aria-pressed="false" onclick="toggleLegendFilter('Reapro')"><span class="status-legend-dot reapro" aria-hidden="true"></span>Reapro: <span class="status-legend-count" id="countReapro">0</span></button>
     </div>
+  </div>
+
+  <div id="mobileSortRow" class="mobile-sort-row" hidden>
+    <label for="sortFilter">Sortierung</label>
   </div>
 
   <div class="desktop-table-wrap">
@@ -3038,6 +3076,7 @@ function getHinzugefuegtMillis(value){
 }
 
 function compareBobinen(a, b, sortierung){
+  if(sortierung === "nummerDesc") return compareBobinenByNummer(b, a);
   if(sortierung === "querschnittAsc" || sortierung === "querschnittDesc"){
     const aWert = getHauptleiterQuerschnitt(a.data().typ);
     const bWert = getHauptleiterQuerschnitt(b.data().typ);
@@ -3916,6 +3955,39 @@ function bindEnterSubmit(containerId, callback){
     event.preventDefault();
     callback();
   });
+}
+
+// Ein einziges Select behält seinen Wert und Event-Handler bei einem Layoutwechsel.
+const bobinenMobileSortMedia = window.matchMedia("(max-width: 680px)");
+function positionBobinenSortFilter(){
+  const selector = document.getElementById("sortFilter");
+  const desktopSlot = document.getElementById("sortFilterSlot");
+  const mobileRow = document.getElementById("mobileSortRow");
+  if(!selector || !desktopSlot || !mobileRow) return;
+
+  const mobile = bobinenMobileSortMedia.matches;
+  (mobile ? mobileRow : desktopSlot).appendChild(selector);
+  desktopSlot.hidden = mobile;
+  mobileRow.hidden = !mobile;
+
+  const labels = {
+    nummer:["Sortierung: Nummer Aufsteigend","Nummer ↑"],
+    nummerDesc:["Sortierung: Nummer Absteigend","Nummer ↓"],
+    querschnittAsc:["Querschnitt: Aufsteigend","Querschnitt ↑"],
+    querschnittDesc:["Querschnitt: Absteigend","Querschnitt ↓"],
+    datumDesc:["Hinzugefügt am: Neueste zuerst","Neueste zuerst"],
+    datumAsc:["Hinzugefügt am: Älteste zuerst","Älteste zuerst"]
+  };
+  Object.entries(labels).forEach(([value, texte]) => {
+    const option = [...selector.options].find(item => item.value === value);
+    if(option) option.textContent = texte[mobile ? 1 : 0];
+  });
+}
+positionBobinenSortFilter();
+if(typeof bobinenMobileSortMedia.addEventListener === "function"){
+  bobinenMobileSortMedia.addEventListener("change", positionBobinenSortFilter);
+}else{
+  bobinenMobileSortMedia.addListener(positionBobinenSortFilter);
 }
 
 document.addEventListener("DOMContentLoaded", function(){
