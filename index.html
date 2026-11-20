@@ -270,6 +270,64 @@ button i{
 .status-legend-dot.reserved{background:#fff3a3;}
 .status-legend-dot.reapro{background:#d8eaf8;}
 
+/* Die vier Statuskarten sind zusaetzlich Schnellfilter. */
+.status-legend .status-legend-filter{
+  margin:0;
+  justify-content:flex-start;
+  text-align:left;
+  cursor:pointer;
+  box-shadow:none;
+  transform:none;
+  transition:background .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.status-legend .status-legend-filter:hover{
+  background:#edf3f9;
+  border-color:#bdcbd9;
+  box-shadow:0 2px 6px rgba(15,23,42,.08);
+  transform:none;
+}
+.status-legend .status-legend-filter:focus-visible{
+  outline:3px solid #2563eb;
+  outline-offset:2px;
+}
+.status-legend .status-legend-filter[data-status-filter="Lager"]{
+  --filter-bg:#e5f8e9; --filter-border:#2b8b55; --filter-text:#18653a;
+}
+.status-legend .status-legend-filter[data-status-filter="In Gebrauch"]{
+  --filter-bg:#ffeded; --filter-border:#c94d5c; --filter-text:#8c2938;
+}
+.status-legend .status-legend-filter[data-status-filter="Reserviert"]{
+  --filter-bg:#fff6cd; --filter-border:#bf940c; --filter-text:#755600;
+}
+.status-legend .status-legend-filter[data-status-filter="Reapro"]{
+  --filter-bg:#e0f1fe; --filter-border:#3489ba; --filter-text:#15567d;
+}
+.status-legend .status-legend-filter.is-active,
+.status-legend .status-legend-filter.is-active:hover{
+  background:var(--filter-bg);
+  border-color:var(--filter-border);
+  color:var(--filter-text);
+  box-shadow:inset 0 0 0 1px var(--filter-border),0 2px 7px rgba(15,23,42,.09);
+  transform:none;
+}
+.status-legend .status-legend-filter.is-active::after{
+  content:"✓";
+  flex:0 0 16px;
+  display:inline-flex;
+  justify-content:center;
+  align-items:center;
+  width:16px;
+  height:16px;
+  border-radius:50%;
+  background:var(--filter-border);
+  color:white;
+  font-size:11px;
+  line-height:1;
+}
+.status-legend .status-legend-filter.is-active .status-legend-count{
+  color:var(--filter-text);
+}
+
 /* Smartphone: übersichtliches 2-Spalten-Raster statt unterschiedlich langer Chips. */
 @media (max-width: 680px){
   .status-legend{
@@ -1322,12 +1380,12 @@ textarea{
 
 
   <div class="result-bar">
-    <div class="status-legend" aria-label="Bobinenanzahl und Bedeutung der Farben">
+    <div class="status-legend" aria-label="Bobinenanzahl und Schnellfilter">
       <span class="status-legend-item total">Angezeigte Bobinen: <span class="status-legend-count" id="countAngezeigt">0</span></span>
-      <span class="status-legend-item"><span class="status-legend-dot instock" aria-hidden="true"></span>Im Lager: <span class="status-legend-count" id="countLager">0</span></span>
-      <span class="status-legend-item"><span class="status-legend-dot inuse" aria-hidden="true"></span>In Gebrauch: <span class="status-legend-count" id="countAusgeschrieben">0</span></span>
-      <span class="status-legend-item"><span class="status-legend-dot reserved" aria-hidden="true"></span>Reserviert: <span class="status-legend-count" id="countReserviert">0</span></span>
-      <span class="status-legend-item"><span class="status-legend-dot reapro" aria-hidden="true"></span>Reapro: <span class="status-legend-count" id="countReapro">0</span></span>
+      <button type="button" class="status-legend-item status-legend-filter" data-status-filter="Lager" aria-pressed="false" onclick="toggleLegendFilter('Lager')"><span class="status-legend-dot instock" aria-hidden="true"></span>Im Lager: <span class="status-legend-count" id="countLager">0</span></button>
+      <button type="button" class="status-legend-item status-legend-filter" data-status-filter="In Gebrauch" aria-pressed="false" onclick="toggleLegendFilter('In Gebrauch')"><span class="status-legend-dot inuse" aria-hidden="true"></span>In Gebrauch: <span class="status-legend-count" id="countAusgeschrieben">0</span></button>
+      <button type="button" class="status-legend-item status-legend-filter" data-status-filter="Reserviert" aria-pressed="false" onclick="toggleLegendFilter('Reserviert')"><span class="status-legend-dot reserved" aria-hidden="true"></span>Reserviert: <span class="status-legend-count" id="countReserviert">0</span></button>
+      <button type="button" class="status-legend-item status-legend-filter" data-status-filter="Reapro" aria-pressed="false" onclick="toggleLegendFilter('Reapro')"><span class="status-legend-dot reapro" aria-hidden="true"></span>Reapro: <span class="status-legend-count" id="countReapro">0</span></button>
     </div>
     <button type="button" class="print-btn" onclick="printInventoryReport()">
       <i class="fa-solid fa-print"></i> Drucken
@@ -3054,6 +3112,20 @@ function printInventoryReport(){
 
 let overviewBobineId = new URLSearchParams(window.location.search).get('bobine');
 let focusedBobineId = overviewBobineId;
+
+// Der Schnellfilter und die bestehende Status-Auswahl verwenden denselben Wert.
+function toggleLegendFilter(status){
+  const auswahl = document.getElementById("statusFilter");
+  auswahl.value = auswahl.value === status ? "Alle" : status;
+  renderFilteredTable(true);
+}
+function updateLegendFilterState(status){
+  document.querySelectorAll(".status-legend-filter").forEach(button => {
+    const active = button.dataset.statusFilter === status;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+}
 function renderFilteredTable(filterChanged = false){
   if(filterChanged){focusedBobineId = null; overviewBobineId = null;}
   let overviewTarget = null;
@@ -3068,6 +3140,7 @@ function renderFilteredTable(filterChanged = false){
   }
   const suchbegriff = document.getElementById("searchInput").value.trim().toLowerCase();
   const statusFilter = document.getElementById("statusFilter").value;
+  updateLegendFilterState(statusFilter);
 
   const gefiltert = alleBobinen.filter(docItem => {
     if(focusedBobineId && docItem.id !== focusedBobineId) return false;
