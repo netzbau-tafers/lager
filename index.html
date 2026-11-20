@@ -195,6 +195,11 @@ button i{
   margin-bottom:10px;
 }
 
+/* Eigener Bereich zwischen Suche und Bobinenübersicht. */
+.add-bobine-actions{
+  margin:0 0 20px;
+}
+
 .search-row{
   display:grid;
   grid-template-columns:1fr auto;
@@ -1481,12 +1486,11 @@ textarea{
     <!-- Filterzustand bleibt intern bestehen; die Statuskarten übernehmen die Auswahl. -->
     <input type="hidden" id="statusFilter" value="Alle">
 
-    <div style="margin-top:15px;">
-      <button onclick="openAdd()" data-access-write="kabellager"><i class="fa-solid fa-plus"></i> Neue Bobine hinzufügen</button>
-    </div>
   </div>
 
-
+  <div class="add-bobine-actions">
+    <button onclick="openAdd()" data-access-write="kabellager"><i class="fa-solid fa-plus"></i> Neue Bobine hinzufügen</button>
+  </div>
 
   <div class="result-bar">
     <div class="status-legend" aria-label="Bobinenanzahl und Schnellfilter">
