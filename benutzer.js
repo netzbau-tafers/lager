@@ -14,28 +14,43 @@
   }
   const permissionGroups=[
     {title:'Benutzerverwaltung',description:'Konten ansehen; mit Bearbeitungsrecht auch Passwörter zurücksetzen und Benutzer sowie Berechtigungen verwalten',keys:['benutzer']},
+    {title:'Kabellager',keys:['kabellager']},
+    {title:'Baustellenmaterial und Archiv',description:'Materialvorlagen und beendete Baustellen gehören zum Baustellenmaterial; das Archiv hat eine eigene Seite.',keys:['baustellen','materialScannen','materialvorlagen','beendete','archiv']},
     {title:'Fahrzeuge',description:'Fahrzeugseite und Fahrzeugaktionen in Meine Übersicht',keys:['fahrzeuge','fahrzeugeUebernehmen','fahrzeugeErstellen']},
     {title:'Fahrtenbuch',description:'Nutzungs- und Tankverlauf sowie Export und Aufräumen auf der Fahrtenbuchseite',keys:['fahrtenbuch','fahrtenbuchExport']},
-    {title:'Baustellenmaterial und Archiv',description:'Materialvorlagen und beendete Baustellen gehören zum Baustellenmaterial; das Archiv hat eine eigene Seite.',keys:['baustellen','materialScannen','materialvorlagen','beendete','archiv']},
-    {title:'Kabellager',keys:['kabellager']},
     {title:'Berichte und Protokoll',description:'Separate Seiten für Kabel Report und Protokoll',keys:['kabelreport','logs']},
     {title:'Spiel',keys:['spiel']}
   ];
   function groupPermissions(container){
     container.className='permission-groups';
-    const grids={};
+    const grids={},sections=[];
     const known=new Set(permissionGroups.flatMap(group=>group.keys));
     const extra=Object.keys(LagerAccess.areas).filter(key=>!known.has(key));
     for(const group of [...permissionGroups,...(extra.length?[{title:'Weitere Berechtigungen',keys:extra}]:[])]){
       const keys=group.keys.filter(key=>key in LagerAccess.areas);
       if(!keys.length)continue;
-      const fieldset=document.createElement('fieldset');fieldset.className='permission-group';
-      fieldset.append(text('legend',group.title));
-      if(group.description){const note=text('p',group.description);note.className='permission-group-note';fieldset.append(note);}
-      const grid=document.createElement('div');grid.className='permission-grid';fieldset.append(grid);container.append(fieldset);
+      const section=document.createElement('details');section.className='permission-group';
+      const summary=document.createElement('summary');
+      const name=text('span',group.title);name.className='permission-group-name';
+      const state=text('span','Keine Rechte');state.className='permission-state';state.dataset.state='none';
+      summary.append(name,state);section.append(summary);
+      if(group.description){const note=text('p',group.description);note.className='permission-group-note';section.append(note);}
+      const grid=document.createElement('div');grid.className='permission-grid';section.append(grid);container.append(section);
       for(const key of keys)grids[key]=grid;
+      sections.push({keys,state});
     }
-    return grids;
+    return {
+      grids,
+      updateStatuses(selects){
+        for(const {keys,state} of sections){
+          const values=keys.map(key=>selects[key]?.value||'none');
+          const level=values.every(value=>value==='none')?'none':values.every(value=>value==='edit')?'all':'partial';
+          state.dataset.state=level;
+          state.textContent=level==='all'?'Alle Rechte':level==='partial'?'Teilweise':'Keine Rechte';
+          state.title=level==='all'?'Alle Berechtigungen in diesem Bereich erlaubt.':level==='partial'?'Mindestens eine Berechtigung ist eingeschränkt oder nur zum Ansehen erlaubt.':'Alle Berechtigungen in diesem Bereich gesperrt.';
+        }
+      }
+    };
   }
   const titles={hauptadministrator:'Hauptadministrator',administrator:'Administrator',baustellenverantwortlicher:'Baustellenverantwortlicher',mitarbeiter:'Mitarbeiter',techniker:'Techniker',leseberechtigter:'Leseberechtigter'};
   const titleOrder=Object.keys(titles);
@@ -93,7 +108,7 @@
         const option=text('option',name);option.value=value;titleSelect.append(option);
       }
       titleSelect.value=titleFor(row);titleSelect.disabled=master||!mayManage;titleLabel.append(titleSelect);card.append(titleLabel);
-      const grid=document.createElement('div');grid.className='permission-grid';const selects={},groupGrids=groupPermissions(grid);
+      const grid=document.createElement('div');grid.className='permission-grid';const selects={},permissionSections=groupPermissions(grid),groupGrids=permissionSections.grids;
       const permissions=effectivePermissions(row);
       const displaySelects={};
       if(master&&isMainAdmin){
@@ -104,7 +119,9 @@
         }
       }
       for(const [key,name]of Object.entries(LagerAccess.areas)){const label=text('label',name),select=document.createElement('select');for(const [value,title]of (key==='materialScannen'?[['none','Deaktiviert'],['edit','Aktiviert']]:['fahrtenbuch','fahrtenbuchExport'].includes(key)?[['none','Gesperrt'],['edit','Ansehen und bearbeiten']]:['materialvorlagen','beendete','fahrzeugeErstellen','fahrzeugeUebernehmen'].includes(key)?[['none','Nicht erlaubt'],['edit',key==='fahrzeugeUebernehmen'?'Belegte Fahrzeuge übernehmen':key==='fahrzeugeErstellen'?'Neue Fahrzeuge hinzufügen':key==='beendete'?'Archivieren, bearbeiten, wiederherstellen und löschen':'Erstellen, bearbeiten und löschen']]:[['none','Gesperrt'],['view','Nur ansehen'],['edit','Ansehen und bearbeiten']])){const option=text('option',title);option.value=value;select.append(option);}select.value=master?'edit':permissions[key]||'none';select.disabled=(protectedAccount&&!isMainAdmin)||master||row.id===auth.currentUser?.uid||!mayManage;colorPermission(select);selects[key]=select;label.append(select);groupGrids[key].append(label);}
-      const permissionsPanel=document.createElement('details');permissionsPanel.className='permissions-panel';permissionsPanel.append(text('summary','Berechtigungen'),grid);card.append(permissionsPanel);const save=text('button','Änderungen speichern');save.type='button';save.hidden=!mayManage;save.disabled=!mayManage;const feedback=text('p','');feedback.className='user-feedback';feedback.setAttribute('role','status');card.append(save,feedback);
+      grid.addEventListener('change',()=>permissionSections.updateStatuses(selects));
+      permissionSections.updateStatuses(selects);
+      const permissionsPanel=document.createElement('details');permissionsPanel.className='permissions-panel';permissionsPanel.open=true;permissionsPanel.append(text('summary','Berechtigungen'),grid);card.append(permissionsPanel);const save=text('button','Änderungen speichern');save.type='button';save.hidden=!mayManage;save.disabled=!mayManage;const feedback=text('p','');feedback.className='user-feedback';feedback.setAttribute('role','status');card.append(save,feedback);
       const remove=text('button','Konto löschen');remove.type='button';remove.className='delete-account';remove.disabled=master||!mayManage||row.id===auth.currentUser?.uid;
       remove.hidden=!mayManage||master;
       remove.title=protectedAccount?'Administratorkonten können nur vom Hauptadministrator gelöscht werden.':'Anmeldekonto dauerhaft löschen';
@@ -180,7 +197,8 @@
     finally{busy=false;refresh.disabled=false;}
   }
   const createAccount=functions.httpsCallable('lagerCreateUser'),newForm=document.getElementById('newUserForm'),newStatus=document.getElementById('newUserStatus'),newSubmit=document.getElementById('newUserSubmit'),newResult=document.getElementById('newUserResult'),newLink=document.getElementById('newUserLink'),newSelects={};
-  const newGroupGrids=groupPermissions(document.getElementById('newUserPermissions'));
+  const newPermissionsContainer=document.getElementById('newUserPermissions'),newSections=groupPermissions(newPermissionsContainer),newGroupGrids=newSections.grids;
+  newPermissionsContainer.addEventListener('change',()=>newSections.updateStatuses(newSelects));
   for(const [key,name]of Object.entries(LagerAccess.areas)){
     const label=text('label',name),select=document.createElement('select');
     const choices=key==='materialScannen'?[['none','Deaktiviert'],['edit','Aktiviert']]:['fahrtenbuch','fahrtenbuchExport'].includes(key)?[['none','Gesperrt'],['edit','Ansehen und bearbeiten']]:['materialvorlagen','beendete','fahrzeugeErstellen','fahrzeugeUebernehmen'].includes(key)?[['none','Nicht erlaubt'],['edit','Erlaubt']]:[['none','Gesperrt'],['view','Nur ansehen'],['edit','Ansehen und bearbeiten']];
@@ -200,6 +218,7 @@
       select.value=preset[key]||'none';
       select.dataset.permission=select.value;
     }
+    newSections.updateStatuses(newSelects);
   }
   newRole.addEventListener('change',applyNewRolePreset);
   function resetNewUserPreset(){newRole.value='mitarbeiter';applyNewRolePreset();}
