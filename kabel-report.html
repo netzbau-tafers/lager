@@ -600,6 +600,7 @@ tr.total-row td{
   body:not(.print-compact) #compactPrint{display:none !important}
   body:not(.print-compact) .summary-card:not(:first-child){display:none !important}
   body:not(.print-compact) .summary-grid{grid-template-columns:1fr}
+  body:not(.print-compact) .summary-print-bookings{display:block !important}
   body.print-compact{margin:0!important;background:#fff;font-size:10pt}
   body.print-compact #compactPrint{page:compactA4}
   #compactPrint, #compactPrint *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -652,6 +653,7 @@ body{background:#f5f7fb;color:#1c2c40;font-family:Inter,"Segoe UI",Arial,sans-se
 .summary-label{font-size:12px;color:#6a7d90;font-weight:650}
 .summary-value{font-weight:850;letter-spacing:-.8px;color:#152f4b;font-size:clamp(22px,2.3vw,31px);overflow-wrap:anywhere}
 .summary-sub{font-size:11px;line-height:1.4}
+.summary-print-bookings{display:none;color:#61707d;font-size:13px;margin-top:8px}
 .summary-icon{display:inline-grid;place-items:center;background:#eef5fc;color:#357da9;border-radius:10px;width:35px;height:35px;margin-bottom:14px}
 .summary-card:nth-child(2) .summary-icon{background:#ecf8f2;color:#218565}
 .summary-card:nth-child(3) .summary-icon{background:#f1efff;color:#736abb}
@@ -963,7 +965,7 @@ body{background:#f5f7fb;color:#1c2c40;font-family:Inter,"Segoe UI",Arial,sans-se
   <div id="reportError" class="info-panel error-panel" style="display:none;"></div>
 
   <div class="summary-grid" aria-label="Kennzahlen">
-    <div class="summary-card"><div class="summary-icon"><i class="fa-solid fa-ruler-horizontal"></i></div><div class="summary-label">Eingezogene Meter</div><div id="summaryTotal" class="summary-value">0 m</div><div class="summary-sub">Total im ausgewählten Jahr</div></div>
+    <div class="summary-card"><div class="summary-icon"><i class="fa-solid fa-ruler-horizontal"></i></div><div class="summary-label">Eingezogene Meter</div><div id="summaryTotal" class="summary-value">0 m</div><div class="summary-sub">Total im ausgewählten Jahr</div><div id="summaryPrintBookings" class="summary-print-bookings" aria-hidden="true">0 Buchungen</div></div>
     <div class="summary-card"><div class="summary-icon"><i class="fa-solid fa-clipboard-list"></i></div><div class="summary-label">Buchungen</div><div id="summaryBookings" class="summary-value">0</div><div class="summary-sub">Erfasste Einzüge</div></div>
     <div class="summary-card"><div class="summary-icon"><i class="fa-solid fa-layer-group"></i></div><div class="summary-label">Kabeltypen</div><div id="summaryTypes" class="summary-value">0</div><div class="summary-sub">Unterschiedliche Kabeltypen</div></div>
     <div class="summary-card"><div class="summary-icon"><i class="fa-solid fa-chart-line"></i></div><div class="summary-label">Monatsdurchschnitt</div><div id="summaryAverage" class="summary-value">0 m</div><div id="summaryAverageInfo" class="summary-sub">Meter je Monat</div></div>
@@ -2243,6 +2245,7 @@ function renderSummary(data){
   const monthsCount = year < now.getFullYear() ? 12 : year === now.getFullYear() ? now.getMonth() + 1 : 0;
   document.getElementById("summaryTotal").textContent = formatMeters(data.totalMeters);
   document.getElementById("summaryBookings").textContent = formatCount(data.totalBookings);
+  document.getElementById("summaryPrintBookings").textContent = formatCount(data.totalBookings) + " Buchungen";
   document.getElementById("summaryTypes").textContent = formatCount(data.annualRows.length);
   document.getElementById("summaryAverage").textContent = formatMeters(monthsCount ? data.totalMeters / monthsCount : 0);
   document.getElementById("summaryAverageInfo").textContent = "Über " + monthsCount + " Kalendermonate";
