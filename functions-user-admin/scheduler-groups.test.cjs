@@ -10,7 +10,8 @@ test('scheduler administration displays all configured groups as valid rows',()=
   const match=source.match(/const groups=\s*(\[[\s\S]*?\]);\s*function message/);
   assert.ok(match,'scheduler groups array must exist');
   const groups=vm.runInNewContext(match[1]);
-  const expected=['bobinen','kabelreport','fahrzeuge','bereinigung','service'];
+  // Removed vehicle scheduler functions must stay absent: they have been deactivated to avoid charges.
+  const expected=['bobinen','kabelreport'];
   assert.equal(groups.length,expected.length);
   for(const [index,group] of groups.entries()){
     assert.ok(Array.isArray(group),'group '+index+' must be an array (check commas between rows)');

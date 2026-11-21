@@ -1,0 +1,112 @@
+name: Firebase regression tests
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firebase-regression-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    name: Node 22 / Firestore / UI
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Java 21 for Firestore emulator
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install Cloud Functions dependencies (locked)
+        working-directory: functions-user-admin
+        run: npm ci --no-audit --no-fund
+
+      - name: Install test dependencies
+        working-directory: tests
+        run: npm install --no-audit --no-fund --package-lock=false
+
+      - name: Install Chromium for real Firebase Web SDK smoke test
+        working-directory: tests
+        run: npx playwright install --with-deps chromium
+
+      - name: Validate Cloud Functions JavaScript syntax
+        if: success() || failure()
+        run: |
+          find functions-user-admin -maxdepth 1 \( -name '*.js' -o -name '*.cjs' \) -print0 | xargs -0 -n 1 node --check
+
+      - name: Load Cloud Functions entrypoint (SDK compatibility)
+        if: success() || failure()
+        working-directory: functions-user-admin
+        run: |
+          node - <<'NODE'
+          const assert = require('node:assert/strict');
+          const exports = require('./index.js');
+          for (const key of ['lagerDashboardGet','lagerCableMonthlySnapshot','lagerCreateUser','lagerRegisterPush']) {
+            assert.equal(typeof exports[key], 'function', key + ' must be exported');
+          }
+          NODE
+
+      - name: Cloud Functions unit tests
+        if: success() || failure()
+        working-directory: functions-user-admin
+        run: node --test ./*.test.cjs
+
+      - name: Additional account, backup and UI tests
+        if: success() || failure()
+        working-directory: tests
+        run: |
+          node --test create-user.cjs logbook-backup.cjs logbook-backup-delete.cjs logbook-export-ui.cjs vehicle-notification-link.test.cjs
+          node logbook-ui.cjs
+
+      - name: Push notification link tests
+        if: success() || failure()
+        run: node --test push-link.test.cjs
+
+      - name: General UI smoke tests
+        if: success() || failure()
+        working-directory: tests
+        run: npm run test:ui
+
+      - name: Browser smoke test for Firebase Web SDK 13.4
+        if: success() || failure()
+        working-directory: tests
+        run: node --test firebase-compat-browser.test.cjs
+
+      - name: User administration tests
+        if: success() || failure()
+        working-directory: tests
+        run: npm run test:admin
+
+      - name: Vehicle tests
+        if: success() || failure()
+        working-directory: tests
+        run: npm run test:vehicles
+
+      - name: Firestore access rules (emulator)
+        if: success() || failure()
+        working-directory: tests
+        run: npm run test:rules
+
+      - name: Firestore vehicle transactions (emulator)
+        if: success() || failure()
+        working-directory: tests
+        run: npm run test:vehicle-transactions
+
+      - name: Firestore logbook integration (emulator)
+        if: success() || failure()
+        working-directory: tests
+        run: npx firebase emulators:exec --config ../firebase.json --project demo-lager-access --only firestore "node logbook-firestore.cjs"

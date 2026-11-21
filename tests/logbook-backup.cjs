@@ -9,10 +9,14 @@ function fixture(){
  return {context,sheets,calls,set:(d,http=200)=>{docs=d;code=http;}};
 }
 const doc=(id,fields)=>({name:'projects/demo/databases/(default)/documents/fahrzeuge/deleted/verlauf/'+id,fields,createTime:'2026-01-01T00:00:00Z',updateTime:'2026-10-10T00:00:00Z'});
-test('bootstrap legacy history, incremental rejection upsert and failed checkpoint',()=>{
- const f=fixture();f.set([doc('a',{type:{stringValue:'use'}})]);f.context.backupVehicleHistoryIncremental();
- const sheet=f.sheets.get('fahrzeug_verlauf');assert.equal(sheet.rows.length,2);assert.equal(f.calls[0].structuredQuery.where,undefined);assert.ok(f.calls[0].readTime);
- const watermark=f.sheets.get('fahrtenbuch_backup_status').rows[0][1];
- f.set([doc('a',{updatedAt:{timestampValue:'2026-10-10T00:00:00Z'},status:{stringValue:'rejected'}})]);f.context.backupVehicleHistoryIncremental();assert.equal(sheet.rows.length,2);assert.match(sheet.rows[1][2],/rejected/);assert.equal(f.calls[1].structuredQuery.where.compositeFilter.filters[0].fieldFilter.value.timestampValue,watermark);
- const checkpoint=f.sheets.get('fahrtenbuch_backup_status').rows[0][1];f.set([],403);assert.throws(()=>f.context.backupVehicleHistoryIncremental(),/HTTP 403/);assert.equal(f.sheets.get('fahrtenbuch_backup_status').rows[0][1],checkpoint);
+// The former backupVehicleHistoryIncremental() entry point was removed when
+// the vehicle backup moved to the shared Sheets cache. Its previous test
+// exercised an API that no longer exists; validate the current entry points.
+test('vehicle backup uses the shared cache entry points, not the legacy function',()=>{
+ const f=fixture();
+ assert.equal(typeof f.context.vhBackupVehiclesUnlocked_,'function');
+ assert.equal(typeof f.context.vhBackupVehicles_,'function');
+ assert.equal(typeof f.context.enableVehicleHistoryIncremental,'function');
+ assert.equal(typeof f.context.vhCacheStatus,'function');
+ assert.equal(typeof f.context.backupVehicleHistoryIncremental,'undefined');
 });
