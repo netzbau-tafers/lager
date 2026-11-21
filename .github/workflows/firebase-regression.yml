@@ -44,10 +44,12 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Validate Cloud Functions JavaScript syntax
+        if: success() || failure()
         run: |
           find functions-user-admin -maxdepth 1 \( -name '*.js' -o -name '*.cjs' \) -print0 | xargs -0 -n 1 node --check
 
       - name: Load Cloud Functions entrypoint (SDK compatibility)
+        if: success() || failure()
         working-directory: functions-user-admin
         run: |
           node - <<'NODE'
@@ -59,42 +61,52 @@ jobs:
           NODE
 
       - name: Cloud Functions unit tests
+        if: success() || failure()
         working-directory: functions-user-admin
         run: node --test ./*.test.cjs
 
       - name: Additional account, backup and UI tests
+        if: success() || failure()
         working-directory: tests
         run: |
           node --test create-user.cjs logbook-backup.cjs logbook-backup-delete.cjs logbook-export-ui.cjs vehicle-notification-link.test.cjs
           node logbook-ui.cjs
 
       - name: Push notification link tests
+        if: success() || failure()
         run: node --test push-link.test.cjs
 
       - name: General UI smoke tests
+        if: success() || failure()
         working-directory: tests
         run: npm run test:ui
 
       - name: Browser smoke test for Firebase Web SDK 13.4
+        if: success() || failure()
         working-directory: tests
         run: node --test firebase-compat-browser.test.cjs
 
       - name: User administration tests
+        if: success() || failure()
         working-directory: tests
         run: npm run test:admin
 
       - name: Vehicle tests
+        if: success() || failure()
         working-directory: tests
         run: npm run test:vehicles
 
       - name: Firestore access rules (emulator)
+        if: success() || failure()
         working-directory: tests
         run: npm run test:rules
 
       - name: Firestore vehicle transactions (emulator)
+        if: success() || failure()
         working-directory: tests
         run: npm run test:vehicle-transactions
 
       - name: Firestore logbook integration (emulator)
+        if: success() || failure()
         working-directory: tests
         run: npx firebase emulators:exec --config ../firebase.json --project demo-lager-access --only firestore "node logbook-firestore.cjs"
