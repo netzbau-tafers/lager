@@ -573,7 +573,7 @@ input{
       <span id="archivYearLabel">Aktuelles Jahr</span>
     </div>
     <nav id="archivYearNav" class="archiv-year-nav" aria-label="Jahresauswahl"></nav>
-    <div class="archiv-year-note">Vergangene Jahre werden erst beim Auswählen aus Firebase geladen.</div>
+    <div class="archiv-year-note">Andere Jahre werden erst beim Auswählen aus Firebase geladen.</div>
   </section>
 
   <div class="search-box">
@@ -661,11 +661,12 @@ function setLogsMenuVisibility(isAdmin){
   }
 }
 
-// Nur das aktuelle Archivjahr wird automatisch geladen. Vergangene Jahre erst auf Klick.
+// Nur das aktuelle Archivjahr wird automatisch geladen. Andere Jahre erst auf Klick.
 const ARCHIV_CACHE_KEY = "archiv_snapshot_current_year_v2";
+const ARCHIV_FIRST_YEAR = 2026;
 const ARCHIV_YEARS_PER_PAGE = 5;
 let selectedArchiveYear = getCurrentArchiveYear();
-let archiveYearWindowEnd = selectedArchiveYear;
+let archiveYearWindowStart = Math.max(ARCHIV_FIRST_YEAR, selectedArchiveYear - ARCHIV_YEARS_PER_PAGE + 1);
 let archivYearLoading = false;
 let archivYearError = "";
 let archivYearLoadVersion = 0;
@@ -708,18 +709,19 @@ function renderArchiveYearNav(){
     nav.appendChild(element);
   }
 
-  button("‹", "5 Jahre zurück", () => {
-    archiveYearWindowEnd -= ARCHIV_YEARS_PER_PAGE;
+  // Linker Pfeil: ein Jahr nach vorne; rechter Pfeil: ein Jahr zurück.
+  button("‹", "Ein Jahr vorwärts", () => {
+    archiveYearWindowStart++;
     renderArchiveYearNav();
-  }, "archiv-year-arrow", null, false);
-  for(let year=archiveYearWindowEnd;year>archiveYearWindowEnd-ARCHIV_YEARS_PER_PAGE;year--){
+  }, "archiv-year-arrow", null, archiveYearWindowStart + ARCHIV_YEARS_PER_PAGE - 1 >= 9998);
+  for(let year=archiveYearWindowStart;year<archiveYearWindowStart+ARCHIV_YEARS_PER_PAGE;year++){
     button(String(year), "Baustellen von " + year + " anzeigen",
       () => selectArchiveYear(year), "", year === selectedArchiveYear, false);
   }
-  button("›", "Neuere Jahre", () => {
-    archiveYearWindowEnd = Math.min(current, archiveYearWindowEnd + ARCHIV_YEARS_PER_PAGE);
+  button("›", "Ein Jahr zurück", () => {
+    archiveYearWindowStart = Math.max(ARCHIV_FIRST_YEAR, archiveYearWindowStart - 1);
     renderArchiveYearNav();
-  }, "archiv-year-arrow", null, archiveYearWindowEnd >= current);
+  }, "archiv-year-arrow", null, archiveYearWindowStart <= ARCHIV_FIRST_YEAR);
 }
 
 function clearArchiveYearMaterial(){
@@ -739,7 +741,7 @@ function clearArchiveYearMaterial(){
 
 function selectArchiveYear(year){
   const current = getCurrentArchiveYear();
-  if(!auth.currentUser || !Number.isInteger(year) || year < 1900 || year > current) return;
+  if(!auth.currentUser || !Number.isInteger(year) || year < ARCHIV_FIRST_YEAR || year > 9998) return;
   if(archivYearStarted && selectedArchiveYear === year && !archivYearError) return;
   archivYearStarted = true;
   const version = ++archivYearLoadVersion;
@@ -784,7 +786,7 @@ function selectArchiveYear(year){
   if(year === current){
     unsubscribeBaustellen = query.onSnapshot(update, failed);
   }else{
-    // Alte Jahre: einmalige Abfrage nur nach ausdrücklichem Klick, kein Dauer-Listener.
+    // Nicht aktuelle Jahre: einmalige Abfrage nur nach ausdrücklichem Klick, kein Dauer-Listener.
     query.get().then(update).catch(failed);
   }
 }
@@ -795,7 +797,7 @@ function syncArchiveCurrentYear(){
   if(current === archiveLastCurrentYear) return;
   const wasCurrent = selectedArchiveYear === archiveLastCurrentYear;
   archiveLastCurrentYear = current;
-  archiveYearWindowEnd = current;
+  archiveYearWindowStart = Math.max(ARCHIV_FIRST_YEAR, current - ARCHIV_YEARS_PER_PAGE + 1);
   if(wasCurrent) selectArchiveYear(current);
   else renderArchiveYearNav();
 }
@@ -1208,7 +1210,7 @@ LagerAccess.onAuthStateChanged((user) => {
 function startListeners(){
   if(archivYearStarted) return;
   archiveLastCurrentYear = getCurrentArchiveYear();
-  archiveYearWindowEnd = archiveLastCurrentYear;
+  archiveYearWindowStart = Math.max(ARCHIV_FIRST_YEAR, archiveLastCurrentYear - ARCHIV_YEARS_PER_PAGE + 1);
   loadVorlagen();
   selectArchiveYear(archiveLastCurrentYear);
 }
