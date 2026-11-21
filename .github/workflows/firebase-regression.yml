@@ -39,9 +39,24 @@ jobs:
         working-directory: tests
         run: npm install --no-audit --no-fund --package-lock=false
 
+      - name: Install Chromium for real Firebase Web SDK smoke test
+        working-directory: tests
+        run: npx playwright install --with-deps chromium
+
       - name: Validate Cloud Functions JavaScript syntax
         run: |
           find functions-user-admin -maxdepth 1 \( -name '*.js' -o -name '*.cjs' \) -print0 | xargs -0 -n 1 node --check
+
+      - name: Load Cloud Functions entrypoint (SDK compatibility)
+        working-directory: functions-user-admin
+        run: |
+          node - <<'NODE'
+          const assert = require('node:assert/strict');
+          const exports = require('./index.js');
+          for (const key of ['lagerDashboardGet','lagerCableMonthlySnapshot','lagerCreateUser','lagerRegisterPush']) {
+            assert.equal(typeof exports[key], 'function', key + ' must be exported');
+          }
+          NODE
 
       - name: Cloud Functions unit tests
         working-directory: functions-user-admin
@@ -59,6 +74,10 @@ jobs:
       - name: General UI smoke tests
         working-directory: tests
         run: npm run test:ui
+
+      - name: Browser smoke test for Firebase Web SDK 13.4
+        working-directory: tests
+        run: node --test firebase-compat-browser.test.cjs
 
       - name: User administration tests
         working-directory: tests
