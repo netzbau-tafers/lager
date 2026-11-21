@@ -8,7 +8,7 @@ module.exports=function vehicleMock(scenario){
   function collectionSnapshot(path){const docs=[...data.keys()].filter(key=>key.startsWith(path+'/')&&key.slice(path.length+1).indexOf('/')===-1).map(snapshot);return {docs,size:docs.length,empty:!docs.length};}
   function listen(key,callback){if(!listeners.has(key))listeners.set(key,new Set());const set=listeners.get(key);set.add(callback);queueMicrotask(()=>{if(set.has(callback))callback(key.endsWith('/#')?collectionSnapshot(key.slice(0,-2)):snapshot(key));});return ()=>set.delete(callback);}
   function emit(path){for(const key of [path,path.slice(0,path.lastIndexOf('/'))+'/#'])for(const callback of listeners.get(key)||[])queueMicrotask(()=>{if(listeners.get(key)?.has(callback))callback(key.endsWith('/#')?collectionSnapshot(key.slice(0,-2)):snapshot(key));});}
-  function doc(path){return {id:path.split('/').at(-1),get:async()=>snapshot(path),set:async value=>{data.set(path,value);emit(path);},delete:async()=>{data.delete(path);emit(path);},collection:name=>collection(path+'/'+name),onSnapshot:callback=>listen(path,callback)};}
+  function doc(path){return {id:path.split('/').at(-1),get:async()=>snapshot(path),set:async value=>{data.set(path,value);emit(path);},delete:async()=>{data.delete(path);emit(path);},collection:name=>collection(path+'/'+name),onSnapshot:(options,callback)=>listen(path,typeof options==='function'?options:callback)};}
   function collection(path){
     if(path.endsWith('/verlauf')){
       let count=Infinity,cursor=null,filters=[];
