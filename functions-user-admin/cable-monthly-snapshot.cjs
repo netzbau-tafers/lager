@@ -109,7 +109,7 @@ async function deleteOldLogsAfterAutomaticSnapshot({db,Timestamp,logger,now}){
     if(cursor)query=query.startAfter(cursor);
     const page=await query.get();
     if(page.empty||page.docs.length===0)break;
-    const batch=db.batch();
+    let batch=null;
     let batchCount=0;
     for(const doc of page.docs){
       const log=doc.data(),createdAt=log.createdAt;
@@ -127,6 +127,7 @@ async function deleteOldLogsAfterAutomaticSnapshot({db,Timestamp,logger,now}){
           continue;
         }
       }
+      if(!batch)batch=db.batch();
       batch.delete(doc.ref);
       batchCount++;
     }
