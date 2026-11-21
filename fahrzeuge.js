@@ -180,7 +180,8 @@
     const nameLines=String(v.name).match(/.{1,28}(?:\s|$)|\S{1,28}/g)||['Fahrzeug'];
     const headerHeight=32+nameLines.length*34+42;
     const panelHeight=size+headerHeight,totalHeight=panelHeight*2;
-    svg.setAttribute('xmlns',namespace);svg.setAttribute('width',String(size));svg.setAttribute('height',String(totalHeight));
+    // XMLSerializer writes xmlns automatically for a createElementNS() root; setting it manually duplicates the attribute and produces invalid SVG XML.
+    svg.setAttribute('width',String(size));svg.setAttribute('height',String(totalHeight));
     svg.setAttribute('viewBox','0 0 '+size+' '+totalHeight);
     const background=document.createElementNS(namespace,'rect');
     background.setAttribute('width','100%');background.setAttribute('height','100%');background.setAttribute('fill','#fff');svg.append(background);
