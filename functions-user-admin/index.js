@@ -45,22 +45,10 @@ exports.lagerVehicleBackfill=vehicleCall(backfill.propose);
 exports.lagerVehicleBackfillReview=vehicleCall(backfill.review);
 exports.lagerVehicleBackfillNotify=onDocumentCreated({document:'fahrzeug_nachtraege/{requestId}',region:'europe-west1',maxInstances:2},createBackfillNotifier({db:getFirestore(),auth:getAuth(),messaging:getMessaging(),logger}));
 
-const {createVehicleReminder}=require('./vehicle-reminder.cjs');
-const remindVehicles=createVehicleReminder({db:getFirestore(),auth:getAuth(),messaging:getMessaging(),FieldValue,logger});
-const vehicleSchedule={timeZone:'Europe/Zurich',region:'europe-west1',maxInstances:1,timeoutSeconds:540,retryCount:0};
-exports.lagerVehiclePushReminderWeekdays=onSchedule({...vehicleSchedule,schedule:'10 17 * * 1-4'},remindVehicles);
-exports.lagerVehiclePushReminderFriday=onSchedule({...vehicleSchedule,schedule:'55 11 * * 5'},remindVehicles);
-
-
 const {createLogbook}=require("./vehicle-logbook.cjs");
 const logbook=createLogbook({db:getFirestore(),auth:getAuth(),Timestamp,ErrorType:HttpsError});
 exports.lagerVehicleLogbook=vehicleCall(logbook.search);
 exports.lagerVehicleLogbookVehicles=vehicleCall(logbook.catalog);
-
-const {createVehicleActionCleanup}=require('./vehicle-action-cleanup.cjs');
-exports.lagerVehicleActionCleanup=onSchedule({...vehicleSchedule,schedule:'15 3 * * *'},async()=>{
-  await createVehicleActionCleanup({db:getFirestore(),Timestamp,logger})();
-});
 
 const {createVehicleExport}=require('./vehicle-export.cjs');
 const vehicleExport=createVehicleExport({db:getFirestore(),auth:getAuth(),Timestamp,ErrorType:HttpsError});
@@ -71,15 +59,7 @@ exports.lagerVehicleExportRead=exportCall(vehicleExport.read);
 exports.lagerVehicleExportDelete=exportCall(vehicleExport.remove);
 exports.lagerVehicleExportRestore=exportCall(vehicleExport.restore);
 
-const {defineSecret}=require('firebase-functions/params');
-const serviceBrevoKey=defineSecret('BREVO_API_KEY');
-const serviceMailSender=defineSecret('VEHICLE_SERVICE_SENDER');
-const serviceMailRecipient=defineSecret('VEHICLE_SERVICE_RECIPIENT');
-const {createServiceReminder}=require('./vehicle-service.cjs');
 exports.lagerVehicleService=vehicleCall(vehicles.service);
-exports.lagerVehicleServiceReminder=onSchedule({...vehicleSchedule,schedule:'0 7 * * *',secrets:[serviceBrevoKey,serviceMailSender,serviceMailRecipient]},async()=>{
-  await createServiceReminder({db:getFirestore(),FieldValue,logger,apiKey:serviceBrevoKey.value(),sender:serviceMailSender.value(),recipient:serviceMailRecipient.value()})();
-});
 
 const {createTakeoverNotifier}=require('./vehicle-takeover.cjs');
 exports.lagerVehicleTakeoverNotify=onDocumentCreated({document:'fahrzeuge/{vehicleId}/verlauf/{eventId}',region:'europe-west1',maxInstances:2,retry:false},createTakeoverNotifier({db:getFirestore(),auth:getAuth(),messaging:getMessaging(),logger}));

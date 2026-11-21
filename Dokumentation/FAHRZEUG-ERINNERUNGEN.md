@@ -1,13 +1,7 @@
-# Tägliche Fahrzeug-Erinnerungen
+# Tägliche Fahrzeug-Erinnerungen (ausser Betrieb seit November 2026)
 
-Montag bis Donnerstag um 17:10 Uhr, Freitag um 11:55 Uhr (Europe/Zurich, inklusive Sommer-/Winterzeit). Keine Mindestnutzungsdauer. Nur aktuell in Gebrauch befindliche Fahrzeuge; Benachrichtigung an die eingetragene Person auf ihren bereits aktivierten Push-Geräten. Kein Versand am Wochenende. Antippen öffnet Fahrzeuge. Die Bobinen-Erinnerung bleibt unverändert.
+Die beiden geplanten Cloud Functions `lagerVehiclePushReminderWeekdays` und `lagerVehiclePushReminderFriday` wurden aus den Firebase-Exports entfernt. Sie sollen **nicht erneut bereitgestellt** werden, um Cloud-Scheduler-Kosten zu vermeiden.
 
-Nach dem Zusammenführen im lokalen Repository mit firebase.json ausführen:
+Die bisherige Umsetzung in `functions-user-admin/vehicle-reminder.cjs` bleibt zur späteren Wiederverwendung erhalten. Zuvor liefen die Erinnerungen Montag–Donnerstag um 17:10 Uhr sowie Freitag um 11:55 Uhr (Europe/Zurich) für Fahrzeuge in Gebrauch. Die Benachrichtigung für Bobinen sowie manuelle Fahrzeugaktionen und Benachrichtigungen für Fahrzeug-Nachträge bleiben unverändert.
 
-```sh
-firebase deploy --only functions:lager-user-admin:lagerVehiclePushReminderWeekdays,functions:lager-user-admin:lagerVehiclePushReminderFriday --project netzbau-tafers
-```
-
-Die Firebase-Bereitstellung erstellt zwei Cloud-Scheduler-Zeitpläne. Die vorhandene Push-Aktivierung im Profil wird weiterverwendet. Zustellung hängt von Gerätekonnektivität und Android-Benachrichtigungseinstellungen ab.
-
-Zur Vermeidung doppelter Ausführung werden pro Fahrzeug Tagesmarkierung und kurze Transaktionssperre in push_reminders gespeichert. Vor dem Versand werden Fahrzeugstatus, Nutzungssitzung und Gerätebesitzer erneut geprüft. Abgelaufene Geräte und gesperrte/gelöschte Konten werden übersprungen. Ungültige FCM-Tokens werden entfernt.
+Zur Wiederinbetriebnahme müsste ein geplanter Export ausdrücklich erneut in `functions-user-admin/index.js` eingefügt und deployed werden. Das bisherige Scheduler-Deployment-Kommando ist nicht mehr anzuwenden.
