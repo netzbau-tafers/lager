@@ -48,3 +48,45 @@ benoetigt einen gesonderten Pull Request mit Browser-Tests.
 
 Die Testpipeline erhoeht die Sicherheit von Abhaengigkeitsupdates, ersetzt
 aber keinen realen Funktionstest gegen eine kontrollierte Firebase-Umgebung.
+
+## Firebase SDK-Upgrade November 2026
+
+Das Update in diesem Pull Request stellt folgende Versionen ein:
+
+- Web-Compat-SDK/CDN: `9.23.0` -> `13.4.0`
+- Cloud Functions SDK: `6.6.0` -> `7.4.0`
+- Firebase Admin SDK: `13.10.0` -> `14.5.1`
+- Test-Firebase-SDK / Rules Testing / CLI entsprechend aktualisiert
+- Laufzeit unverändert: Node.js 22
+
+### Risiko und Pruefgrenzen
+
+- Browser: Anmeldung, Sitzungsfortsetzung, Passwortlinks, Firebase Storage,
+  Firestore-Liveabfragen und HTTPS-Callable-Funktionen.
+- Push: Messaging-Compat-Bibliothek **und Service Worker** muessen dieselbe
+  SDK-Version laden. Nach dem Merge Service-Worker-Update und reale
+  Push-Testnachrichten auf Android/Chrome durchspielen.
+- Server: Admin 14 hat die veralteten Admin-Namespaces entfernt und nutzt
+  neuere Firestore-Abhaengigkeiten. Die Anwendung importiert bereits
+  `firebase-admin/app`, `firebase-admin/auth` usw. modular.
+- Functions 7 entfernt `functions.config()`. Die Exportdatei verwendet
+  die v2-APIs, ein Import-/Export-Smoke-Test laeuft automatisch.
+- Verbleibendes Risiko: Emulator- und Browser-Smoke-Tests ersetzen
+  keine Produktionstests fuer E-Mail, echte Push-Zustellung, Datenschutz,
+  Benutzerrechte, Scheduler und Firebase-IAM.
+
+### Rollout
+
+1. Auf dem PR alle automatischen Tests **gruen** pruefen.
+2. Aenderungen lokal oder auf Testdomain mit Testkonto pruefen.
+3. Erst dann PR mit `main` zusammenfuehren. Die GitHub-Pages-Version
+   wird damit aktualisiert; das kann echte Benutzer unmittelbar betreffen.
+4. Backend-Cloud-Functions **nicht automatisch** bereitstellen. Erst mit
+   `firebase deploy --only functions:lager-user-admin --project netzbau-tafers`
+   nach separater Freigabe, und dabei die angebotenen Loeschungen und
+   Cloud Scheduler Jobs genau kontrollieren.
+5. Im Fehlerfall Web-SDK-Versionen ueber einen Git-Revert zuruecksetzen,
+   Cloud-Functions-Versionen durch ein Deployment des vorherigen Commits.
+
+Ein Deploy ist kein notwendiger Bestandteil des Pull Requests und kann
+Google-Cloud-Kosten verursachen.
