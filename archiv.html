@@ -709,19 +709,19 @@ function renderArchiveYearNav(){
     nav.appendChild(element);
   }
 
-  // Linker Pfeil: ein Jahr nach vorne; rechter Pfeil: ein Jahr zurück.
-  button("‹", "Ein Jahr vorwärts", () => {
-    archiveYearWindowStart++;
+  // Linker Pfeil: ein Jahr zurück; rechter Pfeil: ein Jahr nach vorne.
+  button("‹", "Ein Jahr zurück", () => {
+    archiveYearWindowStart = Math.max(ARCHIV_FIRST_YEAR, archiveYearWindowStart - 1);
     renderArchiveYearNav();
-  }, "archiv-year-arrow", null, archiveYearWindowStart + ARCHIV_YEARS_PER_PAGE - 1 >= 9998);
+  }, "archiv-year-arrow", null, archiveYearWindowStart <= ARCHIV_FIRST_YEAR);
   for(let year=archiveYearWindowStart;year<archiveYearWindowStart+ARCHIV_YEARS_PER_PAGE;year++){
     button(String(year), "Baustellen von " + year + " anzeigen",
       () => selectArchiveYear(year), "", year === selectedArchiveYear, false);
   }
-  button("›", "Ein Jahr zurück", () => {
-    archiveYearWindowStart = Math.max(ARCHIV_FIRST_YEAR, archiveYearWindowStart - 1);
+  button("›", "Ein Jahr vorwärts", () => {
+    archiveYearWindowStart++;
     renderArchiveYearNav();
-  }, "archiv-year-arrow", null, archiveYearWindowStart <= ARCHIV_FIRST_YEAR);
+  }, "archiv-year-arrow", null, archiveYearWindowStart + ARCHIV_YEARS_PER_PAGE - 1 >= 9998);
 }
 
 function clearArchiveYearMaterial(){
