@@ -574,6 +574,63 @@ tr.total-row td{
 }
 
 
+
+/* Screen print choice */
+.print-choice[hidden]{display:none !important}
+.print-choice{position:fixed;inset:0;background:rgba(17,34,52,.56);z-index:6000;display:flex;justify-content:center;align-items:center;padding:18px}
+.print-choice-dialog{background:#fff;border-radius:18px;max-width:540px;width:100%;box-shadow:0 24px 80px rgba(0,0,0,.28);padding:25px;position:relative}
+.print-choice-dialog h2{margin:0 35px 8px 0;color:#203950;font-size:22px}
+.print-choice-dialog p{margin:0 0 20px;color:#748599;line-height:1.55;font-size:13px}
+.print-choice-close{position:absolute;right:14px;top:12px;background:#f1f5f8;color:#60788e;box-shadow:none;border-radius:50%;padding:7px 11px}
+.print-choice-options{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.print-choice-option{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;min-height:145px;gap:10px;text-align:left;padding:17px;border:1px solid #dce6f0;border-radius:13px;background:#f9fbfd;color:#1c374e;box-shadow:none;font-weight:800;font-size:14px;white-space:normal;margin:0}
+.print-choice-option:hover{background:#eff7fd;border-color:#88bbdc;transform:none;box-shadow:none}
+.print-choice-option i{color:#2c7bb4;font-size:21px}
+.print-choice-option small{font-weight:400;color:#637a8e;font-size:12px;line-height:1.45}
+#compactPrint{display:none}
+@media(max-width:500px){.print-choice-options{grid-template-columns:1fr}.print-choice-option{min-height:0}}
+@page compactA4 {size:A4 portrait;margin:10mm}
+@media print{
+  .print-choice{display:none !important}
+  body.print-compact #appContent,
+  body.print-compact .app-footer,
+  body.print-compact .login-screen{display:none !important}
+  body.print-compact #compactPrint{display:block !important}
+  body.print-full #compactPrint{display:none !important}
+  body:not(.print-compact) #compactPrint{display:none !important}
+  body:not(.print-compact) .summary-card:not(:first-child){display:none !important}
+  body:not(.print-compact) .summary-grid{grid-template-columns:1fr}
+  body.print-compact{margin:0!important;background:#fff;font-size:10pt}
+  body.print-compact #compactPrint{page:compactA4}
+  #compactPrint, #compactPrint *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #compactPrint{width:190mm;max-width:100%;margin:0 auto;font-family:"Segoe UI",Arial,sans-serif;color:#173149}
+  .compact-print-head{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:2px solid #153d61;padding-bottom:4mm;margin-bottom:4mm}
+  .compact-print-head .compact-brand{color:#297cad;font-size:8pt;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+  .compact-print-head h1{font-size:21pt;letter-spacing:-.5px;margin:1mm 0}
+  .compact-print-meta{text-align:right;font-size:8pt;color:#667d8e;line-height:1.5;max-width:85mm}
+  .compact-print-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:2.5mm;margin-bottom:6mm}
+  .compact-print-kpi{padding:3.5mm 3mm;border:1px solid #dae7f0;border-radius:2mm;background:#f2f7fb}
+  .compact-print-kpi span{display:block;color:#627c91;font-size:7pt;margin-bottom:2mm}
+  .compact-print-kpi strong{display:block;color:#174268;font-size:13pt;white-space:nowrap}
+  .compact-print-section-head{display:flex;align-items:center;justify-content:space-between;margin:4mm 0 2.2mm;gap:5mm}
+  .compact-print-section-head h2{font-size:11pt;line-height:1.2;margin:0;color:#183b5a}
+  .compact-print-section-head span{font-size:7pt;color:#7790a1}
+  .compact-print-months{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2.5mm}
+  .compact-print-month{border:1px solid #dce8ef;border-radius:2mm;padding:2.5mm 3mm;min-height:17mm;background:#fff}
+  .compact-print-month-title{display:flex;justify-content:space-between;font-size:8pt;font-weight:750;color:#254563;gap:3mm}
+  .compact-print-month-title strong{color:#123b60;white-space:nowrap}
+  .compact-print-track{height:1.8mm;background:#e9f1f6;border-radius:2mm;margin-top:3.8mm;overflow:hidden}
+  .compact-print-track b{display:block;height:100%;background:#4496ca;border-radius:2mm}
+  .compact-print-table{border-collapse:collapse;width:100%;font-size:8.2pt;table-layout:fixed}
+  .compact-print-table th{background:#f2f6fa !important;color:#60798d;text-transform:uppercase;font-size:7.5pt;font-weight:800;letter-spacing:.2px}
+  .compact-print-table th,.compact-print-table td{padding:2.25mm 2mm;border-bottom:1px solid #e8eef4}
+  .compact-print-table th:first-child,.compact-print-table td:first-child{width:54%;text-align:left;overflow-wrap:anywhere}
+  .compact-print-table th:not(:first-child),.compact-print-table td:not(:first-child){text-align:right}
+  .compact-print-table tr:last-child{font-weight:850;background:#eaf3fa}
+  .compact-print-foot{display:flex;align-items:center;justify-content:space-between;margin-top:4mm;padding-top:3mm;border-top:1px solid #dbe7ef;font-size:7pt;color:#71869a;gap:7mm}
+  .compact-print-foot span:last-child{text-align:right}
+}
+
 /* 2026 Kabel Report dashboard: frontend styles only */
 body{background:#f5f7fb;color:#1c2c40;font-family:Inter,"Segoe UI",Arial,sans-serif;margin:22px clamp(14px,2.6vw,44px)}
 .report-shell{max-width:1540px;margin:0 auto}
@@ -950,6 +1007,29 @@ body{background:#f5f7fb;color:#1c2c40;font-family:Inter,"Segoe UI",Arial,sans-se
   <div id="monthsContainer" class="months-grid"></div>
 </div>
 </div>
+
+<!-- Print method chooser; does not alter report data. -->
+<div id="printChoice" class="print-choice" hidden role="presentation" onclick="if(event.target===this) closePrintChoice()">
+  <div class="print-choice-dialog" role="dialog" aria-modal="true" aria-labelledby="printChoiceTitle" aria-describedby="printChoiceDescription">
+    <button type="button" class="print-choice-close" onclick="closePrintChoice()" aria-label="Schliessen"><i class="fa-solid fa-xmark"></i></button>
+    <h2 id="printChoiceTitle">Druckansicht auswählen</h2>
+    <p id="printChoiceDescription">Welche Version des Kabelreports möchtest du drucken?</p>
+    <div class="print-choice-options">
+      <button type="button" class="print-choice-option" onclick="executePrint('full')">
+        <i class="fa-solid fa-file-lines"></i>
+        Ausführlicher Bericht
+        <small>Wie bisher: Jahresübersicht und alle zwölf Monate mit sämtlichen Kabeltypen, Metern und Buchungen. Mehrere Seiten möglich.</small>
+      </button>
+      <button type="button" class="print-choice-option" onclick="executePrint('compact')">
+        <i class="fa-solid fa-file-circle-check"></i>
+        Kompakt · 1× A4
+        <small>Gestaltete Jahresübersicht: Kennzahlen, zwölf Monatstotale und die zehn grössten Kabeltypen. Weitere zusammengefasst.</small>
+      </button>
+    </div>
+  </div>
+</div>
+<!-- The compact print report is separate from the screen and original print layout. -->
+<section id="compactPrint" aria-label="Kompakte Druckübersicht auf A4"></section>
 
 <script>
 const firebaseConfig = {
@@ -2070,10 +2150,92 @@ function updatePrintMeta(year, searchTerm, data){
   `;
 }
 
+
+let printFocusReturn = null;
+function closePrintChoice(){
+  document.getElementById("printChoice").hidden = true;
+  if(printFocusReturn && document.contains(printFocusReturn)) printFocusReturn.focus();
+  printFocusReturn = null;
+}
 function printReport(){
+  renderReport();
+  printFocusReturn = document.activeElement;
+  document.getElementById("printChoice").hidden = false;
+  document.querySelector(".print-choice-option").focus();
+}
+function executePrint(mode){
+  closePrintChoice();
+  document.body.classList.remove("print-compact", "print-full");
+  document.body.classList.add(mode === "compact" ? "print-compact" : "print-full");
   renderReport();
   window.print();
 }
+window.addEventListener("afterprint", () => {
+  document.body.classList.remove("print-compact", "print-full");
+});
+document.addEventListener("keydown", event => {
+  if(event.key === "Escape" && !document.getElementById("printChoice").hidden){
+    closePrintChoice();
+  }
+});
+
+function renderCompactPrint(data, year, searchTerm){
+  const section = document.getElementById("compactPrint");
+  const now = new Date();
+  const monthsCount = year < now.getFullYear() ? 12 : year === now.getFullYear() ? now.getMonth() + 1 : 0;
+  const best = data.monthlyRows.reduce((acc, row, index) => row.total > acc.total ? { total: row.total, monthIndex: index } : acc, { total: 0, monthIndex: -1 });
+  const maxMonth = Math.max(1, ...data.monthlyRows.map(row => row.total));
+  const date = new Date().toLocaleString("de-CH", { dateStyle: "short", timeStyle: "short" });
+  const searchDescription = sanitizeInput(searchTerm || "", 120) || "Alle Kabeltypen";
+  const monthCards = data.monthlyRows.map((row, index) => {
+    const width = row.total > 0 ? Math.max(1, row.total / maxMonth * 100) : 0;
+    return `<div class="compact-print-month">
+      <div class="compact-print-month-title"><span>${escapeHtml(getMonthLabel(index))}</span><strong>${escapeHtml(formatMeters(row.total))}</strong></div>
+      <div class="compact-print-track"><b style="width:${width}%"></b></div>
+    </div>`;
+  }).join("");
+  const LIMIT = 10;
+  const mainRows = data.annualRows.slice(0, LIMIT);
+  const otherRows = data.annualRows.slice(LIMIT);
+  const remainingMeters = roundMeters(otherRows.reduce((sum, row) => sum + Number(row.meter || 0), 0));
+  const remainingBookings = otherRows.reduce((sum, row) => sum + Number(row.count || 0), 0);
+  const annualRows = mainRows.map(row => ({
+    name: row.typ, meter: row.meter, count: row.count
+  }));
+  if(otherRows.length) annualRows.push({
+    name: "Weitere " + otherRows.length + " Kabeltypen",
+    meter: remainingMeters, count: remainingBookings
+  });
+  section.innerHTML = `
+    <div class="compact-print-head">
+      <div><div class="compact-brand">Netzbau Tafers · Jahresbericht</div><h1>Kabel Report ${escapeHtml(year)}</h1><div style="font-size:8pt;color:#72879a">Jahresübersicht 01.01.–31.12.</div></div>
+      <div class="compact-print-meta">Erstellt: ${escapeHtml(date)}<br>Filter: ${escapeHtml(searchDescription)}</div>
+    </div>
+    <div class="compact-print-kpis">
+      <div class="compact-print-kpi"><span>Eingezogene Meter</span><strong>${escapeHtml(formatMeters(data.totalMeters))}</strong></div>
+      <div class="compact-print-kpi"><span>Buchungen</span><strong>${escapeHtml(formatCount(data.totalBookings))}</strong></div>
+      <div class="compact-print-kpi"><span>Kabeltypen</span><strong>${escapeHtml(formatCount(data.annualRows.length))}</strong></div>
+      <div class="compact-print-kpi"><span>Ø pro Monat</span><strong>${escapeHtml(formatMeters(monthsCount ? data.totalMeters / monthsCount : 0))}</strong></div>
+    </div>
+    <div class="compact-print-section-head"><h2>Monatsübersicht</h2><span>12 Monatstotale · Höchster Monat: ${best.monthIndex >= 0 ? escapeHtml(getMonthLabel(best.monthIndex)) : "–"}</span></div>
+    <div class="compact-print-months">${monthCards}</div>
+    <div class="compact-print-section-head"><h2>Kabeltypen im Jahresvergleich</h2><span>${otherRows.length ? "Top 10 · übrige zusammengefasst" : "Alle Kabeltypen"}</span></div>
+    <table class="compact-print-table">
+      <thead><tr><th>Kabeltyp</th><th>Meter</th><th>Anteil</th><th>Buch.</th></tr></thead>
+      <tbody>
+        ${annualRows.map(row => `<tr>
+          <td>${escapeHtml(row.name)}</td><td>${escapeHtml(formatMeters(row.meter))}</td>
+          <td>${escapeHtml((data.totalMeters > 0 ? row.meter / data.totalMeters * 100 : 0).toLocaleString("de-CH", { maximumFractionDigits: 1 }))} %</td>
+          <td>${escapeHtml(formatCount(row.count))}</td>
+        </tr>`).join("")}
+        <tr><td>Total alle Kabel</td><td>${escapeHtml(formatMeters(data.totalMeters))}</td><td>${data.totalMeters > 0 ? "100 %" : "0 %"}</td><td>${escapeHtml(formatCount(data.totalBookings))}</td></tr>
+      </tbody>
+    </table>
+    <div class="compact-print-foot"><span>Kabel Report · Stand ${escapeHtml(date)}</span>
+      <span>Detailangaben und einzelne Buchungen im ausführlichen Bericht.</span></div>
+  `;
+}
+
 
 function renderSummary(data){
   const year = getSelectedYear();
@@ -2295,6 +2457,7 @@ function renderReport(){
 
   renderNotice(baseData.earliestLogDate, year, historicalSnapshots);
   updatePrintMeta(year, searchTerm, reportData);
+  renderCompactPrint(reportData, year, searchTerm);
   renderSummary(reportData);
   renderMonthlyChart(reportData);
   renderCableMix(reportData);
