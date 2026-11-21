@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {previousMonth,payload,mergeInterimSnapshot,createMonthlyCableSnapshot}=require('./cable-monthly-snapshot.cjs');
+const {previousMonth,payload,mergeInterimSnapshot,createMonthlyCableSnapshot,deleteOldLogsAfterAutomaticSnapshot,entriesForMonth}=require('./cable-monthly-snapshot.cjs');
 const at=(iso)=>({toDate:()=>new Date(iso),toMillis:()=>Date.parse(iso)});
 const e=(meter,timestamp)=>({typ:'GKN',nummer:'42',meter,source:'Rückbuchung',month:10,timestamp});
 test('December closes under previous year in January',()=>{
@@ -45,4 +45,44 @@ test('automatic close finalizes an interim snapshot and skips a second run',asyn
   assert.equal(docs.get('2026-11').finalized,true);
   assert.equal((await handler()).status,'finalized');
   assert.equal(docs.get('2026-11').totalMeters,7000);
+});
+
+test('Rueckbuchung mit alter Laenge bleibt ohne Log aus dem Vormonat berechenbar',()=>{
+  const entries=entriesForMonth([{
+    id:'return',bereich:'Kabellager',objektId:'b-long',aktion:'Bobine zurück ins Lager gebucht',
+    details:'Typ: GKN | Nummer: 88 | Neue Länge: 2000 | Alte Länge: 6000',
+    createdAt:at('2026-11-19T10:00:00Z')
+  }],2026,10);
+  assert.equal(entries.length,1);
+  assert.equal(entries[0].meter,4000);
+});
+test('Bereinigung loescht nur alte Logs und schont Kabellager ohne finalisierten Monatsabschluss',async()=>{
+  const september={status:'ready',finalized:true};
+  const snap=new Map([['2026-09',september],['2026-08',{status:'ready',finalized:false}]]);
+  const logs=[
+    {id:'closed',bereich:'Kabellager',createdAt:at('2026-09-01T11:00:00Z')},
+    {id:'open',bereich:'Kabellager',createdAt:at('2026-08-02T11:00:00Z')},
+    {id:'other',bereich:'Baustellenmaterial',createdAt:at('2026-09-02T11:00:00Z')},
+    {id:'fresh',bereich:'Kabellager',createdAt:at('2026-11-20T11:00:00Z')}
+  ];
+  const deleted=[];
+  const db={
+    collection(name){
+      if(name==='kabel_report_snapshots')return {doc:key=>({
+        get:async()=>({exists:snap.has(key),data:()=>snap.get(key)})
+      })};
+      assert.equal(name,'logs');
+      return {
+        where(){return this;},orderBy(){return this;},limit(){return this;},
+        get:async()=>({docs:logs.map(log=>({id:log.id,ref:{id:log.id},data:()=>log}))})
+      };
+    },
+    batch(){return {delete(ref){deleted.push(ref.id);},async commit(){}};}
+  };
+  const cleanup=await deleteOldLogsAfterAutomaticSnapshot({
+    db,Timestamp:{fromDate:d=>d},logger:{info(){}},now:new Date('2026-11-21T11:37:00Z')
+  });
+  assert.deepEqual(deleted.sort(),['closed','other']);
+  assert.equal(cleanup.protected,1);
+  assert.equal(cleanup.deleted,2);
 });

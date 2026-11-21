@@ -774,7 +774,7 @@ let isEnsuringSnapshot = false;
 let currentUser = null;
 let savingSnapshotKeys = new Set();
 const SNAPSHOT_STATUS_READY = "ready";
-let activeLogYear = null;
+let activeLogWindow = null;
 
 function escapeHtml(value){
   return String(value || "")
@@ -1384,7 +1384,8 @@ function stopListeners(){
   }
   allLogs = [];
   hasLoadedLogs = false;
-  activeLogYear = null;
+  activeLogWindow = null;
+  hasLoadedSnapshots = false;
 
   if(unsubscribeSnapshots){
     unsubscribeSnapshots();
@@ -1505,8 +1506,10 @@ function buildReportEntries(year){
       const newLength = parseNumber(extractDetail(details, "Neue Länge"));
       let usedMeters = null;
 
-      if(currentState.inUseLength !== null && newLength !== null){
-        usedMeters = roundMeters(Math.max(0, currentState.inUseLength - newLength));
+      const oldLength = parseNumber(extractDetail(details, "Alte Länge"));
+      const startLength = currentState.inUseLength !== null ? currentState.inUseLength : oldLength;
+      if(startLength !== null && newLength !== null){
+        usedMeters = roundMeters(Math.max(0, startLength - newLength));
       }
 
       if((usedMeters === null || usedMeters === 0) && details){
@@ -1796,6 +1799,7 @@ function filterLiveEntriesAgainstSnapshots(year, reportEntries = []){
   getDisplaySnapshotDocs(year).forEach(snapshot => {
     snapshotsByMonth.set(Number(snapshot.monthIndex), {
       sourceKeySet: new Set(normalizeSnapshotSourceKeys(snapshot.sourceKeys)),
+      finalized: snapshot.finalized === true,
       timestamp: getMillis(snapshot.generatedAt || snapshot.updatedAt || snapshot.createdAt)
     });
   });
@@ -1807,6 +1811,8 @@ function filterLiveEntriesAgainstSnapshots(year, reportEntries = []){
     if(!snapshotMeta){
       return true;
     }
+
+    if(snapshotMeta.finalized) return false; // Geschlossene Monate ausschliesslich aus Snapshots.
 
     if(snapshotMeta.sourceKeySet.size > 0){
       return !snapshotMeta.sourceKeySet.has(buildSnapshotEntryKey(entry));
@@ -1904,7 +1910,7 @@ async function ensurePreviousMonthSnapshot(){
   const previousMonthDate = getPreviousMonthReference();
   const year = previousMonthDate.getFullYear();
   const monthIndex = previousMonthDate.getMonth();
-  if(activeLogYear !== year){
+  if(getSelectedYear() !== year){
     return;
   }
   const snapshotId = getSnapshotDocumentId(year, monthIndex);
@@ -1962,7 +1968,8 @@ function startSnapshotListener(){
     allSnapshots = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     hasLoadedSnapshots = true;
     buildYearOptions();
-    // Monatsabschluss wird ausschliesslich vom Cloud Scheduler durchgeführt.
+    // Geschlossene Monate aus dem Live-Listener entfernen.
+    startLogsListener();
     renderReport();
   }, error => {
     console.error("Fehler beim Laden der Kabel-Report-Snapshots:", error);
@@ -1971,35 +1978,41 @@ function startSnapshotListener(){
 }
 
 function startLogsListener(){
-  const year = getSelectedYear();
-  if(unsubscribeLogs && activeLogYear === year){
-    return;
+  if(!hasLoadedSnapshots) return;
+  const year = getSelectedYear(), now = new Date();
+  const last = year < now.getFullYear() ? 11 : year === now.getFullYear() ? now.getMonth() : -1;
+  const openMonths = [];
+  for(let month=0; month<=last; month++){
+    const snapshot = getSnapshotByMonth(year, month);
+    if(!snapshot || snapshot.finalized !== true) openMonths.push(month);
   }
+  const key = year + ":" + openMonths.join(",");
+  if(activeLogWindow === key) return;
+  if(unsubscribeLogs){unsubscribeLogs();unsubscribeLogs=null;}
+  activeLogWindow=key;
+  allLogs=[];
+  hasLoadedLogs=openMonths.length===0;
+  if(!openMonths.length){renderReport();return;}
 
-  if(unsubscribeLogs){
-    unsubscribeLogs();
-    unsubscribeLogs = null;
+  // Abgeschlossene Monate werden nicht mehr per Firestore-Live-Abfrage gelesen.
+  const stops=[],monthlyLogs=new Map(),pending=new Set(openMonths);
+  unsubscribeLogs=()=>stops.forEach(stop=>stop());
+  for(const month of openMonths){
+    const start=new Date(year,month,1), end=new Date(year,month+1,1);
+    const stop=logsCollection.where("createdAt",">=",start).where("createdAt","<",end)
+      .orderBy("createdAt","asc").onSnapshot(snapshot=>{
+        monthlyLogs.set(month,snapshot.docs.map(doc=>({id:doc.id,...doc.data()})));
+        pending.delete(month);
+        allLogs=Array.from(monthlyLogs.values()).flat();
+        hasLoadedLogs=pending.size===0;
+        buildYearOptions();
+        renderReport();
+      },error=>{
+        console.error("Fehler beim Laden des Kabel-Reports:",error);
+        showError("Logs eines noch offenen Monats konnten nicht geladen werden.");
+      });
+    stops.push(stop);
   }
-
-  hasLoadedLogs = false;
-  allLogs = [];
-  activeLogYear = year;
-  const yearBoundaries = getYearBoundaries(year);
-
-  unsubscribeLogs = logsCollection
-    .where("createdAt", ">=", yearBoundaries.start)
-    .where("createdAt", "<", yearBoundaries.end)
-    .orderBy("createdAt", "asc")
-    .onSnapshot(snapshot => {
-    allLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    hasLoadedLogs = true;
-    buildYearOptions();
-    // Monatsabschluss wird ausschliesslich vom Cloud Scheduler durchgeführt.
-    renderReport();
-  }, error => {
-      console.error("Fehler beim Laden des Kabel-Reports:", error);
-      showError("Der Kabel Report konnte nicht geladen werden. Bitte prüfe die Berechtigungen oder versuche es erneut.");
-  });
 }
 
 function handleYearFilterChange(){

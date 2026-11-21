@@ -32,7 +32,10 @@ function entriesForMonth(logs,year,monthIndex){
     let meters=null,source='';
     if(action==='Bobine zurück ins Lager gebucht'){
       const remaining=parseNumber(detail(details,'Neue Länge'));
-      if(current.inUseLength!==null&&remaining!==null)meters=round(Math.max(0,current.inUseLength-remaining));
+      // Rückbuchungen enthalten die ursprüngliche Länge und sind auch ohne ältere Logs auswertbar.
+      const previous=parseNumber(detail(details,'Alte Länge'));
+      const startLength=current.inUseLength!==null?current.inUseLength:previous;
+      if(startLength!==null&&remaining!==null)meters=round(Math.max(0,startLength-remaining));
       if((meters===null||meters===0)&&details)meters=usedFromRechnung(details);
       current.inUseLength=null;state.set(id,current);source='Rückbuchung';
     }else if(action==='Bobine gelöscht'){
@@ -89,12 +92,66 @@ function mergeInterimSnapshot(existing,year,monthIndex,entries){
     totalDeletes:rows.reduce((sum,row)=>sum+row.deletesCount,0),
     sourceLogCount:keys.size,sourceKeys:[...keys].sort()};
 }
+
+const LOG_RETENTION_DAYS=60;
+const LOG_DELETE_BATCH_SIZE=400;
+// Nur der automatische Monatsabschluss ruft diese Bereinigung auf.
+// Kabel-Logs werden erst entfernt, wenn ihr Kalendermonat endgültig gesichert ist.
+async function deleteOldLogsAfterAutomaticSnapshot({db,Timestamp,logger,now}){
+  const cutoff=new Date(now.getTime()-LOG_RETENTION_DAYS*24*60*60*1000);
+  const cutoffTimestamp=Timestamp.fromDate(cutoff);
+  const snapshots=new Map();
+  const result={cutoff:cutoff.toISOString(),scanned:0,deleted:0,protected:0};
+  let cursor=null;
+  for(;;){
+    let query=db.collection('logs').where('createdAt','<',cutoffTimestamp)
+      .orderBy('createdAt').orderBy('__name__').limit(LOG_DELETE_BATCH_SIZE);
+    if(cursor)query=query.startAfter(cursor);
+    const page=await query.get();
+    if(page.empty||page.docs.length===0)break;
+    let batch=null;
+    let batchCount=0;
+    for(const doc of page.docs){
+      const log=doc.data(),createdAt=log.createdAt;
+      if(!createdAt||typeof createdAt.toDate!=='function'||createdAt.toDate()>=cutoff)continue;
+      result.scanned++;
+      if(String(log.bereich||'')==='Kabellager'){
+        const {year,month}=localParts(createdAt.toDate());
+        const key=year+'-'+String(month).padStart(2,'0');
+        if(!snapshots.has(key)){
+          const snapshot=await db.collection('kabel_report_snapshots').doc(key).get();
+          snapshots.set(key,snapshot.exists&&snapshot.data().status==='ready'&&snapshot.data().finalized===true);
+        }
+        if(!snapshots.get(key)){
+          result.protected++;
+          continue;
+        }
+      }
+      if(!batch)batch=db.batch();
+      batch.delete(doc.ref);
+      batchCount++;
+    }
+    if(batchCount){
+      await batch.commit();
+      result.deleted+=batchCount;
+    }
+    cursor=page.docs[page.docs.length-1];
+    if(page.docs.length<LOG_DELETE_BATCH_SIZE)break;
+  }
+  logger.info('Automatische Log-Bereinigung nach Monatsabschluss',result);
+  return result;
+}
+
 function createMonthlyCableSnapshot({db,Timestamp,FieldValue,logger,now=()=>new Date()}){
   return async function run(){
     const {year,monthIndex}=previousMonth(now()),key=year+'-'+String(monthIndex+1).padStart(2,'0');
     const ref=db.collection('kabel_report_snapshots').doc(key);
     const initial=await ref.get();
-    if(initial.exists&&initial.data().finalized===true){logger.info('Kabel-Monat bereits abgeschlossen',{key});return {key,status:'finalized'};}
+    if(initial.exists&&initial.data().finalized===true){
+      logger.info('Kabel-Monat bereits abgeschlossen',{key});
+      const cleanup=await deleteOldLogsAfterAutomaticSnapshot({db,Timestamp,logger,now:now()});
+      return {key,status:'finalized',cleanup};
+    }
     // Das Frontend verarbeitet ebenfalls alle Protokolle des betreffenden Kalenderjahres.
     // Plus ein UTC-Puffertag je Grenze, damit die Schweizer Ortszeit korrekt bleibt.
     const from=Timestamp.fromDate(new Date(Date.UTC(year,0,1)-86400000));
@@ -121,8 +178,10 @@ function createMonthlyCableSnapshot({db,Timestamp,FieldValue,logger,now=()=>new 
         generatedByUid:'',generatedByEmail:'',generatedAutomatically:true});
       return {key,status:'created',meters:data.totalMeters,bookings:data.totalBookings};
     });
-    logger.info('Kabel-Monatsabschluss',{...result,logs:logs.length});
-    return result;
+    // Erst nach bestätigtem Abschluss bereinigen – niemals bei manuellen Snapshots.
+    const cleanup=await deleteOldLogsAfterAutomaticSnapshot({db,Timestamp,logger,now:now()});
+    logger.info('Kabel-Monatsabschluss',{...result,logs:logs.length,cleanup});
+    return {...result,cleanup};
   };
 }
-module.exports={createMonthlyCableSnapshot,previousMonth,entriesForMonth,payload,mergeInterimSnapshot};
+module.exports={createMonthlyCableSnapshot,previousMonth,entriesForMonth,payload,mergeInterimSnapshot,deleteOldLogsAfterAutomaticSnapshot};
