@@ -17,12 +17,12 @@ test('acknowledgement applies only to the same usage',()=>{
   assert.equal(due({...b,erinnerungGelesenFuer:'old',erinnerungGelesenAm:ts(now)},now),true);
   assert.equal(due({...b,erinnerungGelesenFuer:usage},now),false);
 });
-function fixture(){
+function fixture(at=now){
   const data=new Map(),messages=[];let disabled=false;
   function ref(path){return {path,async get(){const value=data.get(path);return {exists:data.has(path),id:path.split('/').pop(),ref:this,data:()=>value};},async set(value,options){data.set(path,options?.merge?{...data.get(path),...value}:value);},async update(value){await this.set(value,{merge:true});},async delete(){data.delete(path);}};}
   const db={collection:name=>({doc:id=>ref(name+'/'+id),where:(key,op,value)=>({async get(){const docs=[];for(const [path,entry] of data)if(path.startsWith(name+'/')&&entry[key]===value)docs.push(await ref(path).get());return {docs};}})}),async runTransaction(fn){return fn({get:r=>r.get(),set:(r,v,o)=>r.set(v,o),delete:r=>r.delete()});}};
   class E extends Error{constructor(code,message){super(message);this.code=code;}}
-  const service=createPush({db,clock:()=>now,auth:{getUser:async()=>({disabled})},messaging:{send:async message=>{messages.push(message);return 'sent';}},FieldValue:{serverTimestamp:()=>ts(now)},ErrorType:E,logger:{info(){},warn(){}}});
+  const service=createPush({db,clock:()=>at,auth:{getUser:async()=>({disabled})},messaging:{send:async message=>{messages.push(message);return 'sent';}},FieldValue:{serverTimestamp:()=>ts(at)},ErrorType:E,logger:{info(){},warn(){}}});
   return {data,messages,service,setDisabled:value=>{disabled=value;}};
 }
 test('device owner changes; another user cannot unregister it',async()=>{
@@ -57,13 +57,21 @@ test('deleted, disabled and read-only accounts receive no reminders',async()=>{
   }
 });
 
+test('Friday 16:45 Zurich reminder is sent',async()=>{
+  const f=fixture(Date.parse('2026-10-16T14:45:00Z'));
+  f.data.set('bobinen/friday-bobine',bobine());
+  await f.service.register({auth:{uid:'alice'},data:{token:'f'.repeat(40)}});
+  await f.service.remind();
+  assert.equal(f.messages.length,1);
+});
 test('Swiss working hours, weekends and daylight saving',()=>{
   for(const [date,expected] of [
     ['2026-10-12T04:59:59Z',false],['2026-10-12T05:00:00Z',true],
     ['2026-10-12T15:09:59Z',true],['2026-10-12T15:10:00Z',false],
-    ['2026-10-09T09:49:59Z',true],['2026-10-09T09:50:00Z',false],
+    ['2026-10-09T09:49:59Z',true],['2026-10-09T14:45:00Z',true],
+    ['2026-10-09T15:09:59Z',true],['2026-10-09T15:10:00Z',false],
     ['2026-10-10T07:00:00Z',false],['2026-10-11T07:00:00Z',false],
     ['2026-11-02T05:59:59Z',false],['2026-11-02T06:00:00Z',true]
   ])assert.equal(workWindow(Date.parse(date)).allowed,expected,date);
-  assert.equal(workWindow(Date.parse('2026-10-09T09:45:00Z')).ttl,300);
+  assert.equal(workWindow(Date.parse('2026-10-09T14:45:00Z')).ttl,1500);
 });
