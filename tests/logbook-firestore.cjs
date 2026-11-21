@@ -6,7 +6,7 @@ class ApiError extends Error{constructor(code,message){super(message);this.code=
 (async()=>{
  assert(process.env.FIRESTORE_EMULATOR_HOST,'Emulator required');const app=initializeApp({projectId:'demo-lager-access'},'logbook'),db=getFirestore(app),auth={getUser:async uid=>({uid,disabled:false})};
  try{
- await db.doc('user_access/alice').set({permissions:{fahrzeuge:'edit',fahrzeugeErstellen:'edit'}});
+ await db.doc('user_access/alice').set({permissions:{fahrzeuge:'edit',fahrzeugeErstellen:'edit',fahrtenbuch:'edit'}});
  const vehicles=createVehicles({db,auth,Timestamp,FieldValue,ErrorType:ApiError});const {id}=await vehicles.create({auth:{uid:'alice'},data:{name:'Bus',plate:'FR 123',km:100}});
  await vehicles.action({auth:{uid:'alice'},data:{id,action:'start',revision:0,requestId:'abcdefghijklmnop'}});
  assert.ok((await db.collection('fahrzeuge').doc(id).collection('verlauf').get()).docs[0].data().updatedAt.toMillis());
