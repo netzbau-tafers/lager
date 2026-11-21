@@ -349,7 +349,7 @@ button:hover{
 }
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="zugriffsrechte.js?v=20261010-fahrtenbuch"></script>
+<script src="zugriffsrechte.js?v=20261121-master-display"></script>
 <link rel="stylesheet" href="navigation.css?v=20261005-menu-style">
 </head>
 <body>
@@ -785,11 +785,11 @@ document.addEventListener("DOMContentLoaded", loadHomeInfos);
 LagerAccess.onAuthStateChanged((user) => {
   if(user){
     const historyId=new URLSearchParams(location.search).get('vehicleHistory');
-    if(historyId&&/^[a-zA-Z0-9_-]{1,128}$/.test(historyId)){location.replace('fahrzeuge.html?fahrzeug='+encodeURIComponent(historyId)+'&verlauf=1');return;}
+    if(LagerAccess.read('fahrzeuge')&&historyId&&/^[a-zA-Z0-9_-]{1,128}$/.test(historyId)){location.replace('fahrzeuge.html?fahrzeug='+encodeURIComponent(historyId)+'&verlauf=1');return;}
     const scanId=new URLSearchParams(location.search).get('vehicleScan');
-    if(scanId&&scanId.length<=128&&!scanId.includes('/')){location.replace('fahrzeuge.html?fahrzeug='+encodeURIComponent(scanId)+'&scan=1');return;}
+    if(LagerAccess.read('fahrzeuge')&&scanId&&scanId.length<=128&&!scanId.includes('/')){location.replace('fahrzeuge.html?fahrzeug='+encodeURIComponent(scanId)+'&scan=1');return;}
     const backfillId=new URLSearchParams(location.search).get('vehicleBackfill');
-    if(backfillId&&/^[a-zA-Z0-9_-]{1,220}$/.test(backfillId)){location.replace('fahrzeug-bestaetigung.html?nachtrag='+encodeURIComponent(backfillId));return;}
+    if(LagerAccess.read('fahrzeuge')&&backfillId&&/^[a-zA-Z0-9_-]{1,220}$/.test(backfillId)){location.replace('fahrzeug-bestaetigung.html?nachtrag='+encodeURIComponent(backfillId));return;}
     setNavigationVisibility(user);
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";

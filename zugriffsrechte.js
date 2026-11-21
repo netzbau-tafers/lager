@@ -6,9 +6,9 @@
   const LIMITED=['POSB6W7xeDZ8Dlba03ZP3J02dMC3','AX08qKp7lte6vslQMFn76FVqxw53','KYqiqNKTmkQQYVWAa6bp6vSvTlV2'];
   const areas={benutzer:'Benutzerverwaltung',fahrtenbuch:'Fahrtenbuch',fahrtenbuchExport:'Export und Aufräumen',fahrzeuge:'Fahrzeuge',fahrzeugeUebernehmen:'Belegte Fahrzeuge übernehmen',fahrzeugeErstellen:'Neue Fahrzeuge hinzufügen und löschen',kabellager:'Kabellager',baustellen:'Baustellenmaterial',materialScannen:'Material scannen',materialvorlagen:'Materialvorlagen verwalten',beendete:'Beendete Baustellen verwalten',archiv:'Archiv',kabelreport:'Kabel Report',logs:'Protokoll',spiel:'Mast Runner'};
   const pages={'fahrtenbuch.html':'fahrtenbuch','fahrzeuge.html':'fahrzeuge','index.html':'kabellager','baustellen.html':'baustellen','archiv.html':'archiv','kabel-report.html':'kabelreport','logs.html':'logs','strommast-game.html':'spiel','gespart.html':'gespart','benutzer.html':'benutzer'};
-  let uid=null,permissions={},configured=false,ready=null,unsubscribe=null,profileUnsubscribe=null;
+  let uid=null,permissions={},masterDisplay={},configured=false,ready=null,unsubscribe=null,profileUnsubscribe=null;
   function defaults(id){const admin=ADMINS.includes(id),limited=LIMITED.includes(id);return {benutzer:'none',fahrtenbuchExport:'none',fahrtenbuch:'none',fahrzeuge:'none',fahrzeugeUebernehmen:'none',fahrzeugeErstellen:'none',materialScannen:limited?'none':'edit',beendete:admin&&!limited?'edit':'none',materialvorlagen:admin&&!limited?'edit':'none',kabellager:'edit',baustellen:limited?'none':'edit',archiv:admin?'edit':'none',kabelreport:admin?'edit':'view',logs:admin?'edit':'none',spiel:'edit',gespart:'edit'};}
-  function level(area){if(!uid)return 'none';if(uid===MASTER)return 'edit';if(area==='materialScannen')return permissions.baustellen==='edit'?(permissions.materialScannen||'edit'):'none';if(area==='materialvorlagen'||area==='beendete')return permissions[area]||(ADMINS.includes(uid)&&permissions.baustellen==='edit'?'edit':'none');return permissions[area]||'none';}
+  function level(area){if(!uid)return 'none';if(uid===MASTER){const parent={fahrzeugeUebernehmen:'fahrzeuge',fahrzeugeErstellen:'fahrzeuge',fahrtenbuchExport:'fahrtenbuch'}[area]||area;return masterDisplay[parent]===false&&['fahrzeuge','fahrtenbuch'].includes(parent)?'none':'edit';}if(area==='materialScannen')return permissions.baustellen==='edit'?(permissions.materialScannen||'edit'):'none';if(area==='materialvorlagen'||area==='beendete')return permissions[area]||(ADMINS.includes(uid)&&permissions.baustellen==='edit'?'edit':'none');return permissions[area]||'none';}
   function read(area){return ['view','edit'].includes(level(area));}
   function write(area){return level(area)==='edit';}
   function page(){return pages[location.pathname.split('/').pop()||'index.html'];}
@@ -41,7 +41,7 @@
   }
   function load(user){
     if(uid===user?.uid&&ready)return ready;
-    uid=user?.uid||null;configured=false;permissions={};unsubscribe?.();profileUnsubscribe?.();
+    uid=user?.uid||null;configured=false;permissions={};masterDisplay={};unsubscribe?.();profileUnsubscribe?.();
     try{localStorage.removeItem('lagerUsername')}catch(_){}
     if(!user){ready=Promise.resolve();return ready;}
     const db=firebase.firestore();const currentUid=uid;
@@ -54,7 +54,7 @@
         if(first){first=false;resolve();}else{if(!checkPage())return;location.reload();}
       },error=>{permissions={};reject(error);});
     });
-    const profileReady=new Promise((resolve,reject)=>{profileUnsubscribe=db.collection('users').doc(uid).onSnapshot(snapshot=>{if(uid!==currentUid)return;const name=String(snapshot.data()?.username||'').trim();try{if(name)localStorage.setItem('lagerUsername',name);else localStorage.removeItem('lagerUsername')}catch(_){};if(location.pathname.endsWith('profil.html')){const input=document.getElementById('usernameInput');if(input&&document.activeElement!==input)input.value=name;}resolve();},reject);});
+    const profileReady=new Promise((resolve,reject)=>{let firstProfile=true;profileUnsubscribe=db.collection('users').doc(uid).onSnapshot({includeMetadataChanges:true},snapshot=>{if(uid!==currentUid||snapshot.metadata?.hasPendingWrites)return;const next=uid===MASTER?snapshot.data()?.masterDisplay||{}:{};const changed=['fahrzeuge','fahrtenbuch'].some(key=>(masterDisplay[key]!==false)!==(next[key]!==false));masterDisplay=next;if(!firstProfile&&changed){if(checkPage())location.reload();return;}firstProfile=false;const name=String(snapshot.data()?.username||'').trim();try{if(name)localStorage.setItem('lagerUsername',name);else localStorage.removeItem('lagerUsername')}catch(_){};if(location.pathname.endsWith('profil.html')){const input=document.getElementById('usernameInput');if(input&&document.activeElement!==input)input.value=name;}resolve();},reject);});
     ready=Promise.all([ready,profileReady]);
     db.collection('users').doc(uid).set({email:user.email||'',lastSeenAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true}).catch(error=>console.error('Aktivität konnte nicht gespeichert werden',error));
     return ready;
