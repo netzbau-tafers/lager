@@ -158,6 +158,49 @@ button i{
   background:#236338;
 }
 
+.archiv-year-panel{
+  background:#fff;
+  border:1px solid #d8e0e8;
+  border-radius:14px;
+  padding:17px 18px;
+  margin-bottom:18px;
+  box-shadow:0 2px 9px rgba(0,0,0,0.05);
+}
+.archiv-year-heading{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-bottom:12px;
+}
+.archiv-year-heading strong{font-size:17px;}
+.archiv-year-heading span{font-size:13px;color:#627080;}
+.archiv-year-nav{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.archiv-year-nav button{
+  min-width:59px;
+  padding:9px 13px;
+  background:#f1f5f9;
+  color:#34485d;
+  border:1px solid #dbe3eb;
+  font-weight:700;
+  box-shadow:none;
+  margin:0;
+}
+.archiv-year-nav button:hover{background:#e5edf5;transform:none;box-shadow:none;}
+.archiv-year-nav button[aria-pressed="true"]{
+  color:#fff;
+  background:#2563a6;
+  border-color:#2563a6;
+}
+.archiv-year-nav button.archiv-year-arrow{min-width:39px;padding:9px 10px;}
+.archiv-year-nav button:disabled{opacity:.35;cursor:default;}
+.archiv-year-note{margin-top:12px;color:#657080;font-size:13px;}
+@media(max-width:680px){
+  .archiv-year-panel{padding:14px;}
+  .archiv-year-nav button{flex:1 1 auto;min-width:55px;}
+  .archiv-year-nav button.archiv-year-arrow{flex:0 0 auto;}
+}
 .search-box{
   background:white;
   border:1px solid #ccc;
@@ -524,6 +567,15 @@ input{
     </div>
   </div>
 
+  <section class="archiv-year-panel" aria-label="Archivjahr auswählen">
+    <div class="archiv-year-heading">
+      <strong><i class="fa-solid fa-calendar-days"></i> Jahresarchiv</strong>
+      <span id="archivYearLabel">Aktuelles Jahr</span>
+    </div>
+    <nav id="archivYearNav" class="archiv-year-nav" aria-label="Jahresauswahl"></nav>
+    <div class="archiv-year-note">Vergangene Jahre werden erst beim Auswählen aus Firebase geladen.</div>
+  </section>
+
   <div class="search-box">
     <div class="search-title">Archiv durchsuchen</div>
     <div class="search-row">
@@ -609,14 +661,158 @@ function setLogsMenuVisibility(isAdmin){
   }
 }
 
-const ARCHIV_CACHE_KEY = "archiv_snapshot_v1";
+// Nur das aktuelle Archivjahr wird automatisch geladen. Vergangene Jahre erst auf Klick.
+const ARCHIV_CACHE_KEY = "archiv_snapshot_current_year_v2";
+const ARCHIV_YEARS_PER_PAGE = 5;
+let selectedArchiveYear = getCurrentArchiveYear();
+let archiveYearWindowEnd = selectedArchiveYear;
+let archivYearLoading = false;
+let archivYearError = "";
+let archivYearLoadVersion = 0;
+let archivYearStarted = false;
+let archiveLastCurrentYear = selectedArchiveYear;
+let archivLiveSearchIds = "";
+
+function getCurrentArchiveYear(){
+  return Number(new Intl.DateTimeFormat("en-GB", {timeZone:"Europe/Zurich", year:"numeric"}).format(new Date()));
+}
+
+// Der 1. Januar ist in der Schweiz immer MEZ (UTC+1).
+function getArchiveYearStart(year){
+  return new Date(Date.UTC(year - 1, 11, 31, 23, 0, 0));
+}
+
+function isInArchiveYear(value, year){
+  const time = getFirestoreTime(value);
+  return time >= getArchiveYearStart(year).getTime()
+    && time < getArchiveYearStart(year + 1).getTime();
+}
+
+function renderArchiveYearNav(){
+  const nav = document.getElementById("archivYearNav");
+  if(!nav) return;
+  nav.replaceChildren();
+  const current = getCurrentArchiveYear();
+  const label = document.getElementById("archivYearLabel");
+  if(label) label.textContent = selectedArchiveYear === current ? "Aktuelles Jahr" : "Archiv " + selectedArchiveYear;
+
+  function button(label, title, onClick, extraClass, selected, disabled){
+    const element = document.createElement("button");
+    element.type = "button";
+    element.textContent = label;
+    element.title = title;
+    element.className = extraClass || "";
+    element.disabled = Boolean(disabled);
+    if(selected !== null) element.setAttribute("aria-pressed", String(selected));
+    element.addEventListener("click", onClick);
+    nav.appendChild(element);
+  }
+
+  button("‹", "5 Jahre zurück", () => {
+    archiveYearWindowEnd -= ARCHIV_YEARS_PER_PAGE;
+    renderArchiveYearNav();
+  }, "archiv-year-arrow", null, false);
+  for(let year=archiveYearWindowEnd;year>archiveYearWindowEnd-ARCHIV_YEARS_PER_PAGE;year--){
+    button(String(year), "Baustellen von " + year + " anzeigen",
+      () => selectArchiveYear(year), "", year === selectedArchiveYear, false);
+  }
+  button("›", "Neuere Jahre", () => {
+    archiveYearWindowEnd = Math.min(current, archiveYearWindowEnd + ARCHIV_YEARS_PER_PAGE);
+    renderArchiveYearNav();
+  }, "archiv-year-arrow", null, archiveYearWindowEnd >= current);
+}
+
+function clearArchiveYearMaterial(){
+  stopArchivLiveSearch();
+  const checkbox = document.getElementById("archivLiveSearchToggle");
+  if(checkbox) checkbox.checked = false;
+  archivLiveSearchError = "";
+  archivMaterialSession++;
+  archivMaterialListeners.forEach(unsubscribe => unsubscribe());
+  archivMaterialListeners.clear();
+  archivMaterialLoads.forEach(load => load.reject(new Error("Archivjahr gewechselt.")));
+  archivMaterialLoads.clear();
+  archivMaterialLoaded.clear();
+  alleMaterialien = [];
+  openMaterialLists = {};
+}
+
+function selectArchiveYear(year){
+  const current = getCurrentArchiveYear();
+  if(!auth.currentUser || !Number.isInteger(year) || year < 1900 || year > current) return;
+  if(archivYearStarted && selectedArchiveYear === year && !archivYearError) return;
+  archivYearStarted = true;
+  const version = ++archivYearLoadVersion;
+  if(unsubscribeBaustellen){
+    unsubscribeBaustellen();
+    unsubscribeBaustellen = null;
+  }
+  clearArchiveYearMaterial();
+  selectedArchiveYear = year;
+  archivVisibleCount = ARCHIV_PAGE_SIZE;
+  archivYearLoading = true;
+  archivYearError = "";
+  alleBaustellen = [];
+  renderArchiveYearNav();
+  if(year === current) loadArchivCache();
+  renderArchiv();
+
+  const query = baustellenCollection
+    .where("archiviertAm", ">=", firebase.firestore.Timestamp.fromDate(getArchiveYearStart(year)))
+    .where("archiviertAm", "<", firebase.firestore.Timestamp.fromDate(getArchiveYearStart(year + 1)));
+  const update = snapshot => {
+    if(version !== archivYearLoadVersion || !auth.currentUser) return;
+    alleBaustellen = snapshot.docs.map(doc => ({id:doc.id, ...doc.data()}))
+      .filter(b => b.status === "archiviert");
+    archivYearLoading = false;
+    archivYearError = "";
+    if(year === getCurrentArchiveYear()) saveArchivCache();
+    if(archivLiveSearchEnabled){
+      const key = alleBaustellen.map(b => b.id).sort().join("|");
+      if(key !== archivLiveSearchIds) startArchivLiveSearch();
+    }
+    renderArchiv();
+  };
+  const failed = error => {
+    if(version !== archivYearLoadVersion || !auth.currentUser) return;
+    console.error("Fehler beim Laden des Archivjahres " + year + ":", error);
+    archivYearLoading = false;
+    archivYearError = "Das Archivjahr " + year + " konnte nicht geladen werden.";
+    renderArchiv();
+  };
+
+  if(year === current){
+    unsubscribeBaustellen = query.onSnapshot(update, failed);
+  }else{
+    // Alte Jahre: einmalige Abfrage nur nach ausdrücklichem Klick, kein Dauer-Listener.
+    query.get().then(update).catch(failed);
+  }
+}
+
+function syncArchiveCurrentYear(){
+  if(!archivYearStarted || !auth.currentUser) return;
+  const current = getCurrentArchiveYear();
+  if(current === archiveLastCurrentYear) return;
+  const wasCurrent = selectedArchiveYear === archiveLastCurrentYear;
+  archiveLastCurrentYear = current;
+  archiveYearWindowEnd = current;
+  if(wasCurrent) selectArchiveYear(current);
+  else renderArchiveYearNav();
+}
+
+document.addEventListener("visibilitychange", () => {
+  if(!document.hidden) syncArchiveCurrentYear();
+});
+window.addEventListener("focus", syncArchiveCurrentYear);
 const VORLAGEN_CACHE_KEY = "material_vorlagen_cache_v1";
 const VORLAGEN_CACHE_MAX_AGE_MS = 1000 * 60 * 60 * 6;
 
 function saveArchivCache(){
+  if(selectedArchiveYear !== getCurrentArchiveYear() || archivYearLoading) return;
   try{
     const cachePayload = {
       savedAt: Date.now(),
+      jahr: selectedArchiveYear,
       baustellen: alleBaustellen
     };
 
@@ -635,11 +831,12 @@ function loadArchivCache(){
 
     const parsed = JSON.parse(raw);
 
-    if(!parsed || !Array.isArray(parsed.baustellen)){
+    if(!parsed || parsed.jahr !== selectedArchiveYear || !Array.isArray(parsed.baustellen)){
       return;
     }
 
-    alleBaustellen = parsed.baustellen.filter(b => b.status === "archiviert");
+    alleBaustellen = parsed.baustellen.filter(b =>
+      b.status === "archiviert" && isInArchiveYear(b.archiviertAm, selectedArchiveYear));
     // Materialpositionen werden ausschließlich pro geöffneter Liste geladen.
     renderArchiv();
   }catch(error){
@@ -980,23 +1177,14 @@ function logout(){
 }
 
 function stopListeners(){
-  stopArchivLiveSearch();
-  const liveSearchCheckbox = document.getElementById("archivLiveSearchToggle");
-  if(liveSearchCheckbox) liveSearchCheckbox.checked = false;
-  archivLiveSearchError = "";
+  archivYearLoadVersion++;
+  archivYearStarted = false;
   if(unsubscribeBaustellen){
     unsubscribeBaustellen();
     unsubscribeBaustellen = null;
   }
-
-  archivMaterialSession++;
-  archivMaterialListeners.forEach(unsubscribe => unsubscribe());
-  archivMaterialListeners.clear();
-  archivMaterialLoads.forEach(load => load.reject(new Error("Archiv-Sitzung beendet.")));
-  archivMaterialLoads.clear();
-  archivMaterialLoaded.clear();
-  alleMaterialien = [];
-  openMaterialLists = {};
+  clearArchiveYearMaterial();
+  alleBaustellen = [];
 }
 
 LagerAccess.onAuthStateChanged((user) => {
@@ -1018,21 +1206,11 @@ LagerAccess.onAuthStateChanged((user) => {
 });
 
 function startListeners(){
-  loadArchivCache();
+  if(archivYearStarted) return;
+  archiveLastCurrentYear = getCurrentArchiveYear();
+  archiveYearWindowEnd = archiveLastCurrentYear;
   loadVorlagen();
-
-  if(!unsubscribeBaustellen){
-    unsubscribeBaustellen = baustellenCollection.where("status", "==", "archiviert").onSnapshot(snapshot => {
-      alleBaustellen = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      saveArchivCache();
-      renderArchiv();
-    }, error => {
-      console.error("Fehler Baustellen:", error);
-      alert("Fehler beim Laden der Baustellen.");
-    });
-  }
-
-
+  selectArchiveYear(archiveLastCurrentYear);
 }
 
 
@@ -1092,41 +1270,72 @@ function stopArchivLiveSearch(){
   archivLiveSearchLoading = false;
   archivLiveSearchLoaded = false;
   archivLiveSearchDocuments = [];
+  archivLiveSearchIds = "";
   archivLiveSearchIndex.clear();
+}
+
+function startArchivLiveSearch(){
+  const checkbox = document.getElementById("archivLiveSearchToggle");
+  if(!checkbox || !checkbox.checked || archivYearLoading) return;
+  stopArchivLiveSearch();
+  archivLiveSearchEnabled = true;
+  archivLiveSearchLoading = true;
+  const version = archivLiveSearchVersion;
+  const ids = alleBaustellen.map(b => b.id).sort();
+  archivLiveSearchIds = ids.join("|");
+  renderArchiv();
+
+  // Nur Material der Baustellen dieses Archivjahres abrufen. Keine globale Material-Abfrage.
+  const groups = [];
+  for(let i=0;i<ids.length;i+=30) groups.push(ids.slice(i, i+30));
+  if(groups.length === 0){
+    archivLiveSearchLoaded = true;
+    archivLiveSearchLoading = false;
+    renderArchiv();
+    return;
+  }
+
+  const parts = new Map();
+  const listeners = [];
+  archivLiveSearchUnsubscribe = () => listeners.forEach(unsubscribe => unsubscribe());
+  const onPart = (index, snapshot) => {
+    if(version !== archivLiveSearchVersion || !archivLiveSearchEnabled) return;
+    parts.set(index, snapshot.docs.map(doc => doc.data()));
+    archivLiveSearchDocuments = [...parts.values()].flat();
+    rebuildArchivLiveSearchIndex();
+    archivLiveSearchLoaded = parts.size === groups.length;
+    archivLiveSearchLoading = !archivLiveSearchLoaded;
+    renderArchiv();
+  };
+  const failed = error => {
+    if(version !== archivLiveSearchVersion || !archivLiveSearchEnabled) return;
+    console.error("Fehler bei der erweiterten Archivsuche:", error);
+    stopArchivLiveSearch();
+    checkbox.checked = false;
+    archivLiveSearchError = "Die Materialsuche für dieses Jahr konnte nicht geladen werden.";
+    renderArchiv();
+  };
+  groups.forEach((idsForQuery, index) => {
+    const query = materialCollection.where("baustelleId", "in", idsForQuery);
+    if(selectedArchiveYear === getCurrentArchiveYear()){
+      listeners.push(query.onSnapshot(snapshot => onPart(index, snapshot), failed));
+    }else{
+      query.get().then(snapshot => onPart(index, snapshot)).catch(failed);
+    }
+  });
 }
 
 function toggleArchivLiveSearch(){
   const checkbox = document.getElementById("archivLiveSearchToggle");
   if(!checkbox) return;
   archivLiveSearchError = "";
-  stopArchivLiveSearch();
   archivVisibleCount = ARCHIV_PAGE_SIZE;
   if(!checkbox.checked){
+    stopArchivLiveSearch();
     renderArchiv();
     return;
   }
-
-  archivLiveSearchEnabled = true;
-  archivLiveSearchLoading = true;
-  const version = archivLiveSearchVersion;
-  renderArchiv();
-
-  // Ein Listener statt einer Abfrage pro archivierter Baustelle oder Such-Tastendruck.
-  archivLiveSearchUnsubscribe = materialCollection.onSnapshot(snapshot => {
-    if(version !== archivLiveSearchVersion || !archivLiveSearchEnabled) return;
-    archivLiveSearchDocuments = snapshot.docs.map(doc => doc.data());
-    rebuildArchivLiveSearchIndex();
-    archivLiveSearchLoaded = true;
-    archivLiveSearchLoading = false;
-    renderArchiv();
-  }, error => {
-    if(version !== archivLiveSearchVersion || !archivLiveSearchEnabled) return;
-    console.error("Fehler bei der erweiterten Archivsuche:", error);
-    stopArchivLiveSearch();
-    checkbox.checked = false;
-    archivLiveSearchError = "Live-Suche konnte nicht geladen werden. Bitte erneut aktivieren.";
-    renderArchiv();
-  });
+  startArchivLiveSearch();
 }
 
 function handleArchivSearchInput(){
@@ -1197,9 +1406,11 @@ function renderArchiv(){
 
   if(archivierte.length === 0){
     container.innerHTML = '<div class="empty-box">' +
-      (archivLiveSearchLoading && getSuchbegriff()
-        ? 'Materiallisten werden für die Suche geladen …'
-        : 'Keine archivierten Baustellen gefunden.') + '</div>';
+      (archivYearLoading
+        ? 'Baustellen für ' + selectedArchiveYear + ' werden geladen …'
+        : archivYearError || (archivLiveSearchLoading && getSuchbegriff()
+          ? 'Materiallisten für die Suche werden geladen …'
+          : 'Keine archivierten Baustellen für ' + selectedArchiveYear + ' gefunden.')) + '</div>';
   }else{
     sichtbareArchivierte.forEach(b => container.appendChild(createBaustelleCard(b)));
   }
@@ -1219,7 +1430,9 @@ function renderArchiv(){
     loadMoreButton.style.display = archivierte.length > sichtbareArchivierte.length ? "inline-flex" : "none";
   }
 
-  document.getElementById("resultInfo").innerText = "Archivierte Baustellen: " + sichtbareArchivierte.length + " von " + archivierte.length;
+  const checkbox = document.getElementById("archivLiveSearchToggle");
+  if(checkbox) checkbox.disabled = archivYearLoading;
+  document.getElementById("resultInfo").innerText = "Archiv " + selectedArchiveYear + " · Archivierte Baustellen: " + sichtbareArchivierte.length + " von " + archivierte.length;
 }
 
 function getVorlageBarcodeBySpontis(spontisNummer){
@@ -1407,7 +1620,7 @@ function toggleMaterialList(baustelleId){
   renderArchiv();
   if(openMaterialLists[baustelleId]){
     loadArchivMaterial(baustelleId).catch(error => {
-      if(!auth.currentUser) return;
+      if(!auth.currentUser || !alleBaustellen.some(b => b.id === baustelleId)) return;
       console.error("Fehler beim Laden der Archiv-Materialliste:", error);
       openMaterialLists[baustelleId] = false;
       renderArchiv();
@@ -1432,7 +1645,7 @@ async function printBaustelle(id){
 
   try{
     await loadArchivMaterial(id);
-    if(!auth.currentUser || printWindow.closed) { printWindow.close(); return; }
+    if(!auth.currentUser || printWindow.closed || !alleBaustellen.some(b => b.id === id)) { printWindow.close(); return; }
   }catch(error){
     printWindow.close();
     console.error("Fehler beim Laden der Druckdaten:", error);
