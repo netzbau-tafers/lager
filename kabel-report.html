@@ -659,6 +659,10 @@ body{background:#f5f7fb;color:#1c2c40;font-family:Inter,"Segoe UI",Arial,sans-se
 .summary-card:nth-child(3) .summary-icon{background:#f1efff;color:#736abb}
 .summary-card:nth-child(4) .summary-icon{background:#fff3e7;color:#bb834d}
 .section-title{font-size:20px;color:#1d3249;letter-spacing:-.45px;margin:27px 0 14px}
+.month-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:27px 0 14px}
+.month-section-head .section-title{margin:0}
+.month-expand-btn{flex-shrink:0;background:#fff;color:#315a79;border:1px solid #dce6ef;box-shadow:none;font-weight:700}
+.month-expand-btn:hover{background:#edf5fb}
 .report-chart-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(290px,1fr);gap:15px;margin-bottom:16px}
 .report-chart-panel{padding:20px;min-width:0}
 .report-chart-panel h3{font-size:15px;margin:0 0 5px;color:#1b344e}
@@ -862,6 +866,8 @@ body{background:#f5f7fb;color:#1c2c40;font-family:Inter,"Segoe UI",Arial,sans-se
   .month-status,.month-index{display:none}
   .month-card-body{display:block !important;padding:0 10px 10px;border-top:0}
   .report-chart-grid{display:none !important}
+  .month-expand-btn{display:none !important}
+  .month-section-head{margin:22px 0 10px}
   .summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .summary-card{min-height:0}
   .share-track{display:none}
@@ -963,7 +969,6 @@ body{background:#f5f7fb;color:#1c2c40;font-family:Inter,"Segoe UI",Arial,sans-se
   </details>
 
   <div class="report-toolbar">
-    <button type="button" class="secondary-btn" onclick="toggleAllMonths()"><i class="fa-solid fa-chevron-down"></i> <span id="expandAllLabel">Alle ausklappen</span></button>
     <button type="button" class="print-button" onclick="printReport()"><i class="fa-solid fa-print"></i> Drucken</button>
   </div>
 
@@ -1014,7 +1019,10 @@ body{background:#f5f7fb;color:#1c2c40;font-family:Inter,"Segoe UI",Arial,sans-se
     </table>
   </div>
 
-  <h2 class="section-title">Monatsübersicht</h2>
+  <div class="month-section-head">
+    <h2 class="section-title">Monatsübersicht</h2>
+    <button type="button" class="secondary-btn month-expand-btn" onclick="toggleAllMonths()"><i class="fa-solid fa-chevron-down"></i> <span id="expandAllLabel">Alle ausklappen</span></button>
+  </div>
   <div id="monthsContainer" class="months-grid"></div>
 </div>
 </div>
