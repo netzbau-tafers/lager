@@ -5,9 +5,6 @@ const {getAuth}=require('firebase-admin/auth');
 const MASTER='pmyu29TlC3QM7JIysmy2EmiHSWW2';
 const GROUPS={
  bobinen:['lagerBobinenPushReminder'],
- fahrzeuge:['lagerVehiclePushReminderWeekdays','lagerVehiclePushReminderFriday'],
- bereinigung:['lagerVehicleActionCleanup'],
- service:['lagerVehicleServiceReminder'],
  kabelreport:['lagerCableMonthlySnapshot']
 };
 const authClient=new GoogleAuth({scopes:['https://www.googleapis.com/auth/cloud-platform']});

@@ -7,23 +7,11 @@ Unter dem Kennzeichen erscheinen beide hinterlegten Termine mit verbleibenden Ta
 
 Das bestehende Recht zum Erstellen/Bearbeiten/Löschen von Fahrzeugen erlaubt das Erfassen der Serviceinformationen. Der Server prüft die Berechtigung, gültige Datumswerte und die Fahrzeugrevision.
 
-## Einrichtung
-Der vorhandene Baustellen-Brevo-Versand ist nicht Bestandteil dieses Repositorys. Die neue Funktion verwendet Brevo separat und kann denselben vorhandenen API-Schlüssel sowie dieselbe bereits freigegebene Absenderadresse verwenden.
+## Automatische E-Mail-Erinnerung ausser Betrieb (seit November 2026)
 
-1. Pull Request zusammenführen und Repository lokal herunterladen/aktualisieren.
-2. Im Repository-Hauptordner, der firebase.json enthält, arbeiten.
-3. Falls BREVO_API_KEY bereits im Firebase Secret Manager besteht, dieses Secret wiederverwenden. Sonst mit folgendem Befehl hinterlegen (Schlüssel nur in der geschützten Eingabe einfügen):
-   `firebase functions:secrets:set BREVO_API_KEY --project netzbau-tafers`
-4. Die beiden Parameter in `functions-user-admin/.env.netzbau-tafers` lokal hinterlegen:
-   ```dotenv
-   VEHICLE_SERVICE_RECIPIENT=HIER_DIE_GEWÜNSCHTE_EMPFÄNGERADRESSE
-   VEHICLE_SERVICE_SENDER=HIER_DIE_BEREITS_IN_BREVO_FREIGEGEBENE_ABSENDERADRESSE
-   ```
-   Diese lokale Datei nicht ins öffentliche Repository hochladen. Alternativ die Parameter beim ersten Deployment über die Firebase-Eingabe festlegen. Keine API-Schlüssel in .env oder Frontend-Dateien schreiben.
-5. Die beiden Funktionen gezielt veröffentlichen:
-   `firebase deploy --only functions:lager-user-admin:lagerVehicleService,functions:lager-user-admin:lagerVehicleServiceReminder --project netzbau-tafers`
+Der geplante Firebase-Export `lagerVehicleServiceReminder` wurde entfernt, damit dafür kein Cloud-Scheduler-Job mehr benötigt wird. Die tägliche E-Mail-Erinnerung über Brevo findet nicht mehr statt. **Servicetermine können weiterhin angezeigt und über die separate Callable-Funktion `lagerVehicleService` bearbeitet werden.**
 
-GitHub Pages veröffentlicht nur das Frontend. Ohne Firebase-Deployment können die neuen Termine nicht gespeichert und keine Erinnerungen versendet werden. Der Firebase-Scheduler benötigt aktivierte Abrechnung wie die vorhandenen geplanten Funktionen. Keine neuen Firestore-Indizes oder Regeländerungen nötig.
+Die bisherige Versandimplementierung `functions-user-admin/vehicle-service.cjs` und deren Tests bleiben zur möglichen Wiederverwendung erhalten. Für eine erneute Aktivierung sind ein ausdrücklicher Scheduler-Export, die benötigten Secrets und ein neues Deployment erforderlich. Frühere Deploy-Anweisungen für `lagerVehicleServiceReminder` nicht mehr verwenden.
 
 ## Erinnerungen und Versandstatus
 Die Funktion prüft täglich um 07:00 Uhr Europe/Zurich die vorhandenen Fahrzeuge. Sie liest keine Nutzungs- oder Tankverläufe. Eine Erinnerung wird am ersten Prüflauf ab 30 Tagen vor dem Termin gesendet, separat für Fahrzeug- und Kranservice. Kurzfristige oder bereits überfällige Nachträge werden ebenfalls gemeldet; der Text nennt die tatsächlich verbleibenden Tage.
