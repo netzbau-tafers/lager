@@ -740,7 +740,7 @@ function clearArchiveYearMaterial(){
 function selectArchiveYear(year){
   const current = getCurrentArchiveYear();
   if(!auth.currentUser || !Number.isInteger(year) || year < 1900 || year > current) return;
-  if(archivYearStarted && selectedArchiveYear === year) return;
+  if(archivYearStarted && selectedArchiveYear === year && !archivYearError) return;
   archivYearStarted = true;
   const version = ++archivYearLoadVersion;
   if(unsubscribeBaustellen){
