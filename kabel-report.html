@@ -573,6 +573,170 @@ tr.total-row td{
   }
 }
 
+
+
+/* Screen print choice */
+.print-choice[hidden]{display:none !important}
+.print-choice{position:fixed;inset:0;background:rgba(17,34,52,.56);z-index:6000;display:flex;justify-content:center;align-items:center;padding:18px}
+.print-choice-dialog{background:#fff;border-radius:18px;max-width:540px;width:100%;box-shadow:0 24px 80px rgba(0,0,0,.28);padding:25px;position:relative}
+.print-choice-dialog h2{margin:0 35px 8px 0;color:#203950;font-size:22px}
+.print-choice-dialog p{margin:0 0 20px;color:#748599;line-height:1.55;font-size:13px}
+.print-choice-close{position:absolute;right:14px;top:12px;background:#f1f5f8;color:#60788e;box-shadow:none;border-radius:50%;padding:7px 11px}
+.print-choice-options{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.print-choice-option{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;min-height:145px;gap:10px;text-align:left;padding:17px;border:1px solid #dce6f0;border-radius:13px;background:#f9fbfd;color:#1c374e;box-shadow:none;font-weight:800;font-size:14px;white-space:normal;margin:0}
+.print-choice-option:hover{background:#eff7fd;border-color:#88bbdc;transform:none;box-shadow:none}
+.print-choice-option i{color:#2c7bb4;font-size:21px}
+.print-choice-option small{font-weight:400;color:#637a8e;font-size:12px;line-height:1.45}
+#compactPrint{display:none}
+@media(max-width:500px){.print-choice-options{grid-template-columns:1fr}.print-choice-option{min-height:0}}
+@page compactA4 {size:A4 portrait;margin:10mm}
+@media print{
+  .print-choice{display:none !important}
+  body.print-compact #appContent,
+  body.print-compact .app-footer,
+  body.print-compact .login-screen{display:none !important}
+  body.print-compact #compactPrint{display:block !important}
+  body.print-full #compactPrint{display:none !important}
+  body:not(.print-compact) #compactPrint{display:none !important}
+  body:not(.print-compact) .summary-card:not(:first-child){display:none !important}
+  body:not(.print-compact) .summary-grid{grid-template-columns:1fr}
+  body:not(.print-compact) .summary-print-bookings{display:block !important}
+  body.print-compact{margin:0!important;background:#fff;font-size:10pt}
+  body.print-compact #compactPrint{page:compactA4}
+  #compactPrint, #compactPrint *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #compactPrint{width:190mm;max-width:100%;margin:0 auto;font-family:"Segoe UI",Arial,sans-serif;color:#173149}
+  .compact-print-head{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:2px solid #153d61;padding-bottom:4mm;margin-bottom:4mm}
+  .compact-print-head .compact-brand{color:#297cad;font-size:8pt;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+  .compact-print-head h1{font-size:21pt;letter-spacing:-.5px;margin:1mm 0}
+  .compact-print-meta{text-align:right;font-size:8pt;color:#667d8e;line-height:1.5;max-width:85mm}
+  .compact-print-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:2.5mm;margin-bottom:6mm}
+  .compact-print-kpi{padding:3.5mm 3mm;border:1px solid #dae7f0;border-radius:2mm;background:#f2f7fb}
+  .compact-print-kpi span{display:block;color:#627c91;font-size:7pt;margin-bottom:2mm}
+  .compact-print-kpi strong{display:block;color:#174268;font-size:13pt;white-space:nowrap}
+  .compact-print-section-head{display:flex;align-items:center;justify-content:space-between;margin:4mm 0 2.2mm;gap:5mm}
+  .compact-print-section-head h2{font-size:11pt;line-height:1.2;margin:0;color:#183b5a}
+  .compact-print-section-head span{font-size:7pt;color:#7790a1}
+  .compact-print-months{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2.5mm}
+  .compact-print-month{border:1px solid #dce8ef;border-radius:2mm;padding:2.5mm 3mm;min-height:17mm;background:#fff}
+  .compact-print-month-title{display:flex;justify-content:space-between;font-size:8pt;font-weight:750;color:#254563;gap:3mm}
+  .compact-print-month-title strong{color:#123b60;white-space:nowrap}
+  .compact-print-track{height:1.8mm;background:#e9f1f6;border-radius:2mm;margin-top:3.8mm;overflow:hidden}
+  .compact-print-track b{display:block;height:100%;background:#4496ca;border-radius:2mm}
+  .compact-print-table{border-collapse:collapse;width:100%;font-size:8.2pt;table-layout:fixed}
+  .compact-print-table th{background:#f2f6fa !important;color:#60798d;text-transform:uppercase;font-size:7.5pt;font-weight:800;letter-spacing:.2px}
+  .compact-print-table th,.compact-print-table td{padding:2.25mm 2mm;border-bottom:1px solid #e8eef4}
+  .compact-print-table th:first-child,.compact-print-table td:first-child{width:54%;text-align:left;overflow-wrap:anywhere}
+  .compact-print-table th:not(:first-child),.compact-print-table td:not(:first-child){text-align:right}
+  .compact-print-table tr:last-child{font-weight:850;background:#eaf3fa}
+  .compact-print-foot{display:flex;align-items:center;justify-content:space-between;margin-top:4mm;padding-top:3mm;border-top:1px solid #dbe7ef;font-size:7pt;color:#71869a;gap:7mm}
+  .compact-print-foot span:last-child{text-align:right}
+}
+
+/* 2026 Kabel Report dashboard: frontend styles only */
+body{background:#f5f7fb;color:#1c2c40;font-family:Inter,"Segoe UI",Arial,sans-serif;margin:22px clamp(14px,2.6vw,44px)}
+.report-shell{max-width:1540px;margin:0 auto}
+.header{margin-bottom:18px;padding:6px 0 10px}
+.header h1{color:#142b46;font-size:clamp(28px,3vw,37px);letter-spacing:-1.2px;font-weight:800}
+.filters-box,.info-panel,.table-card,.month-card,.summary-card,.report-chart-panel{background:#fff;border:1px solid #e0e9f1;border-radius:16px;box-shadow:0 7px 23px rgba(23,45,76,.045)}
+.filters-box{padding:19px 22px;margin-bottom:16px}
+.filters-title{color:#6e8196;font-size:11px;letter-spacing:1.3px;text-transform:uppercase}
+.filters-grid{grid-template-columns:190px minmax(220px,1fr) auto;gap:16px}
+.filters-grid input,.filters-grid select{border:1px solid #dce5ee;border-radius:10px;background:#fbfcfe;min-height:43px;padding:10px 12px}
+.filters-grid label{font-size:12px;color:#596e84}
+.report-toolbar{justify-content:space-between}
+.report-toolbar .secondary-btn{background:#fff;color:#315a79;border:1px solid #dce6ef;box-shadow:none}
+.report-toolbar .secondary-btn:hover{background:#edf5fb}
+.print-button{background:#183956}
+.print-button:hover{background:#245b83}
+.summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px;margin-bottom:24px}
+.summary-card{padding:19px;min-width:0;min-height:130px}
+.summary-label{font-size:12px;color:#6a7d90;font-weight:650}
+.summary-value{font-weight:850;letter-spacing:-.8px;color:#152f4b;font-size:clamp(22px,2.3vw,31px);overflow-wrap:anywhere}
+.summary-sub{font-size:11px;line-height:1.4}
+.summary-print-bookings{display:none;color:#61707d;font-size:13px;margin-top:8px}
+.summary-icon{display:inline-grid;place-items:center;background:#eef5fc;color:#357da9;border-radius:10px;width:35px;height:35px;margin-bottom:14px}
+.summary-card:nth-child(2) .summary-icon{background:#ecf8f2;color:#218565}
+.summary-card:nth-child(3) .summary-icon{background:#f1efff;color:#736abb}
+.summary-card:nth-child(4) .summary-icon{background:#fff3e7;color:#bb834d}
+.section-title{font-size:20px;color:#1d3249;letter-spacing:-.45px;margin:27px 0 14px}
+.report-chart-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(290px,1fr);gap:15px;margin-bottom:16px}
+.report-chart-panel{padding:20px;min-width:0}
+.report-chart-panel h3{font-size:15px;margin:0 0 5px;color:#1b344e}
+.report-chart-panel p{font-size:12px;color:#7a8da0;margin:0 0 14px}
+.report-chart-area{position:relative;height:210px;display:flex;align-items:end;gap:7px;padding-top:10px;background:repeating-linear-gradient(to top,#edf2f7 0px,#edf2f7 1px,transparent 1px,transparent 50px)}
+.report-chart-bar{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;background:none;border:0;box-shadow:none;padding:0 1px;position:relative;color:#61748b;gap:8px}
+.report-chart-bar:hover{background:transparent;box-shadow:none;transform:none}
+.report-chart-fill{display:block;background:linear-gradient(#68b8e0,#3a84bc);border-radius:5px 5px 2px 2px;width:100%;max-width:42px;min-height:2px}
+.report-chart-bar.is-top .report-chart-fill{background:linear-gradient(#3b8cc9,#235a89)}
+.report-chart-bar-label{font-size:10px;font-weight:700}
+.report-chart-bar:focus-visible{outline:2px solid #2f81bf;outline-offset:3px}
+.report-chart-note{font-size:11px;color:#8798a7;margin-top:10px}
+.report-mix{display:grid;grid-template-columns:150px minmax(0,1fr);align-items:center;gap:12px;min-height:205px}
+.report-donut{display:grid;place-items:center;border-radius:50%;width:145px;height:145px;background:#eaf0f5}
+.report-donut-hole{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;width:102px;height:102px;background:#fff;border-radius:50%}
+.report-donut-hole strong{font-size:26px;color:#223953}
+.report-donut-hole span{font-size:11px;color:#8294a7}
+.report-mix-list{display:flex;flex-direction:column;gap:10px}
+.report-mix-item{display:flex;align-items:center;gap:8px;font-size:11px;min-width:0}
+.report-mix-dot{width:9px;height:9px;flex:none;border-radius:3px}
+.report-mix-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#536b82}
+.report-mix-percent{font-weight:800;color:#243f5c}
+.table-card{overflow:auto;padding:0}
+.table-card .table-meta{margin:0;padding:17px 19px;color:#73869a;border-bottom:1px solid #e9eff5}
+.table-card th{background:#f8fafd;color:#70859a;text-transform:uppercase;letter-spacing:.4px;font-size:11px;padding:13px}
+.table-card td{padding:13px;color:#283f56}
+.share-meter{display:flex;align-items:center;gap:10px;min-width:120px}
+.share-track{flex:1;height:6px;min-width:36px;background:#e7eff5;border-radius:20px;overflow:hidden}
+.share-fill{display:block;height:100%;background:#4a9bd0;border-radius:20px}
+.share-value{min-width:42px;text-align:right}
+.months-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
+.month-column{display:flex;flex-direction:column;gap:14px;min-width:0}
+.month-card{padding:0;overflow:hidden}
+.month-card.is-expanded{border-color:#8dbfe1;box-shadow:0 5px 20px rgba(35,105,156,.1)}
+.month-card-header{margin:0}
+.month-card-toggle{padding:15px 17px 5px;min-height:79px;align-items:center;margin:0;border-radius:0}
+.month-card-toggle:hover{background:#f6faff}
+.month-card-heading{display:flex;align-items:center;gap:12px}
+.month-index{display:grid;place-items:center;flex:none;width:38px;height:38px;border-radius:11px;background:#f0f6fb;color:#4d7d9e;font-size:12px;font-weight:850}
+.month-card-toggle .month-title{font-size:14px;margin:0 0 5px;font-weight:800}
+.month-card-toggle .month-total{font-size:17px;color:#17344f;margin:0;font-weight:800}
+.month-card-toggle .month-total strong{font-weight:850}
+.month-chevron{margin-top:-1px;color:#7c99b0}
+.month-status{display:flex;gap:7px;align-items:center;padding:0 17px 12px;color:#8295a6;font-size:10px}
+.month-status:before{content:"";width:6px;height:6px;background:#7ac4b4;border-radius:50%;display:inline-block}
+.month-status.is-current:before{background:#efba70}
+.month-status.is-future:before{background:#cbd4dc}
+.month-card-body{padding:0 16px 16px}
+.month-card.is-expanded .month-card-body{border-top:1px solid #e8eff5;padding-top:10px}
+.month-card .snapshot-meta{line-height:1.4}
+.month-table{width:100%}
+.month-table th{background:transparent;font-size:10px;color:#8495a8}
+.month-table th,.month-table td{padding:9px 4px;font-size:11px}
+.month-card .month-card-actions{justify-content:flex-start}
+.month-card .month-card-actions button{font-size:11px}
+.report-toolbar button{font-weight:700}
+@media(max-width:1150px){
+  .months-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .report-chart-grid{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+  body{margin:14px}
+  .filters-grid{grid-template-columns:1fr}
+  .summary-grid{gap:10px}
+  .summary-card{padding:14px;min-height:115px}
+  .summary-value{font-size:23px}
+  .months-grid{grid-template-columns:1fr}
+  .report-mix{grid-template-columns:135px minmax(0,1fr)}
+  .report-donut{height:130px;width:130px}
+  .report-donut-hole{height:90px;width:90px}
+  .report-chart-panel{padding:16px}
+  .report-chart-area{gap:4px}
+  .report-chart-bar-label{font-size:9px}
+  .share-track{display:none}
+  .share-meter{min-width:0;justify-content:flex-end}
+}
+
 @media print{
   @page{
     size:auto;
@@ -679,6 +843,22 @@ tr.total-row td{
     content:none !important;
   }
 }
+
+@media print{
+  /* Desktop independent column stacks print in chronological rows. */
+  .months-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .month-column{display:contents}
+  .month-card{order:var(--month-order);border-radius:5px}
+  .month-card-toggle{min-height:0;padding:10px 10px 4px}
+  .month-status,.month-index{display:none}
+  .month-card-body{display:block !important;padding:0 10px 10px;border-top:0}
+  .report-chart-grid{display:none !important}
+  .summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .summary-card{min-height:0}
+  .share-track{display:none}
+  .month-card,.month-table{break-inside:avoid}
+}
+
 </style>
 <link rel="stylesheet" href="navigation.css?v=20261005-menu-style">
 </head>
@@ -774,6 +954,7 @@ tr.total-row td{
   </details>
 
   <div class="report-toolbar">
+    <button type="button" class="secondary-btn" onclick="toggleAllMonths()"><i class="fa-solid fa-chevron-down"></i> <span id="expandAllLabel">Alle ausklappen</span></button>
     <button type="button" class="print-button" onclick="printReport()"><i class="fa-solid fa-print"></i> Drucken</button>
   </div>
 
@@ -783,12 +964,29 @@ tr.total-row td{
   <div id="reportNotice" class="info-panel warning-panel" style="display:none;"></div>
   <div id="reportError" class="info-panel error-panel" style="display:none;"></div>
 
-  <div class="summary-grid">
-    <div class="summary-card">
-      <div class="summary-label">Total eingezogene Meter</div>
-      <div id="summaryTotal" class="summary-value">0 m</div>
-      <div id="summaryBookings" class="summary-sub">0 Buchungen</div>
-    </div>
+  <div class="summary-grid" aria-label="Kennzahlen">
+    <div class="summary-card"><div class="summary-icon"><i class="fa-solid fa-ruler-horizontal"></i></div><div class="summary-label">Eingezogene Meter</div><div id="summaryTotal" class="summary-value">0 m</div><div class="summary-sub">Total im ausgewählten Jahr</div><div id="summaryPrintBookings" class="summary-print-bookings" aria-hidden="true">0 Buchungen</div></div>
+    <div class="summary-card"><div class="summary-icon"><i class="fa-solid fa-clipboard-list"></i></div><div class="summary-label">Buchungen</div><div id="summaryBookings" class="summary-value">0</div><div class="summary-sub">Erfasste Einzüge</div></div>
+    <div class="summary-card"><div class="summary-icon"><i class="fa-solid fa-layer-group"></i></div><div class="summary-label">Kabeltypen</div><div id="summaryTypes" class="summary-value">0</div><div class="summary-sub">Unterschiedliche Kabeltypen</div></div>
+    <div class="summary-card"><div class="summary-icon"><i class="fa-solid fa-chart-line"></i></div><div class="summary-label">Monatsdurchschnitt</div><div id="summaryAverage" class="summary-value">0 m</div><div id="summaryAverageInfo" class="summary-sub">Meter je Monat</div></div>
+  </div>
+
+  <h2 class="section-title">Entwicklung &amp; Verteilung</h2>
+  <div class="report-chart-grid">
+    <section class="report-chart-panel">
+      <h3>Eingezogene Meter pro Monat</h3>
+      <p>Balken anklicken, um den Monat in der Übersicht zu öffnen.</p>
+      <div id="monthlyChart" class="report-chart-area" aria-label="Monatsvergleich"></div>
+      <div class="report-chart-note">Jan – Dez · Werte entsprechend dem aktuellen Kabeltypfilter</div>
+    </section>
+    <section class="report-chart-panel">
+      <h3>Kabelverteilung</h3>
+      <p>Anteile der Kabeltypen an den eingezogenen Metern</p>
+      <div class="report-mix">
+        <div id="reportDonut" class="report-donut"><div class="report-donut-hole"><strong id="donutTypeCount">0</strong><span>Kabeltypen</span></div></div>
+        <div id="reportMixList" class="report-mix-list"></div>
+      </div>
+    </section>
   </div>
 
   <h2 class="section-title">Jahresübersicht nach Kabeltyp</h2>
@@ -811,6 +1009,29 @@ tr.total-row td{
   <div id="monthsContainer" class="months-grid"></div>
 </div>
 </div>
+
+<!-- Print method chooser; does not alter report data. -->
+<div id="printChoice" class="print-choice" hidden role="presentation" onclick="if(event.target===this) closePrintChoice()">
+  <div class="print-choice-dialog" role="dialog" aria-modal="true" aria-labelledby="printChoiceTitle" aria-describedby="printChoiceDescription">
+    <button type="button" class="print-choice-close" onclick="closePrintChoice()" aria-label="Schliessen"><i class="fa-solid fa-xmark"></i></button>
+    <h2 id="printChoiceTitle">Druckansicht auswählen</h2>
+    <p id="printChoiceDescription">Welche Version des Kabelreports möchtest du drucken?</p>
+    <div class="print-choice-options">
+      <button type="button" class="print-choice-option" onclick="executePrint('full')">
+        <i class="fa-solid fa-file-lines"></i>
+        Ausführlicher Bericht
+        <small>Wie bisher: Jahresübersicht und alle zwölf Monate mit sämtlichen Kabeltypen, Metern und Buchungen. Mehrere Seiten möglich.</small>
+      </button>
+      <button type="button" class="print-choice-option" onclick="executePrint('compact')">
+        <i class="fa-solid fa-file-circle-check"></i>
+        Kompakt · 1× A4
+        <small>Gestaltete Jahresübersicht: Kennzahlen, zwölf Monatstotale und die zehn grössten Kabeltypen. Weitere zusammengefasst.</small>
+      </button>
+    </div>
+  </div>
+</div>
+<!-- The compact print report is separate from the screen and original print layout. -->
+<section id="compactPrint" aria-label="Kompakte Druckübersicht auf A4"></section>
 
 <script>
 const firebaseConfig = {
@@ -849,6 +1070,8 @@ let isEnsuringSnapshot = false;
 let currentUser = null;
 let savingSnapshotKeys = new Set();
 const expandedMonthKeys = new Set();
+let renderedMonthColumns = 0;
+const REPORT_MIX_SHADES = ["#2879af", "#53a1d0", "#80c0dd", "#b9d9e9"];
 const SNAPSHOT_STATUS_READY = "ready";
 let activeLogWindow = null;
 
@@ -1716,7 +1939,7 @@ function renderAnnualTable(data){
       <tr>
         <td>${escapeHtml(row.typ)}</td>
         <td class="number-cell">${escapeHtml(formatMeters(row.meter))}</td>
-        <td class="number-cell">${escapeHtml(share.toLocaleString("de-CH", { minimumFractionDigits: 0, maximumFractionDigits: 1 }))} %</td>
+        <td><div class="share-meter"><span class="share-track"><span class="share-fill" style="width:${Math.max(0, Math.min(100, share))}%"></span></span><span class="share-value">${escapeHtml(share.toLocaleString("de-CH", { minimumFractionDigits: 0, maximumFractionDigits: 1 }))} %</span></div></td>
         <td class="number-cell">${escapeHtml(formatCount(row.count))}</td>
       </tr>
     `;
@@ -1730,18 +1953,108 @@ function renderAnnualTable(data){
   `;
 }
 
+
+function getMonthColumnCount(){
+  return window.matchMedia("(max-width:700px)").matches ? 1 :
+    window.matchMedia("(max-width:1150px)").matches ? 2 : 3;
+}
+
+function syncExpandAllLabel(){
+  const year = getSelectedYear();
+  const allExpanded = MONTH_NAMES.every((_, index) => expandedMonthKeys.has(getSnapshotDocumentId(year, index)));
+  const label = document.getElementById("expandAllLabel");
+  if(label) label.textContent = allExpanded ? "Alle einklappen" : "Alle ausklappen";
+}
+
+function toggleAllMonths(){
+  const year = getSelectedYear();
+  const allExpanded = MONTH_NAMES.every((_, index) => expandedMonthKeys.has(getSnapshotDocumentId(year, index)));
+  MONTH_NAMES.forEach((_, index) => {
+    const key = getSnapshotDocumentId(year, index);
+    if(allExpanded) expandedMonthKeys.delete(key);
+    else expandedMonthKeys.add(key);
+  });
+  renderReport();
+}
+
+function renderMonthlyChart(data){
+  const container = document.getElementById("monthlyChart");
+  const totals = data.monthlyRows.map(month => Number(month.total || 0));
+  const maximum = Math.max(1, ...totals);
+  const shortNames = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
+  container.innerHTML = totals.map((total, index) => {
+    const height = total > 0 ? Math.max(2, 100 * total / maximum) : 1;
+    const top = total === maximum && total > 0;
+    return `<button type="button" class="report-chart-bar${top ? " is-top" : ""}" data-chart-month="${index}"
+      aria-label="${escapeHtml(getMonthLabel(index))}: ${escapeHtml(formatMeters(total))}. Monat öffnen"
+      title="${escapeHtml(getMonthLabel(index))}: ${escapeHtml(formatMeters(total))}">
+      <span class="report-chart-fill" style="height:${height}%"></span>
+      <span class="report-chart-bar-label">${shortNames[index]}</span>
+    </button>`;
+  }).join("");
+  container.querySelectorAll("[data-chart-month]").forEach(button => {
+    button.addEventListener("click", () => {
+      const monthIndex = Number(button.dataset.chartMonth);
+      const monthKey = getSnapshotDocumentId(getSelectedYear(), monthIndex);
+      expandedMonthKeys.add(monthKey);
+      renderMonths(data);
+      const target = document.querySelector('.js-toggle-month[data-month-key="' + monthKey + '"]');
+      if(target) target.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  });
+}
+
+function renderCableMix(data){
+  document.getElementById("donutTypeCount").textContent = formatCount(data.annualRows.length);
+  const list = document.getElementById("reportMixList");
+  const donut = document.getElementById("reportDonut");
+  const top = data.annualRows.slice(0, 3);
+  const additional = Math.max(0, Number(data.totalMeters || 0) - top.reduce((sum, row) => sum + Number(row.meter || 0), 0));
+  const portions = top.map(row => ({ name: row.typ, meters: Number(row.meter || 0) }));
+  if(additional > 0) portions.push({ name: "Weitere Kabeltypen", meters: additional });
+  if(data.totalMeters <= 0){
+    donut.style.background = "#eaf0f5";
+    list.textContent = "Keine passenden Einzüge.";
+    return;
+  }
+  let current = 0;
+  const stops = portions.map((portion, index) => {
+    const start = current;
+    current += portion.meters / data.totalMeters * 100;
+    return `${REPORT_MIX_SHADES[index]} ${start}% ${current}%`;
+  });
+  donut.style.background = `conic-gradient(${stops.join(",")})`;
+  list.innerHTML = portions.map((portion, index) => {
+    const share = (portion.meters / data.totalMeters * 100).toLocaleString("de-CH", { maximumFractionDigits: 1 });
+    return `<div class="report-mix-item">
+      <span class="report-mix-dot" style="background:${REPORT_MIX_SHADES[index]}"></span>
+      <span class="report-mix-name" title="${escapeHtml(portion.name)}">${escapeHtml(portion.name)}</span>
+      <span class="report-mix-percent">${escapeHtml(share)} %</span>
+    </div>`;
+  }).join("");
+}
+
+window.addEventListener("resize", () => {
+  if(!currentUser || !hasLoadedSnapshots) return;
+  if(renderedMonthColumns !== getMonthColumnCount()) renderReport();
+});
+
 function renderMonths(data){
   const container = document.getElementById("monthsContainer");
   const year = Number(document.getElementById("yearFilter").value || new Date().getFullYear());
   const allowManualSnapshotSave = canManuallySaveSnapshots(currentUser);
 
-  container.innerHTML = data.monthlyRows.map((monthData, monthIndex) => {
+  const columns = getMonthColumnCount();
+  renderedMonthColumns = columns;
+  const cards = data.monthlyRows.map((monthData, monthIndex) => {
     const snapshotId = getSnapshotDocumentId(year, monthIndex);
     const snapshot = getSnapshotByMonth(year, monthIndex);
     const isExpanded = expandedMonthKeys.has(snapshotId);
     const isSavingSnapshot = savingSnapshotKeys.has(snapshotId);
     const now = new Date();
     const isCurrentMonth = year === now.getFullYear() && monthIndex === now.getMonth();
+    const isFutureMonth = year > now.getFullYear() || (year === now.getFullYear() && monthIndex > now.getMonth());
+    const statusText = isFutureMonth ? "Noch kein Einzug" : isCurrentMonth ? "Laufender Monat" : snapshot && snapshot.finalized ? "Monat abgeschlossen" : "Nicht abgeschlossen";
     const snapshotMeta = snapshot
       ? snapshot.finalized === true
         ? `Monat abgeschlossen: ${escapeHtml(formatTimestamp(snapshot.finalizedAt || snapshot.generatedAt) || "Zeitpunkt unbekannt")}`
@@ -1767,17 +2080,19 @@ function renderMonths(data){
       : '<tr><td colspan="3">Keine Einzüge in diesem Monat.</td></tr>';
 
     return `
-      <div class="month-card${isExpanded ? " is-expanded" : ""}">
+      <div class="month-card${isExpanded ? " is-expanded" : ""}" style="--month-order:${monthIndex + 1}">
         <button type="button" class="month-card-header month-card-toggle js-toggle-month"
                 data-month-key="${escapeHtml(snapshotId)}"
                 aria-expanded="${isExpanded ? "true" : "false"}"
                 aria-controls="month-body-${escapeHtml(snapshotId)}">
           <span class="month-card-heading">
-            <span class="month-title">${escapeHtml(getMonthLabel(monthIndex))}</span>
-            <span class="month-total">Monatstotal: <strong>${escapeHtml(formatMeters(monthData.total))}</strong></span>
+            <span class="month-index">${String(monthIndex + 1).padStart(2,"0")}</span>
+            <span><span class="month-title">${escapeHtml(getMonthLabel(monthIndex))}</span>
+            <span class="month-total"><strong>${escapeHtml(formatMeters(monthData.total))}</strong></span></span>
           </span>
           <i class="fa-solid fa-chevron-down month-chevron" aria-hidden="true"></i>
         </button>
+        <div class="month-status${isCurrentMonth ? " is-current" : isFutureMonth ? " is-future" : ""}">${escapeHtml(statusText)}</div>
         <div id="month-body-${escapeHtml(snapshotId)}" class="month-card-body">
           ${actionButton ? `<div class="month-card-actions">${actionButton}</div>` : ""}
           ${allowManualSnapshotSave ? `<p class="snapshot-meta">${snapshotMeta}</p>` : ""}
@@ -1794,7 +2109,11 @@ function renderMonths(data){
         </div>
       </div>
     `;
-  }).join("");
+  });
+  const stacks = Array.from({ length: columns }, () => []);
+  cards.forEach((card, index) => stacks[index % columns].push(card));
+  container.innerHTML = stacks.map(stack => `<div class="month-column">${stack.join("")}</div>`).join("");
+  syncExpandAllLabel();
 
   container.querySelectorAll(".js-toggle-month").forEach(button => {
     button.addEventListener("click", function(){
@@ -1807,6 +2126,7 @@ function renderMonths(data){
       }
       this.setAttribute("aria-expanded", String(shouldExpand));
       this.closest(".month-card").classList.toggle("is-expanded", shouldExpand);
+      syncExpandAllLabel();
     });
   });
 
@@ -1832,14 +2152,103 @@ function updatePrintMeta(year, searchTerm, data){
   `;
 }
 
+
+let printFocusReturn = null;
+function closePrintChoice(){
+  document.getElementById("printChoice").hidden = true;
+  if(printFocusReturn && document.contains(printFocusReturn)) printFocusReturn.focus();
+  printFocusReturn = null;
+}
 function printReport(){
+  renderReport();
+  printFocusReturn = document.activeElement;
+  document.getElementById("printChoice").hidden = false;
+  document.querySelector(".print-choice-option").focus();
+}
+function executePrint(mode){
+  closePrintChoice();
+  document.body.classList.remove("print-compact", "print-full");
+  document.body.classList.add(mode === "compact" ? "print-compact" : "print-full");
   renderReport();
   window.print();
 }
+window.addEventListener("afterprint", () => {
+  document.body.classList.remove("print-compact", "print-full");
+});
+document.addEventListener("keydown", event => {
+  if(event.key === "Escape" && !document.getElementById("printChoice").hidden){
+    closePrintChoice();
+  }
+});
+
+function renderCompactPrint(data, year, searchTerm){
+  const section = document.getElementById("compactPrint");
+  const now = new Date();
+  const monthsCount = year < now.getFullYear() ? 12 : year === now.getFullYear() ? now.getMonth() + 1 : 0;
+  const best = data.monthlyRows.reduce((acc, row, index) => row.total > acc.total ? { total: row.total, monthIndex: index } : acc, { total: 0, monthIndex: -1 });
+  const maxMonth = Math.max(1, ...data.monthlyRows.map(row => row.total));
+  const date = new Date().toLocaleString("de-CH", { dateStyle: "short", timeStyle: "short" });
+  const searchDescription = sanitizeInput(searchTerm || "", 120) || "Alle Kabeltypen";
+  const monthCards = data.monthlyRows.map((row, index) => {
+    const width = row.total > 0 ? Math.max(1, row.total / maxMonth * 100) : 0;
+    return `<div class="compact-print-month">
+      <div class="compact-print-month-title"><span>${escapeHtml(getMonthLabel(index))}</span><strong>${escapeHtml(formatMeters(row.total))}</strong></div>
+      <div class="compact-print-track"><b style="width:${width}%"></b></div>
+    </div>`;
+  }).join("");
+  const LIMIT = 10;
+  const mainRows = data.annualRows.slice(0, LIMIT);
+  const otherRows = data.annualRows.slice(LIMIT);
+  const remainingMeters = roundMeters(otherRows.reduce((sum, row) => sum + Number(row.meter || 0), 0));
+  const remainingBookings = otherRows.reduce((sum, row) => sum + Number(row.count || 0), 0);
+  const annualRows = mainRows.map(row => ({
+    name: row.typ, meter: row.meter, count: row.count
+  }));
+  if(otherRows.length) annualRows.push({
+    name: "Weitere " + otherRows.length + " Kabeltypen",
+    meter: remainingMeters, count: remainingBookings
+  });
+  section.innerHTML = `
+    <div class="compact-print-head">
+      <div><div class="compact-brand">Netzbau Tafers · Jahresbericht</div><h1>Kabel Report ${escapeHtml(year)}</h1><div style="font-size:8pt;color:#72879a">Jahresübersicht 01.01.–31.12.</div></div>
+      <div class="compact-print-meta">Erstellt: ${escapeHtml(date)}<br>Filter: ${escapeHtml(searchDescription)}</div>
+    </div>
+    <div class="compact-print-kpis">
+      <div class="compact-print-kpi"><span>Eingezogene Meter</span><strong>${escapeHtml(formatMeters(data.totalMeters))}</strong></div>
+      <div class="compact-print-kpi"><span>Buchungen</span><strong>${escapeHtml(formatCount(data.totalBookings))}</strong></div>
+      <div class="compact-print-kpi"><span>Kabeltypen</span><strong>${escapeHtml(formatCount(data.annualRows.length))}</strong></div>
+      <div class="compact-print-kpi"><span>Ø pro Monat</span><strong>${escapeHtml(formatMeters(monthsCount ? data.totalMeters / monthsCount : 0))}</strong></div>
+    </div>
+    <div class="compact-print-section-head"><h2>Monatsübersicht</h2><span>12 Monatstotale · Höchster Monat: ${best.monthIndex >= 0 ? escapeHtml(getMonthLabel(best.monthIndex)) : "–"}</span></div>
+    <div class="compact-print-months">${monthCards}</div>
+    <div class="compact-print-section-head"><h2>Kabeltypen im Jahresvergleich</h2><span>${otherRows.length ? "Top 10 · übrige zusammengefasst" : "Alle Kabeltypen"}</span></div>
+    <table class="compact-print-table">
+      <thead><tr><th>Kabeltyp</th><th>Meter</th><th>Anteil</th><th>Buch.</th></tr></thead>
+      <tbody>
+        ${annualRows.map(row => `<tr>
+          <td>${escapeHtml(row.name)}</td><td>${escapeHtml(formatMeters(row.meter))}</td>
+          <td>${escapeHtml((data.totalMeters > 0 ? row.meter / data.totalMeters * 100 : 0).toLocaleString("de-CH", { maximumFractionDigits: 1 }))} %</td>
+          <td>${escapeHtml(formatCount(row.count))}</td>
+        </tr>`).join("")}
+        <tr><td>Total alle Kabel</td><td>${escapeHtml(formatMeters(data.totalMeters))}</td><td>${data.totalMeters > 0 ? "100 %" : "0 %"}</td><td>${escapeHtml(formatCount(data.totalBookings))}</td></tr>
+      </tbody>
+    </table>
+    <div class="compact-print-foot"><span>Kabel Report · Stand ${escapeHtml(date)}</span>
+      <span>Detailangaben und einzelne Buchungen im ausführlichen Bericht.</span></div>
+  `;
+}
+
 
 function renderSummary(data){
+  const year = getSelectedYear();
+  const now = new Date();
+  const monthsCount = year < now.getFullYear() ? 12 : year === now.getFullYear() ? now.getMonth() + 1 : 0;
   document.getElementById("summaryTotal").textContent = formatMeters(data.totalMeters);
-  document.getElementById("summaryBookings").textContent = formatCount(data.totalBookings) + " Buchungen im Report";
+  document.getElementById("summaryBookings").textContent = formatCount(data.totalBookings);
+  document.getElementById("summaryPrintBookings").textContent = formatCount(data.totalBookings) + " Buchungen";
+  document.getElementById("summaryTypes").textContent = formatCount(data.annualRows.length);
+  document.getElementById("summaryAverage").textContent = formatMeters(monthsCount ? data.totalMeters / monthsCount : 0);
+  document.getElementById("summaryAverageInfo").textContent = "Über " + monthsCount + " Kalendermonate";
 }
 
 function renderNotice(earliestLogDate, year, snapshotDocs = []){
@@ -2051,7 +2460,10 @@ function renderReport(){
 
   renderNotice(baseData.earliestLogDate, year, historicalSnapshots);
   updatePrintMeta(year, searchTerm, reportData);
+  renderCompactPrint(reportData, year, searchTerm);
   renderSummary(reportData);
+  renderMonthlyChart(reportData);
+  renderCableMix(reportData);
   renderAnnualTable(reportData);
   renderMonths(reportData);
 }
