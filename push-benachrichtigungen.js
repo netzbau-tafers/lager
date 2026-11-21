@@ -9,9 +9,9 @@
   function script(src){return new Promise((resolve,reject)=>{const el=document.createElement('script');el.src=src;el.onload=resolve;el.onerror=()=>reject(new Error('Programmbibliothek konnte nicht geladen werden.'));document.head.append(el);});}
   async function setup(){
     if(!setupPromise)setupPromise=(async()=>{
-      await script('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
+      await script('https://www.gstatic.com/firebasejs/13.4.0/firebase-messaging-compat.js');
       if(!await firebase.messaging.isSupported())throw new Error('Dieser Browser unterstützt keine Push-Nachrichten. Auf dem iPhone: Seite zum Home-Bildschirm hinzufügen und von dort öffnen.');
-      await script('https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js');
+      await script('https://www.gstatic.com/firebasejs/13.4.0/firebase-functions-compat.js');
       const registration=await navigator.serviceWorker.register(new URL('firebase-messaging-sw.js',location.href),{scope:new URL('./',location.href).pathname});
       await new Promise((resolve,reject)=>{
         const worker=registration.installing||registration.waiting||registration.active;
