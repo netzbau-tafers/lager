@@ -95,6 +95,14 @@
       titleSelect.value=titleFor(row);titleSelect.disabled=master||!mayManage;titleLabel.append(titleSelect);card.append(titleLabel);
       const grid=document.createElement('div');grid.className='permission-grid';const selects={},groupGrids=groupPermissions(grid);
       const permissions=effectivePermissions(row);
+      const displaySelects={};
+      if(master&&isMainAdmin){
+        for(const [key,name] of [['fahrzeuge','Fahrzeuge anzeigen'],['fahrtenbuch','Fahrtenbuch anzeigen']]){
+          const label=text('label',name),select=document.createElement('select');
+          for(const [value,title] of [['edit','Aktiviert'],['none','Deaktiviert']]){const option=text('option',title);option.value=value;select.append(option);}
+          select.value=row.masterDisplay?.[key]===false?'none':'edit';colorPermission(select);displaySelects[key]=select;label.append(select);groupGrids[key].append(label);
+        }
+      }
       for(const [key,name]of Object.entries(LagerAccess.areas)){const label=text('label',name),select=document.createElement('select');for(const [value,title]of (key==='materialScannen'?[['none','Deaktiviert'],['edit','Aktiviert']]:['fahrtenbuch','fahrtenbuchExport'].includes(key)?[['none','Gesperrt'],['edit','Ansehen und bearbeiten']]:['materialvorlagen','beendete','fahrzeugeErstellen','fahrzeugeUebernehmen'].includes(key)?[['none','Nicht erlaubt'],['edit',key==='fahrzeugeUebernehmen'?'Belegte Fahrzeuge übernehmen':key==='fahrzeugeErstellen'?'Neue Fahrzeuge hinzufügen':key==='beendete'?'Archivieren, bearbeiten, wiederherstellen und löschen':'Erstellen, bearbeiten und löschen']]:[['none','Gesperrt'],['view','Nur ansehen'],['edit','Ansehen und bearbeiten']])){const option=text('option',title);option.value=value;select.append(option);}select.value=master?'edit':permissions[key]||'none';select.disabled=(protectedAccount&&!isMainAdmin)||master||row.id===auth.currentUser?.uid||!mayManage;colorPermission(select);selects[key]=select;label.append(select);groupGrids[key].append(label);}
       const permissionsPanel=document.createElement('details');permissionsPanel.className='permissions-panel';permissionsPanel.append(text('summary','Berechtigungen'),grid);card.append(permissionsPanel);const save=text('button','Änderungen speichern');save.type='button';save.hidden=!mayManage;save.disabled=!mayManage;const feedback=text('p','');feedback.className='user-feedback';feedback.setAttribute('role','status');card.append(save,feedback);
       const remove=text('button','Konto löschen');remove.type='button';remove.className='delete-account';remove.disabled=master||!mayManage||row.id===auth.currentUser?.uid;
@@ -146,10 +154,11 @@
         try{
           // Profile names and access rights change atomically; metadata stays intact.
           const batch=db.batch(),timestamp=firebase.firestore.FieldValue.serverTimestamp(),username=clean(input.value);
-          batch.set(db.collection('users').doc(row.id),{username,adminTitle:master?'hauptadministrator':titleSelect.value,updatedAt:timestamp},{merge:true});
+          const masterDisplay=master&&isMainAdmin?Object.fromEntries(Object.entries(displaySelects).map(([key,select])=>[key,select.value==='edit'])):null;
+          batch.set(db.collection('users').doc(row.id),{username,adminTitle:master?'hauptadministrator':titleSelect.value,updatedAt:timestamp,...(masterDisplay?{masterDisplay}:{})},{merge:true});
           const selected=Object.fromEntries(Object.entries(selects).map(([key,select])=>[key,select.value]));
           if(!master&&row.id!==auth.currentUser?.uid)batch.set(db.collection('user_access').doc(row.id),{permissions:selected,updatedAt:timestamp,updatedBy:auth.currentUser.uid});
-          await batch.commit();row.username=username;row.adminTitle=master?'hauptadministrator':titleSelect.value;if(!master)row.access={permissions:selected};input.value=username;feedback.style.color='#1b5e20';render();status.textContent='Gespeichert. Die Liste wurde nach Titel sortiert.';
+          await batch.commit();if(masterDisplay)row.masterDisplay=masterDisplay;row.username=username;row.adminTitle=master?'hauptadministrator':titleSelect.value;if(!master)row.access={permissions:selected};input.value=username;feedback.style.color='#1b5e20';render();status.textContent='Gespeichert. Die Liste wurde nach Titel sortiert.';
         }catch(error){console.error(error);feedback.style.color='#b3261e';feedback.textContent='Speichern fehlgeschlagen. Prüfe, ob die neuen Firestore-Regeln veröffentlicht sind.';}finally{save.disabled=!mayManage;remove.disabled=master||!mayManage||row.id===auth.currentUser?.uid;}
       });list.append(card);
     }
