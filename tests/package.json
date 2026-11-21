@@ -8,10 +8,10 @@
     "test:vehicle-transactions": "firebase emulators:exec --config ../firebase.json --project demo-lager-access --only firestore \"node vehicles-transactions.cjs\""
   },
   "devDependencies": {
-    "@firebase/rules-unit-testing": "^5.0.2",
-    "firebase": "^12.0.0",
-    "firebase-admin": "^13.10.0",
-    "firebase-tools": "^14.22.0",
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "firebase": "^13.4.0",
+    "firebase-admin": "^14.5.1",
+    "firebase-tools": "^15.37.0",
     "jsdom": "^29.0.0",
     "playwright": "^1.65.1"
   }
