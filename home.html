@@ -11,6 +11,7 @@
 <link rel="manifest" href="site.webmanifest">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
@@ -347,6 +348,68 @@ button:hover{
 @media (prefers-reduced-motion:reduce){
   .home-snowfall{display:none;}
 }
+
+/* Jahres-Dashboard: responsiv, ohne neue Navigations- oder Schnellzugriffsleisten. */
+.hero{max-width:1400px;background:transparent;border:0;box-shadow:none;overflow:visible;}
+.hero-actions{border:1px solid #dce5ed;border-bottom:0;border-radius:16px 16px 0 0;overflow:hidden;box-shadow:0 5px 20px rgba(20,47,72,.05);}
+.hero-image-wrap{background:#132c46;overflow:hidden;border-radius:0 0 16px 16px;border:1px solid #dce5ed;border-top:0;box-shadow:0 8px 25px rgba(25,55,90,.08);}
+.hero-image{max-height:420px;object-fit:contain;}
+.home-dashboard{margin-top:24px;color:#18304a;}
+.home-dashboard *{box-sizing:border-box;}
+.home-dashboard-header{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap;margin:0 0 15px;}
+.home-dashboard-kicker{text-transform:uppercase;color:#377ab6;font-size:11px;font-weight:800;letter-spacing:.11em;margin:0 0 5px;}
+.home-dashboard-header h2{font-size:clamp(22px,2.5vw,30px);line-height:1.2;letter-spacing:-.035em;margin:0 0 5px;}
+.home-dashboard-sub{font-size:12px;color:#697f91;margin:0;}
+.home-dashboard-period{background:white;border:1px solid #dce5ed;border-radius:10px;padding:9px 12px;color:#456782;font-weight:700;font-size:12px;white-space:nowrap;}
+.home-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;}
+.home-stat{background:#fff;border:1px solid #dce5ed;border-radius:15px;padding:18px;min-width:0;box-shadow:0 5px 19px rgba(25,55,90,.045);}
+.home-stat-icon{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;margin-bottom:14px;font-size:16px;}
+.home-stat-blue .home-stat-icon{background:#e7f0fc;color:#2874c7;}
+.home-stat-green .home-stat-icon{background:#e2f5f0;color:#209d7b;}
+.home-stat-amber .home-stat-icon{background:#fff2df;color:#cf852b;}
+.home-stat-purple .home-stat-icon{background:#edeafd;color:#7a68be;}
+.home-stat-number{font-size:clamp(23px,2.5vw,34px);font-weight:800;letter-spacing:-.04em;line-height:1.2;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+.home-stat-name{font-size:12px;color:#3c546d;font-weight:700;margin-top:7px;}
+.home-stat-sub{font-size:11px;color:#7b8fa2;margin-top:5px;}
+.home-data-panels{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:15px;margin-top:15px;}
+.home-data-panel{min-width:0;background:white;border:1px solid #dce5ed;border-radius:16px;padding:20px;box-shadow:0 5px 19px rgba(25,55,90,.045);}
+.home-panel-heading{display:flex;justify-content:space-between;align-items:start;gap:10px;}
+.home-panel-title{font-size:16px;font-weight:800;margin:0 0 5px;letter-spacing:-.02em;}
+.home-panel-sub{color:#71889b;font-size:11px;margin:0;line-height:1.5;}
+.home-chart-total{font-size:21px;font-weight:800;white-space:nowrap;text-align:right;}
+.home-chart-total small{display:block;font-size:10px;font-weight:500;color:#7f91a3;margin-top:4px;}
+.home-chart{display:flex;gap:10px;margin-top:22px;height:215px;}
+.home-chart-axis{width:45px;flex:none;display:flex;flex-direction:column;justify-content:space-between;padding-bottom:24px;text-align:right;font-size:10px;color:#8b9dad;font-variant-numeric:tabular-nums;}
+.home-chart-plot{position:relative;flex:1;min-width:0;}
+.home-chart-grid{position:absolute;inset:0 0 24px 0;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none;}
+.home-chart-grid span{border-top:1px dashed #e1e8f1;}
+.home-chart-bars{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:clamp(2px,.65vw,11px);position:relative;height:100%;z-index:1;}
+.home-chart-month{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px;min-width:0;}
+.home-chart-click{display:flex;align-items:flex-end;justify-content:center;background:none;border:0;box-shadow:none;margin:0;padding:0;width:100%;min-height:0;flex:1;}
+.home-chart-click:hover{background:none;box-shadow:none;transform:none;}
+.home-chart-click:focus-visible{outline:2px solid #578bcb;outline-offset:2px;border-radius:5px;}
+.home-chart-bar{display:block;width:min(100%,34px);height:var(--bar-height);min-height:2px;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,#7cb9f3,#3c85d5);transition:height .25s ease;}
+.home-chart-click[aria-pressed="true"] .home-chart-bar,.home-chart-click:hover .home-chart-bar{background:linear-gradient(180deg,#3683d0,#155ba8);}
+.home-chart-bar.is-empty{opacity:.2;}
+.home-chart-label{font-size:10px;color:#8294a4;font-weight:600;line-height:17px;}
+.home-chart-month:has(.home-chart-click[aria-pressed="true"]) .home-chart-label{font-weight:800;color:#165b9e;}
+.home-chart-footer{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:12px;border-top:1px solid #edf0f4;padding-top:12px;font-size:11px;color:#71879b;}
+.home-chart-footer strong{color:#2b5f91;}
+.home-overview{margin-top:14px;}
+.home-overview-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-top:1px solid #edf1f5;}
+.home-overview-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:#edf4fb;color:#3877b4;flex:none;}
+.home-overview-copy{min-width:0;flex:1;}
+.home-overview-label{font-size:11px;color:#7a8c9f;margin-bottom:4px;}
+.home-overview-value{font-size:13px;font-weight:800;color:#2b4661;overflow-wrap:anywhere;}
+.home-overview-side{font-size:11px;color:#5d7d9b;white-space:nowrap;text-align:right;}
+.home-dashboard-status{color:#668098;font-size:11px;margin:14px 2px 0;line-height:1.5;}
+.home-infos{margin-top:16px;background:#fff;border:1px solid #dce5ed;border-radius:16px;padding:20px;box-shadow:0 5px 19px rgba(25,55,90,.045);}
+.home-infos h2{color:#18304a;font-size:17px;}
+.home-infos .infos-list{color:#3f5b74;font-size:13px;}
+@media(max-width:1160px){.home-stats{grid-template-columns:repeat(2,minmax(0,1fr));}.home-data-panels{grid-template-columns:minmax(0,1fr);}}
+@media(max-width:680px){.home-dashboard{margin-top:18px;}.home-stats{gap:10px;}.home-stat{padding:13px;}.home-stat-number{font-size:clamp(20px,6vw,29px);}.home-stat-name{font-size:11px;}.home-stat-sub{font-size:10px;}.home-stat-icon{height:32px;width:32px;margin-bottom:10px;}.home-data-panel{padding:15px;}.home-data-panels{gap:12px;}.home-chart{height:195px;gap:6px;}.home-chart-axis{width:35px;font-size:9px;}.home-chart-label{font-size:9px;}.home-chart-total{font-size:18px;}.home-infos{padding:16px;}.home-dashboard-period{font-size:11px;padding:7px 9px;}}
+@media(prefers-reduced-motion:reduce){.home-chart-bar{transition:none;}}
+
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="zugriffsrechte.js?v=20261121-master-display"></script>
@@ -430,6 +493,47 @@ button:hover{
       <a href="strommast-game.html" class="hero-game-link" aria-label="Mast Runner öffnen"></a>
     </div>
 
+
+    <section class="home-dashboard" aria-label="Jahresübersicht Netzbau Tafers">
+      <div class="home-dashboard-header">
+        <div>
+          <p class="home-dashboard-kicker">Netzbau Tafers · Jahresbericht</p>
+          <h2>Das Jahr in Zahlen</h2>
+          <p class="home-dashboard-sub">Kabeleinzug und Baustellen auf einen Blick</p>
+        </div>
+        <span id="homeDashboardPeriod" class="home-dashboard-period">Jahr –</span>
+      </div>
+      <div class="home-stats">
+        <article class="home-stat home-stat-blue"><div class="home-stat-icon"><i class="fa-solid fa-building"></i></div><div id="homeArchivedSites" class="home-stat-number">–</div><div class="home-stat-name">Archivierte Baustellen</div><div class="home-stat-sub">Im laufenden Jahr</div></article>
+        <article class="home-stat home-stat-green"><div class="home-stat-icon"><i class="fa-solid fa-ruler-horizontal"></i></div><div id="homeTotalMeters" class="home-stat-number">–</div><div class="home-stat-name">Eingezogenes Kabel</div><div class="home-stat-sub">Monatsabschlüsse dieses Jahres</div></article>
+        <article class="home-stat home-stat-amber"><div class="home-stat-icon"><i class="fa-solid fa-helmet-safety"></i></div><div id="homeActiveSites" class="home-stat-number">–</div><div class="home-stat-name">Aktive Baustellen</div><div class="home-stat-sub">Aktueller Bestand</div></article>
+        <article class="home-stat home-stat-purple"><div class="home-stat-icon"><i class="fa-solid fa-clipboard-list"></i></div><div id="homeCableBookings" class="home-stat-number">–</div><div class="home-stat-name">Kabelbuchungen</div><div class="home-stat-sub">Im laufenden Jahr</div></article>
+      </div>
+      <div class="home-data-panels">
+        <section class="home-data-panel" aria-label="Kabeleinzug je Monat">
+          <div class="home-panel-heading"><div><h3 class="home-panel-title">Kabeleinzug nach Monat</h3><p class="home-panel-sub">Eingezogene Kabelmeter im Jahresverlauf</p></div><div id="homeChartTotal" class="home-chart-total">– <small>Jahrestotal</small></div></div>
+          <div class="home-chart">
+            <div id="homeChartAxis" class="home-chart-axis" aria-hidden="true"></div>
+            <div class="home-chart-plot">
+              <div class="home-chart-grid" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+              <div id="homeChartBars" class="home-chart-bars" role="group" aria-label="Monatswerte auswählen"></div>
+            </div>
+          </div>
+          <div class="home-chart-footer"><span id="homeSelectedMonth">Monat auswählen</span><span>Balken anklicken für Monatswerte</span></div>
+        </section>
+        <section class="home-data-panel" aria-label="Weitere Jahreswerte">
+          <h3 class="home-panel-title">Weitere Jahreswerte</h3>
+          <p class="home-panel-sub">Zusätzliche Kennzahlen aus den vorhandenen Daten</p>
+          <div class="home-overview">
+            <div class="home-overview-row"><div class="home-overview-icon"><i class="fa-solid fa-trophy"></i></div><div class="home-overview-copy"><div class="home-overview-label">Rekordmonat</div><div id="homeRecordMonth" class="home-overview-value">–</div></div><div id="homeRecordMeters" class="home-overview-side"></div></div>
+            <div class="home-overview-row"><div class="home-overview-icon"><i class="fa-solid fa-cable-car"></i></div><div class="home-overview-copy"><div class="home-overview-label">Meistverwendeter Kabeltyp (Meter)</div><div id="homeTopCable" class="home-overview-value">–</div></div><div id="homeTopCableMeters" class="home-overview-side"></div></div>
+            <div class="home-overview-row"><div class="home-overview-icon"><i class="fa-solid fa-city"></i></div><div class="home-overview-copy"><div class="home-overview-label">Baustellen insgesamt</div><div class="home-overview-value">Aktiv + dieses Jahr archiviert</div></div><div id="homeTotalSites" class="home-overview-side">–</div></div>
+          </div>
+        </section>
+      </div>
+      <p id="homeDashboardStatus" class="home-dashboard-status" role="status" aria-live="polite">Jahresübersicht wird geladen …</p>
+    </section>
+
     <section class="home-infos" aria-live="polite">
       <h2 id="infosTitle">Aktuelle Infos</h2>
       <p id="infosMeta" class="infos-meta"></p>
@@ -461,6 +565,132 @@ const LIMITED_ACCESS_UIDS = ["POSB6W7xeDZ8Dlba03ZP3J02dMC3", "AX08qKp7lte6vslQMF
 const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
 const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
 const HOME_INFOS_URL = "home-infos.json";
+
+/* Nur eine kleine, serverseitig vorberechnete Jahresübersicht abrufen.
+   Browser-Cache: 6 Stunden. Keine Firestore-Listener und keine Log-Abfragen. */
+const HOME_DASHBOARD_CACHE_MS=6*60*60*1000;
+const HOME_MONTH_NAMES=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+let homeDashboardPending=false;
+let homeDashboardYear=null;
+let homeDashboardSelectedMonth=null;
+let homeDashboardCached=null;
+
+function homeSwissYear(){
+  return Number(new Intl.DateTimeFormat("en",{timeZone:"Europe/Zurich",year:"numeric"}).format(new Date()));
+}
+function homeNumber(value){
+  const n=Number(value);
+  return Number.isFinite(n)?Math.max(0,n):0;
+}
+function homeFormat(value){
+  return homeNumber(value).toLocaleString("de-CH",{maximumFractionDigits:2}).replace(/\u2019/g,"'");
+}
+function homeSetText(id,value){
+  const el=document.getElementById(id);
+  if(el)el.textContent=value;
+}
+function homeChartMax(values){
+  const max=Math.max(0,...values);
+  if(!max)return 100;
+  const rough=max/4;
+  const order=Math.pow(10,Math.floor(Math.log10(rough)));
+  const step=[1,2,2.5,5,10].map(x=>x*order).find(x=>x>=rough)||10*order;
+  return Math.ceil(max/(4*step))*4*step;
+}
+function homeSelectMonth(index,values){
+  homeDashboardSelectedMonth=index;
+  const formatted=HOME_MONTH_NAMES[index]+": "+homeFormat(values[index])+" m";
+  homeSetText("homeSelectedMonth",formatted);
+  document.querySelectorAll("#homeChartBars .home-chart-click").forEach((button,i)=>{
+    button.setAttribute("aria-pressed",String(index===i));
+  });
+}
+function homeRenderChart(monthly){
+  const values=Array.from({length:12},(_,i)=>homeNumber(monthly[i]));
+  const max=homeChartMax(values);
+  const axis=document.getElementById("homeChartAxis");
+  const bars=document.getElementById("homeChartBars");
+  if(!axis||!bars)return;
+  axis.replaceChildren();
+  bars.replaceChildren();
+  for(let i=4;i>=0;i--){
+    const label=document.createElement("span");
+    label.textContent=homeFormat(max*i/4);
+    axis.appendChild(label);
+  }
+  values.forEach((value,index)=>{
+    const item=document.createElement("div");
+    item.className="home-chart-month";
+    const button=document.createElement("button");
+    button.type="button";
+    button.className="home-chart-click";
+    button.setAttribute("aria-label",HOME_MONTH_NAMES[index]+": "+homeFormat(value)+" Meter");
+    button.setAttribute("aria-pressed","false");
+    const bar=document.createElement("span");
+    bar.className="home-chart-bar"+(value?"":" is-empty");
+    bar.style.setProperty("--bar-height",(value/max*100).toFixed(2)+"%");
+    button.appendChild(bar);
+    button.addEventListener("click",()=>homeSelectMonth(index,values));
+    const label=document.createElement("span");
+    label.className="home-chart-label";
+    label.textContent=HOME_MONTH_NAMES[index].slice(0,3);
+    item.append(button,label);
+    bars.appendChild(item);
+  });
+  const index=homeDashboardSelectedMonth===null?Math.max(0,new Date().getMonth()-1):homeDashboardSelectedMonth;
+  homeSelectMonth(Math.min(11,Math.max(0,index)),values);
+}
+function homeRenderDashboard(data){
+  if(!data||data.year!==homeSwissYear())return;
+  homeDashboardCached=data;
+  homeSetText("homeTotalMeters",homeFormat(data.totalMeters)+" m");
+  homeSetText("homeArchivedSites",homeFormat(data.archivedSites));
+  homeSetText("homeActiveSites",homeFormat(data.activeSites));
+  homeSetText("homeCableBookings",homeFormat(data.bookings));
+  homeSetText("homeTotalSites",homeFormat(data.totalSites));
+  homeSetText("homeChartTotal",homeFormat(data.totalMeters)+" m");
+  const recordMonth=Number(data.recordMonth);
+  homeSetText("homeRecordMonth",recordMonth>=1&&recordMonth<=12?HOME_MONTH_NAMES[recordMonth-1]+" "+data.year:"Noch kein Eintrag");
+  homeSetText("homeRecordMeters",recordMonth?homeFormat(data.recordMeters)+" m":"");
+  homeSetText("homeTopCable",data.topType||"Noch kein Eintrag");
+  homeSetText("homeTopCableMeters",data.topType?homeFormat(data.topTypeMeters)+" m":"");
+  homeRenderChart(Array.isArray(data.monthlyMeters)?data.monthlyMeters:[]);
+  let stamp="";
+  if(data.updatedAt){
+    const date=new Date(data.updatedAt);
+    if(!Number.isNaN(date.getTime()))stamp=date.toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short",timeZone:"Europe/Zurich"});
+  }
+  homeSetText("homeDashboardStatus",(stamp?"Stand: "+stamp+". ":"")+"Kabelmeter aus gespeicherten Monatsständen; laufender Monat kann fehlen. Zahlen sind Näherungswerte.");
+}
+async function homeLoadDashboard(){
+  const user=firebase.auth().currentUser;
+  if(!user||homeDashboardPending)return;
+  const year=homeSwissYear();
+  homeSetText("homeDashboardPeriod","01.01. – 31.12."+year);
+  const key="netzbau-home-dashboard-"+year;
+  let cached=null;
+  try{cached=JSON.parse(localStorage.getItem(key)||"null");}catch(error){}
+  if(cached&&cached.data&&cached.data.year===year){
+    homeRenderDashboard(cached.data);
+    if(Date.now()-homeNumber(cached.savedAt)<HOME_DASHBOARD_CACHE_MS)return;
+  }
+  homeDashboardPending=true;
+  try{
+    const callable=firebase.app().functions("europe-west1").httpsCallable("lagerDashboardGet");
+    const response=await callable({});
+    const data=response&&response.data;
+    if(!firebase.auth().currentUser||homeSwissYear()!==year)return;
+    if(!data||data.year!==year)throw new Error("Ungültiges Statistikjahr");
+    homeRenderDashboard(data);
+    try{localStorage.setItem(key,JSON.stringify({savedAt:Date.now(),data}));}catch(error){}
+  }catch(error){
+    console.error("Jahresdashboard konnte nicht geladen werden:",error);
+    if(!homeDashboardCached)homeSetText("homeDashboardStatus","Jahresstatistik aktuell nicht verfügbar. Die Funktion lagerDashboardGet muss in Firebase bereitgestellt sein.");
+  }finally{
+    homeDashboardPending=false;
+  }
+}
+
 
 // Jährlicher Bildwechsel: 1.–31. Dezember Weihnachtslogo, sonst Standardlogo.
 // Läuft beim Laden der Startseite, ohne Server-Jobs oder manuelle Umschaltung.
@@ -778,7 +1008,7 @@ document.addEventListener("click", (event) => {
 document.addEventListener("DOMContentLoaded", setSeasonalHomeLogo);
 document.addEventListener("DOMContentLoaded", updateSeasonalHomeSnowfall);
 // Auch bei einem offenen Tab zum Monatswechsel automatisch aktualisieren.
-setInterval(() => { setSeasonalHomeLogo(); updateSeasonalHomeSnowfall(); }, 60000);
+setInterval(() => { setSeasonalHomeLogo(); updateSeasonalHomeSnowfall(); if(firebase.auth().currentUser)homeLoadDashboard(); }, 60000);
 document.addEventListener("DOMContentLoaded", markActiveMenu);
 document.addEventListener("DOMContentLoaded", loadHomeInfos);
 
@@ -794,6 +1024,7 @@ LagerAccess.onAuthStateChanged((user) => {
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
     updateSeasonalHomeSnowfall();
+    homeLoadDashboard();
   }else{
     setNavigationVisibility(null);
     closeMenu();

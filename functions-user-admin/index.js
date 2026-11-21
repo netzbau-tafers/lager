@@ -71,3 +71,15 @@ exports.lagerSchedulerSet=onCall({region:'europe-west1',maxInstances:2},schedule
 // Monatsabschluss am 1. jedes Monats um 03:30 Schweizer Zeit, auch ohne offenen Browser.
 const {createMonthlyCableSnapshot}=require('./cable-monthly-snapshot.cjs');
 exports.lagerCableMonthlySnapshot=onSchedule({schedule:'30 3 1 * *',timeZone:'Europe/Zurich',region:'europe-west1',maxInstances:1,timeoutSeconds:540,retryCount:1},createMonthlyCableSnapshot({db:getFirestore(),Timestamp,FieldValue,logger}));
+
+// Gecachte Jahreskennzahlen fuer die Startseite. Bei Bedarf, kein Scheduler.
+const {createDashboardGet}=require('./dashboard-stats.cjs');
+const dashboardGet=createDashboardGet({db:getFirestore(),Timestamp,logger});
+exports.lagerDashboardGet=onCall({region:'europe-west1',maxInstances:2,timeoutSeconds:60},async request=>{
+  if(!request.auth)throw new HttpsError('unauthenticated','Bitte anmelden.');
+  try{return await dashboardGet(request);}
+  catch(error){
+    logger.error('Dashboard konnte nicht berechnet werden',{message:error.message});
+    throw new HttpsError('internal','Jahresstatistik derzeit nicht verfuegbar.');
+  }
+});
