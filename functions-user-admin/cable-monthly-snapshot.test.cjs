@@ -72,10 +72,10 @@ test('Bereinigung loescht nur alte Logs und schont Kabellager ohne finalisierten
         get:async()=>({exists:snap.has(key),data:()=>snap.get(key)})
       })};
       assert.equal(name,'logs');
-      return {where(){return this;},orderBy(){return this;},limit(){return this;},
-        get:async()=>({docs:logs.map(log=>({
-          id:log.id,ref:{id:log.id},data:()=>log
-        }))})})};
+      return {
+        where(){return this;},orderBy(){return this;},limit(){return this;},
+        get:async()=>({docs:logs.map(log=>({id:log.id,ref:{id:log.id},data:()=>log}))})
+      };
     },
     batch(){return {delete(ref){deleted.push(ref.id);},async commit(){}};}
   };
