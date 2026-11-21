@@ -13,8 +13,10 @@ Der geplante Firebase-Export `lagerVehicleServiceReminder` wurde entfernt, damit
 
 Die bisherige Versandimplementierung `functions-user-admin/vehicle-service.cjs` und deren Tests bleiben zur möglichen Wiederverwendung erhalten. Für eine erneute Aktivierung sind ein ausdrücklicher Scheduler-Export, die benötigten Secrets und ein neues Deployment erforderlich. Frühere Deploy-Anweisungen für `lagerVehicleServiceReminder` nicht mehr verwenden.
 
-## Erinnerungen und Versandstatus
-Die Funktion prüft täglich um 07:00 Uhr Europe/Zurich die vorhandenen Fahrzeuge. Sie liest keine Nutzungs- oder Tankverläufe. Eine Erinnerung wird am ersten Prüflauf ab 30 Tagen vor dem Termin gesendet, separat für Fahrzeug- und Kranservice. Kurzfristige oder bereits überfällige Nachträge werden ebenfalls gemeldet; der Text nennt die tatsächlich verbleibenden Tage.
+## Bisheriger Erinnerungsversand und Versandstatus (historisch)
+Die folgenden Angaben beschreiben den früheren automatischen Versand, der nicht mehr aktiv ist.
+
+Die Funktion prüfte täglich um 07:00 Uhr Europe/Zurich die vorhandenen Fahrzeuge. Sie liest keine Nutzungs- oder Tankverläufe. Eine Erinnerung wird am ersten Prüflauf ab 30 Tagen vor dem Termin gesendet, separat für Fahrzeug- und Kranservice. Kurzfristige oder bereits überfällige Nachträge werden ebenfalls gemeldet; der Text nennt die tatsächlich verbleibenden Tage.
 
 Je Fahrzeug, Serviceart und Datum wird der Status in `fahrzeug_service_mails` gespeichert. Erneute Prüfläufe versenden erfolgreich gemeldete Termine nicht nochmals. Neue Termine erhalten einen eigenen Status. Der gleiche bereits gemeldete Termin wird auch nach Entfernen und Wiedereintragen nicht erneut gemeldet.
 
