@@ -397,6 +397,60 @@ tr.total-row td{
   margin-bottom:10px;
 }
 
+/* The summary button always remains visible; the details are hidden on screen only. */
+.month-card-toggle{
+  width:100%;
+  margin:0 0 10px;
+  padding:0;
+  min-height:48px;
+  background:transparent;
+  color:inherit;
+  border:0;
+  box-shadow:none;
+  border-radius:8px;
+  text-align:left;
+}
+.month-card-toggle:hover{
+  background:#f2f6f9;
+  color:inherit;
+  box-shadow:none;
+  transform:none;
+}
+.month-card-toggle:focus-visible{
+  outline:2px solid #2c78aa;
+  outline-offset:3px;
+}
+.month-card-heading{
+  display:block;
+  flex:1;
+  min-width:0;
+}
+.month-card-toggle .month-title{
+  display:block;
+  font-weight:700;
+}
+.month-card-toggle .month-total{
+  display:block;
+  margin:6px 0 0;
+}
+.month-chevron{
+  color:#526577;
+  font-size:16px;
+  transition:transform 0.15s ease;
+}
+.month-card.is-expanded .month-chevron{
+  transform:rotate(180deg);
+}
+.month-card-body{
+  display:none;
+}
+.month-card.is-expanded .month-card-body{
+  display:block;
+}
+.month-card-body .month-card-actions{
+  margin-bottom:10px;
+}
+
 .month-card-actions{
   display:flex;
   flex-wrap:wrap;
@@ -542,6 +596,27 @@ tr.total-row td{
   .app-footer,
   .login-screen,
   .month-card-actions{
+    display:none !important;
+  }
+
+  /* Show every month's full table when printing, even if collapsed on screen. */
+  .month-card-body{
+    display:block !important;
+  }
+
+  .month-card-toggle,
+  .month-card-toggle:hover{
+    display:block;
+    min-height:0;
+    background:transparent !important;
+    color:#111;
+    box-shadow:none;
+    transform:none;
+    cursor:default;
+    text-align:left;
+  }
+
+  .month-chevron{
     display:none !important;
   }
 
@@ -773,6 +848,7 @@ let hasLoadedSnapshots = false;
 let isEnsuringSnapshot = false;
 let currentUser = null;
 let savingSnapshotKeys = new Set();
+const expandedMonthKeys = new Set();
 const SNAPSHOT_STATUS_READY = "ready";
 let activeLogWindow = null;
 
@@ -1662,6 +1738,7 @@ function renderMonths(data){
   container.innerHTML = data.monthlyRows.map((monthData, monthIndex) => {
     const snapshotId = getSnapshotDocumentId(year, monthIndex);
     const snapshot = getSnapshotByMonth(year, monthIndex);
+    const isExpanded = expandedMonthKeys.has(snapshotId);
     const isSavingSnapshot = savingSnapshotKeys.has(snapshotId);
     const now = new Date();
     const isCurrentMonth = year === now.getFullYear() && monthIndex === now.getMonth();
@@ -1690,28 +1767,48 @@ function renderMonths(data){
       : '<tr><td colspan="3">Keine Einzüge in diesem Monat.</td></tr>';
 
     return `
-      <div class="month-card">
-        <div class="month-card-header">
-          <div>
-            <h3 class="month-title">${escapeHtml(getMonthLabel(monthIndex))}</h3>
-            <p class="month-total">Monatstotal: <strong>${escapeHtml(formatMeters(monthData.total))}</strong></p>
-            ${allowManualSnapshotSave ? `<p class="snapshot-meta">${snapshotMeta}</p>` : ""}
-          </div>
+      <div class="month-card${isExpanded ? " is-expanded" : ""}">
+        <button type="button" class="month-card-header month-card-toggle js-toggle-month"
+                data-month-key="${escapeHtml(snapshotId)}"
+                aria-expanded="${isExpanded ? "true" : "false"}"
+                aria-controls="month-body-${escapeHtml(snapshotId)}">
+          <span class="month-card-heading">
+            <span class="month-title">${escapeHtml(getMonthLabel(monthIndex))}</span>
+            <span class="month-total">Monatstotal: <strong>${escapeHtml(formatMeters(monthData.total))}</strong></span>
+          </span>
+          <i class="fa-solid fa-chevron-down month-chevron" aria-hidden="true"></i>
+        </button>
+        <div id="month-body-${escapeHtml(snapshotId)}" class="month-card-body">
           ${actionButton ? `<div class="month-card-actions">${actionButton}</div>` : ""}
+          ${allowManualSnapshotSave ? `<p class="snapshot-meta">${snapshotMeta}</p>` : ""}
+          <table class="month-table">
+            <thead>
+              <tr>
+                <th>Kabeltyp</th>
+                <th class="number-cell">Meter</th>
+                <th class="number-cell">Buchungen</th>
+              </tr>
+            </thead>
+            <tbody>${tableRows}</tbody>
+          </table>
         </div>
-        <table class="month-table">
-          <thead>
-            <tr>
-              <th>Kabeltyp</th>
-              <th class="number-cell">Meter</th>
-              <th class="number-cell">Buchungen</th>
-            </tr>
-          </thead>
-          <tbody>${tableRows}</tbody>
-        </table>
       </div>
     `;
   }).join("");
+
+  container.querySelectorAll(".js-toggle-month").forEach(button => {
+    button.addEventListener("click", function(){
+      const monthKey = this.dataset.monthKey;
+      const shouldExpand = this.getAttribute("aria-expanded") !== "true";
+      if(shouldExpand){
+        expandedMonthKeys.add(monthKey);
+      }else{
+        expandedMonthKeys.delete(monthKey);
+      }
+      this.setAttribute("aria-expanded", String(shouldExpand));
+      this.closest(".month-card").classList.toggle("is-expanded", shouldExpand);
+    });
+  });
 
   if(allowManualSnapshotSave){
     container.querySelectorAll(".js-save-snapshot").forEach(button => {
