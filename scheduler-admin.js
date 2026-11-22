@@ -8,7 +8,7 @@ const api=firebase.app().functions('europe-west1');
 const read=api.httpsCallable('lagerSchedulerStatus');
 const write=api.httpsCallable('lagerSchedulerSet');
 const groups=[
- ['bobinen','Bobinen-Erinnerungen','Montag–Freitag um 16:45 Uhr'],
+ ['bobinen','Bobinen-Erinnerungen','Montag–Donnerstag um 16:45 Uhr'],
  ['kabelreport','Kabelreport-Monatsabschluss','Am 1. jedes Monats um 03:30 Uhr · erstellt den monatlichen Kabelreport-Snapshot']
 ];
 function message(value){status.textContent=value;}
