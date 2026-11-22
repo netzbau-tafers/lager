@@ -17,7 +17,7 @@ function setup(month, store = new Map()){
   };
   const window = {LagerAccess:{MASTER},sessionStorage};
   const IntlMock = {
-    DateTimeFormat:() => ({format:() => String(month)})
+    DateTimeFormat:function(){return {format:() => String(month)}}
   };
   vm.runInNewContext(source, {window,Intl:IntlMock,Date});
   return {preview:window.LagerChristmasPreview,store};
@@ -54,7 +54,7 @@ test('Blockierter Tab-Speicher schaltet keine unerlaubte Vorschau frei',()=>{
     LagerAccess:{MASTER},
     sessionStorage:{getItem(){throw Error('blocked')},setItem(){throw Error('blocked')},removeItem(){throw Error('blocked')}}
   };
-  vm.runInNewContext(source,{window,Intl:{DateTimeFormat:()=>({format:()=> '11'})},Date});
+  vm.runInNewContext(source,{window,Intl:{DateTimeFormat:function(){return {format:()=> '11'}}},Date});
   assert.equal(window.LagerChristmasPreview.isActive(master),false);
   assert.equal(window.LagerChristmasPreview.setPreviewEnabled(master,true),false);
 });
