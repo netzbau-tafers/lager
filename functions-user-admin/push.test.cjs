@@ -57,21 +57,23 @@ test('deleted, disabled and read-only accounts receive no reminders',async()=>{
   }
 });
 
-test('Friday 16:45 Zurich reminder is sent',async()=>{
+test('Friday 16:45 Zurich reminder is not sent',async()=>{
   const f=fixture(Date.parse('2026-10-16T14:45:00Z'));
   f.data.set('bobinen/friday-bobine',bobine());
   await f.service.register({auth:{uid:'alice'},data:{token:'f'.repeat(40)}});
   await f.service.remind();
-  assert.equal(f.messages.length,1);
+  assert.equal(f.messages.length,0);
 });
 test('Swiss working hours, weekends and daylight saving',()=>{
   for(const [date,expected] of [
     ['2026-10-12T04:59:59Z',false],['2026-10-12T05:00:00Z',true],
     ['2026-10-12T15:09:59Z',true],['2026-10-12T15:10:00Z',false],
-    ['2026-10-09T09:49:59Z',true],['2026-10-09T14:45:00Z',true],
-    ['2026-10-09T15:09:59Z',true],['2026-10-09T15:10:00Z',false],
+    ['2026-10-09T09:49:59Z',false],['2026-10-09T14:45:00Z',false],
+    ['2026-10-09T15:09:59Z',false],['2026-10-09T15:10:00Z',false],
     ['2026-10-10T07:00:00Z',false],['2026-10-11T07:00:00Z',false],
     ['2026-11-02T05:59:59Z',false],['2026-11-02T06:00:00Z',true]
   ])assert.equal(workWindow(Date.parse(date)).allowed,expected,date);
-  assert.equal(workWindow(Date.parse('2026-10-09T14:45:00Z')).ttl,1500);
+  assert.equal(workWindow(Date.parse('2026-10-09T14:45:00Z')).ttl,0);
+  assert.equal(workWindow(Date.parse('2026-10-15T14:45:00Z')).allowed,true);
+  assert.equal(workWindow(Date.parse('2026-10-15T14:45:00Z')).ttl,1500);
 });
