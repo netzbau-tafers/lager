@@ -413,6 +413,7 @@ button:hover{
 </style>
 <script src="https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore-compat.js"></script>
 <script src="zugriffsrechte.js?v=20261121-master-display"></script>
+<script src="weihnachts-vorschau.js?v=20261122"></script>
 <link rel="stylesheet" href="navigation.css?v=20261005-menu-style">
 </head>
 <body>
@@ -692,28 +693,25 @@ async function homeLoadDashboard(){
 }
 
 
-// Jährlicher Bildwechsel: 1.–31. Dezember Weihnachtslogo, sonst Standardlogo.
-// Läuft beim Laden der Startseite, ohne Server-Jobs oder manuelle Umschaltung.
+// Regulär vom 1.–31. Dezember; Hauptadministrator kann im eigenen Tab vorab testen.
+// Keine Cloud Function, kein Firestore-Zugriff und keine serverseitige Umschaltung.
 const HOME_LOGO_DEFAULT = "ChatGPT Image 10. März 2026, 21_46_18.png";
 const HOME_LOGO_CHRISTMAS = "netzbau-elite-tafers-weihnachten.png";
 
 function setSeasonalHomeLogo(){
   const image = document.getElementById("homeHeroImage");
-  if(!image) return;
-  const monthInSwitzerland = Number(new Intl.DateTimeFormat("en-US", {
-    timeZone: "Europe/Zurich",
-    month: "numeric"
-  }).format(new Date()));
-  if(monthInSwitzerland !== 12){
-    image.src = HOME_LOGO_DEFAULT;
+  if(!image)return;
+  if(!LagerChristmasPreview.isActive(firebase.auth().currentUser)){
+    image.onerror = null;
+    if(image.getAttribute("src") !== HOME_LOGO_DEFAULT)image.src = HOME_LOGO_DEFAULT;
     return;
   }
-  // Solange die Weihnachtsdatei noch nicht hochgeladen ist, Standardbild beibehalten.
+  // Falls das Weihnachtsbild fehlt, weiter das normale Bild anzeigen.
   image.onerror = () => {
     image.onerror = null;
     image.src = HOME_LOGO_DEFAULT;
   };
-  image.src = HOME_LOGO_CHRISTMAS;
+  if(image.getAttribute("src") !== HOME_LOGO_CHRISTMAS)image.src = HOME_LOGO_CHRISTMAS;
 }
 
 
@@ -745,12 +743,9 @@ function createHomeSnowfall(){
 }
 
 function updateSeasonalHomeSnowfall(){
-  const isDecemberInSwitzerland = Number(new Intl.DateTimeFormat("en-US", {
-    timeZone: "Europe/Zurich",
-    month: "numeric"
-  }).format(new Date())) === 12;
+  const christmasActive = LagerChristmasPreview.isActive(firebase.auth().currentUser);
   const homepageVisible = document.getElementById("appContent")?.style.display !== "none";
-  if(isDecemberInSwitzerland && homepageVisible){
+  if(christmasActive && homepageVisible){
     createHomeSnowfall();
   }else{
     document.getElementById("homeSnowfall")?.remove();
@@ -1023,6 +1018,7 @@ LagerAccess.onAuthStateChanged((user) => {
     setNavigationVisibility(user);
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
+    setSeasonalHomeLogo();
     updateSeasonalHomeSnowfall();
     homeLoadDashboard();
   }else{
@@ -1030,6 +1026,7 @@ LagerAccess.onAuthStateChanged((user) => {
     closeMenu();
     document.getElementById("loginScreen").style.display = "flex";
     document.getElementById("appContent").style.display = "none";
+    setSeasonalHomeLogo();
     updateSeasonalHomeSnowfall();
   }
 });
