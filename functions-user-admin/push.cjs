@@ -6,7 +6,7 @@ const time=value=>value&&typeof value.toMillis==='function'?value.toMillis():NaN
 function workWindow(now){
   const parts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Zurich',weekday:'short',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(new Date(now)).map(p=>[p.type,p.value]));
   const seconds=Number(parts.hour)*3600+Number(parts.minute)*60+Number(parts.second);
-  const end=['Mon','Tue','Wed','Thu','Fri'].includes(parts.weekday)?17*3600+10*60:0;
+  const end=['Mon','Tue','Wed','Thu'].includes(parts.weekday)?17*3600+10*60:0;
   return {allowed:seconds>=7*3600&&seconds<end,ttl:Math.max(0,Math.min(3600,end-seconds))};
 }
 function due(b,now,lastSent=0){
