@@ -696,7 +696,8 @@ async function homeLoadDashboard(){
 // Regulär vom 1.–31. Dezember; Hauptadministrator kann im eigenen Tab vorab testen.
 // Keine Cloud Function, kein Firestore-Zugriff und keine serverseitige Umschaltung.
 const HOME_LOGO_DEFAULT = "ChatGPT Image 10. März 2026, 21_46_18.png";
-const HOME_LOGO_CHRISTMAS = "netzbau-elite-tafers-weihnachten.png";
+// Fingerabdruck des wiederhergestellten PNGs: umgeht den alten Browser-Cache der defekten Bilddatei.
+const HOME_LOGO_CHRISTMAS = "netzbau-elite-tafers-weihnachten.png?v=8025e2fd";
 
 function setSeasonalHomeLogo(){
   const image = document.getElementById("homeHeroImage");
