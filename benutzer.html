@@ -265,6 +265,7 @@
 <script src="https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/13.4.0/firebase-functions-compat.js"></script>
 <script src="zugriffsrechte.js?v=20261121-master-display"></script>
+<script src="weihnachts-vorschau.js?v=20261122"></script>
 <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",
@@ -302,6 +303,51 @@ function logout(){if(confirm('Wirklich ausloggen?'))auth.signOut().then(()=>loca
     if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)closeDialog();
   });
   dialog.addEventListener('close',()=>opener.focus());
+})();
+</script>
+
+<section id="christmasPreviewPanel" class="card" style="max-width:1000px;margin:24px auto" hidden>
+  <h2><i class="fa-solid fa-snowflake" aria-hidden="true"></i> Weihnachtslayout testen</h2>
+  <p class="muted">Schaltet das Weihnachtsbild und die 65 Schneeflocken auf der Startseite testweise ein. Nur für den Hauptadministrator und nur in diesem Browser-Tab; andere Benutzer sehen weiterhin das normale Layout.</p>
+  <label class="christmas-preview-control" for="christmasPreviewToggle">
+    <input id="christmasPreviewToggle" type="checkbox">
+    Weihnachtslayout testweise aktivieren
+  </label>
+  <p id="christmasPreviewStatus" role="status" aria-live="polite"></p>
+  <a href="home.html">Weihnachtslayout auf der Startseite ansehen</a>
+  <p class="muted">Beim Schliessen des Tabs endet die Vorschau. Vom 1. bis 31. Dezember wird das Weihnachtslayout wie bisher automatisch für alle angezeigt.</p>
+</section>
+<style>
+#christmasPreviewPanel .christmas-preview-control{display:flex;align-items:center;gap:12px;margin:16px 0;font-weight:600;cursor:pointer}
+#christmasPreviewToggle{width:20px;height:20px;flex:0 0 auto;accent-color:#276b50}
+#christmasPreviewStatus{margin:10px 0 14px;color:#526478}
+</style>
+<script>
+(function(){
+  'use strict';
+  const panel=document.getElementById('christmasPreviewPanel');
+  const toggle=document.getElementById('christmasPreviewToggle');
+  const status=document.getElementById('christmasPreviewStatus');
+  firebase.auth().onAuthStateChanged(user=>{
+    const master=Boolean(user && user.uid===LagerAccess.MASTER);
+    panel.hidden=!master;
+    toggle.checked=master && LagerChristmasPreview.previewEnabled(user);
+    status.textContent=master?(toggle.checked?'Testvorschau ist eingeschaltet.':'Testvorschau ist ausgeschaltet.'):'';
+  });
+  toggle.addEventListener('change',()=>{
+    const user=firebase.auth().currentUser;
+    if(!user || user.uid!==LagerAccess.MASTER){
+      toggle.checked=false;
+      panel.hidden=true;
+      return;
+    }
+    if(!LagerChristmasPreview.setPreviewEnabled(user,toggle.checked)){
+      toggle.checked=LagerChristmasPreview.previewEnabled(user);
+      status.textContent='Testvorschau konnte in diesem Browser nicht gespeichert werden.';
+      return;
+    }
+    status.textContent=toggle.checked?'Testvorschau eingeschaltet. Öffne die Startseite.':'Testvorschau ausgeschaltet. Ausserhalb des Dezembers wird das normale Layout angezeigt.';
+  });
 })();
 </script>
 <section id="schedulerPanel" class="card" style="max-width:1000px;margin:24px auto" hidden>
