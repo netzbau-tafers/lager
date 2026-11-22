@@ -354,6 +354,9 @@ button:hover{
 .hero-actions{border:1px solid #dce5ed;border-bottom:0;border-radius:16px 16px 0 0;overflow:hidden;box-shadow:0 5px 20px rgba(20,47,72,.05);}
 .hero-image-wrap{background:#000;overflow:hidden;border-radius:0 0 16px 16px;border:1px solid #dce5ed;border-top:0;box-shadow:0 8px 25px rgba(25,55,90,.08);}
 .hero-image{max-height:420px;object-fit:contain;}
+/* Bereits vorhandene SVG-Weihnachtsdekoration als Fallback, wenn das Sonderbild fehlt. */
+.home-christmas-overlay{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none;z-index:2;}
+.home-christmas-overlay[hidden]{display:none;}
 .home-dashboard{margin-top:24px;color:#18304a;}
 .home-dashboard *{box-sizing:border-box;}
 .home-dashboard-header{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap;margin:0 0 15px;}
@@ -491,6 +494,7 @@ button:hover{
 
     <div class="hero-image-wrap">
       <img id="homeHeroImage" src="ChatGPT Image 10. März 2026, 21_46_18.png" alt="Netzbau Elite Tafers" class="hero-image">
+      <img id="homeChristmasOverlay" class="home-christmas-overlay" src="weihnachten-overlay.svg" alt="" aria-hidden="true" hidden>
       <a href="strommast-game.html" class="hero-game-link" aria-label="Mast Runner öffnen"></a>
     </div>
 
@@ -697,19 +701,41 @@ async function homeLoadDashboard(){
 // Keine Cloud Function, kein Firestore-Zugriff und keine serverseitige Umschaltung.
 const HOME_LOGO_DEFAULT = "ChatGPT Image 10. März 2026, 21_46_18.png";
 const HOME_LOGO_CHRISTMAS = "netzbau-elite-tafers-weihnachten.png";
+let homeChristmasImageUnavailable = false;
 
 function setSeasonalHomeLogo(){
   const image = document.getElementById("homeHeroImage");
+  const overlay = document.getElementById("homeChristmasOverlay");
   if(!image)return;
-  if(!LagerChristmasPreview.isActive(firebase.auth().currentUser)){
+  const christmasActive = LagerChristmasPreview.isActive(firebase.auth().currentUser);
+  if(!christmasActive){
     image.onerror = null;
+    image.onload = null;
+    if(overlay)overlay.hidden = true;
     if(image.getAttribute("src") !== HOME_LOGO_DEFAULT)image.src = HOME_LOGO_DEFAULT;
     return;
   }
-  // Falls das Weihnachtsbild fehlt, weiter das normale Bild anzeigen.
-  image.onerror = () => {
+
+  // Das Weihnachtsbild hat Vorrang. Falls es (noch) nicht hochgeladen wurde,
+  // das normale Bild mit der vorhandenen Weihnachts-SVG dekorieren.
+  if(overlay)overlay.hidden = false;
+  if(homeChristmasImageUnavailable){
     image.onerror = null;
-    image.src = HOME_LOGO_DEFAULT;
+    image.onload = null;
+    if(image.getAttribute("src") !== HOME_LOGO_DEFAULT)image.src = HOME_LOGO_DEFAULT;
+    return;
+  }
+  image.onerror = () => {
+    homeChristmasImageUnavailable = true;
+    image.onerror = null;
+    image.onload = null;
+    if(overlay)overlay.hidden = false;
+    if(image.getAttribute("src") !== HOME_LOGO_DEFAULT)image.src = HOME_LOGO_DEFAULT;
+  };
+  image.onload = () => {
+    if(image.getAttribute("src") === HOME_LOGO_CHRISTMAS && LagerChristmasPreview.isActive(firebase.auth().currentUser)){
+      if(overlay)overlay.hidden = true;
+    }
   };
   if(image.getAttribute("src") !== HOME_LOGO_CHRISTMAS)image.src = HOME_LOGO_CHRISTMAS;
 }
