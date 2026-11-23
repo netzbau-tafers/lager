@@ -952,7 +952,9 @@ canvas{
 .runner-fullscreen-score{display:none;pointer-events:none}
 .canvas-wrap:fullscreen .runner-fullscreen-score,
 .canvas-wrap:-webkit-full-screen .runner-fullscreen-score{
-  position:absolute;z-index:21;top:max(8px,env(safe-area-inset-top));
+  position:absolute;z-index:21;
+  /* 1000:320 canvas is centred in fullscreen: follow its real top edge. */
+  top:max(calc(env(safe-area-inset-top) + 8px),calc(50dvh - 16vw + 8px));
   left:max(8px,env(safe-area-inset-left));
   display:flex;flex-direction:column;align-items:flex-start;gap:1px;
   min-width:84px;padding:7px 11px;border-radius:12px;
@@ -966,7 +968,7 @@ canvas{
 .runner-fullscreen-score small{font-size:10px;font-weight:700;color:#daeaf7}
 .canvas-wrap:fullscreen .runner-music-toggle,
 .canvas-wrap:-webkit-full-screen .runner-music-toggle{
-  top:86px!important;
+  top:max(calc(env(safe-area-inset-top) + 85px),calc(50dvh - 16vw + 85px))!important;
   left:max(8px,env(safe-area-inset-left));
   right:auto
 }
@@ -974,7 +976,9 @@ canvas{
   .canvas-wrap:fullscreen .runner-fullscreen-score,
   .canvas-wrap:-webkit-full-screen .runner-fullscreen-score{padding:5px 8px;min-width:65px}
   .canvas-wrap:fullscreen .runner-music-toggle,
-  .canvas-wrap:-webkit-full-screen .runner-music-toggle{top:72px!important}
+  .canvas-wrap:-webkit-full-screen .runner-music-toggle{
+    top:max(calc(env(safe-area-inset-top) + 71px),calc(50dvh - 16vw + 71px))!important
+  }
 }
 </style>
 </head>
