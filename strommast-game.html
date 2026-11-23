@@ -857,6 +857,15 @@ canvas{
 }
 .canvas-wrap:fullscreen .runner-level-toast,
 .canvas-wrap:-webkit-full-screen .runner-level-toast{top:50%;max-width:min(62vw,470px)}
+/* Im Hochkant-Vollbild erscheint die Meldung direkt UNTER dem Spielfeld,
+   damit Punkteanzeige und Musik nicht verdeckt werden. */
+@media(orientation:portrait){
+  .canvas-wrap:fullscreen .runner-level-toast,
+  .canvas-wrap:-webkit-full-screen .runner-level-toast{
+    top:min(calc(100dvh - 52px),calc(50dvh + 16vw + 23px));
+    max-width:75%
+  }
+}
 @media(max-width:700px){
   .canvas-wrap:fullscreen .runner-level-toast,
   .canvas-wrap:-webkit-full-screen .runner-level-toast{max-width:70%}
@@ -1950,7 +1959,7 @@ function createObstacleWave(){
   const index=getDifficultyLevel(),level=DIFFICULTY_LEVELS[index],startX=canvas.width+20;
 
   if(distanceMeters>=nextSpecialAt){
-    const eventNumber=Math.floor(nextSpecialAt/SPECIAL_EVENT_EVERY_METERS);
+    const eventNumber=specialCounter+1;
     nextSpecialAt+=index>=6?750:index>=4?900:SPECIAL_EVENT_EVERY_METERS;
     announceSpecialEvent(eventNumber);
     return createComboPattern(getSpecialActions(eventNumber,index),true);
