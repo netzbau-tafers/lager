@@ -12,6 +12,17 @@ arp:"AABFAgQASAIIAEwCDABPAhAARQIUAEgCGABMAhwATwIgAEUCJABIAigATAIsAEECMABFAjQASAI
 pad:"AAA5CAAAPAgAAEAIEAA5CBAAPAgQAEAIIAA1CCAAOQggADwIMAA1CDAAOQgwADwIQAA8CEAAQAhAAEMIUAA8CFAAQAhQAEMIYAA3CGAAOwhgAD4IcAA3CHAAOwhwAD4IgAA5CIAAPAiAAEAIkAA5CJAAPAiQAEAIoAA1CKAAOQigADwIsAA1CLAAOQiwADwIwAA+CMAAQQjAAEUI0AA+CNAAQQjQAEUI4AA0COAAOAjgADsI8AA0CPAAOAjwADsIAAE5CAABPAgAAUAIEAE5CBABPAgQAUAIIAE1CCABOQggATwIMAE1CDABOQgwATwIQAE8CEABQAhAAUMIUAE8CFABQAhQAUMIYAE3CGABOwhgAT4IcAE3CHABOwhwAT4IgAE+CIABQQiAAUUIkAE+CJABQQiQAUUIoAE1CKABOQigATwIsAE1CLABOQiwATwIwAE0CMABOAjAATsI0AE0CNABOAjQATsI4AE0COABOAjgATsI8AE0CPABOAjwATsI"
 };
 const LEVEL=.29;
+const leanMobileAudio=window.matchMedia("(max-width:700px), (pointer:coarse)").matches;
+// Musik läuft auch im Stumm-Modus zeitlich weiter, ohne Audio-Knoten zu erzeugen.
+// Auf schwächeren Mobilgeräten bleiben Melodie, Bass und Takt erhalten.
+function shouldRenderEvent(event){
+  if(muted)return false;
+  if(!leanMobileAudio)return true;
+  if(event.kind==="arp"||event.kind==="hat"){
+    return Math.round(event.beat*2)%2===0;
+  }
+  return true;
+}
 let muted=false;
 try{muted=localStorage.getItem("mastRunnerMusicMuted")==="true";}catch(_){}
 
@@ -92,7 +103,7 @@ function schedule(){
   while(processed<250){
     const e=events[index], t=startedAt+cycle*LOOP+e.beat*BEAT;
     if(t>horizon)break;
-    if(t>=context.currentTime-.02){
+    if(t>=context.currentTime-.02&&shouldRenderEvent(e)){
       if(e.note!==undefined)note(context,master,e,t);
       else percussion(context,master,e,t);
     }
