@@ -402,6 +402,66 @@ button:hover{
 .home-overview-label{font-size:11px;color:#7a8c9f;margin-bottom:4px;}
 .home-overview-value{font-size:13px;font-weight:800;color:#2b4661;overflow-wrap:anywhere;}
 .home-overview-side{font-size:11px;color:#5d7d9b;white-space:nowrap;text-align:right;}
+
+/* Lade-Platzhalter nur beim ersten Abruf; bei Live-Updates bleiben vorhandene Werte sichtbar. */
+.home-dashboard.is-loading .home-stat-number,
+.home-dashboard.is-loading .home-chart-total,
+.home-dashboard.is-loading .home-overview-value,
+.home-dashboard.is-loading .home-overview-side{
+  position:relative;
+  color:transparent;
+}
+.home-dashboard.is-loading .home-stat-number::after,
+.home-dashboard.is-loading .home-chart-total::after,
+.home-dashboard.is-loading .home-overview-value::after,
+.home-dashboard.is-loading .home-overview-side::after{
+  content:"";
+  display:block;
+  position:absolute;
+  left:0;
+  top:50%;
+  transform:translateY(-50%);
+  width:min(76%,170px);
+  height:1em;
+  border-radius:7px;
+  background:linear-gradient(100deg,#e9eef4 15%,#f8fbfe 45%,#e9eef4 75%);
+  background-size:200% 100%;
+  animation:home-skeleton-shimmer 1.45s ease-in-out infinite;
+}
+.home-dashboard.is-loading .home-overview-side::after{left:auto;right:0;width:65px;}
+.home-dashboard.is-loading .home-chart-total::after{left:auto;right:0;width:105px;}
+.home-dashboard.is-loading .home-chart-total small{visibility:hidden;}
+.home-dashboard.is-loading .home-chart-bars,
+.home-dashboard.is-loading .home-chart-axis{visibility:hidden;}
+.home-dashboard.is-loading .home-chart-plot::after{
+  content:"";
+  position:absolute;
+  inset:12% 2% 24px 2%;
+  border-radius:9px;
+  background:linear-gradient(100deg,#e9eef4 15%,#f8fbfe 45%,#e9eef4 75%);
+  background-size:200% 100%;
+  animation:home-skeleton-shimmer 1.45s ease-in-out infinite;
+}
+.home-dashboard.is-loading .home-chart-footer{visibility:hidden;}
+.home-dashboard.is-loading .home-dashboard-status::before{
+  content:"";
+  display:inline-block;
+  vertical-align:-2px;
+  width:11px;height:11px;margin-right:7px;
+  border:2px solid #c5d8e8;border-top-color:#377ab6;border-radius:50%;
+  animation:home-skeleton-spin .75s linear infinite;
+}
+@keyframes home-skeleton-shimmer{to{background-position-x:-200%;}}
+@keyframes home-skeleton-spin{to{transform:rotate(360deg);}}
+@media(prefers-reduced-motion:reduce){
+  .home-dashboard.is-loading .home-stat-number::after,
+  .home-dashboard.is-loading .home-chart-total::after,
+  .home-dashboard.is-loading .home-overview-value::after,
+  .home-dashboard.is-loading .home-overview-side::after,
+  .home-dashboard.is-loading .home-chart-plot::after,
+  .home-dashboard.is-loading .home-dashboard-status::before{animation:none;}
+}
+
 .home-dashboard-status{color:#668098;font-size:11px;margin:14px 2px 0;line-height:1.5;}
 .home-infos{margin-top:16px;background:#fff;border:1px solid #dce5ed;border-radius:16px;padding:20px;box-shadow:0 5px 19px rgba(25,55,90,.045);}
 .home-infos h2{color:#18304a;font-size:17px;}
@@ -495,7 +555,7 @@ button:hover{
     </div>
 
 
-    <section class="home-dashboard" aria-label="Jahresübersicht Netzbau Tafers">
+    <section class="home-dashboard is-loading" aria-label="Jahresübersicht Netzbau Tafers" aria-busy="true">
       <div class="home-dashboard-header">
         <div>
           <p class="home-dashboard-kicker">Netzbau Tafers · Jahresbericht</p>
@@ -645,6 +705,7 @@ function homeRenderChart(monthly){
 }
 function homeRenderDashboard(data){
   if(!data||data.year!==homeSwissYear())return;
+  homeSetDashboardLoading(false);
   homeDashboardCached=data;
   homeSetText("homeTotalMeters",homeFormat(data.totalMeters)+" m");
   homeSetText("homeArchivedSites",homeFormat(data.archivedSites));
@@ -665,12 +726,20 @@ function homeRenderDashboard(data){
   }
   homeSetText("homeDashboardStatus",(stamp?"Stand: "+stamp+". ":"")+"Abgeschlossene Monate aus Snapshots; laufender Monat inklusive aktueller Buchungen.");
 }
+function homeSetDashboardLoading(loading){
+  const section=document.querySelector(".home-dashboard");
+  if(!section)return;
+  section.classList.toggle("is-loading",loading);
+  section.setAttribute("aria-busy",String(loading));
+  if(loading)homeSetText("homeDashboardStatus","Jahresstatistik wird geladen …");
+}
 async function homeLoadDashboard(){
   const user=firebase.auth().currentUser;
   if(!user)return;
   if(homeDashboardPending){homeDashboardReloadQueued=true;return;}
   const year=homeSwissYear();
   homeSetText("homeDashboardPeriod","01.01. – 31.12."+year);
+  if(!homeDashboardCached)homeSetDashboardLoading(true);
   homeDashboardPending=true;
   try{
     const callable=firebase.app().functions("europe-west1").httpsCallable("lagerDashboardGet");
@@ -680,6 +749,7 @@ async function homeLoadDashboard(){
     if(!data||data.year!==year)throw new Error("Ungültiges Statistikjahr");
     homeRenderDashboard(data);
   }catch(error){
+    homeSetDashboardLoading(false);
     console.error("Jahresdashboard konnte nicht geladen werden:",error);
     homeSetText("homeDashboardStatus",homeDashboardCached
       ?"Statistik derzeit nicht aktualisierbar. Angezeigt wird der zuletzt geladene Stand."
@@ -704,6 +774,7 @@ function homeStartDashboardListener(){
   homeStopDashboardListener();
   homeDashboardYear=year;
   homeDashboardCached=null;
+  homeSetDashboardLoading(true);
   homeSetText("homeDashboardPeriod","01.01. – 31.12."+year);
   // Listener beim ersten Dokumentstand sowie bei Änderungen am Revisionstempel.
   homeDashboardUnsubscribe=firebase.firestore().collection("dashboard_stats").doc(String(year))
@@ -1059,6 +1130,7 @@ LagerAccess.onAuthStateChanged((user) => {
     homeStopDashboardListener();
     homeDashboardYear=null;
     homeDashboardCached=null;
+    homeSetDashboardLoading(false);
     setNavigationVisibility(null);
     closeMenu();
     document.getElementById("loginScreen").style.display = "flex";
