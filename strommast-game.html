@@ -716,19 +716,22 @@ canvas{
   .game-dashboard{padding:0 15px 20px}
   .live-ranking li strong{min-width:0}
 }
+
+.runner-game-hud{position:absolute;z-index:23;right:12px;top:10px;display:flex;align-items:center;gap:8px}
 .runner-music-toggle{
-  position:absolute;z-index:23;right:12px;top:10px;
-  min-height:36px;display:flex;align-items:center;justify-content:center;gap:6px;
-  padding:7px 12px;border:1px solid rgba(255,255,255,.4);border-radius:12px;
-  background:rgba(13,49,76,.84);color:#fff;font:700 13px/1.1 system-ui,sans-serif;
-  box-shadow:0 4px 12px rgba(16,42,67,.20);backdrop-filter:blur(4px)
+  position:static;display:flex;align-items:center;justify-content:center;gap:6px;
+  min-height:36px;padding:7px 12px;border:1px solid rgba(255,255,255,.4);
+  border-radius:12px;background:rgba(13,49,76,.88);color:#fff;
+  font:700 13px/1.1 system-ui,sans-serif;box-shadow:0 4px 12px rgba(16,42,67,.20);
+  backdrop-filter:blur(4px)
 }
 .runner-music-toggle[hidden]{display:none!important}
 .runner-music-toggle:hover{background:rgba(22,74,111,.94)}
 .runner-music-toggle:focus-visible{outline:3px solid #ffd562;outline-offset:2px}
 .runner-music-toggle[aria-pressed="true"]{background:rgba(71,85,99,.88)}
 @media(max-width:700px){
-  .runner-music-toggle{right:6px;top:6px;min-height:32px;padding:5px 8px;font-size:13px}
+  .runner-game-hud{right:6px;top:6px}
+  .runner-music-toggle{min-height:32px;padding:5px 8px;font-size:13px}
   .runner-music-toggle span{display:none}
 }
 /* Smartphone zeigt das identische PC-Layout, nur mit responsiven Abständen.
@@ -909,12 +912,6 @@ canvas{
 }
 .canvas-wrap:fullscreen .exit-fullscreen-btn:hover,
 .canvas-wrap:-webkit-full-screen .exit-fullscreen-btn:hover{transform:none}
-.canvas-wrap:fullscreen .runner-music-toggle,
-.canvas-wrap:-webkit-full-screen .runner-music-toggle{
-  top:max(8px,env(safe-area-inset-top));
-  left:max(8px,env(safe-area-inset-left));
-  right:auto;
-}
 .runner-rotate-hint{display:none}
 @media (orientation:portrait){
   .canvas-wrap:fullscreen .runner-rotate-hint,
@@ -948,37 +945,40 @@ canvas{
   .runner-touch-guide span{padding:3px 4px}
 }
 @media(max-width:360px){.runner-touch-guide{font-size:8px}}
-/* Kompakte, kontrastreiche Punktetafel nur im Vollbild – nicht auf Normalansicht. */
+
+/* Vollbild-HUD: Musik und Punkte nebeneinander oben rechts am Canvas-Rand. */
 .runner-fullscreen-score{display:none;pointer-events:none}
+.canvas-wrap:fullscreen .runner-game-hud,
+.canvas-wrap:-webkit-full-screen .runner-game-hud{
+  top:max(calc(env(safe-area-inset-top) + 8px),calc(50dvh - 16vw + 8px));
+  right:max(calc(env(safe-area-inset-right) + 10px),calc((100vw - min(100vw,312.5dvh)) / 2 + 10px));
+  left:auto;max-width:calc(100% - 20px);align-items:stretch;gap:8px
+}
 .canvas-wrap:fullscreen .runner-fullscreen-score,
 .canvas-wrap:-webkit-full-screen .runner-fullscreen-score{
-  position:absolute;z-index:21;
-  /* 1000:320 canvas is centred in fullscreen: follow its real top edge. */
-  top:max(calc(env(safe-area-inset-top) + 8px),calc(50dvh - 16vw + 8px));
-  left:max(8px,env(safe-area-inset-left));
-  display:flex;flex-direction:column;align-items:flex-start;gap:1px;
-  min-width:84px;padding:7px 11px;border-radius:12px;
-  background:rgba(13,44,67,.85);
-  border:1px solid rgba(213,237,255,.30);
-  box-shadow:0 4px 12px rgba(12,29,47,.16);
-  color:#fff;font:800 10px/1.18 system-ui,sans-serif;
-  font-variant-numeric:tabular-nums;
+  display:flex;position:static;box-sizing:border-box;flex-direction:column;
+  justify-content:center;align-items:flex-start;gap:1px;min-width:83px;min-height:65px;
+  padding:6px 10px;border-radius:12px;background:rgba(13,44,67,.87);
+  border:1px solid rgba(213,237,255,.30);box-shadow:0 4px 12px rgba(12,29,47,.16);
+  color:#fff;font:800 10px/1.18 system-ui,sans-serif;font-variant-numeric:tabular-nums
 }
 .runner-fullscreen-score strong{font-size:clamp(17px,2.8vw,26px);line-height:1.1;color:#ffdf77}
 .runner-fullscreen-score small{font-size:10px;font-weight:700;color:#daeaf7}
 .canvas-wrap:fullscreen .runner-music-toggle,
 .canvas-wrap:-webkit-full-screen .runner-music-toggle{
-  top:max(calc(env(safe-area-inset-top) + 85px),calc(50dvh - 16vw + 85px))!important;
-  left:max(8px,env(safe-area-inset-left));
-  right:auto
+  position:static;box-sizing:border-box;min-height:65px;padding:8px 11px;align-self:stretch
+}
+@media(max-width:700px){
+  .canvas-wrap:fullscreen .runner-game-hud,
+  .canvas-wrap:-webkit-full-screen .runner-game-hud{gap:6px}
 }
 @media(max-height:390px){
   .canvas-wrap:fullscreen .runner-fullscreen-score,
-  .canvas-wrap:-webkit-full-screen .runner-fullscreen-score{padding:5px 8px;min-width:65px}
-  .canvas-wrap:fullscreen .runner-music-toggle,
-  .canvas-wrap:-webkit-full-screen .runner-music-toggle{
-    top:max(calc(env(safe-area-inset-top) + 71px),calc(50dvh - 16vw + 71px))!important
+  .canvas-wrap:-webkit-full-screen .runner-fullscreen-score{
+    min-width:65px;min-height:56px;padding:4px 8px
   }
+  .canvas-wrap:fullscreen .runner-music-toggle,
+  .canvas-wrap:-webkit-full-screen .runner-music-toggle{min-height:56px}
 }
 </style>
 </head>
@@ -1001,17 +1001,20 @@ canvas{
 
     <div class="canvas-wrap">
       <canvas id="gameCanvas" width="1000" height="320"></canvas>
-      <div class="runner-fullscreen-score" id="fullscreenScore" aria-label="Aktueller Punktestand">
-        <span>PUNKTE</span>
-        <strong id="fullscreenScoreValue">0</strong>
-        <small id="fullscreenDistanceValue">0 m</small>
-      </div>
+
       <div class="runner-touch-guide" aria-hidden="true">
         <span>↓ LINKS: DUCKEN</span><span>RECHTS: SPRINGEN ↑</span>
       </div>
       <p class="runner-rotate-hint" aria-hidden="true">↻ Für ein grösseres Spielfeld das Smartphone quer halten.</p>
       <div class="runner-level-toast" id="runnerLevelToast" role="status" aria-live="polite" hidden></div>
-      <button type="button" id="musicToggle" class="runner-music-toggle" aria-label="Musik stummschalten" aria-pressed="false" title="Musik stummschalten">🎵 <span>Musik</span></button>
+      <div class="runner-game-hud">
+        <button type="button" id="musicToggle" class="runner-music-toggle" aria-label="Musik stummschalten" aria-pressed="false" title="Musik stummschalten">🎵 <span>Musik</span></button>
+        <div class="runner-fullscreen-score" id="fullscreenScore" aria-label="Aktueller Punktestand">
+          <span>PUNKTE</span>
+          <strong id="fullscreenScoreValue">0</strong>
+          <small id="fullscreenDistanceValue">0 m</small>
+        </div>
+      </div>
 
       <div id="startOverlay" class="overlay">
         <div class="overlay-box">
@@ -1850,6 +1853,18 @@ function makeObstacle(type,x,extra={}){
 function needsDuck(type){return type==="cable"||type==="hook";}
 function needsJump(type){return !needsDuck(type);}
 
+// Lasttraeger, Anschlagmittel und einzelnes Seil bilden die sichtbare Trefferzone.
+function overlapsBox(hitbox,x,y,width,height){
+  return hitbox.x<x+width&&hitbox.x+hitbox.width>x&&
+    hitbox.y<y+height&&hitbox.y+hitbox.height>y;
+}
+function hitsSuspendedLoad(hitbox,ob){
+  const bottom=ob.y+ob.height,beamTop=bottom-24,center=ob.x+ob.width/2;
+  return overlapsBox(hitbox,ob.x,beamTop,ob.width,24) ||
+    overlapsBox(hitbox,ob.x+7,beamTop-30,ob.width-14,30) ||
+    overlapsBox(hitbox,center-5,ob.y+16,10,beamTop-ob.y-16);
+}
+
 function announceSpecialEvent(index){
   runnerLevelToast.textContent="⚠️ SPEZIALBAUSTELLE "+index+"!";
   runnerLevelToast.hidden=false;
@@ -2044,10 +2059,12 @@ function update(){
       ob.x+=Math.sin(ob.swingPhase)*1.05;
       ob.y=ob.baseY;
     }
-    const hit = hitbox.x < ob.x + ob.width &&
-      hitbox.x + hitbox.width > ob.x &&
-      hitbox.y < ob.y + ob.height &&
-      hitbox.y + hitbox.height > ob.y;
+    const hit = needsDuck(ob.type)
+      ? hitsSuspendedLoad(hitbox,ob)
+      : hitbox.x < ob.x + ob.width &&
+        hitbox.x + hitbox.width > ob.x &&
+        hitbox.y < ob.y + ob.height &&
+        hitbox.y + hitbox.height > ob.y;
     if(hit){
       endGame();
       return;
@@ -2715,47 +2732,61 @@ function drawLandscape(){
 
 
 function drawOverheadHazard(ob){
-  // Hanging worksite curtain. Entire collidable region is visibly marked,
-  // unlike an invisible full-height collider around a narrow cable.
-  const x=ob.x,y=ob.y,w=ob.width,bottom=ob.y+ob.height;
+  // Einzelnes Stahlseil, Kranhaken und gelb-schwarz gestreifter Lasttraeger.
+  const x=ob.x,w=ob.width,bottom=ob.y+ob.height;
+  const center=x+w/2,beamTop=bottom-24,housingTop=bottom-105;
   ctx.save();
-  ctx.fillStyle="rgba(241,121,45,.10)";
-  ctx.fillRect(x+3,y+3,w-6,Math.max(0,bottom-y-4));
-  ctx.strokeStyle="#bd642c";
-  ctx.lineWidth=3;
-  ctx.strokeRect(x+2,y+1,w-4,Math.max(0,bottom-y-2));
-  const stripes=ob.type==="hook"?4:5;
-  for(let i=0;i<stripes;i++){
-    const cx=x+8+i*(w-16)/Math.max(1,stripes-1);
-    ctx.strokeStyle=i%2===0?"#e39b2c":"#be582a";
-    ctx.lineWidth=4;
-    ctx.beginPath();
-    ctx.moveTo(cx,y+4);
-    ctx.bezierCurveTo(cx-4,y+75,cx+4,bottom-55,cx,bottom-13);
-    ctx.stroke();
+
+  // Oberer Seilwagen.
+  ctx.fillStyle="#516a7c";
+  roundedRect(center-17,ob.y+3,34,12,5);ctx.fill();
+  ctx.fillStyle="#ffc13c";
+  roundedRect(center-14,ob.y+11,28,7,3);ctx.fill();
+  for(const wheelX of [center-11,center+11]){
+    ctx.fillStyle="#34495b";
+    ctx.beginPath();ctx.arc(wheelX,ob.y+18,4,0,Math.PI*2);ctx.fill();
   }
-  ctx.fillStyle="#ffc043";
-  ctx.fillRect(x,bottom-25,w,13);
-  ctx.fillStyle="#2c343d";
-  for(let z=0;z<w;z+=18){
+
+  // Genau ein senkrechtes Stahlseil mit Lichtkante.
+  ctx.strokeStyle="#40515e";ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(center,ob.y+19);ctx.lineTo(center,housingTop);ctx.stroke();
+  ctx.strokeStyle="#8fa6b6";ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(center-1,ob.y+21);ctx.lineTo(center-1,housingTop-2);ctx.stroke();
+
+  // Flaschenzug und gebogener Kranhaken.
+  ctx.fillStyle="#ffc441";
+  roundedRect(center-12,housingTop,24,23,5);ctx.fill();
+  ctx.strokeStyle="#df9524";ctx.lineWidth=1.5;ctx.stroke();
+  ctx.strokeStyle="#394a57";ctx.lineWidth=4.5;ctx.lineCap="round";
+  ctx.beginPath();ctx.moveTo(center,housingTop+22);ctx.lineTo(center,housingTop+34);
+  ctx.bezierCurveTo(center-3,housingTop+49,center+18,housingTop+47,center+14,housingTop+33);
+  ctx.stroke();
+
+  // Kurze Anschlagmittel von einem Haken zu beiden Enden der Last.
+  const slingTop=bottom-53;
+  ctx.strokeStyle="#344958";ctx.lineWidth=3.5;
+  ctx.beginPath();
+  ctx.moveTo(center,slingTop);ctx.lineTo(x+8,beamTop+3);
+  ctx.moveTo(center,slingTop);ctx.lineTo(x+w-8,beamTop+3);
+  ctx.stroke();
+
+  // Kompakter Lasttraeger mit Warnstreifen.
+  ctx.fillStyle="#263642";
+  roundedRect(x,beamTop,w,24,5);ctx.fill();
+  ctx.save();
+  roundedRect(x+3,beamTop+3,w-6,17,3);ctx.clip();
+  ctx.fillStyle="#f8bc2e";ctx.fillRect(x+3,beamTop+3,w-6,17);
+  ctx.fillStyle="#27343d";
+  for(let stripe=x-15;stripe<x+w+16;stripe+=19){
     ctx.beginPath();
-    ctx.moveTo(x+z,bottom-25);
-    ctx.lineTo(x+Math.min(w,z+9),bottom-25);
-    ctx.lineTo(x+z,bottom-12);
+    ctx.moveTo(stripe,beamTop+3);ctx.lineTo(stripe+10,beamTop+3);
+    ctx.lineTo(stripe-1,beamTop+20);ctx.lineTo(stripe-11,beamTop+20);
     ctx.closePath();ctx.fill();
   }
-  ctx.strokeStyle="#2b3c49";ctx.lineWidth=3;
-  ctx.strokeRect(x,bottom-25,w,13);
-  if(ob.type==="hook"){
-    const hx=x+w*.5;
-    ctx.strokeStyle="#3e5565";ctx.lineWidth=5;
-    ctx.beginPath();ctx.moveTo(hx,y+14);ctx.lineTo(hx,bottom-47);ctx.stroke();
-    ctx.fillStyle="#d58e2e";
-    ctx.beginPath();ctx.arc(hx,bottom-41,9,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle="#364958";ctx.lineWidth=5;
-    ctx.beginPath();ctx.arc(hx,bottom-38,12,-Math.PI*.12,Math.PI*.75);ctx.stroke();
-    ctx.fillStyle="#e9f0f5";ctx.font="bold 14px system-ui";
-    ctx.fillText("!",hx-3,bottom-16);
+  ctx.restore();
+  for(const boltX of [x+7,x+w-7]){
+    ctx.fillStyle="#9daeba";ctx.beginPath();
+    ctx.arc(boltX,beamTop+12,2.5,0,Math.PI*2);ctx.fill();
   }
   ctx.restore();
 }
