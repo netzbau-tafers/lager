@@ -935,6 +935,19 @@ canvas{
     pointer-events:none;
   }
 }
+
+/* Mast Runner 4.0: eindeutige mobile Touchzonen ohne zusätzliche Button-Overlays. */
+.runner-touch-guide{display:none;pointer-events:none;position:absolute;bottom:11px;left:12px;right:64px;z-index:8;justify-content:space-between;gap:12px;font:800 12px/1.25 system-ui,sans-serif;color:#173f5f;text-shadow:0 1px 3px rgba(255,255,255,.8)}
+.runner-touch-guide span{padding:4px 7px;border-radius:8px;background:rgba(230,243,252,.79);border:1px solid rgba(77,131,168,.22)}
+@media(pointer:coarse){
+  .runner-touch-guide{display:flex}
+  .canvas-wrap:fullscreen .runner-touch-guide,.canvas-wrap:-webkit-full-screen .runner-touch-guide{bottom:max(13px,env(safe-area-inset-bottom));right:18px;left:18px}
+}
+@media(max-width:700px){
+  .runner-touch-guide{font-size:9px;left:6px;right:49px;bottom:7px;gap:5px}
+  .runner-touch-guide span{padding:3px 4px}
+}
+@media(max-width:360px){.runner-touch-guide{font-size:8px}}
 </style>
 </head>
 <body class="auth-loading">
@@ -951,11 +964,14 @@ canvas{
     <section class="desktop-game-intro" aria-label="Spielbeschreibung">
       <div class="desktop-game-eyebrow"><span class="desktop-game-dot" aria-hidden="true"></span>DAS NETZELEKTRIKER-ARCADE-SPIEL <span class="runner-level-badge" id="runnerLevelBadge">LEVEL 1 · ANFÄNGER</span></div>
       <h1>Mast Runner<span>.</span></h1>
-      <p>Laufe mit unserem Netzelektriker, sammle Blitze und knacke die Top 10.</p>
+      <p>Springe, ducke dich unter Kabeln und meistere die Spezialbaustellen. Knacke die Top 10!</p>
     </section>
 
     <div class="canvas-wrap">
       <canvas id="gameCanvas" width="1000" height="320"></canvas>
+      <div class="runner-touch-guide" aria-hidden="true">
+        <span>↓ LINKS: DUCKEN</span><span>RECHTS: SPRINGEN ↑</span>
+      </div>
       <p class="runner-rotate-hint" aria-hidden="true">↻ Für ein grösseres Spielfeld das Smartphone quer halten.</p>
       <div class="runner-level-toast" id="runnerLevelToast" role="status" aria-live="polite" hidden></div>
       <button type="button" id="musicToggle" class="runner-music-toggle" aria-label="Musik stummschalten" aria-pressed="false" title="Musik stummschalten">🎵 <span>Musik</span></button>
@@ -963,7 +979,7 @@ canvas{
       <div id="startOverlay" class="overlay">
         <div class="overlay-box">
           <h2>Start</h2>
-          <p>Weiche Hindernissen aus, sammle Blitze und erreiche einen neuen Rekord!</p><p>Tippen oder Leertaste: springen · Halten: höher springen</p>
+          <p>Springe über Hindernisse und ducke dich unter tiefen Kabeln. Alle 1'000 m wartet eine Spezialbaustelle!</p><p>Smartphone: links ducken, rechts springen · PC: ↓ / S ducken, Leertaste / ↑ springen</p>
           <button type="button" onclick="startGame()">Spiel starten</button>
         </div>
       </div>
@@ -1015,11 +1031,11 @@ canvas{
         <div class="control-tips">
           <div class="tip-card">
             <strong>Steuerung</strong>
-            <span>Tippe auf das Spielfeld oder drücke Leertaste / Pfeil nach oben zum Springen.</span>
+            <span>Smartphone: rechte Spielfeldhälfte springen (halten = hoch), linke Hälfte ducken. PC: Leertaste/↑ springen, ↓/S ducken.</span>
           </div>
           <div class="tip-card">
             <strong>Ziel</strong>
-            <span>Fünf Levels mit mehr Tempo, Doppelhindernissen und fahrenden Baggern. Sammle Blitze und knacke die Top&nbsp;10.</span>
+            <span>Spring-Duck-Kombinationen, schwingende Kranlasten und Spezialbaustellen alle 1'000 m. Riskante goldene Blitze bringen 75 Punkte.</span>
           </div>
         </div>
       </section>
@@ -1078,19 +1094,24 @@ let gameRunning = false;
 const FRAME_DURATION = 1000 / 60;
 const MAX_UPDATES_PER_FRAME = 5;
 const BASE_GAME_SPEED = 3.9;
-const MAX_GAME_SPEED = 8.6;
+const MAX_GAME_SPEED = 9.3;
 const METERS_PER_PIXEL = 0.1;
 const POINTS_PER_OBSTACLE = 10;
 const POINTS_PER_PICKUP = 25;
 const BASE_GRAVITY = 0.47;
 const DAY_NIGHT_CYCLE_METERS = 2600;
 const DIFFICULTY_LEVELS=[
-  {from:0,name:"Anfänger",speed:3.9,minGap:420,maxGap:720,doubleChance:0,movingChance:0},
-  {from:500,name:"Fortgeschritten",speed:4.8,minGap:365,maxGap:655,doubleChance:0,movingChance:0},
-  {from:1200,name:"Profi",speed:5.85,minGap:305,maxGap:590,doubleChance:.16,movingChance:0},
-  {from:2200,name:"Experte",speed:6.95,minGap:290,maxGap:565,doubleChance:.25,movingChance:.13},
-  {from:3500,name:"Elite",speed:8.0,minGap:275,maxGap:530,doubleChance:.34,movingChance:.23}
+  {from:0,name:"Anfänger",speed:3.9,minGap:340,maxGap:560,comboChance:0,movingChance:0},
+  {from:400,name:"Fortgeschritten",speed:5.0,minGap:280,maxGap:480,comboChance:.18,movingChance:0},
+  {from:1000,name:"Profi",speed:6.4,minGap:255,maxGap:425,comboChance:.43,movingChance:.12},
+  {from:2000,name:"Experte",speed:7.7,minGap:235,maxGap:375,comboChance:.66,movingChance:.30},
+  {from:3500,name:"Elite",speed:8.6,minGap:205,maxGap:320,comboChance:.79,movingChance:.42}
 ];
+const SPECIAL_EVENT_EVERY_METERS=1000;
+const SPECIAL_EVENT_REWARD=150;
+const RISKY_PICKUP_REWARD=75;
+const DUCK_HEIGHT=20;
+const DUCK_TAP_FRAMES=22;
 const OBSTACLE_TYPES_BY_LEVEL=[
   ["solar","tree"],
   ["solar","tree","mast","house"],
@@ -1116,6 +1137,13 @@ let newRecordCelebrated=false;
 let recordFlashFrames=0;
 let lastWavePattern="";
 let lastWaveDouble=false;
+let duckPressed=false;
+let duckFrames=0;
+let nextSpecialAt=SPECIAL_EVENT_EVERY_METERS;
+let specialCounter=0;
+let specialRemaining=new Map();
+let eventFlashFrames=0;
+let lastWaveWasCombo=false;
 // Ton ist dauerhaft eingeschaltet; keine gespeicherte Stummschaltung.
 let audioContext = null;
 let frameCount = 0;
@@ -1189,6 +1217,12 @@ function getObstacleDimensions(type){
   }else if(type === "bagger"){
     width = 68;
     height = 42;
+  }else if(type==="cable"){
+    width=88;
+    height=26;
+  }else if(type==="hook"){
+    width=50;
+    height=31;
   }
 
   return { width, height };
