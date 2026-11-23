@@ -1198,6 +1198,8 @@ let currentLevel=0;
 let levelToastFrames=0;
 let newRecordCelebrated=false;
 let recordFlashFrames=0;
+let lastWavePattern="";
+let lastWaveDouble=false;
 // Ton ist dauerhaft eingeschaltet; keine gespeicherte Stummschaltung.
 let audioContext = null;
 let frameCount = 0;
@@ -1335,8 +1337,10 @@ function playSound(frequency = 560, duration = 0.08, wave = "sine"){
   }
 }
 
-function updateScore(){
+function updateScore(force=false){
   score = Math.floor(distanceMeters / 10) + clearedObstacles * POINTS_PER_OBSTACLE + bonusPoints;
+  // DOM-Anzeige nur alle sechs Physikschritte (~10 Hz), Wert selbst ist live.
+  if(!force&&frameCount%6!==0)return;
   const scoreText = Math.floor(score).toLocaleString("de-CH");
   const distanceText = Math.floor(distanceMeters).toLocaleString("de-CH") + " m";
   const fields = [
@@ -1675,6 +1679,8 @@ function resetGameState(){
   levelToastFrames=0;
   recordFlashFrames=0;
   newRecordCelebrated=false;
+  lastWavePattern="";
+  lastWaveDouble=false;
   runnerLevelToast.hidden=true;
   updateLevelBadge();
   distanceUntilNextObstacle=getNextObstacleDistance();
@@ -1717,6 +1723,8 @@ function showStartScreen(){
   levelToastFrames=0;
   recordFlashFrames=0;
   newRecordCelebrated=false;
+  lastWavePattern="";
+  lastWaveDouble=false;
   runnerLevelToast.hidden=true;
   updateLevelBadge();
   clearedObstacles = 0;
@@ -1770,6 +1778,7 @@ function releaseJump(){
 }
 
 function endGame(){
+  updateScore(true);
   MastRunnerMusic.stop();
   gameRunning = false;
   gamePaused = false;
@@ -1808,21 +1817,28 @@ function makeObstacle(type,x,extra={}){
 }
 function createObstacleWave(){
   const index=getDifficultyLevel(),level=DIFFICULTY_LEVELS[index],startX=canvas.width+20;
-  if(index>=2&&Math.random()<level.doubleChance){
+  if(index>=2&&!lastWaveDouble&&Math.random()<level.doubleChance){
     // Two low obstacles can be cleared together with one held jump.
     const firstType=Math.random()<.5?"solar":"bagger",secondType=firstType==="solar"?"bagger":"solar";
     const first=makeObstacle(firstType,startX,{paired:true});
     const gap=46+Math.random()*32;
     const second=makeObstacle(secondType,startX+first.width+gap,{paired:true});
     obstacles.push(first,second);
+    lastWavePattern=firstType+"+"+secondType;
+    lastWaveDouble=true;
     return {span:first.width+gap+second.width,double:true,tall:false,moving:false};
   }
   const choices=OBSTACLE_TYPES_BY_LEVEL[index];
-  let type=choices[Math.floor(Math.random()*choices.length)];
-  const moving=index>=3&&Math.random()<level.movingChance;
+  const fresh=choices.filter(type=>type!==lastWavePattern);
+  const options=fresh.length?fresh:choices;
+  let type=options[Math.floor(Math.random()*options.length)];
+  let moving=index>=3&&Math.random()<level.movingChance;
+  if(moving&&lastWavePattern==="bagger")moving=false;
   if(moving)type="bagger";
   const ob=makeObstacle(type,startX,moving?{moving:true,moveSpeed:.35+Math.random()*.35}:{});
   obstacles.push(ob);
+  lastWavePattern=type;
+  lastWaveDouble=false;
   return {span:ob.width,tall:ob.height>=56,moving};
 }
 function updateLevelBadge(){
