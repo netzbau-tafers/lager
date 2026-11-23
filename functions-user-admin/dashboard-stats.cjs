@@ -20,13 +20,12 @@ const round=value=>Math.round(value*100)/100;
 
 async function calculateDashboard({db,Timestamp,year,now}){
   // Monats-Snapshots sind bereits die Datenquelle des Kabelreports.
-  const [snapshotDocs,archivedCount,activeCount,readyToCloseCount]=await Promise.all([
+  const [snapshotDocs,archivedCount,activeCount]=await Promise.all([
     db.collection('kabel_report_snapshots').where('year','==',year).get(),
     db.collection('baustellen')
       .where('archiviertAm','>=',yearStart(year,Timestamp))
       .where('archiviertAm','<',yearStart(year+1,Timestamp)).count().get(),
-    db.collection('baustellen').where('status','==','aktiv').count().get(),
-    db.collection('baustellen').where('status','==','rausschreiben').count().get()
+    db.collection('baustellen').where('status','==','aktiv').count().get()
   ]);
 
   const monthlyMeters=Array(MONTHS).fill(0);
@@ -90,8 +89,7 @@ async function calculateDashboard({db,Timestamp,year,now}){
   }
   const topType=[...byType].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'de'))[0]||null;
   const archivedSites=safeNum(archivedCount.data().count);
-  // Baustellen im Status 'rausschreiben' sind noch nicht archiviert.
-  const activeSites=safeNum(activeCount.data().count)+safeNum(readyToCloseCount.data().count);
+  const activeSites=safeNum(activeCount.data().count);
 
   return {
     year,totalMeters,bookings,monthlyMeters,
