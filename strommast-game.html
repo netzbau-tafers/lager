@@ -1997,6 +1997,11 @@ function update(){
   for(let i = obstacles.length-1; i >= 0; i--){
     const ob = obstacles[i];
     ob.x -= gameSpeed+(ob.moving?ob.moveSpeed:0);
+    if(ob.type==="hook"){
+      ob.swingPhase+=.062;
+      ob.x+=Math.sin(ob.swingPhase)*1.05;
+      ob.y=ob.baseY+Math.sin(ob.swingPhase*.85)*3;
+    }
     const hit = hitbox.x < ob.x + ob.width &&
       hitbox.x + hitbox.width > ob.x &&
       hitbox.y < ob.y + ob.height &&
@@ -2022,6 +2027,16 @@ function update(){
         setFeedback("🔥 "+clearedObstacles+"er-Serie: +"+bonus+"!",90);
         playSound(800,.11);
       }
+      if(ob.specialId&&specialRemaining.has(ob.specialId)){
+        const left=specialRemaining.get(ob.specialId)-1;
+        if(left<=0){
+          specialRemaining.delete(ob.specialId);
+          bonusPoints+=SPECIAL_EVENT_REWARD;
+          eventFlashFrames=120;
+          setFeedback("🏗️ Spezialbaustelle: +"+SPECIAL_EVENT_REWARD+"!",110,"#ffe89c");
+          playSound(1040,.18,"triangle");
+        }else specialRemaining.set(ob.specialId,left);
+      }
     }
     if(ob.x + ob.width < -10) obstacles.splice(i,1);
   }
@@ -2030,8 +2045,9 @@ function update(){
     p.x -= gameSpeed;
     if(hitbox.x < p.x+p.radius && hitbox.x+hitbox.width > p.x-p.radius &&
        hitbox.y < p.y+p.radius && hitbox.y+hitbox.height > p.y-p.radius){
-      bonusPoints += POINTS_PER_PICKUP;
-      setFeedback("⚡ Blitz gesammelt: +25!", 74, "#fff1a4");
+      const reward=p.reward||POINTS_PER_PICKUP;
+      bonusPoints+=reward;
+      setFeedback(p.risk?"⚡ Risiko-Blitz: +"+reward+"!":"⚡ Blitz: +"+reward+"!",74,"#fff1a4");
       playSound(950, 0.15);
       pickups.splice(i,1);
     }else if(p.x < -30){
@@ -2049,6 +2065,7 @@ function update(){
   if(feedback && --feedback.frames <= 0) feedback = null;
   if(levelToastFrames>0&&--levelToastFrames===0)runnerLevelToast.hidden=true;
   if(recordFlashFrames>0)recordFlashFrames--;
+  if(eventFlashFrames>0)eventFlashFrames--;
   if(distanceMeters >= nextMilestone){
     setFeedback("🏁 " + nextMilestone.toLocaleString("de-CH") + " m geschafft!", 105);
     playSound(710, 0.13);
@@ -2671,8 +2688,16 @@ function drawCollectibles(){
     ctx.save();
     ctx.translate(p.x,p.y);
     ctx.scale(pulse,pulse);
-    ctx.shadowColor="#ffc52c";ctx.shadowBlur=15;
-    ctx.fillStyle="#ffc52c";
+    ctx.shadowColor=p.risk?"#f97316":"#ffc52c";
+    ctx.shadowBlur=reducedMobileEffects.matches?0:15;
+    if(p.risk){
+      ctx.strokeStyle="#f97316";
+      ctx.lineWidth=2.5;
+      ctx.beginPath();
+      ctx.arc(0,0,17,0,Math.PI*2);
+      ctx.stroke();
+    }
+    ctx.fillStyle=p.risk?"#ff9f32":"#ffc52c";
     ctx.beginPath();
     ctx.moveTo(-1,-14);ctx.lineTo(9,-14);ctx.lineTo(2,-2);
     ctx.lineTo(10,-2);ctx.lineTo(-8,15);ctx.lineTo(-3,2);
@@ -2719,10 +2744,10 @@ function draw(){
   }
   drawPlayer();
   drawDust();
-  if(recordFlashFrames>0){
-    // Kleiner visuell erkennbarer Rekord-Effekt ohne zusätzliche Partikelobjekte.
+  if(recordFlashFrames>0||eventFlashFrames>0){
+    // Kleiner visueller Effekt ohne zusätzliche Partikelobjekte.
     ctx.save();
-    const fade=recordFlashFrames/120;
+    const fade=Math.max(recordFlashFrames,eventFlashFrames)/120;
     for(let i=0;i<(reducedMobileEffects.matches?6:12);i++){
       const x=120+(i*79)%780,y=28+Math.sin(frameCount*.09+i*1.4)*14;
       ctx.fillStyle="rgba(255,217,87,"+(fade*.52)+")";
@@ -2767,62 +2792,49 @@ function loop(timestamp = performance.now()){
   }
 }
 
-document.addEventListener("keydown", (e) => {
-  if(e.code === "Space" || e.code === "ArrowUp"){
+document.addEventListener("keydown",(e)=>{
+  if(e.code==="Space"||e.code==="ArrowUp"){
     e.preventDefault();
-
-    if(!gameRunning && startOverlay.classList.contains("hidden") && !gameOverOverlay.classList.contains("hidden")){
-      return;
-    }
-
     if(!startOverlay.classList.contains("hidden")){
-      startGame();
+      if(!e.repeat)startGame();
       return;
     }
-
-    if(!e.repeat){
-      beginJump();
-    }
+    if(!e.repeat)beginJump();
+  }else if(e.code==="ArrowDown"||e.code==="KeyS"){
+    e.preventDefault();
+    if(!e.repeat)beginDuck();
   }
 });
-
-document.addEventListener("keyup", (e) => {
-  if(e.code === "Space" || e.code === "ArrowUp"){
-    releaseJump();
-  }
+document.addEventListener("keyup",(e)=>{
+  if(e.code==="Space"||e.code==="ArrowUp")releaseJump();
+  if(e.code==="ArrowDown"||e.code==="KeyS")releaseDuck();
 });
 
-canvas.addEventListener("mousedown", () => {
-  if(!startOverlay.classList.contains("hidden")){
-    startGame();
-    return;
-  }
-
-  if(gameRunning){
-    beginJump();
-  }
+// Pointer-Events verhindern doppelte Mouse- und Touch-Auslösung.
+// Auf Touchscreens ist links Ducken, rechts Springen; Maus bleibt Springen.
+const activeCanvasPointers=new Map();
+canvas.addEventListener("pointerdown",(e)=>{
+  if(e.pointerType==="touch"||e.pointerType==="pen")e.preventDefault();
+  if(!startOverlay.classList.contains("hidden")){startGame();return;}
+  if(!gameRunning)return;
+  const rect=canvas.getBoundingClientRect();
+  const touch=e.pointerType==="touch"||e.pointerType==="pen";
+  const action=touch&&e.clientX-rect.left<rect.width*.5?"duck":"jump";
+  activeCanvasPointers.set(e.pointerId,action);
+  try{canvas.setPointerCapture(e.pointerId);}catch(_){}
+  if(action==="duck")beginDuck();
+  else beginJump();
 });
-
-canvas.addEventListener("mouseup", releaseJump);
-canvas.addEventListener("mouseleave", releaseJump);
-
-canvas.addEventListener("touchstart", (e) => {
-  e.preventDefault();
-
-  if(!startOverlay.classList.contains("hidden")){
-    startGame();
-    return;
-  }
-
-  if(gameRunning){
-    beginJump();
-  }
-}, { passive:false });
-
-canvas.addEventListener("touchend", (e) => {
-  e.preventDefault();
-  releaseJump();
-}, { passive:false });
+function endCanvasPointer(e){
+  const action=activeCanvasPointers.get(e.pointerId);
+  if(!action)return;
+  activeCanvasPointers.delete(e.pointerId);
+  if(action==="duck")releaseDuck();
+  else releaseJump();
+}
+canvas.addEventListener("pointerup",endCanvasPointer);
+canvas.addEventListener("pointercancel",endCanvasPointer);
+canvas.addEventListener("lostpointercapture",endCanvasPointer);
 
 fullscreenBtn.addEventListener("click", enterFullscreen);
 exitFullscreenBtn.addEventListener("click", exitFullscreen);
