@@ -974,20 +974,35 @@ let gameRunning = false;
 const FRAME_DURATION = 1000 / 60;
 const MAX_UPDATES_PER_FRAME = 5;
 const BASE_GAME_SPEED = 3.9;
+const MAX_GAME_SPEED = 7.3;
+const METERS_PER_PIXEL = 0.1;
+const POINTS_PER_OBSTACLE = 10;
+const POINTS_PER_PICKUP = 25;
 const BASE_GRAVITY = 0.47;
-const SPAWN_DISTANCE_MIN = 250;
-const SPAWN_DISTANCE_MAX = 520;
-const SPAWN_DISTANCE_SHRINK_RATE = 0.04;
+const SPAWN_DISTANCE_MIN = 340;
+const SPAWN_DISTANCE_MAX = 610;
+const SPAWN_DISTANCE_SHRINK_RATE = 0.025;
 const SAFE_OBSTACLE_CLEARANCE_MIN = 150;
 const SAFE_OBSTACLE_CLEARANCE_SPEED_FACTOR = 24;
 const SAFE_OBSTACLE_CLEARANCE_SPEED_CURVE = 10;
 let gameSpeed = BASE_GAME_SPEED;
 let gravity = BASE_GRAVITY;
 let score = 0;
+let distanceMeters = 0;
+let clearedObstacles = 0;
+let bonusPoints = 0;
+let nextMilestone = 250;
+let pickupDistance = 800;
+let pickups = [];
+let dustParticles = [];
+let feedback = null;
+let gamePaused = false;
+let soundEnabled = localStorage.getItem("mastRunnerSound") === "on";
+let audioContext = null;
 let frameCount = 0;
 let lastFrameTime = 0;
 let accumulatedTime = 0;
-let bestScore = Number(localStorage.getItem("strommastBestScore") || 0);
+let bestScore = Number(localStorage.getItem("mastRunnerV2BestScore") || 0);
 bestScoreEl.textContent = bestScore;
 
 const firebaseConfig = {
@@ -1010,8 +1025,8 @@ const authReady = auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
     console.error("Auth-Persistenz konnte nicht gesetzt werden:", error);
   });
 
-const RANKING_KEY = "strommastRanking";
-const SCORE_COLLECTION = "strommastRanking";
+const RANKING_KEY = "strommastRankingV2";
+const SCORE_COLLECTION = "strommastRankingV2";
 const RANKING_LIMIT = 10;
 const groundY = 250;
 let cloudRanking = [];
@@ -1034,10 +1049,10 @@ const player = {
 let obstacles = [];
 let distanceUntilNextObstacle = 0;
 let gameOverSaved = false;
-let selectedCharacter = null;
+const selectedCharacter = "worker";
 let gameInitialized = false;
 
-const obstacleTypes = ["mast", "wind", "solar", "tree", "house", "bagger"];
+const obstacleTypes = ["mast", "solar", "tree", "bagger", "house", "wind"];
 
 function getObstacleDimensions(type){
   let width = 26;
@@ -1076,13 +1091,88 @@ function getMinimumObstacleDistance(previousObstacle){
 }
 
 function getNextObstacleDistance(previousObstacle = null){
-  const difficultyOffset = Math.min(140, Math.floor(frameCount * SPAWN_DISTANCE_SHRINK_RATE));
-  const minDistance = Math.max(150, SPAWN_DISTANCE_MIN - difficultyOffset);
-  const maxDistance = Math.max(minDistance + 90, SPAWN_DISTANCE_MAX - difficultyOffset);
-  const safeMinimumDistance = getMinimumObstacleDistance(previousObstacle);
-  const adjustedMinDistance = Math.max(minDistance, safeMinimumDistance);
-  const adjustedMaxDistance = Math.max(maxDistance, adjustedMinDistance + 90);
-  return adjustedMinDistance + Math.random() * (adjustedMaxDistance - adjustedMinDistance);
+  // Breitere und höhere Hindernisse erhalten ausreichend Landeraum.
+  const difficultyOffset = Math.min(95, Math.floor(frameCount * SPAWN_DISTANCE_SHRINK_RATE));
+  const minDistance = Math.max(250, SPAWN_DISTANCE_MIN - difficultyOffset);
+  const safeDistance = getMinimumObstacleDistance(previousObstacle);
+  const adjustedMin = Math.max(minDistance, safeDistance);
+  const adjustedMax = Math.max(adjustedMin + 100, SPAWN_DISTANCE_MAX - difficultyOffset);
+  return adjustedMin + Math.random() * (adjustedMax - adjustedMin);
+}
+
+function setFeedback(message, frames = 75, color = "#fff1a4"){
+  feedback = {message, frames, color};
+}
+
+function playSound(frequency = 560, duration = 0.08, wave = "sine"){
+  if(!soundEnabled) return;
+  try{
+    const AudioClass = window.AudioContext || window.webkitAudioContext;
+    if(!AudioClass) return;
+    if(!audioContext) audioContext = new AudioClass();
+    if(audioContext.state === "suspended") audioContext.resume().catch(() => {});
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    osc.type = wave;
+    osc.frequency.setValueAtTime(frequency, audioContext.currentTime);
+    gain.gain.setValueAtTime(0.045, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+    osc.start();
+    osc.stop(audioContext.currentTime + duration);
+  }catch(error){
+    console.warn("Spielton nicht verfügbar:", error);
+  }
+}
+
+function updateScore(){
+  score = Math.floor(distanceMeters / 10) + clearedObstacles * POINTS_PER_OBSTACLE + bonusPoints;
+  const scoreText = Math.floor(score).toLocaleString("de-CH");
+  const distanceText = Math.floor(distanceMeters).toLocaleString("de-CH") + " m";
+  const fields = [
+    [scoreEl, scoreText],
+    [document.getElementById("distance"), distanceText],
+    [document.getElementById("hudScore"), scoreText + " Pkt."],
+    [document.getElementById("hudDistance"), distanceText],
+    [document.getElementById("hudObstacles"), clearedObstacles + " Hindernisse"],
+    [document.getElementById("mrDistance"), distanceText]
+  ];
+  for(const [element, value] of fields){
+    if(element && element.textContent !== value) element.textContent = value;
+  }
+}
+
+function spawnPickup(){
+  pickups.push({x: canvas.width + 25, y: groundY - 24, radius: 12});
+}
+
+function createLandingDust(){
+  for(let n = 0; n < 9; n++){
+    dustParticles.push({x:player.x + player.width/2, y:groundY+player.height-2,
+      vx:(Math.random()-.5)*4.5,vy:-Math.random()*2,life:26});
+  }
+}
+
+function pauseGame(){
+  if(!gameRunning || gamePaused) return;
+  gamePaused = true;
+  gameRunning = false;
+  cancelAnimationFrame(animationId);
+  player.jumpHolding = false;
+  document.getElementById("pauseOverlay").classList.remove("hidden");
+  document.getElementById("pauseButton").hidden = true;
+}
+
+function resumeGame(){
+  if(!gamePaused) return;
+  gamePaused = false;
+  gameRunning = true;
+  lastFrameTime = 0;
+  accumulatedTime = 0;
+  document.getElementById("pauseOverlay").classList.add("hidden");
+  document.getElementById("pauseButton").hidden = false;
+  loop();
 }
 
 function loadRanking(){
@@ -1473,9 +1563,18 @@ function escapeHtml(text){
 
 function resetGameState(){
   gameRunning = true;
+  gamePaused = false;
   gameSpeed = BASE_GAME_SPEED;
   gravity = BASE_GRAVITY;
   score = 0;
+  distanceMeters = 0;
+  clearedObstacles = 0;
+  bonusPoints = 0;
+  nextMilestone = 250;
+  pickupDistance = 850;
+  pickups = [];
+  dustParticles = [];
+  feedback = null;
   frameCount = 0;
   distanceUntilNextObstacle = getNextObstacleDistance();
   obstacles = [];
@@ -1491,19 +1590,30 @@ function resetGameState(){
   player.jumpsUsed = 0;
   player.coyoteTime = 0;
 
-  scoreEl.textContent = "0";
+  updateScore();
   finalScoreEl.textContent = "0";
+  document.getElementById("finalDistance").textContent = "0 m";
+  document.getElementById("finalObstacles").textContent = "0";
+  document.getElementById("newRecordMessage").hidden = true;
+  document.getElementById("pauseOverlay").classList.add("hidden");
+  document.getElementById("pauseButton").hidden = false;
   saveStatusEl.textContent = "";
   newGameButton.classList.remove("hidden");
   startOverlay.classList.add("hidden");
   gameOverOverlay.classList.add("hidden");
-  setCharacterSelectionLocked(true);
 }
 
 function showStartScreen(){
   cancelAnimationFrame(animationId);
   gameRunning = false;
+  gamePaused = false;
   obstacles = [];
+  pickups = [];
+  dustParticles = [];
+  frameCount = 0;
+  distanceMeters = 0;
+  clearedObstacles = 0;
+  bonusPoints = 0;
   distanceUntilNextObstacle = getNextObstacleDistance();
   lastFrameTime = 0;
   accumulatedTime = 0;
@@ -1514,23 +1624,17 @@ function showStartScreen(){
   player.jumpHolding = false;
   player.jumpsUsed = 0;
   player.coyoteTime = 0;
-  score = 0;
-  scoreEl.textContent = "0";
+  updateScore();
   finalScoreEl.textContent = "0";
   saveStatusEl.textContent = "";
+  document.getElementById("pauseOverlay").classList.add("hidden");
+  document.getElementById("pauseButton").hidden = true;
   startOverlay.classList.remove("hidden");
   gameOverOverlay.classList.add("hidden");
-  setCharacterSelectionLocked(false);
   draw();
 }
 
 function startGame(){
-  if(!selectedCharacter){
-    characterHint.classList.remove("hidden-message");
-    return;
-  }
-
-  characterHint.classList.add("hidden-message");
   cancelAnimationFrame(animationId);
   resetGameState();
   loop();
@@ -1548,6 +1652,7 @@ function beginJump(){
     player.jumpsUsed = 1;
     player.jumpHolding = true;
     player.jumpHoldTime = 0;
+    playSound(480, 0.07);
   }
 }
 
@@ -1557,38 +1662,35 @@ function releaseJump(){
 
 function endGame(){
   gameRunning = false;
-  const finalScore = Math.floor(score);
-  const qualifiesForLeaderboard = canScoreReachLeaderboard(finalScore);
-
-  finalScoreEl.textContent = finalScore;
+  gamePaused = false;
+  const finalValue = Math.floor(score);
+  const qualifiesForLeaderboard = canScoreReachLeaderboard(finalValue);
+  finalScoreEl.textContent = finalValue.toLocaleString("de-CH");
+  document.getElementById("finalDistance").textContent = Math.floor(distanceMeters).toLocaleString("de-CH") + " m";
+  document.getElementById("finalObstacles").textContent = String(clearedObstacles);
   saveStatusEl.textContent = "";
+  document.getElementById("pauseButton").hidden = true;
+  if(navigator.vibrate) navigator.vibrate(65);
+  playSound(170, 0.19, "triangle");
 
-  if(score > bestScore){
-    bestScore = Math.floor(score);
-    localStorage.setItem("strommastBestScore", bestScore);
-    bestScoreEl.textContent = bestScore;
+  if(finalValue > bestScore){
+    bestScore = finalValue;
+    localStorage.setItem("mastRunnerV2BestScore", bestScore);
+    bestScoreEl.textContent = bestScore.toLocaleString("de-CH");
+    document.getElementById("newRecordMessage").hidden = false;
   }
 
   gameOverOverlay.classList.remove("hidden");
-  setCharacterSelectionLocked(false);
-
   if(qualifiesForLeaderboard){
-    saveStatusEl.textContent = "Top-10 geschafft! Speichere automatisch …";
-    saveScore()
-      .catch((error) => {
-        console.error("Automatisches Speichern fehlgeschlagen:", error);
-        saveStatusEl.textContent = "Automatisches Speichern fehlgeschlagen. Bitte erneut spielen.";
-      });
+    saveStatusEl.textContent = "Top 10 erreicht – Ergebnis wird gespeichert …";
+    saveScore().catch(error => {
+      console.error("Score-Speicherung fehlgeschlagen:", error);
+      saveStatusEl.textContent = "Speichern fehlgeschlagen. Bitte Verbindung prüfen.";
+    });
   }else{
-    saveStatusEl.textContent = "Nicht genug Punkte für die Top 10 – versuch's gleich noch einmal.";
+    saveStatusEl.textContent = "Weiter versuchen – du kannst deinen Rekord schlagen!";
     newGameButton.focus();
   }
-}
-
-function setCharacterSelectionLocked(locked){
-  characterButtons.forEach((button) => {
-    button.disabled = locked;
-  });
 }
 
 function createObstacle(){
@@ -1610,14 +1712,8 @@ function createObstacle(){
 
 function updateDifficulty(){
   frameCount++;
-
-  if(frameCount % 520 === 0){
-    gameSpeed += 0.07;
-  }
-
-  if(frameCount % 1400 === 0){
-    gravity += 0.004;
-  }
+  // Keine steigende Schwerkraft: jeder Sprung bleibt zuverlässig berechenbar.
+  if(frameCount % 570 === 0) gameSpeed = Math.min(MAX_GAME_SPEED, gameSpeed + 0.15);
 }
 
 function updateJumpHold(){
@@ -1627,17 +1723,17 @@ function updateJumpHold(){
   }
 }
 
+function getPlayerHitbox(){
+  return {x:player.x+8,y:player.y+8,width:player.width-14,height:player.height-10};
+}
+
 function update(){
   updateDifficulty();
   updateJumpHold();
-
-  if(!player.grounded && player.coyoteTime > 0){
-    player.coyoteTime--;
-  }
-
+  if(!player.grounded && player.coyoteTime > 0) player.coyoteTime--;
+  const wasAirborne = !player.grounded;
   player.vy += gravity;
   player.y += player.vy;
-
   if(player.y >= groundY){
     player.y = groundY;
     player.vy = 0;
@@ -1646,60 +1742,90 @@ function update(){
     player.jumpHoldTime = 0;
     player.jumpsUsed = 0;
     player.coyoteTime = 7;
+    if(wasAirborne){
+      createLandingDust();
+      playSound(240, 0.04, "triangle");
+    }
   }else{
     player.grounded = false;
   }
 
+  distanceMeters += gameSpeed * METERS_PER_PIXEL;
   distanceUntilNextObstacle -= gameSpeed;
-
+  pickupDistance -= gameSpeed;
   if(distanceUntilNextObstacle <= 0){
-    const createdObstacle = createObstacle();
-    distanceUntilNextObstacle = getNextObstacleDistance(createdObstacle);
+    const created = createObstacle();
+    distanceUntilNextObstacle = getNextObstacleDistance(created);
   }
-
-  for(let i = obstacles.length - 1; i >= 0; i--){
-    obstacles[i].x -= gameSpeed;
-
-    if(obstacles[i].x + obstacles[i].width < 0){
-      obstacles.splice(i, 1);
-      score += 1;
-      scoreEl.textContent = Math.floor(score);
+  if(pickupDistance <= 0){
+    // Keine Blitze direkt in hohen Hindernissen platzieren.
+    if(!obstacles.some(ob => ob.x > canvas.width-110)){
+      spawnPickup();
+      pickupDistance = 1100 + Math.random() * 900;
+    }else{
+      pickupDistance = 100;
     }
   }
 
-  const playerHitbox = selectedCharacter === "unimog"
-    ? {
-        x: player.x + 5,
-        y: player.y + 14,
-        width: 42,
-        height: 30
-      }
-    : selectedCharacter === "sprinter"
-    ? {
-        x: player.x + 6,
-        y: player.y + 16,
-        width: 41,
-        height: 28
-      }
-    : {
-        x: player.x + 8,
-        y: player.y + 8,
-        width: player.width - 14,
-        height: player.height - 10
-      };
-
-  for(const ob of obstacles){
-    const hit =
-      playerHitbox.x < ob.x + ob.width &&
-      playerHitbox.x + playerHitbox.width > ob.x &&
-      playerHitbox.y < ob.y + ob.height &&
-      playerHitbox.y + playerHitbox.height > ob.y;
-
+  const hitbox = getPlayerHitbox();
+  for(let i = obstacles.length-1; i >= 0; i--){
+    const ob = obstacles[i];
+    ob.x -= gameSpeed;
+    const hit = hitbox.x < ob.x + ob.width &&
+      hitbox.x + hitbox.width > ob.x &&
+      hitbox.y < ob.y + ob.height &&
+      hitbox.y + hitbox.height > ob.y;
     if(hit){
       endGame();
       return;
     }
+    // Bonus erst nach tatsächlich erfolgreichem Vorbeilaufen.
+    if(!ob.passed && ob.x + ob.width < hitbox.x){
+      ob.passed = true;
+      clearedObstacles++;
+      const shoeY = player.y + player.height;
+      if(!player.grounded && shoeY <= ob.y+16 && shoeY >= ob.y-27){
+        bonusPoints += 5;
+        setFeedback("+5 Präziser Sprung!", 55);
+      }else{
+        setFeedback("+10 Hindernis!", 38);
+      }
+      if(clearedObstacles % 5 === 0){
+        bonusPoints += 25;
+        setFeedback("🔥 5er-Serie: +25!", 85);
+        playSound(800, 0.11);
+      }
+    }
+    if(ob.x + ob.width < -10) obstacles.splice(i,1);
   }
+  for(let i = pickups.length-1; i>=0; i--){
+    const p=pickups[i];
+    p.x -= gameSpeed;
+    if(hitbox.x < p.x+p.radius && hitbox.x+hitbox.width > p.x-p.radius &&
+       hitbox.y < p.y+p.radius && hitbox.y+hitbox.height > p.y-p.radius){
+      bonusPoints += POINTS_PER_PICKUP;
+      setFeedback("⚡ Blitz gesammelt: +25!", 74, "#fff1a4");
+      playSound(950, 0.15);
+      pickups.splice(i,1);
+    }else if(p.x < -30){
+      pickups.splice(i,1);
+    }
+  }
+  for(let i = dustParticles.length-1; i>=0; i--){
+    const p=dustParticles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.06;
+    p.life--;
+    if(p.life <= 0) dustParticles.splice(i,1);
+  }
+  if(feedback && --feedback.frames <= 0) feedback = null;
+  if(distanceMeters >= nextMilestone){
+    setFeedback("🏁 " + nextMilestone.toLocaleString("de-CH") + " m geschafft!", 105);
+    playSound(710, 0.13);
+    nextMilestone += nextMilestone < 1000 ? 250 : 500;
+  }
+  updateScore();
 }
 
 function drawGround(){
