@@ -567,14 +567,16 @@ const isAdminUid = (uid) => ADMIN_UIDS.includes(uid);
 const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
 const HOME_INFOS_URL = "home-infos.json";
 
-/* Nur eine kleine, serverseitig vorberechnete Jahresübersicht abrufen.
-   Browser-Cache: 6 Stunden. Keine Firestore-Listener und keine Log-Abfragen. */
-const HOME_DASHBOARD_CACHE_MS=6*60*60*1000;
+/* Ein einzelner Listener auf das Jahresdokument meldet Datenänderungen.
+   Keine periodischen Abfragen und keine Listener auf Baustellen oder Logs. */
 const HOME_MONTH_NAMES=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
 let homeDashboardPending=false;
 let homeDashboardYear=null;
 let homeDashboardSelectedMonth=null;
 let homeDashboardCached=null;
+let homeDashboardUnsubscribe=null;
+let homeDashboardRevision=null;
+let homeDashboardReloadQueued=false;
 
 function homeSwissYear(){
   return Number(new Intl.DateTimeFormat("en",{timeZone:"Europe/Zurich",year:"numeric"}).format(new Date()));
@@ -661,36 +663,64 @@ function homeRenderDashboard(data){
     const date=new Date(data.updatedAt);
     if(!Number.isNaN(date.getTime()))stamp=date.toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short",timeZone:"Europe/Zurich"});
   }
-  homeSetText("homeDashboardStatus",(stamp?"Stand: "+stamp+". ":"")+"Kabelmeter aus gespeicherten Monatsständen; laufender Monat kann fehlen. Zahlen sind Näherungswerte.");
+  homeSetText("homeDashboardStatus",(stamp?"Stand: "+stamp+". ":"")+"Abgeschlossene Monate aus Snapshots; laufender Monat inklusive aktueller Buchungen.");
 }
 async function homeLoadDashboard(){
   const user=firebase.auth().currentUser;
-  if(!user||homeDashboardPending)return;
+  if(!user)return;
+  if(homeDashboardPending){homeDashboardReloadQueued=true;return;}
   const year=homeSwissYear();
   homeSetText("homeDashboardPeriod","01.01. – 31.12."+year);
-  const key="netzbau-home-dashboard-"+year;
-  let cached=null;
-  try{cached=JSON.parse(localStorage.getItem(key)||"null");}catch(error){}
-  if(cached&&cached.data&&cached.data.year===year){
-    homeRenderDashboard(cached.data);
-    if(Date.now()-homeNumber(cached.savedAt)<HOME_DASHBOARD_CACHE_MS)return;
-  }
   homeDashboardPending=true;
   try{
     const callable=firebase.app().functions("europe-west1").httpsCallable("lagerDashboardGet");
     const response=await callable({});
     const data=response&&response.data;
-    if(!firebase.auth().currentUser||homeSwissYear()!==year)return;
+    if(!firebase.auth().currentUser||firebase.auth().currentUser.uid!==user.uid||homeSwissYear()!==year)return;
     if(!data||data.year!==year)throw new Error("Ungültiges Statistikjahr");
     homeRenderDashboard(data);
-    try{localStorage.setItem(key,JSON.stringify({savedAt:Date.now(),data}));}catch(error){}
   }catch(error){
     console.error("Jahresdashboard konnte nicht geladen werden:",error);
-    if(!homeDashboardCached)homeSetText("homeDashboardStatus","Jahresstatistik aktuell nicht verfügbar. Die Funktion lagerDashboardGet muss in Firebase bereitgestellt sein.");
+    homeSetText("homeDashboardStatus",homeDashboardCached
+      ?"Statistik derzeit nicht aktualisierbar. Angezeigt wird der zuletzt geladene Stand."
+      :"Jahresstatistik aktuell nicht verfügbar. Bitte Firebase-Funktionen und Berechtigungen prüfen.");
   }finally{
     homeDashboardPending=false;
+    if(homeDashboardReloadQueued){
+      homeDashboardReloadQueued=false;
+      homeLoadDashboard();
+    }
   }
 }
+function homeStopDashboardListener(){
+  if(homeDashboardUnsubscribe){homeDashboardUnsubscribe();homeDashboardUnsubscribe=null;}
+  homeDashboardRevision=null;
+}
+function homeStartDashboardListener(){
+  const user=auth.currentUser;
+  if(!user)return;
+  const year=homeSwissYear();
+  if(homeDashboardUnsubscribe&&homeDashboardYear===year)return;
+  homeStopDashboardListener();
+  homeDashboardYear=year;
+  homeDashboardCached=null;
+  homeSetText("homeDashboardPeriod","01.01. – 31.12."+year);
+  // Listener beim ersten Dokumentstand sowie bei Änderungen am Revisionstempel.
+  homeDashboardUnsubscribe=firebase.firestore().collection("dashboard_stats").doc(String(year))
+    .onSnapshot(snapshot=>{
+      const revision=snapshot.exists&&snapshot.data().invalidatedAt;
+      const millis=revision&&typeof revision.toMillis==="function"?revision.toMillis():0;
+      if(homeDashboardRevision===null||millis!==homeDashboardRevision){
+        homeDashboardRevision=millis;
+        homeLoadDashboard();
+      }
+    },error=>{
+      console.error("Dashboard-Echtzeitverbindung fehlgeschlagen:",error);
+      homeSetText("homeDashboardStatus","Live-Aktualisierung nicht verfügbar. Bitte Berechtigungen und Verbindung prüfen.");
+      homeLoadDashboard();
+    });
+}
+
 
 
 // Regulär vom 1.–31. Dezember; Hauptadministrator kann im eigenen Tab vorab testen.
@@ -1003,7 +1033,11 @@ document.addEventListener("click", (event) => {
 document.addEventListener("DOMContentLoaded", setSeasonalHomeLogo);
 document.addEventListener("DOMContentLoaded", updateSeasonalHomeSnowfall);
 // Auch bei einem offenen Tab zum Monatswechsel automatisch aktualisieren.
-setInterval(() => { setSeasonalHomeLogo(); updateSeasonalHomeSnowfall(); if(firebase.auth().currentUser)homeLoadDashboard(); }, 60000);
+setInterval(() => {
+  setSeasonalHomeLogo();
+  updateSeasonalHomeSnowfall();
+  if(firebase.auth().currentUser&&homeSwissYear()!==homeDashboardYear)homeStartDashboardListener();
+}, 60000);
 document.addEventListener("DOMContentLoaded", markActiveMenu);
 document.addEventListener("DOMContentLoaded", loadHomeInfos);
 
@@ -1020,8 +1054,11 @@ LagerAccess.onAuthStateChanged((user) => {
     document.getElementById("appContent").style.display = "block";
     setSeasonalHomeLogo();
     updateSeasonalHomeSnowfall();
-    homeLoadDashboard();
+    homeStartDashboardListener();
   }else{
+    homeStopDashboardListener();
+    homeDashboardYear=null;
+    homeDashboardCached=null;
     setNavigationVisibility(null);
     closeMenu();
     document.getElementById("loginScreen").style.display = "flex";

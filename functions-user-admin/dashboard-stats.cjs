@@ -1,8 +1,8 @@
 'use strict';
-// Kompakte Jahresübersicht. Keine Live-Listener, kein zusätzlicher Scheduler.
-// Eine serverseitig geteilte Statistik wird höchstens alle 12 Stunden neu berechnet.
+// Ereignisgesteuerte Jahresübersicht: Neuberechnung nur bei Änderungen der Quelldaten.
 const MONTHS=12;
 const SHARED_CACHE_MS=12*60*60*1000;
+const {entriesForMonth,mergeInterimSnapshot}=require('./cable-monthly-snapshot.cjs');
 
 function swissYear(date){
   return Number(new Intl.DateTimeFormat('en',{timeZone:'Europe/Zurich',year:'numeric'}).format(date));
@@ -28,6 +28,7 @@ async function calculateDashboard({db,Timestamp,year,now}){
   ]);
 
   const monthlyMeters=Array(MONTHS).fill(0);
+  const snapshotsByMonth=new Map();
   const byType=new Map();
   let bookings=0;
   let lastClosedMonth=0;
@@ -36,6 +37,7 @@ async function calculateDashboard({db,Timestamp,year,now}){
     if(data.status!=='ready')return;
     const month=Number(data.month||Number(data.monthIndex)+1);
     if(!Number.isInteger(month)||month<1||month>12)return;
+    snapshotsByMonth.set(month,data);
     monthlyMeters[month-1]=round(safeNum(data.totalMeters));
     bookings+=safeNum(data.totalBookings);
     if(data.finalized===true)lastClosedMonth=Math.max(lastClosedMonth,month);
@@ -44,6 +46,40 @@ async function calculateDashboard({db,Timestamp,year,now}){
       if(type)byType.set(type,round((byType.get(type)||0)+safeNum(row.meter)));
     }
   });
+  // Den laufenden Monat aus neuen Kabel-Logs ergänzen; historische Abschlüsse
+  // bleiben unverändert. Vorläufige Snapshots werden anhand sourceKeys dedupliziert.
+  const currentMonth=Number(new Intl.DateTimeFormat('en',{timeZone:'Europe/Zurich',month:'numeric'}).format(now));
+  const from=Timestamp.fromDate(new Date(Date.UTC(year,currentMonth-1,1)-86400000));
+  const to=Timestamp.fromDate(new Date(Date.UTC(year,currentMonth,1)+86400000));
+  const liveLogs=[];
+  let cursor=null;
+  for(;;){
+    let query=db.collection('logs').where('createdAt','>=',from).where('createdAt','<',to)
+      .orderBy('createdAt').orderBy('__name__').limit(500);
+    if(cursor)query=query.startAfter(cursor);
+    const page=await query.get();
+    for(const doc of page.docs){
+      const data=doc.data();
+      if(data.createdAt&&typeof data.createdAt.toMillis==='function'&&data.bereich==='Kabellager')liveLogs.push({id:doc.id,...data});
+    }
+    if(page.size<500)break;
+    cursor=page.docs[page.docs.length-1];
+  }
+  const saved=snapshotsByMonth.get(currentMonth);
+  if(!saved||saved.finalized!==true){
+    const entries=entriesForMonth(liveLogs,year,currentMonth-1);
+    const interim=mergeInterimSnapshot(saved||null,year,currentMonth-1,entries);
+    monthlyMeters[currentMonth-1]=round(safeNum(interim.totalMeters));
+    bookings+=safeNum(interim.totalBookings)-safeNum(saved?.totalBookings);
+    for(const row of Array.isArray(saved?.rows)?saved.rows:[]){
+      const type=String(row.typ||'').trim();
+      if(type)byType.set(type,round((byType.get(type)||0)-safeNum(row.meter)));
+    }
+    for(const row of interim.rows){
+      const type=String(row.typ||'').trim();
+      if(type)byType.set(type,round((byType.get(type)||0)+safeNum(row.meter)));
+    }
+  }
   const totalMeters=round(monthlyMeters.reduce((sum,n)=>sum+n,0));
   let recordMonth=0;
   for(let i=0;i<MONTHS;i++){
@@ -72,13 +108,14 @@ function createDashboardGet({db,Timestamp,logger,now=()=>new Date()}){
       const data=previous.data()||{};
       const lastUpdate=data.calculatedAt&&typeof data.calculatedAt.toMillis==='function'
         ?data.calculatedAt.toMillis():0;
-      if(lastUpdate>0&&at.getTime()-lastUpdate<SHARED_CACHE_MS){
-        const {calculatedAt,...payload}=data;
+      const invalidatedAt=data.invalidatedAt&&typeof data.invalidatedAt.toMillis==='function'?data.invalidatedAt.toMillis():0;
+      if(lastUpdate>0&&at.getTime()-lastUpdate<SHARED_CACHE_MS&&lastUpdate>=invalidatedAt){
+        const {calculatedAt,invalidatedAt,...payload}=data;
         return payload;
       }
     }
     const payload=await calculateDashboard({db,Timestamp,year,now:at});
-    await ref.set({...payload,calculatedAt:Timestamp.fromDate(at)});
+    await ref.set({...payload,calculatedAt:Timestamp.fromDate(at)},{merge:true});
     logger.info('Jahres-Dashboard erneuert',{year,monthsWithMeters:payload.monthlyMeters.filter(Boolean).length});
     return payload;
   };
