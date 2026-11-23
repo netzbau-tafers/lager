@@ -3639,7 +3639,33 @@ function finishBaustelle(id){
   }
 }
 
+
+const pendingDestructiveActions = new Set();
+function showActionSuccess(message){
+  let toast = document.getElementById("actionSuccessToast");
+  if(!toast){
+    toast = document.createElement("div");
+    toast.id = "actionSuccessToast";
+    toast.setAttribute("role", "status");
+    toast.setAttribute("aria-live", "polite");
+    Object.assign(toast.style, {
+      position:"fixed", top:"20px", left:"50%", transform:"translateX(-50%)",
+      zIndex:"2147483647", maxWidth:"min(92vw, 520px)", boxSizing:"border-box",
+      padding:"15px 20px", borderRadius:"12px", background:"#176b43",
+      color:"#fff", fontSize:"16px", fontWeight:"600",
+      boxShadow:"0 8px 30px rgba(0,0,0,.35)", textAlign:"center",
+      lineHeight:"1.5", pointerEvents:"none"
+    });
+    document.body.appendChild(toast);
+  }
+  toast.textContent = "✓ " + message;
+  toast.style.display = "block";
+  clearTimeout(showActionSuccess.timeout);
+  showActionSuccess.timeout = setTimeout(() => { toast.style.display = "none"; }, 5500);
+}
+
 function archiveBaustelle(id){
+  if(pendingDestructiveActions.has(id)) return;
   if(!LagerAccess.requireWrite("baustellen")) return;
   if(!canManageFinished()){
     alert("Nur Benutzer mit dem Recht für beendete Baustellen dürfen archivieren.");
@@ -3659,6 +3685,7 @@ function archiveBaustelle(id){
     "Die Baustelle wird ins Archiv verschoben.";
 
   if(confirm(text)){
+    pendingDestructiveActions.add(id);
     baustellenCollection.doc(id).update({
       status: "archiviert",
       archiviertAm: firebase.firestore.FieldValue.serverTimestamp()
@@ -3671,14 +3698,16 @@ function archiveBaustelle(id){
         "Name: " + (b.name || "") +
         " | Nummer: " + (b.nummer || "")
       );
+      showActionSuccess("Baustelle „" + (b.name || b.nummer || id) + "“ wurde archiviert.");
     }).catch(error => {
       console.error("Fehler beim Archivieren der Baustelle:", error);
       alert("Fehler beim Archivieren.");
-    });
+    }).finally(() => pendingDestructiveActions.delete(id));
   }
 }
 
 function reactivateBaustelle(id){
+  if(pendingDestructiveActions.has(id)) return;
   if(!LagerAccess.requireWrite("baustellen")) return;
   if(!canManageFinished()){
     alert("Nur Benutzer mit dem Recht für beendete Baustellen dürfen beendete Baustellen wieder aktivieren.");
@@ -3709,6 +3738,7 @@ function reactivateBaustelle(id){
     "Die Baustelle wird zurück zu den aktiven Baustellen verschoben.";
 
   if(confirm(text)){
+    pendingDestructiveActions.add(id);
     baustellenCollection.doc(id).update({
       status: "aktiv",
       abgeschlossenAm: firebase.firestore.FieldValue.delete(),
@@ -3724,10 +3754,11 @@ function reactivateBaustelle(id){
         " | Verantwortlicher: " + (b.verantwortlicher || "") +
         " | Neuer Status: Aktiv"
       );
+      showActionSuccess("Baustelle „" + (b.name || b.nummer || id) + "“ wurde wieder aktiviert.");
     }).catch(error => {
       console.error("Fehler beim Reaktivieren der Baustelle:", error);
       alert("Fehler beim Reaktivieren.");
-    });
+    }).finally(() => pendingDestructiveActions.delete(id));
   }
 }
 
@@ -3937,6 +3968,7 @@ async function printBaustelle(id){
 }
 
 async function deleteBaustelle(id){
+  if(pendingDestructiveActions.has(id)) return;
   if(!LagerAccess.requireWrite("baustellen")) return;
   const b = alleBaustellen.find(x => x.id === id);
   if(!b){
@@ -3961,20 +3993,23 @@ async function deleteBaustelle(id){
   );
 
   if(bestaetigung && bestaetigung.trim().toLowerCase() === "löschen"){
+    pendingDestructiveActions.add(id);
     let materialien;
     try{
       const snapshot = await materialCollection.where("baustelleId", "==", id).get({source: "server"});
-      if(!auth.currentUser) return;
+      if(!auth.currentUser){ pendingDestructiveActions.delete(id); return; }
       materialien = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
     }catch(error){
       console.error("Fehler beim Laden der Materialliste zum Löschen:", error);
       alert("Baustelle wurde nicht gelöscht: Materialliste konnte nicht geladen werden.");
+      pendingDestructiveActions.delete(id);
       return;
     }
 
 
     if(materialien.length > 499){
       alert("Zu viele Materialeinträge für einen sicheren Sammel-Löschvorgang. Bitte zuerst Material reduzieren.");
+      pendingDestructiveActions.delete(id);
       return;
     }
 
@@ -3995,11 +4030,12 @@ async function deleteBaustelle(id){
           " | Nummer: " + (b.nummer || "") +
           " | Verantwortlicher: " + (b.verantwortlicher || "")
         );
+        showActionSuccess("Baustelle „" + (b.name || b.nummer || id) + "“ wurde gelöscht.");
       })
       .catch(error => {
         console.error("Fehler beim Löschen der Baustelle:", error);
         alert("Fehler beim Löschen.");
-      });
+      }).finally(() => pendingDestructiveActions.delete(id));
   }else{
     alert("Löschen abgebrochen: Bitte exakt \"löschen\" eingeben.");
   }

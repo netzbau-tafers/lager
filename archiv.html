@@ -1872,7 +1872,33 @@ function markActiveMenu(){
 }
 
 document.addEventListener("DOMContentLoaded", markActiveMenu);
+
+const pendingDestructiveActions = new Set();
+function showActionSuccess(message){
+  let toast = document.getElementById("actionSuccessToast");
+  if(!toast){
+    toast = document.createElement("div");
+    toast.id = "actionSuccessToast";
+    toast.setAttribute("role", "status");
+    toast.setAttribute("aria-live", "polite");
+    Object.assign(toast.style, {
+      position:"fixed", top:"20px", left:"50%", transform:"translateX(-50%)",
+      zIndex:"2147483647", maxWidth:"min(92vw, 520px)", boxSizing:"border-box",
+      padding:"15px 20px", borderRadius:"12px", background:"#176b43",
+      color:"#fff", fontSize:"16px", fontWeight:"600",
+      boxShadow:"0 8px 30px rgba(0,0,0,.35)", textAlign:"center",
+      lineHeight:"1.5", pointerEvents:"none"
+    });
+    document.body.appendChild(toast);
+  }
+  toast.textContent = "✓ " + message;
+  toast.style.display = "block";
+  clearTimeout(showActionSuccess.timeout);
+  showActionSuccess.timeout = setTimeout(() => { toast.style.display = "none"; }, 5500);
+}
+
 async function deleteBaustelle(id){
+  if(pendingDestructiveActions.has(id)) return;
   if(!LagerAccess.requireWrite("archiv")) return;
   if(!isAdminUser){
     alert("Nur Admins dürfen archivierte Baustellen löschen.");
@@ -1894,19 +1920,22 @@ async function deleteBaustelle(id){
   );
 
   if(bestaetigung && bestaetigung.trim().toLowerCase() === "löschen"){
+    pendingDestructiveActions.add(id);
     let materialien;
     try{
       const snapshot = await materialCollection.where("baustelleId", "==", id).get({source: "server"});
-      if(!auth.currentUser || !isAdminUser) return;
+      if(!auth.currentUser || !isAdminUser){ pendingDestructiveActions.delete(id); return; }
       materialien = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
     }catch(error){
       console.error("Fehler beim Laden der Materialliste zum Löschen:", error);
       alert("Baustelle wurde nicht gelöscht: Materialliste konnte nicht geladen werden.");
+      pendingDestructiveActions.delete(id);
       return;
     }
 
     if(materialien.length > 499){
       alert("Zu viele Materialeinträge für einen sicheren Sammel-Löschvorgang. Bitte zuerst Material reduzieren.");
+      pendingDestructiveActions.delete(id);
       return;
     }
 
@@ -1928,11 +1957,12 @@ async function deleteBaustelle(id){
           " | Verantwortlicher: " + (b.verantwortlicher || "") +
           " | Gelöschte Materialeinträge: " + materialien.length
         );
+        showActionSuccess("Archivierte Baustelle „" + (b.name || b.nummer || id) + "“ wurde gelöscht.");
       })
       .catch(error => {
         console.error("Fehler beim Löschen der Baustelle:", error);
         alert("Fehler beim Löschen.");
-      });
+      }).finally(() => pendingDestructiveActions.delete(id));
   }else{
     alert("Löschen abgebrochen: Bitte exakt \"löschen\" eingeben.");
   }
