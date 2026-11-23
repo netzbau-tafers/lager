@@ -868,6 +868,7 @@ canvas{
   background:rgba(13,49,76,.84);color:#fff;font:700 13px/1.1 system-ui,sans-serif;
   box-shadow:0 4px 12px rgba(16,42,67,.20);backdrop-filter:blur(4px)
 }
+.runner-music-toggle[hidden]{display:none!important}
 .runner-music-toggle:hover{background:rgba(22,74,111,.94)}
 .runner-music-toggle:focus-visible{outline:3px solid #ffd562;outline-offset:2px}
 .runner-music-toggle[aria-pressed="true"]{background:rgba(71,85,99,.88)}
@@ -1021,6 +1022,18 @@ canvas{
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 const musicToggle = document.getElementById("musicToggle");
+// Bei einem Fehler oder einem nicht verfügbaren Musikscript muss das Spiel
+// trotzdem vollständig funktionieren (Bestenliste, Steuerung, Spielgeräusche).
+const musicAvailable = !!(window.MastRunnerMusic &&
+  ["isMuted","setMuted","start","stop"].every(method =>
+    typeof window.MastRunnerMusic[method] === "function"));
+const MastRunnerMusic = musicAvailable ? window.MastRunnerMusic : {
+  isMuted:()=>true, setMuted:()=>{}, start:()=>{}, stop:()=>{}
+};
+if(!musicAvailable){
+  musicToggle.hidden = true;
+  console.warn("Arcade-Musik nicht geladen; Mast Runner läuft ohne Hintergrundmusik.");
+}
 function updateMusicToggle(){
   const muted = MastRunnerMusic.isMuted();
   musicToggle.setAttribute("aria-pressed",String(muted));
