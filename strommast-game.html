@@ -755,6 +755,8 @@ canvas{
     background:#dbe9f7;border:0;border-radius:0;box-shadow:none;overflow:hidden
   }
   .mr-game-slot .topbar,
+  .mr-game-slot .desktop-game-intro,
+  .mr-game-slot .runner-scoreboard,
   .mr-game-slot .game-dashboard{display:none}
   .mr-game-slot .canvas-wrap{display:flex;width:100%;height:100%;align-items:stretch;overflow:hidden}
   .mr-game-slot canvas{width:100%;height:100%;min-height:0;max-width:100%;aspect-ratio:auto}
@@ -793,8 +795,6 @@ canvas{
 
 
 /* Mast Runner 2.0: HUD, mobile Steuerung und Hauptadministrator-Aktion */
-.runner-hud{position:absolute;left:12px;top:10px;z-index:7;pointer-events:none;display:flex;gap:7px;flex-wrap:wrap;max-width:calc(100% - 130px)}
-.runner-hud span{background:rgba(9,35,56,.83);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:9px;padding:6px 10px;font:800 13px/1.2 system-ui,sans-serif;font-variant-numeric:tabular-nums;box-shadow:0 3px 10px rgba(0,0,0,.09)}
 .runner-tools{position:absolute;right:10px;top:9px;z-index:9;display:flex;gap:6px}
 .runner-tools button{background:rgba(13,50,76,.88);color:#fff;box-shadow:none;border:1px solid rgba(255,255,255,.3);width:34px;height:34px;padding:0;border-radius:10px;font-size:18px}
 .runner-tools button[hidden],.mr-admin-reset[hidden],.runner-new-record[hidden]{display:none!important}
@@ -809,13 +809,63 @@ canvas{
   .mr-stat-value{font-size:clamp(16px,5vw,26px)}
   .mr-pick .mr-section-head{align-items:center}
   .mr-scene-figure{background:#f0f8fc}
-  .runner-hud{left:6px;top:6px;gap:4px;max-width:calc(100% - 90px)}
-  .runner-hud span{font-size:10px;padding:5px 6px}
   .runner-tools{right:6px;top:5px;gap:3px}
   .runner-tools button{width:30px;height:30px;font-size:15px}
   #mrMobileLanding .mr-admin-reset{width:100%;margin:0 0 16px}
 }
 @media(prefers-reduced-motion:reduce){.runner-tools button{transition:none}}
+
+/* Desktop folgt der mobilen Mast-Runner-Optik: Spiel frei von Punktanzeigen,
+   gemeinsame Statistik direkt unter dem Spielfeld. */
+@media (min-width:701px){
+  body{background:radial-gradient(circle at 15% 5%,#edf5fb 0%,#e5edf6 55%,#dae6f0 100%)}
+  .game-wrap{width:min(1180px,100%);border:1px solid #dce5ed;border-radius:24px;box-shadow:0 20px 52px rgba(13,42,66,.14)}
+  .topbar{align-items:center;background:#102a43;border-bottom:1px solid rgba(255,255,255,.07);padding:18px 26px;flex-wrap:nowrap}
+  .topbar-left{align-items:center;gap:14px;flex-wrap:nowrap}
+  .desktop-brand-mark{flex:none;width:52px;height:52px;display:grid;place-items:center;background:rgba(138,199,249,.14);color:#a8dcfa;border:1px solid rgba(174,219,255,.17);border-radius:16px}
+  .desktop-brand-mark svg{width:31px;height:31px}
+  .desktop-brand-text span{display:block;color:#acc8d9;font-size:12px;font-weight:800;letter-spacing:.14em;margin-bottom:5px}
+  .desktop-brand-text strong{display:block;color:#fff;font-size:23px;letter-spacing:-.04em}
+  .desktop-back-button{background:rgba(255,255,255,.09);color:#fff;border:1px solid rgba(255,255,255,.15);box-shadow:none;font-size:15px;border-radius:14px;padding:13px 19px}
+  .desktop-back-button:hover{background:rgba(255,255,255,.16);box-shadow:none}
+  .desktop-game-intro{background:linear-gradient(120deg,#102a43,#16415c);color:#fff;padding:25px 30px 27px}
+  .desktop-game-eyebrow{display:flex;align-items:center;gap:10px;font-size:12px;letter-spacing:.14em;font-weight:800;color:#b6dfef}
+  .desktop-game-dot{width:8px;height:8px;flex:none;background:#79dcb5;border-radius:50%;box-shadow:0 0 0 4px rgba(121,220,181,.11)}
+  .desktop-game-intro h1{font-size:clamp(32px,4vw,46px);letter-spacing:-.06em;color:#fff;margin:12px 0 6px}
+  .desktop-game-intro h1 span{color:#69bcef}
+  .desktop-game-intro p{margin:0;font-size:16px;color:#bfd4e3;line-height:1.5}
+  .runner-scoreboard{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding:0 24px 20px;background:#f4f7fa}
+  .runner-stat{min-width:0;background:#fff;border:1px solid #e1e8ef;border-top:0;border-radius:0 0 20px 20px;text-align:center;padding:18px 16px 19px}
+  .runner-stat-label{font-size:13px;letter-spacing:.07em;text-transform:uppercase;font-weight:800;color:#708492}
+  .runner-stat-label span{color:#2884c6;margin-right:7px}
+  .runner-stat-value{display:block;margin-top:8px;font-size:clamp(25px,3vw,36px);font-weight:850;line-height:1.1;letter-spacing:-.05em;color:#132c42;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+  .game-dashboard{display:flex;flex-direction:column;gap:16px;padding:0 24px 26px;background:#f4f7fa}
+  .game-dashboard .dashboard-panel{border:1px solid #e3ebf0;border-radius:22px;background:#fff;box-shadow:0 12px 28px rgba(14,42,65,.06);padding:24px}
+  .desktop-ranking-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .desktop-ranking-heading h2{font-size:25px;letter-spacing:-.04em;color:#132c42;margin:0}
+  .desktop-ranking-heading>span{background:#edf6fb;border:1px solid #dfedf7;color:#3c7197;padding:8px 13px;border-radius:100px;font-size:12px;font-weight:800;white-space:nowrap}
+  .game-dashboard .desktop-ranking-subtitle{margin:8px 0 18px;color:#768898;font-size:14px}
+  .live-ranking ol{list-style:none;counter-reset:rank;padding:0;margin:0}
+  .live-ranking li{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;counter-increment:rank;border-top:1px solid #eef2f5;padding:15px 0;line-height:1.5;color:#627b8f}
+  .live-ranking li::before{content:counter(rank);width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:10px;background:#edf3f7;color:#627d95;font-size:14px;font-weight:800}
+  .live-ranking li:first-child::before{background:#fff1d5;color:#ad7922}
+  .live-ranking li:nth-child(2)::before{background:#eef3f8;color:#8194a7}
+  .live-ranking li:nth-child(3)::before{background:#fff0e7;color:#ad7349}
+  .live-ranking li strong{color:#132c42;font-size:15px;min-width:160px}
+  .game-dashboard .desktop-howto{background:transparent;border:0;box-shadow:none;padding:0}
+  .desktop-howto .control-tips{margin:0;gap:16px}
+  .desktop-howto .tip-card{border:1px solid #e3ebf0;border-radius:18px;padding:18px 20px;color:#617a8c;font-size:14px;line-height:1.5;background:#fff}
+  .desktop-howto .tip-card strong{color:#204b6a;font-size:15px;margin-bottom:7px}
+  .app-footer{max-width:1180px}
+}
+@media (min-width:701px) and (max-width:850px){
+  .topbar{padding:15px 20px}
+  .desktop-game-intro{padding:20px}
+  .runner-scoreboard{gap:10px;padding:0 15px 15px}
+  .runner-stat{padding:15px 10px}
+  .game-dashboard{padding:0 15px 20px}
+  .live-ranking li strong{min-width:0}
+}
 </style>
 </head>
 <body class="auth-loading">
@@ -872,22 +922,22 @@ canvas{
   </div>
 
   <div class="game-wrap" id="gameWrap">
-    <div class="topbar">
+    <header class="topbar">
       <div class="topbar-left">
-        <h1>Mast Runner</h1>
-        <button type="button" onclick="window.location.href='home.html'">Zurück</button>
+        <div class="desktop-brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M16 3 8 29M16 3l8 26M11 12h10M8 21h16M11 12l12 9M21 12 9 21M5 29h22"/></svg></div>
+        <div class="desktop-brand-text"><span>NETZBAU TAFERS</span><strong>Mast Runner</strong></div>
       </div>
+      <button class="desktop-back-button" type="button" onclick="window.location.href='home.html'">← Zurück</button>
+    </header>
 
-      <div class="topbar-right score">
-        <span class="pill">Punkte: <span id="score">0</span></span>
-        <span class="pill">Distanz: <span id="distance">0 m</span></span>
-        <span class="pill">Rekord: <span id="bestScore">0</span></span>
-      </div>
-    </div>
+    <section class="desktop-game-intro" aria-label="Spielbeschreibung">
+      <div class="desktop-game-eyebrow"><span class="desktop-game-dot" aria-hidden="true"></span>DAS NETZELEKTRIKER-ARCADE-SPIEL</div>
+      <h1>Mast Runner<span>.</span></h1>
+      <p>Laufe mit unserem Netzelektriker, sammle Blitze und knacke die Top 10.</p>
+    </section>
 
     <div class="canvas-wrap">
       <canvas id="gameCanvas" width="1000" height="320"></canvas>
-      <div class="runner-hud" aria-live="off"><span id="hudScore">0 Pkt.</span><span id="hudDistance">0 m</span><span id="hudObstacles">0 Hindernisse</span></div>
       <div class="runner-tools"><button type="button" id="pauseButton" aria-label="Spiel pausieren" title="Pause" hidden>⏸</button><button type="button" id="soundButton" aria-label="Ton einschalten" title="Ton einschalten">🔇</button></div>
 
       <div id="startOverlay" class="overlay">
@@ -927,8 +977,21 @@ canvas{
       </button>
     </div>
 
+    <section class="runner-scoreboard" aria-label="Spielstatistik" aria-live="off">
+      <div class="runner-stat"><div class="runner-stat-label"><span aria-hidden="true">◷</span> Punkte</div><strong class="runner-stat-value" id="score">0</strong></div>
+      <div class="runner-stat"><div class="runner-stat-label"><span aria-hidden="true">↗</span> Distanz</div><strong class="runner-stat-value" id="distance">0 m</strong></div>
+      <div class="runner-stat"><div class="runner-stat-label"><span aria-hidden="true">♜</span> Dein Rekord</div><strong class="runner-stat-value" id="bestScore">0</strong></div>
+    </section>
+
     <div class="game-dashboard">
-      <div class="dashboard-panel">
+      <section class="dashboard-panel live-ranking" aria-label="Bestenliste">
+        <div class="desktop-ranking-heading"><h2>🏆 Bestenliste</h2><span>TOP 10</span></div>
+        <p class="desktop-ranking-subtitle">Top 10 · Live in der App</p>
+        <ol id="liveRankingList"></ol>
+        <button type="button" id="resetRankingButton" class="mr-admin-reset" hidden>Bestenliste zurücksetzen (Hauptadministrator)</button>
+      </section>
+
+      <section class="dashboard-panel desktop-howto" aria-label="Spielanleitung">
         <div class="control-tips">
           <div class="tip-card">
             <strong>Steuerung</strong>
@@ -939,15 +1002,7 @@ canvas{
             <span>Distanz und Hindernisse zählen. Sammle Blitze und knacke die Top&nbsp;10.</span>
           </div>
         </div>
-
-        
-      </div>
-
-      <div class="dashboard-panel live-ranking">
-        <h3>Live-Bestenliste (Top 10)</h3>
-        <ol id="liveRankingList"></ol>
-        <button type="button" id="resetRankingButton" class="mr-admin-reset" hidden>Bestenliste zurücksetzen (Hauptadministrator)</button>
-      </div>
+      </section>
     </div>
   </div>
 
@@ -1134,9 +1189,6 @@ function updateScore(){
   const fields = [
     [scoreEl, scoreText],
     [document.getElementById("distance"), distanceText],
-    [document.getElementById("hudScore"), scoreText + " Pkt."],
-    [document.getElementById("hudDistance"), distanceText],
-    [document.getElementById("hudObstacles"), clearedObstacles + " Hindernisse"],
     [document.getElementById("mrDistance"), distanceText]
   ];
   for(const [element, value] of fields){
