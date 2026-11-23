@@ -662,138 +662,6 @@ canvas{
   }
 }
 
-/* Mobile Startübersicht – getrennt von Spielgrafik und Spielmechanik. */
-#mrMobileLanding,#mrBackToOverview{display:none}
-@media(max-width:700px){#mrBackToOverview{display:inline-flex}}
-@media(max-width:700px){
-  body.auth-loading #mrMobileLanding{display:none!important}
-  body:not(.mr-playing) .game-wrap{display:none}
-  body>.app-footer{display:none}
-  #mrMobileLanding{display:block;margin:0 auto;max-width:570px;min-height:100dvh;background:#f4f7fa;color:#132c42;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
-  body.mr-playing #mrMobileLanding{display:block}
-  #mrMobileLanding *{box-sizing:border-box}
-  #mrMobileLanding button{font:inherit;cursor:pointer;box-shadow:none;transform:none;transition:background .18s,border-color .18s,transform .18s}
-  #mrMobileLanding button:focus-visible,#mrMobileLanding summary:focus-visible{outline:3px solid #4aa9ff;outline-offset:3px}
-  .mr-header{background:#102a43;color:#fff;padding:max(18px,env(safe-area-inset-top)) 22px 19px;display:flex;justify-content:space-between;align-items:center;gap:12px}
-  .mr-brand{display:flex;gap:11px;align-items:center;min-width:0}
-  .mr-mark{width:42px;height:42px;border:1px solid rgba(174,219,255,.17);border-radius:13px;display:grid;place-items:center;background:rgba(138,199,249,.14);flex:none}
-  .mr-mark svg{width:25px;height:25px}
-  .mr-brand small{display:block;font-size:10px;font-weight:800;letter-spacing:.13em;color:#acc8d9;margin-bottom:4px}
-  .mr-brand strong{font-size:18px;letter-spacing:-.04em}
-  #mrMobileLanding .mr-back{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.13);padding:11px 12px;border-radius:13px;color:#fff;font-size:12px;font-weight:700;white-space:nowrap}
-  .mr-back svg{width:16px;height:16px}
-  .mr-hero{background:linear-gradient(160deg,#102a43,#16415c 92%);color:#fff;padding:24px 22px 0;overflow:hidden}
-  .mr-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.15em;font-weight:800;color:#b6dfef;display:flex;align-items:center;gap:9px}
-  .mr-dot{width:7px;height:7px;background:#79dcb5;border-radius:50%;box-shadow:0 0 0 4px rgba(121,220,181,.11)}
-  #mrMobileLanding .mr-hero h1{margin:10px 0 6px;color:#fff;font-size:clamp(39px,9.3vw,56px);line-height:1.03;font-weight:850;letter-spacing:-.075em}
-  .mr-hero p{margin:0;color:#bfd4e3;font-size:14px;line-height:1.55;max-width:310px}
-  .mr-scene{height:155px;position:relative;overflow:hidden;margin:20px -22px 0}
-  .mr-scene svg{width:100%;height:100%;display:block}
-  .mr-scene::after{content:"";height:9px;position:absolute;left:0;right:0;bottom:0;background:#234960}
-  .mr-scene-figure{position:absolute;z-index:1;bottom:12px;left:20%;width:46px;height:46px;display:grid;place-items:center;border-radius:50%;font-size:29px;background:#fff;border:4px solid #d6ecfa;box-shadow:0 8px 18px rgba(9,32,49,.23)}
-  .mr-main{padding:0 16px 28px}
-  .mr-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 12px}
-  .mr-stat{background:#fff;padding:14px 17px 13px;border:1px solid #e5edf3;border-radius:0 0 17px 17px;min-width:0}
-  .mr-stat-label{color:#6c8190;font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase}
-  .mr-stat-label span{color:#2884c6;margin-right:5px}
-  .mr-stat-value{font-size:28px;letter-spacing:-.055em;font-weight:850;margin-top:5px;line-height:1.2;font-variant-numeric:tabular-nums}
-  .mr-card{border:1px solid #e3ebf0;box-shadow:0 15px 30px rgba(14,42,65,.075);background:#fff;border-radius:22px;margin-top:14px;overflow:hidden}
-  .mr-pick{padding:21px 0 17px}
-  .mr-section-head{padding:0 19px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-  #mrMobileLanding h2{font-size:19px;line-height:1.15;letter-spacing:-.045em;margin:0;font-weight:800;color:#132c42}
-  .mr-section-sub{font-size:12px;line-height:1.5;color:#768898;margin:6px 0 0}
-  .mr-tag{background:#edf6fb;border:1px solid #dfedf7;color:#3c7197;padding:5px 9px;border-radius:100px;font-size:11px;font-weight:750;white-space:nowrap}
-  .mr-characters{display:flex;gap:9px;overflow-x:auto;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;padding:18px 19px 10px;scrollbar-width:thin;scrollbar-color:#c4d7e7 transparent}
-  #mrMobileLanding .mr-character{min-width:110px;max-width:110px;min-height:136px;padding:15px 8px 12px;scroll-snap-align:center;background:#f7fafd;border:1.5px solid #e6edf3;border-radius:16px;color:#132c42;display:flex;align-items:center;flex-direction:column;gap:5px;position:relative;text-align:center}
-  #mrMobileLanding .mr-character[aria-pressed="true"]{background:#e9f5ff;border-color:#3289d5;box-shadow:inset 0 0 0 1px #3289d5}
-  .mr-character[aria-pressed="true"]::after{content:"✓";position:absolute;right:8px;top:7px;background:#2378ca;color:#fff;width:19px;height:19px;line-height:19px;text-align:center;border-radius:50%;font-size:11px;font-weight:800}
-  .mr-character .mr-emoji{font-size:32px;line-height:1.3;margin:8px 0 5px}
-  .mr-character strong{font-size:12px;white-space:nowrap;letter-spacing:-.015em}
-  .mr-character small{font-size:10px;line-height:1.3;max-width:95px;color:#758d9d}
-  .mr-pick-caption{padding:5px 19px 0;display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11px}
-  #mrChosenCharacter{color:#51758d;font-weight:700}
-  .mr-swipe{color:#8ca0b0}
-  .mr-action{padding:15px 19px 19px}
-  #mrMobileLanding .mr-start{width:100%;display:flex;align-items:center;justify-content:center;gap:11px;background:linear-gradient(135deg,#268ce0,#116cbf);color:white;border:0;border-radius:14px;padding:16px 20px;font-size:16px;font-weight:850;box-shadow:0 9px 20px rgba(25,113,198,.18)}
-  .mr-play-icon{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.18);font-size:12px;padding-left:2px}
-  .mr-micro-help{display:flex;justify-content:center;gap:7px;align-items:center;margin:13px 0 0;font-size:11px;color:#8395a2}
-  .mr-ranking-wrap{padding:20px 19px 5px}
-  .mr-rank-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}
-  .mr-rank-heading{display:flex;align-items:center;gap:10px}
-  .mr-trophy{font-size:24px;color:#d7a550}
-  .mr-ranking{list-style:none;padding:0;margin:0}
-  .mr-ranking li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:11px;padding:12px 0;border-top:1px solid #f0f3f5}
-  .mr-rank-num{height:27px;width:27px;display:grid;place-items:center;background:#f0f4f7;color:#718294;border-radius:9px;font-size:12px;font-weight:850}
-  .mr-ranking li:first-child .mr-rank-num{background:#fff1d5;color:#bd8524}
-  .mr-rank-num.mr-rank-gold{background:#fff1d5;color:#bd8524}
-  .mr-rank-num.mr-rank-silver{background:#eef3f8;color:#8194a7}
-  .mr-rank-num.mr-rank-bronze{background:#fff0e7;color:#ad7349}
-  .mr-rank-num svg{width:21px;height:21px;display:block}
-  .mr-rank-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:750}
-  .mr-rank-score{white-space:nowrap;font-size:13px;font-weight:850;font-variant-numeric:tabular-nums;color:#31516b}
-  .mr-rank-score small{font-weight:500;color:#8496a4;font-size:10px}
-  #mrMobileLanding .mr-more{width:100%;background:#f4f8fb;border:0;border-radius:11px;color:#3d7094;font-size:12px;font-weight:800;padding:12px;margin:8px 0 16px}
-  #mrMobileLanding .mr-more[hidden]{display:none}
-  .mr-rules{margin-top:14px;background:#fff;border:1px solid #e3ebf0;border-radius:18px;overflow:hidden}
-  .mr-rules summary{list-style:none;padding:18px 19px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-size:13px;font-weight:780}
-  .mr-rules summary::-webkit-details-marker{display:none}
-  .mr-rule-body{padding:0 19px 16px;color:#647d90;font-size:12px;line-height:1.6}
-  .mr-rule-body p{margin:0 0 8px}
-  .mr-footer{color:#a4b0b9;font-size:11px;text-align:center;padding:20px 12px max(16px,env(safe-area-inset-bottom))}
-
-  /* Der laufende Spielbereich ersetzt nur die Illustration. Der Rest der
-     mobilen Oberfläche bleibt beim Start und nach Spielende sichtbar. */
-  body.mr-playing .mr-scene{height:220px}
-  body.mr-playing .mr-scene > svg,
-  body.mr-playing .mr-scene-figure{display:none}
-  body.mr-playing .mr-pick,
-  body.mr-playing .mr-rules{display:none}
-  .mr-game-slot{display:none;position:absolute;inset:0;z-index:6;background:#dbe9f7}
-  body.mr-playing .mr-game-slot{display:block}
-  .mr-game-slot .game-wrap{
-    display:block;width:100%;height:100%;min-height:0;margin:0;
-    background:#dbe9f7;border:0;border-radius:0;box-shadow:none;overflow:hidden
-  }
-  .mr-game-slot .topbar,
-  .mr-game-slot .desktop-game-intro,
-  .mr-game-slot .runner-scoreboard,
-  .mr-game-slot .game-dashboard{display:none}
-  .mr-game-slot .canvas-wrap{display:flex;width:100%;height:100%;align-items:stretch;overflow:hidden}
-  .mr-game-slot canvas{width:100%;height:100%;min-height:0;max-width:100%;aspect-ratio:auto}
-  .mr-game-slot .overlay{align-items:center;overflow:auto;padding:10px}
-  .mr-game-slot .overlay-box{
-    width:min(100%,310px);max-height:100%;margin:0;
-    padding:13px 12px;border-radius:14px
-  }
-  .mr-game-slot .overlay-box h2{font-size:21px;margin:0 0 5px}
-  .mr-game-slot .overlay-box p{font-size:12px;line-height:1.35;margin:6px 0}
-  .mr-game-slot .overlay-actions{gap:8px;margin-top:8px;flex-direction:row}
-  .mr-game-slot .overlay-actions button{flex:1;min-height:39px;font-size:12px;padding:8px 6px}
-  .mr-game-slot .fs-btn{width:36px;height:36px;right:8px;bottom:8px;border-radius:10px}
-  .mr-game-slot .fs-btn svg{width:19px;height:19px}
-  .mr-game-slot .exit-fullscreen-btn{top:9px;bottom:auto;transform:none}
-  .mr-game-slot .game-wrap:fullscreen,
-  .mr-game-slot .game-wrap:-webkit-full-screen{
-    width:100%;height:100%;min-height:0;border-radius:0;
-    display:flex;align-items:center;justify-content:center
-  }
-  .mr-game-slot .game-wrap:fullscreen .canvas-wrap,
-  .mr-game-slot .game-wrap:-webkit-full-screen .canvas-wrap{
-    height:auto;max-height:100%;align-items:center
-  }
-  .mr-game-slot .game-wrap:fullscreen canvas,
-  .mr-game-slot .game-wrap:-webkit-full-screen canvas{
-    height:auto;max-height:100%;aspect-ratio:1000 / 320
-  }
-}
-@media(max-width:370px){
-  #mrMobileLanding .mr-header,#mrMobileLanding .mr-hero{padding-left:16px;padding-right:16px}
-  #mrMobileLanding .mr-scene{margin-left:-16px;margin-right:-16px}
-  #mrMobileLanding .mr-main{padding-left:12px;padding-right:12px}
-  #mrMobileLanding .mr-brand strong{font-size:16px}
-}
-
-
 /* Mast Runner 2.0: HUD, mobile Steuerung und Hauptadministrator-Aktion */
 .mr-admin-reset[hidden],.runner-new-record[hidden]{display:none!important}
 .mr-admin-reset:focus-visible{outline:3px solid #f9ca46;outline-offset:2px}
@@ -801,15 +669,6 @@ canvas{
 .runner-new-record{color:#9a6410!important;font-weight:850}
 .mr-admin-reset{margin:13px 0 0;padding:10px 13px;background:#fff1f0;border:1px solid #d78b86;color:#8c2525;box-shadow:none;font-size:12px;font-weight:800}
 .mr-admin-reset:hover{background:#ffe0dc;box-shadow:none}
-@media(max-width:700px){
-  .mr-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .mr-stat{padding:12px 9px;text-align:center}
-  .mr-stat-value{font-size:clamp(16px,5vw,26px)}
-  .mr-pick .mr-section-head{align-items:center}
-  .mr-scene-figure{background:#f0f8fc}
-  #mrMobileLanding .mr-admin-reset{width:100%;margin:0 0 16px}
-}
-
 /* Eine gemeinsame Mast-Runner-Oberfläche für Desktop, Tablet und Smartphone. */
   body{background:radial-gradient(circle at 15% 5%,#edf5fb 0%,#e5edf6 55%,#dae6f0 100%)}
   .game-wrap{width:min(1180px,100%);border:1px solid #dce5ed;border-radius:24px;box-shadow:0 20px 52px rgba(13,42,66,.14)}
@@ -872,12 +731,9 @@ canvas{
 @media(max-width:700px){
   .runner-music-toggle{right:6px;top:6px;min-height:32px;padding:5px 8px;font-size:13px}
   .runner-music-toggle span{display:none}
-  .mr-game-slot .runner-music-toggle{right:6px;top:6px}
 }
 /* Smartphone zeigt das identische PC-Layout, nur mit responsiven Abständen.
    Der frühere mobile Launcher ist nicht mehr Bestandteil der sichtbaren UI. */
-#mrMobileLanding{display:none!important}
-#mrBackToOverview{display:none!important}
 @media(max-width:700px){
   html,body{width:100%;overflow-x:hidden}
   body{
@@ -887,8 +743,7 @@ canvas{
     background:#f4f7fa;
   }
   body.auth-loading .game-wrap{visibility:hidden}
-  body:not(.mr-playing) .game-wrap,
-  body.mr-playing .game-wrap{
+  .game-wrap{
     display:block;
     width:100%;
     min-height:100dvh;
@@ -972,60 +827,30 @@ canvas{
 @media(max-width:700px) and (orientation:landscape){
   canvas{height:clamp(170px,42vh,230px)}
 }
+.runner-level-badge{
+  display:inline-flex;align-items:center;white-space:nowrap;
+  margin-left:auto;padding:5px 10px;border-radius:999px;
+  border:1px solid rgba(167,213,248,.32);background:rgba(134,192,225,.14);
+  color:#e5f5ff;font-size:11px;letter-spacing:.035em;font-weight:850
+}
+.runner-level-badge[data-level="5"]{color:#ffe8a5;background:rgba(250,192,72,.17)}
+.runner-level-toast{
+  position:absolute;left:50%;top:17px;transform:translateX(-50%);
+  pointer-events:none;z-index:9;padding:9px 17px;border-radius:13px;
+  background:rgba(15,47,70,.89);border:1px solid rgba(255,234,165,.55);
+  box-shadow:0 7px 20px rgba(11,31,48,.25);color:#fff2b2;
+  font-size:16px;font-weight:850;letter-spacing:.05em;white-space:nowrap
+}
+.runner-level-toast[hidden]{display:none!important}
+@media(max-width:700px){
+  .desktop-game-eyebrow{flex-wrap:wrap}
+  .runner-level-badge{font-size:9px;margin-left:0;padding:4px 8px}
+  .runner-level-toast{font-size:12px;padding:6px 10px;top:8px;max-width:calc(100% - 78px);white-space:normal;text-align:center}
+  .runner-music-toggle{backdrop-filter:none;-webkit-backdrop-filter:none}
+}
 </style>
 </head>
 <body class="auth-loading">
-
-  <!-- Die mobile Übersicht ist ein reiner Launcher; die bestehende Spieloberfläche bleibt darunter unverändert. -->
-  <div id="mrMobileLanding" aria-label="Mast Runner Spielübersicht">
-    <header class="mr-header">
-      <div class="mr-brand">
-        <div class="mr-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="#a8dcfa" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M16 3 8 29M16 3l8 26M11 12h10M8 21h16M11 12l12 9M21 12 9 21M5 29h22"/></svg></div>
-        <div><small>NETZBAU TAFERS</small><strong>Mast Runner</strong></div>
-      </div>
-      <button class="mr-back" type="button" onclick="window.location.href='home.html'" aria-label="Zur Startseite">← Zurück</button>
-    </header>
-    <section class="mr-hero">
-      <div class="mr-eyebrow"><span class="mr-dot"></span>Das Netzelektriker-Arcade-Spiel</div>
-      <h1>Mast<br>Runner<span style="color:#69bcef">.</span></h1>
-      <p>Laufe mit unserem Netzelektriker, sammle Blitze und knacke die Top 10.</p>
-      <div class="mr-scene"><svg viewBox="0 0 560 155" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-  <defs><linearGradient id="mrSky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#286281"/><stop offset="1" stop-color="#7aacc1"/></linearGradient></defs>
-  <rect width="560" height="155" fill="url(#mrSky)"/>
-  <g fill="#d4e8ec" opacity=".65"><path d="M26 57c0-9 8-16 18-16 5-15 27-19 39-6 14-1 25 9 25 22z"/><path d="M357 33c0-8 7-13 16-13 9-11 25-10 31 3 13-1 20 4 21 10z"/></g>
-  <path d="M0 115Q75 79 148 115T300 112T560 103V155H0Z" fill="#9fbead"/>
-  <path d="M0 124Q84 91 170 125T390 119T560 123V155H0Z" fill="#86a89d"/>
-  <g fill="none" stroke="#d3e4e7" stroke-width="2.3" opacity=".9"><path d="M402 41 379 150M402 41l23 109M387 72h30M382 91h41M378 112h49M384 72l38 40M419 72l-40 40"/><path d="M502 63 485 150M502 63l17 87M491 85h23M487 104h31M489 85l28 19M514 85l-26 19"/><path d="M402 42q50 12 100 20M402 54q50 11 100 20" stroke-width="1.7"/></g>
-  <path d="M0 141h560" stroke="#d7d2b0" stroke-width="3"/>
-  <g fill="#3a6b6c"><path d="M292 123l15-37 15 37zM299 122v20h17v-20M331 128l10-24 10 24zM336 127v15h10v-15"/></g>
-  <path d="M0 147h560" stroke="#30566a" stroke-width="6"/>
-</svg><div class="mr-scene-figure" id="mrSceneFigure" aria-hidden="true">👷</div><div class="mr-game-slot" id="mrGameSlot" aria-label="Spielfeld"></div></div>
-    </section>
-    <main class="mr-main">
-      <section class="mr-stats" aria-label="Spielstatistik">
-        <div class="mr-stat"><div class="mr-stat-label"><span>◷</span> Punkte</div><div class="mr-stat-value" id="mrCurrentScore">0</div></div>
-        <div class="mr-stat"><div class="mr-stat-label"><span>↗</span> Distanz</div><div class="mr-stat-value" id="mrDistance">0 m</div></div>
-        <div class="mr-stat"><div class="mr-stat-label"><span>♜</span> Dein Rekord</div><div class="mr-stat-value" id="mrBestScore">0</div></div>
-      </section>
-      <section class="mr-card mr-pick" aria-labelledby="mrCharactersTitle">
-        <div class="mr-section-head"><div><h2 id="mrCharactersTitle">Bereit für die nächste Baustelle?</h2><p class="mr-section-sub">Ein Netzelektriker. Eine Strecke. Dein Rekord.</p></div><div class="mr-tag">👷 Netzelektriker</div></div>
-        <div class="mr-action">
-          <button id="mrStartButton" class="mr-start" type="button"><span class="mr-play-icon" aria-hidden="true">▶</span> Spiel starten</button>
-          <p class="mr-micro-help">Tippen = kurzer Sprung · Gedrückt halten = höher springen</p>
-        </div>
-      </section>
-      <section class="mr-card mr-ranking-wrap" aria-labelledby="mrRankingTitle">
-        <div class="mr-rank-head"><div class="mr-rank-heading"><span class="mr-trophy" aria-hidden="true">🏆</span><div><h2 id="mrRankingTitle">Bestenliste</h2><p class="mr-section-sub">Top 10 · Live in der App</p></div></div><span class="mr-tag">TOP 10</span></div>
-        <ol id="mrRanking" class="mr-ranking" aria-live="polite"><li>Noch keine Einträge</li></ol>
-        <button id="mrRankingToggle" class="mr-more" type="button" aria-expanded="false" hidden>Alle 10 Plätze anzeigen ⌄</button>
-        <button id="mrResetRankingButton" class="mr-admin-reset" type="button" hidden>Bestenliste zurücksetzen (Hauptadministrator)</button>
-      </section>
-      <details class="mr-rules"><summary>ⓘ &nbsp; So funktioniert Mast Runner <span aria-hidden="true">⌄</span></summary>
-        <div class="mr-rule-body"><p>Tippe auf das Spielfeld oder nutze Leertaste / Pfeil nach oben. Gedrückt halten verlängert den Sprung.</p><p>10 Meter = 1 Punkt, Hindernis = 10 Punkte, jede 5er-Serie = 25 Bonuspunkte. Sammle Blitze für 25 Punkte und knacke die Top 10. Der Spielton ist immer aktiviert.</p></div>
-      </details>
-    </main>
-    <footer class="mr-footer">Mast Runner · Netzbau Tafers</footer>
-  </div>
 
   <div class="game-wrap" id="gameWrap">
     <header class="topbar">
@@ -1037,13 +862,14 @@ canvas{
     </header>
 
     <section class="desktop-game-intro" aria-label="Spielbeschreibung">
-      <div class="desktop-game-eyebrow"><span class="desktop-game-dot" aria-hidden="true"></span>DAS NETZELEKTRIKER-ARCADE-SPIEL</div>
+      <div class="desktop-game-eyebrow"><span class="desktop-game-dot" aria-hidden="true"></span>DAS NETZELEKTRIKER-ARCADE-SPIEL <span class="runner-level-badge" id="runnerLevelBadge">LEVEL 1 · ANFÄNGER</span></div>
       <h1>Mast Runner<span>.</span></h1>
       <p>Laufe mit unserem Netzelektriker, sammle Blitze und knacke die Top 10.</p>
     </section>
 
     <div class="canvas-wrap">
       <canvas id="gameCanvas" width="1000" height="320"></canvas>
+      <div class="runner-level-toast" id="runnerLevelToast" role="status" aria-live="polite" hidden></div>
       <button type="button" id="musicToggle" class="runner-music-toggle" aria-label="Musik stummschalten" aria-pressed="false" title="Musik stummschalten">🎵 <span>Musik</span></button>
 
       <div id="startOverlay" class="overlay">
@@ -1105,17 +931,20 @@ canvas{
           </div>
           <div class="tip-card">
             <strong>Ziel</strong>
-            <span>Distanz und Hindernisse zählen. Sammle Blitze und knacke die Top&nbsp;10.</span>
+            <span>Fünf Levels mit mehr Tempo, Doppelhindernissen und fahrenden Baggern. Sammle Blitze und knacke die Top&nbsp;10.</span>
           </div>
         </div>
       </section>
     </div>
   </div>
 
-<script src="mast-runner-music.js?v=20261123"></script>
+<script src="mast-runner-music.js?v=20261123-challenge"></script>
 <script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+// Weniger Canvas-Zeichenoperationen auf kleinen/Touch-Displays;
+// Spielphysik und Kollisionsfrequenz bleiben trotzdem bei 60 Updates/s.
+const reducedMobileEffects = window.matchMedia("(max-width:700px), (pointer:coarse)");
 const musicToggle = document.getElementById("musicToggle");
 // Bei einem Fehler oder einem nicht verfügbaren Musikscript muss das Spiel
 // trotzdem vollständig funktionieren (Bestenliste, Steuerung, Spielgeräusche).
@@ -1153,24 +982,34 @@ const gameOverOverlay = document.getElementById("gameOverOverlay");
 const saveStatusEl = document.getElementById("saveStatus");
 const newGameButton = document.getElementById("newGameButton");
 const liveRankingList = document.getElementById("liveRankingList");
+const runnerLevelBadge=document.getElementById("runnerLevelBadge");
+const runnerLevelToast=document.getElementById("runnerLevelToast");
 
 let animationId = null;
 let gameRunning = false;
 const FRAME_DURATION = 1000 / 60;
 const MAX_UPDATES_PER_FRAME = 5;
 const BASE_GAME_SPEED = 3.9;
-const MAX_GAME_SPEED = 7.3;
+const MAX_GAME_SPEED = 8.6;
 const METERS_PER_PIXEL = 0.1;
 const POINTS_PER_OBSTACLE = 10;
 const POINTS_PER_PICKUP = 25;
 const BASE_GRAVITY = 0.47;
-const SPAWN_DISTANCE_MIN = 350;
-const SPAWN_DISTANCE_MAX = 715;
-const SPAWN_DISTANCE_SHRINK_RATE = 0.035;
-const SAFE_OBSTACLE_CLEARANCE_MIN = 150;
-const SAFE_OBSTACLE_CLEARANCE_SPEED_FACTOR = 24;
-const SAFE_OBSTACLE_CLEARANCE_SPEED_CURVE = 10;
 const DAY_NIGHT_CYCLE_METERS = 2600;
+const DIFFICULTY_LEVELS=[
+  {from:0,name:"Anfänger",speed:3.9,minGap:420,maxGap:720,doubleChance:0,movingChance:0},
+  {from:500,name:"Fortgeschritten",speed:4.8,minGap:365,maxGap:655,doubleChance:0,movingChance:0},
+  {from:1200,name:"Profi",speed:5.85,minGap:305,maxGap:590,doubleChance:.16,movingChance:0},
+  {from:2200,name:"Experte",speed:6.95,minGap:290,maxGap:565,doubleChance:.25,movingChance:.13},
+  {from:3500,name:"Elite",speed:8.0,minGap:275,maxGap:530,doubleChance:.34,movingChance:.23}
+];
+const OBSTACLE_TYPES_BY_LEVEL=[
+  ["solar","tree"],
+  ["solar","tree","mast","house"],
+  ["solar","tree","mast","house","bagger","wind"],
+  ["solar","tree","mast","house","bagger","wind"],
+  ["solar","tree","mast","house","bagger","wind"]
+];
 let gameSpeed = BASE_GAME_SPEED;
 let gravity = BASE_GRAVITY;
 let score = 0;
@@ -1183,6 +1022,12 @@ let pickups = [];
 let dustParticles = [];
 let feedback = null;
 let gamePaused = false;
+let currentLevel=0;
+let levelToastFrames=0;
+let newRecordCelebrated=false;
+let recordFlashFrames=0;
+let lastWavePattern="";
+let lastWaveDouble=false;
 // Ton ist dauerhaft eingeschaltet; keine gespeicherte Stummschaltung.
 let audioContext = null;
 let frameCount = 0;
@@ -1237,8 +1082,6 @@ let distanceUntilNextObstacle = 0;
 let gameOverSaved = false;
 let gameInitialized = false;
 
-const obstacleTypes = ["mast", "solar", "tree", "bagger", "house", "wind"];
-
 function getObstacleDimensions(type){
   let width = 26;
   let height = 78;
@@ -1263,44 +1106,36 @@ function getObstacleDimensions(type){
   return { width, height };
 }
 
-function getMinimumObstacleDistance(previousObstacle){
-  if(!previousObstacle){
-    return 0;
+function getDifficultyLevel(distance=distanceMeters){
+  for(let i=DIFFICULTY_LEVELS.length-1;i>=0;i--){
+    if(distance>=DIFFICULTY_LEVELS[i].from)return i;
   }
-
-  const extraSpeed = Math.max(0, gameSpeed - BASE_GAME_SPEED);
-  const speedBuffer = extraSpeed * SAFE_OBSTACLE_CLEARANCE_SPEED_FACTOR;
-  const speedCurveBuffer = extraSpeed * extraSpeed * SAFE_OBSTACLE_CLEARANCE_SPEED_CURVE;
-  const sizeBuffer = Math.max(previousObstacle.width - 34, 0) * 0.55;
-  // Sprungreserve erlaubt anspruchsvolle, aber fair spielbare Passagen.
-  const jumpFlightBuffer = previousObstacle.width + gameSpeed * 68 + 40;
-  return Math.max(
-    previousObstacle.width + SAFE_OBSTACLE_CLEARANCE_MIN + speedBuffer + speedCurveBuffer + sizeBuffer,
-    jumpFlightBuffer
-  );
+  return 0;
 }
-
-function getNextObstacleDistance(previousObstacle = null){
-  const difficulty = Math.min(1, distanceMeters / 4500);
-  const shrink = Math.min(155, frameCount * SPAWN_DISTANCE_SHRINK_RATE);
-  const safeMin = getMinimumObstacleDistance(previousObstacle);
-  const minimum = Math.max(safeMin, Math.max(245, SPAWN_DISTANCE_MIN - shrink));
-  const spread = Math.max(150, SPAWN_DISTANCE_MAX - SPAWN_DISTANCE_MIN - shrink * .8);
-  const roll = Math.random();
-
-  // Das erste Hindernis muss gut sichtbar sein.
-  if(!previousObstacle) return 450 + Math.random() * 150;
-
-  if(roll < .10 + .24 * difficulty){
-    // Mit steigendem Level entstehen häufiger kurze Hindernis-Serien.
-    return minimum + 18 + Math.random() * Math.min(95, spread * .36);
-  }
-  if(roll > .87){
-    // Gelegentliche Erholungspause, damit der Rhythmus nicht monoton ist.
-    return minimum + spread * (.65 + Math.random() * .45);
-  }
-  return minimum + 65 + Math.pow(Math.random(), 1 + difficulty * .8) *
-    Math.max(80, spread - 65);
+function getTargetGameSpeed(distance=distanceMeters){
+  const i=getDifficultyLevel(distance),current=DIFFICULTY_LEVELS[i],next=DIFFICULTY_LEVELS[i+1];
+  if(!next)return Math.min(MAX_GAME_SPEED,current.speed+(distance-current.from)/4500);
+  const t=Math.min(1,Math.max(0,(distance-current.from)/(next.from-current.from)));
+  return current.speed+(next.speed-current.speed)*t;
+}
+// Gap is spawn-to-spawn. Always reserve a full landing and reaction window.
+function getMinimumObstacleDistance(previousWave){
+  if(!previousWave)return 0;
+  const width=previousWave.span||previousWave.width||44;
+  const flightFrames=previousWave.double?70:previousWave.tall?66:58;
+  const movingBuffer=previousWave.moving?68:0;
+  return width+gameSpeed*(flightFrames+6)+30+movingBuffer;
+}
+function getNextObstacleDistance(previousWave=null){
+  if(!previousWave)return 460+Math.random()*155;
+  const levelIndex=getDifficultyLevel(),level=DIFFICULTY_LEVELS[levelIndex];
+  const minimum=Math.max(level.minGap,getMinimumObstacleDistance(previousWave));
+  const maximum=Math.max(minimum+105,level.maxGap);
+  const range=maximum-minimum,roll=Math.random();
+  if(roll<[.07,.14,.29,.36,.45][levelIndex])
+    return minimum+10+Math.random()*Math.min(85,range*.48);
+  if(roll>.88)return maximum+Math.random()*110;
+  return minimum+Math.pow(Math.random(),1.4+levelIndex*.1)*range;
 }
 
 function setFeedback(message, frames = 75, color = "#fff1a4"){
@@ -1328,14 +1163,15 @@ function playSound(frequency = 560, duration = 0.08, wave = "sine"){
   }
 }
 
-function updateScore(){
+function updateScore(force=false){
   score = Math.floor(distanceMeters / 10) + clearedObstacles * POINTS_PER_OBSTACLE + bonusPoints;
+  // DOM-Anzeige nur alle sechs Physikschritte (~10 Hz), Wert selbst ist live.
+  if(!force&&frameCount%6!==0)return;
   const scoreText = Math.floor(score).toLocaleString("de-CH");
   const distanceText = Math.floor(distanceMeters).toLocaleString("de-CH") + " m";
   const fields = [
     [scoreEl, scoreText],
-    [document.getElementById("distance"), distanceText],
-    [document.getElementById("mrDistance"), distanceText]
+    [document.getElementById("distance"), distanceText]
   ];
   for(const [element, value] of fields){
     if(element && element.textContent !== value) element.textContent = value;
@@ -1463,7 +1299,6 @@ function renderRanking(){
       (dateLabel?" · "+dateLabel:"")));
     liveRankingList.appendChild(li);
   }
-  mrRenderRanking(ranking);
 }
 
 function canScoreReachLeaderboard(scoreValue,ranking=cloudRanking.length?cloudRanking:loadRanking()){
@@ -1524,10 +1359,8 @@ function isRankingMaster(){
   return !!auth.currentUser && auth.currentUser.uid===LagerAccess.MASTER;
 }
 function updateMasterRankingButtons(){
-  for(const id of ["resetRankingButton","mrResetRankingButton"]){
-    const btn=document.getElementById(id);
-    if(btn) btn.hidden=!isRankingMaster();
-  }
+  const btn=document.getElementById("resetRankingButton");
+  if(btn)btn.hidden=!isRankingMaster();
 }
 async function resetRankingAsMaster(){
   if(!isRankingMaster()){
@@ -1537,7 +1370,7 @@ async function resetRankingAsMaster(){
   const text=prompt("Mast Runner 2.0: Alle Bestenlisten-Einträge unwiderruflich löschen? Zum Bestätigen ZURÜCKSETZEN eingeben:");
   if(text!=="ZURÜCKSETZEN") return;
   if(!confirm("Letzte Bestätigung: Die gesamte Mast-Runner-2.0-Bestenliste löschen?")) return;
-  const buttons=["resetRankingButton","mrResetRankingButton"].map(id=>document.getElementById(id)).filter(Boolean);
+  const buttons=[document.getElementById("resetRankingButton")].filter(Boolean);
   buttons.forEach(button=>button.disabled=true);
   try{
     // Bei mehr als 250 Einträgen mehrere Firestore-Batches verwenden.
@@ -1658,13 +1491,21 @@ function resetGameState(){
   distanceMeters = 0;
   clearedObstacles = 0;
   bonusPoints = 0;
-  nextMilestone = 250;
+  nextMilestone = 500;
   pickupDistance = 850;
   pickups = [];
   dustParticles = [];
   feedback = null;
   frameCount = 0;
-  distanceUntilNextObstacle = getNextObstacleDistance();
+  currentLevel=0;
+  levelToastFrames=0;
+  recordFlashFrames=0;
+  newRecordCelebrated=false;
+  lastWavePattern="";
+  lastWaveDouble=false;
+  runnerLevelToast.hidden=true;
+  updateLevelBadge();
+  distanceUntilNextObstacle=getNextObstacleDistance();
   obstacles = [];
   gameOverSaved = false;
   lastFrameTime = 0;
@@ -1700,6 +1541,14 @@ function showStartScreen(){
   dustParticles = [];
   frameCount = 0;
   distanceMeters = 0;
+  currentLevel=0;
+  levelToastFrames=0;
+  recordFlashFrames=0;
+  newRecordCelebrated=false;
+  lastWavePattern="";
+  lastWaveDouble=false;
+  runnerLevelToast.hidden=true;
+  updateLevelBadge();
   clearedObstacles = 0;
   bonusPoints = 0;
   distanceUntilNextObstacle = getNextObstacleDistance();
@@ -1751,6 +1600,7 @@ function releaseJump(){
 }
 
 function endGame(){
+  updateScore(true);
   MastRunnerMusic.stop();
   gameRunning = false;
   gamePaused = false;
@@ -1783,27 +1633,54 @@ function endGame(){
   }
 }
 
-function createObstacle(){
-  const unlockedTypes = Math.min(obstacleTypes.length, 1 + Math.floor(frameCount / 1000));
-  const type = obstacleTypes[Math.floor(Math.random() * unlockedTypes)];
-  const { width, height } = getObstacleDimensions(type);
-
-  const obstacle = {
-    type,
-    x: canvas.width + 20,
-    y: groundY + player.height - height,
-    width,
-    height
-  };
-
-  obstacles.push(obstacle);
-  return obstacle;
+function makeObstacle(type,x,extra={}){
+  const {width,height}=getObstacleDimensions(type);
+  return {type,x,y:groundY+player.height-height,width,height,passed:false,...extra};
 }
-
+function createObstacleWave(){
+  const index=getDifficultyLevel(),level=DIFFICULTY_LEVELS[index],startX=canvas.width+20;
+  if(index>=2&&!lastWaveDouble&&Math.random()<level.doubleChance){
+    // Two low obstacles can be cleared together with one held jump.
+    const firstType=Math.random()<.5?"solar":"bagger",secondType=firstType==="solar"?"bagger":"solar";
+    const first=makeObstacle(firstType,startX,{paired:true});
+    const gap=46+Math.random()*32;
+    const second=makeObstacle(secondType,startX+first.width+gap,{paired:true});
+    obstacles.push(first,second);
+    lastWavePattern=firstType+"+"+secondType;
+    lastWaveDouble=true;
+    return {span:first.width+gap+second.width,double:true,tall:false,moving:false};
+  }
+  const choices=OBSTACLE_TYPES_BY_LEVEL[index];
+  const fresh=choices.filter(type=>type!==lastWavePattern);
+  const options=fresh.length?fresh:choices;
+  let type=options[Math.floor(Math.random()*options.length)];
+  let moving=index>=3&&Math.random()<level.movingChance;
+  if(moving&&lastWavePattern==="bagger")moving=false;
+  if(moving)type="bagger";
+  const ob=makeObstacle(type,startX,moving?{moving:true,moveSpeed:.35+Math.random()*.35}:{});
+  obstacles.push(ob);
+  lastWavePattern=type;
+  lastWaveDouble=false;
+  return {span:ob.width,tall:ob.height>=56,moving};
+}
+function updateLevelBadge(){
+  const level=DIFFICULTY_LEVELS[currentLevel];
+  runnerLevelBadge.textContent="LEVEL "+(currentLevel+1)+" · "+level.name.toUpperCase();
+  runnerLevelBadge.dataset.level=String(currentLevel+1);
+}
 function updateDifficulty(){
   frameCount++;
-  // Keine steigende Schwerkraft: jeder Sprung bleibt zuverlässig berechenbar.
-  if(frameCount % 570 === 0) gameSpeed = Math.min(MAX_GAME_SPEED, gameSpeed + 0.15);
+  gameSpeed=Math.min(MAX_GAME_SPEED,getTargetGameSpeed());
+  const level=getDifficultyLevel();
+  if(level!==currentLevel){
+    currentLevel=level;
+    updateLevelBadge();
+    runnerLevelToast.textContent="LEVEL "+(currentLevel+1)+" · "+DIFFICULTY_LEVELS[currentLevel].name.toUpperCase()+"!";
+    runnerLevelToast.hidden=false;
+    levelToastFrames=145;
+    setFeedback("⚡ Level "+(currentLevel+1)+"!",105,"#fff4a3");
+    playSound(790,.15,"triangle");
+  }
 }
 
 function updateJumpHold(){
@@ -1844,8 +1721,8 @@ function update(){
   distanceUntilNextObstacle -= gameSpeed;
   pickupDistance -= gameSpeed;
   if(distanceUntilNextObstacle <= 0){
-    const created = createObstacle();
-    distanceUntilNextObstacle = getNextObstacleDistance(created);
+    const created=createObstacleWave();
+    distanceUntilNextObstacle=getNextObstacleDistance(created);
   }
   if(pickupDistance <= 0){
     // Keine Blitze direkt in hohen Hindernissen platzieren.
@@ -1860,7 +1737,7 @@ function update(){
   const hitbox = getPlayerHitbox();
   for(let i = obstacles.length-1; i >= 0; i--){
     const ob = obstacles[i];
-    ob.x -= gameSpeed;
+    ob.x -= gameSpeed+(ob.moving?ob.moveSpeed:0);
     const hit = hitbox.x < ob.x + ob.width &&
       hitbox.x + hitbox.width > ob.x &&
       hitbox.y < ob.y + ob.height &&
@@ -1880,10 +1757,11 @@ function update(){
       }else{
         setFeedback("+10 Hindernis!", 38);
       }
-      if(clearedObstacles % 5 === 0){
-        bonusPoints += 25;
-        setFeedback("🔥 5er-Serie: +25!", 85);
-        playSound(800, 0.11);
+      if(clearedObstacles%5===0){
+        const bonus=clearedObstacles%20===0?100:clearedObstacles%10===0?50:25;
+        bonusPoints+=bonus;
+        setFeedback("🔥 "+clearedObstacles+"er-Serie: +"+bonus+"!",90);
+        playSound(800,.11);
       }
     }
     if(ob.x + ob.width < -10) obstacles.splice(i,1);
@@ -1910,12 +1788,20 @@ function update(){
     if(p.life <= 0) dustParticles.splice(i,1);
   }
   if(feedback && --feedback.frames <= 0) feedback = null;
+  if(levelToastFrames>0&&--levelToastFrames===0)runnerLevelToast.hidden=true;
+  if(recordFlashFrames>0)recordFlashFrames--;
   if(distanceMeters >= nextMilestone){
     setFeedback("🏁 " + nextMilestone.toLocaleString("de-CH") + " m geschafft!", 105);
     playSound(710, 0.13);
-    nextMilestone += nextMilestone < 1000 ? 250 : 500;
+    nextMilestone += 500;
   }
   updateScore();
+  if(!newRecordCelebrated&&bestScore>=100&&score>bestScore){
+    newRecordCelebrated=true;
+    recordFlashFrames=120;
+    setFeedback("🏆 NEUER REKORD!",110,"#fff0a6");
+    playSound(950,.16,"triangle");
+  }
 }
 
 function drawGround(){
@@ -2079,7 +1965,7 @@ function drawMast(ob){
 
   ctx.save();
   ctx.shadowColor = "rgba(90,58,28,0.15)";
-  ctx.shadowBlur = 6;
+  ctx.shadowBlur = reducedMobileEffects.matches?0:6;
 
   ctx.fillStyle = "#8a5a2b";
   ctx.fillRect(cx - 4, y, 8, h);
@@ -2234,6 +2120,18 @@ function drawBagger(ob){
 
   drawWheel(x + 21, wheelY, 6, frameCount * 0.18);
   drawWheel(x + 43, wheelY, 6, frameCount * 0.18);
+  if(ob.moving){
+    // Orange Warnblinkleuchte signalisiert eine fahrende Baumaschine.
+    ctx.save();
+    ctx.fillStyle=frameCount%28<14?"#ffe47b":"#ff9e16";
+    ctx.beginPath();
+    ctx.arc(x+35,y-4,4,0,Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle="#8e5c18";
+    ctx.lineWidth=2;
+    ctx.stroke();
+    ctx.restore();
+  }
 }
 
 function drawNuclearPlant(ob){
@@ -2299,13 +2197,21 @@ function drawSkyOrb(x, y, radius, glowRadius, color, glowColor, alpha){
   if(alpha <= .01) return;
   ctx.save();
   ctx.globalAlpha = clamp01(alpha);
-  const glow = ctx.createRadialGradient(x, y, radius * .25, x, y, glowRadius);
-  glow.addColorStop(0, glowColor);
-  glow.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = glow;
-  ctx.beginPath();
-  ctx.arc(x, y, glowRadius, 0, Math.PI * 2);
-  ctx.fill();
+  if(reducedMobileEffects.matches){
+    // Günstiger Halo statt eines pro Frame neu berechneten Radialgradienten.
+    ctx.fillStyle="rgba(255,243,195,.10)";
+    ctx.beginPath();
+    ctx.arc(x,y,glowRadius*.66,0,Math.PI*2);
+    ctx.fill();
+  }else{
+    const glow=ctx.createRadialGradient(x,y,radius*.25,x,y,glowRadius);
+    glow.addColorStop(0,glowColor);
+    glow.addColorStop(1,"rgba(255,255,255,0)");
+    ctx.fillStyle=glow;
+    ctx.beginPath();
+    ctx.arc(x,y,glowRadius,0,Math.PI*2);
+    ctx.fill();
+  }
   ctx.fillStyle = color;
   ctx.beginPath();
   ctx.arc(x, y, radius, 0, Math.PI * 2);
@@ -2327,7 +2233,7 @@ function drawAnimatedSky(){
   if(night > .30){
     const visibility = smoothStep(.30, .85, night);
     ctx.save();
-    for(let i = 0; i < 43; i++){
+    for(let i=0;i<(reducedMobileEffects.matches?22:43);i++){
       const sx = 18 + ((i * 197 + 49) % 963);
       const sy = 8 + ((i * 71 + 23) % 120);
       const twinkle = .72 + Math.sin(frameCount * .028 + i * 1.9) * .18;
@@ -2368,7 +2274,7 @@ function drawAnimatedSky(){
 
   // Transparente Wolken bewegen sich weit langsamer als echte Hindernisse.
   const drift = (distanceMeters * .06) % 340;
-  for(let i = -1; i < 5; i++){
+  for(let i=-1;i<(reducedMobileEffects.matches?3:5);i++){
     const x = i * 340 + 105 - drift;
     const y = 42 + (i % 3) * 15;
     const scale = .82 + (i % 2) * .18;
@@ -2403,15 +2309,22 @@ function drawStreetLamp(x, y, night){
   ctx.ellipse(22, -62, 9, 3.5, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  if(night > .05){
-    const glow = ctx.createRadialGradient(22, -58, 2, 22, -53, 62);
-    glow.addColorStop(0, "rgba(255,235,168," + (.60 * night) + ")");
-    glow.addColorStop(.4, "rgba(255,224,151," + (.19 * night) + ")");
-    glow.addColorStop(1, "rgba(255,220,145,0)");
-    ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(22, -53, 62, 0, Math.PI * 2);
-    ctx.fill();
+  if(night>.05){
+    if(reducedMobileEffects.matches){
+      ctx.fillStyle="rgba(255,230,157,"+(.14*night)+")";
+      ctx.beginPath();
+      ctx.ellipse(22,-43,35,43,0,0,Math.PI*2);
+      ctx.fill();
+    }else{
+      const glow=ctx.createRadialGradient(22,-58,2,22,-53,62);
+      glow.addColorStop(0,"rgba(255,235,168,"+(.60*night)+")");
+      glow.addColorStop(.4,"rgba(255,224,151,"+(.19*night)+")");
+      glow.addColorStop(1,"rgba(255,220,145,0)");
+      ctx.fillStyle=glow;
+      ctx.beginPath();
+      ctx.arc(22,-53,62,0,Math.PI*2);
+      ctx.fill();
+    }
     ctx.fillStyle = "rgba(255,242,182," + (.96 * night) + ")";
     ctx.beginPath();
     ctx.ellipse(22, -59, 7, 2.5, 0, 0, Math.PI * 2);
@@ -2427,7 +2340,7 @@ function drawLandscape(){
     ctx.fillStyle = blendHex(day, dark, night);
     ctx.beginPath();
     ctx.moveTo(0, canvas.height);
-    for(let x = 0; x <= canvas.width + 10; x += 10){
+    for(let x=0;x<=canvas.width+20;x+=(reducedMobileEffects.matches?20:10)){
       const phase = x + distanceMeters * speed;
       const y = baseY + Math.sin(phase / wavelength) * amplitude
         + Math.sin(phase / (wavelength * .49) + 1.6) * secondary;
@@ -2442,7 +2355,7 @@ function drawLandscape(){
   ridge("#d9e6df", "#41596a", 212, 15, 112, .16, 3);
   // Leuchten stehen hinter der Spiellinie und haben keine Kollisionsbox.
   const lampShift = (distanceMeters * 1.2) % 245;
-  for(let i = -1; i < 7; i++){
+  for(let i=-1;i<(reducedMobileEffects.matches?6:7);i++){
     const x = i * 245 + 100 - lampShift;
     drawStreetLamp(x, 259, night);
   }
@@ -2547,6 +2460,19 @@ function draw(){
   }
   drawPlayer();
   drawDust();
+  if(recordFlashFrames>0){
+    // Kleiner visuell erkennbarer Rekord-Effekt ohne zusätzliche Partikelobjekte.
+    ctx.save();
+    const fade=recordFlashFrames/120;
+    for(let i=0;i<(reducedMobileEffects.matches?6:12);i++){
+      const x=120+(i*79)%780,y=28+Math.sin(frameCount*.09+i*1.4)*14;
+      ctx.fillStyle="rgba(255,217,87,"+(fade*.52)+")";
+      ctx.beginPath();
+      ctx.arc(x,y,2.3,0,Math.PI*2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
   drawFeedback();
 }
 
@@ -2671,114 +2597,7 @@ LagerAccess.onAuthStateChanged((user) => {
 });
 
 
-/* Mast Runner 2.0: mobiler Schnellstart ohne Figurenwahl. */
-let mrShowWholeRanking = false;
-function mrSyncStats(){
-  const current=document.getElementById("mrCurrentScore");
-  const record=document.getElementById("mrBestScore");
-  if(current) current.textContent=scoreEl.textContent;
-  if(record) record.textContent=bestScoreEl.textContent;
-}
-
-function mrRenderRanking(ranking){
-  const container=document.getElementById("mrRanking");
-  const toggle=document.getElementById("mrRankingToggle");
-  if(!container||!toggle) return;
-  const entries=Array.isArray(ranking) ? ranking.slice(0,10) : [];
-  container.replaceChildren();
-  if(!entries.length){
-    const empty=document.createElement("li");
-    empty.textContent="Noch keine Einträge";
-    container.appendChild(empty);
-  }
-  entries.slice(0,mrShowWholeRanking?10:3).forEach((entry,index)=>{
-    const li=document.createElement("li");
-    const number=document.createElement("span");
-    const name=document.createElement("span");
-    const value=document.createElement("span");
-    number.className="mr-rank-num";
-    name.className="mr-rank-name";
-    value.className="mr-rank-score";
-    const place=index+1;
-    if(place<=3){
-      number.classList.add(place===1?"mr-rank-gold":place===2?"mr-rank-silver":"mr-rank-bronze");
-      number.setAttribute("aria-label","Platz "+place);
-      number.textContent=place===1?"🏆":place===2?"🥈":"🥉";
-    }else number.textContent=String(place);
-    name.textContent=String(entry.name||"Unbekannt");
-    value.textContent=Number(entry.score||0).toLocaleString("de-CH")+" Pkt.";
-    const extra=document.createElement("small");
-    extra.textContent=" · "+Math.floor(Number(entry.distance)||0).toLocaleString("de-CH")+" m";
-    value.appendChild(extra);
-    li.append(number,name,value);
-    container.appendChild(li);
-  });
-  toggle.hidden=entries.length<=3;
-  toggle.setAttribute("aria-expanded",String(mrShowWholeRanking));
-  toggle.textContent=mrShowWholeRanking?"Weniger anzeigen ⌃":"Alle "+entries.length+" Plätze anzeigen ⌄";
-}
-
-function mrOpenOverview(){
-  if(gameRunning || gamePaused) return;
-  document.body.classList.remove("mr-playing");
-  mrSyncStats();
-  mrRenderRanking(cloudRanking.length?cloudRanking:loadRanking());
-  window.scrollTo(0,0);
-}
-
-function mrInitLanding(){
-  const start=document.getElementById("mrStartButton");
-  const toggle=document.getElementById("mrRankingToggle");
-  if(!start||!toggle) return;
-  start.addEventListener("click",()=>{
-    document.body.classList.add("mr-playing");
-    window.scrollTo(0,0);
-    startGame();
-  });
-  toggle.addEventListener("click",()=>{
-    mrShowWholeRanking=!mrShowWholeRanking;
-    mrRenderRanking(cloudRanking.length?cloudRanking:loadRanking());
-  });
-  const backButton=document.createElement("button");
-  backButton.type="button";
-  backButton.textContent="Zur Übersicht";
-  backButton.id="mrBackToOverview";
-  backButton.addEventListener("click",mrOpenOverview);
-  document.querySelector("#gameOverOverlay .overlay-actions")?.appendChild(backButton);
-  mrSyncStats();
-  mrRenderRanking(cloudRanking.length?cloudRanking:loadRanking());
-}
-mrInitLanding();
-
-/* Ein und dasselbe Canvas wird auf kleinen Displays in die Vorschau
-   eingebettet. Spielzustand, Kollisionslogik und Eventhandler bleiben erhalten. */
-const mrDesktopGamePosition = document.createComment("Originale Position des Mast-Runner-Spiels");
-gameWrap.before(mrDesktopGamePosition);
-const mrMobileMedia = window.matchMedia("(max-width: 700px)");
-function mrPositionGameWrap(){
-  // PC und Smartphone verwenden dauerhaft dieselbe Spieloberfläche.
-  // Das Canvas nie mehr in die versteckte mobile Start-Illustration verschieben.
-  if(document.fullscreenElement === gameWrap || document.webkitFullscreenElement === gameWrap) return;
-  if(gameWrap.previousSibling !== mrDesktopGamePosition) mrDesktopGamePosition.after(gameWrap);
-  document.body.classList.remove("mr-playing");
-}
-mrPositionGameWrap();
-if(mrMobileMedia.addEventListener){
-  mrMobileMedia.addEventListener("change",mrPositionGameWrap);
-}else if(mrMobileMedia.addListener){
-  mrMobileMedia.addListener(mrPositionGameWrap);
-}
-document.addEventListener("fullscreenchange",mrPositionGameWrap);
-document.addEventListener("webkitfullscreenchange",mrPositionGameWrap);
-
-/* Die zwei Zahlen in der mobilen Kopfübersicht entsprechen immer
-   den originalen Punkte- und Rekordwerten des unveränderten Spiels. */
-const mrStatsObserver = new MutationObserver(mrSyncStats);
-mrStatsObserver.observe(scoreEl,{childList:true,characterData:true,subtree:true});
-mrStatsObserver.observe(bestScoreEl,{childList:true,characterData:true,subtree:true});
-
 document.getElementById("resetRankingButton").addEventListener("click",resetRankingAsMaster);
-document.getElementById("mrResetRankingButton").addEventListener("click",resetRankingAsMaster);
 document.getElementById("resumeButton").addEventListener("click",resumeGame);
 
 document.addEventListener("visibilitychange",()=>{if(document.hidden) pauseGame();});
