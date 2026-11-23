@@ -3603,6 +3603,7 @@ async function saveVorlage(){
 }
 
 function finishBaustelle(id){
+  if(pendingDestructiveActions.has(id)) return;
   if(!LagerAccess.requireWrite("baustellen")) return;
   const b = alleBaustellen.find(x => x.id === id);
   if(!b){
@@ -3618,6 +3619,7 @@ function finishBaustelle(id){
     "Die Baustelle wird zu den beendeten Baustellen verschoben und erhält zuerst den Status 'Ausbuchen'.";
 
   if(confirm(text)){
+    pendingDestructiveActions.add(id);
     baustellenCollection.doc(id).update({
       status: "rausschreiben",
       abgeschlossenAm: firebase.firestore.FieldValue.serverTimestamp()
@@ -3632,10 +3634,11 @@ function finishBaustelle(id){
         " | Verantwortlicher: " + (b.verantwortlicher || "") +
         " | Neuer Status: Ausbuchen"
       );
+      showActionSuccess("Baustelle „" + (b.name || b.nummer || id) + "“ wurde beendet und zum Ausbuchen verschoben.");
     }).catch(error => {
       console.error("Fehler beim Beenden der Baustelle:", error);
       alert("Fehler beim Beenden.");
-    });
+    }).finally(() => pendingDestructiveActions.delete(id));
   }
 }
 
