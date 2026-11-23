@@ -1254,10 +1254,10 @@ function getObstacleDimensions(type){
     height = 42;
   }else if(type==="cable"){
     width=88;
-    height=26;
+    height=285;
   }else if(type==="hook"){
-    width=50;
-    height=31;
+    width=54;
+    height=285;
   }
 
   return { width, height };
@@ -1838,8 +1838,9 @@ function endGame(){
 function makeObstacle(type,x,extra={}){
   const {width,height}=getObstacleDimensions(type);
   const overhead=type==="cable"||type==="hook";
-  const y=overhead ? groundY+player.height-(type==="hook"?61:54)
-    : groundY+player.height-height;
+  // A complete hanging barrier: jumping above the obstacle is not an exploit.
+  // Its visible hazard curtain matches the collider; ducking below y=285 works.
+  const y=overhead ? 0 : groundY+player.height-height;
   return {type,x,y,baseY:y,width,height,passed:false,...extra};
 }
 function needsDuck(type){return type==="cable"||type==="hook";}
@@ -2037,7 +2038,7 @@ function update(){
     if(ob.type==="hook"){
       ob.swingPhase+=.062;
       ob.x+=Math.sin(ob.swingPhase)*1.05;
-      ob.y=ob.baseY+Math.sin(ob.swingPhase*.85)*3;
+      ob.y=ob.baseY;
     }
     const hit = hitbox.x < ob.x + ob.width &&
       hitbox.x + hitbox.width > ob.x &&
@@ -2153,6 +2154,24 @@ function drawLimb(x, y, length, angle, width = 4){
 // Einzige Spielfigur: Netzelektriker mit Helm, Warnweste und Werkzeugtasche.
 function drawSideViewRunner(){
   const x=player.x, y=player.y;
+  if(isPlayerDucking()){
+    const footY=groundY+player.height;
+    ctx.save();
+    ctx.fillStyle="#24384a";
+    ctx.fillRect(x+3,footY-8,30,7);
+    ctx.fillStyle="#ef7c23";
+    roundedRect(x+4,footY-19,27,11,5);
+    ctx.fill();
+    ctx.fillStyle="#ffe59e";
+    ctx.fillRect(x+7,footY-13,20,2);
+    ctx.fillStyle="#f1c5a0";
+    ctx.beginPath();ctx.arc(x+26,footY-18,7,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#f4c630";
+    ctx.beginPath();ctx.ellipse(x+26,footY-21,10,4,0,Math.PI,0);ctx.fill();
+    ctx.fillRect(x+19,footY-23,17,3);
+    ctx.restore();
+    return;
+  }
   const running=gameRunning && player.grounded;
   const step=running ? Math.sin(frameCount*0.32) : 0;
   const legSwing=step*0.68;
@@ -2690,7 +2709,57 @@ function drawLandscape(){
   ctx.restore();
 }
 
+
+function drawOverheadHazard(ob){
+  // Hanging worksite curtain. Entire collidable region is visibly marked,
+  // unlike an invisible full-height collider around a narrow cable.
+  const x=ob.x,y=ob.y,w=ob.width,bottom=ob.y+ob.height;
+  ctx.save();
+  ctx.fillStyle="rgba(241,121,45,.10)";
+  ctx.fillRect(x+3,y+3,w-6,Math.max(0,bottom-y-4));
+  ctx.strokeStyle="#bd642c";
+  ctx.lineWidth=3;
+  ctx.strokeRect(x+2,y+1,w-4,Math.max(0,bottom-y-2));
+  const stripes=ob.type==="hook"?4:5;
+  for(let i=0;i<stripes;i++){
+    const cx=x+8+i*(w-16)/Math.max(1,stripes-1);
+    ctx.strokeStyle=i%2===0?"#e39b2c":"#be582a";
+    ctx.lineWidth=4;
+    ctx.beginPath();
+    ctx.moveTo(cx,y+4);
+    ctx.bezierCurveTo(cx-4,y+75,cx+4,bottom-55,cx,bottom-13);
+    ctx.stroke();
+  }
+  ctx.fillStyle="#ffc043";
+  ctx.fillRect(x,bottom-25,w,13);
+  ctx.fillStyle="#2c343d";
+  for(let z=0;z<w;z+=18){
+    ctx.beginPath();
+    ctx.moveTo(x+z,bottom-25);
+    ctx.lineTo(x+Math.min(w,z+9),bottom-25);
+    ctx.lineTo(x+z,bottom-12);
+    ctx.closePath();ctx.fill();
+  }
+  ctx.strokeStyle="#2b3c49";ctx.lineWidth=3;
+  ctx.strokeRect(x,bottom-25,w,13);
+  if(ob.type==="hook"){
+    const hx=x+w*.5;
+    ctx.strokeStyle="#3e5565";ctx.lineWidth=5;
+    ctx.beginPath();ctx.moveTo(hx,y+14);ctx.lineTo(hx,bottom-47);ctx.stroke();
+    ctx.fillStyle="#d58e2e";
+    ctx.beginPath();ctx.arc(hx,bottom-41,9,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle="#364958";ctx.lineWidth=5;
+    ctx.beginPath();ctx.arc(hx,bottom-38,12,-Math.PI*.12,Math.PI*.75);ctx.stroke();
+    ctx.fillStyle="#e9f0f5";ctx.font="bold 14px system-ui";
+    ctx.fillText("!",hx-3,bottom-16);
+  }
+  ctx.restore();
+}
 function drawObstacle(ob){
+  if(ob.type==="cable"||ob.type==="hook"){
+    drawOverheadHazard(ob);
+    return;
+  }
   if(ob.type === "wind"){
     drawWindTurbine(ob);
     return;
