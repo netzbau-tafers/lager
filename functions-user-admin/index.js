@@ -83,3 +83,35 @@ exports.lagerDashboardGet=onCall({region:'europe-west1',maxInstances:2,timeoutSe
     throw new HttpsError('internal','Jahresstatistik derzeit nicht verfuegbar.');
   }
 });
+
+// Änderungen markieren nur den Jahrescache als veraltet. Die teurere Berechnung
+// erfolgt beim nächsten Dashboard-Aufruf, nicht bei jedem Schreibvorgang.
+const {onDocumentWritten}=require('firebase-functions/v2/firestore');
+const dashboardDb=getFirestore();
+async function markDashboardChanged(event){
+  const before=event.data?.before?.data();
+  const after=event.data?.after?.data();
+  const affectedYears=new Set();
+  const yearOf=value=>{
+    const d=value&&typeof value.toDate==='function'?value.toDate():null;
+    return d?Number(new Intl.DateTimeFormat('en',{timeZone:'Europe/Zurich',year:'numeric'}).format(d)):null;
+  };
+  if(event.params.snapshotId){
+    for(const row of [before,after]){
+      if(Number.isInteger(Number(row?.year)))affectedYears.add(Number(row.year));
+    }
+  }else if(event.params.logId){
+    if(before?.bereich!=='Kabellager'&&after?.bereich!=='Kabellager')return;
+    for(const row of [before,after]){const year=yearOf(row?.createdAt);if(year)affectedYears.add(year);}
+  }else{
+    const year=Number(new Intl.DateTimeFormat('en',{timeZone:'Europe/Zurich',year:'numeric'}).format(new Date()));
+    affectedYears.add(year);
+    for(const row of [before,after]){const archived=yearOf(row?.archiviertAm);if(archived)affectedYears.add(archived);}
+  }
+  await Promise.all([...affectedYears].map(year=>dashboardDb.collection('dashboard_stats').doc(String(year)).set({
+    invalidatedAt:FieldValue.serverTimestamp()
+  },{merge:true})));
+}
+exports.lagerDashboardSitesChanged=onDocumentWritten({document:'baustellen/{siteId}',region:'europe-west1',maxInstances:2},markDashboardChanged);
+exports.lagerDashboardLogsChanged=onDocumentWritten({document:'logs/{logId}',region:'europe-west1',maxInstances:2},markDashboardChanged);
+exports.lagerDashboardSnapshotsChanged=onDocumentWritten({document:'kabel_report_snapshots/{snapshotId}',region:'europe-west1',maxInstances:2},markDashboardChanged);
