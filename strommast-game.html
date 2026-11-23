@@ -810,9 +810,7 @@ canvas{
   #mrMobileLanding .mr-admin-reset{width:100%;margin:0 0 16px}
 }
 
-/* Desktop folgt der mobilen Mast-Runner-Optik: Spiel frei von Punktanzeigen,
-   gemeinsame Statistik direkt unter dem Spielfeld. */
-@media (min-width:701px){
+/* Eine gemeinsame Mast-Runner-Oberfläche für Desktop, Tablet und Smartphone. */
   body{background:radial-gradient(circle at 15% 5%,#edf5fb 0%,#e5edf6 55%,#dae6f0 100%)}
   .game-wrap{width:min(1180px,100%);border:1px solid #dce5ed;border-radius:24px;box-shadow:0 20px 52px rgba(13,42,66,.14)}
   .topbar{align-items:center;background:#102a43;border-bottom:1px solid rgba(255,255,255,.07);padding:18px 26px;flex-wrap:nowrap}
@@ -852,7 +850,6 @@ canvas{
   .desktop-howto .tip-card{border:1px solid #e3ebf0;border-radius:18px;padding:18px 20px;color:#617a8c;font-size:14px;line-height:1.5;background:#fff}
   .desktop-howto .tip-card strong{color:#204b6a;font-size:15px;margin-bottom:7px}
   .app-footer{max-width:1180px}
-}
 @media (min-width:701px) and (max-width:850px){
   .topbar{padding:15px 20px}
   .desktop-game-intro{padding:20px}
@@ -875,6 +872,105 @@ canvas{
   .runner-music-toggle{right:6px;top:6px;min-height:32px;padding:5px 8px;font-size:13px}
   .runner-music-toggle span{display:none}
   .mr-game-slot .runner-music-toggle{right:6px;top:6px}
+}
+
+/* Smartphone zeigt das identische PC-Layout, nur mit responsiven Abständen.
+   Der frühere mobile Launcher ist nicht mehr Bestandteil der sichtbaren UI. */
+#mrMobileLanding{display:none!important}
+#mrBackToOverview{display:none!important}
+@media(max-width:700px){
+  html,body{width:100%;overflow-x:hidden}
+  body{
+    padding:0;
+    padding-left:env(safe-area-inset-left);
+    padding-right:env(safe-area-inset-right);
+    background:#f4f7fa;
+  }
+  body.auth-loading .game-wrap{visibility:hidden}
+  body:not(.mr-playing) .game-wrap,
+  body.mr-playing .game-wrap{
+    display:block;
+    width:100%;
+    min-height:100dvh;
+    margin:0;
+    border:0;
+    border-radius:0;
+    box-shadow:none
+  }
+  .topbar{padding:12px 14px;gap:9px;align-items:center;flex-wrap:nowrap}
+  .topbar-left{min-width:0;gap:9px;display:flex;width:auto;flex-wrap:nowrap}
+  .desktop-brand-mark{flex:none;width:40px;height:40px;border-radius:12px}
+  .desktop-brand-mark svg{width:25px;height:25px}
+  .desktop-brand-text{min-width:0}
+  .desktop-brand-text span{font-size:9px;letter-spacing:.08em;margin-bottom:3px}
+  .desktop-brand-text strong{font-size:clamp(15px,4.5vw,19px);white-space:nowrap}
+  .desktop-back-button{flex:none;padding:10px;font-size:12px;border-radius:11px;min-height:40px}
+  .desktop-game-intro{padding:17px 16px 21px}
+  .desktop-game-eyebrow{font-size:10px;letter-spacing:.08em;gap:8px}
+  .desktop-game-intro h1{font-size:clamp(30px,9vw,40px);margin:8px 0 5px}
+  .desktop-game-intro p{font-size:13px;line-height:1.45}
+  .canvas-wrap{width:100%;display:block}
+  canvas{
+    width:100%;
+    max-width:100%;
+    height:clamp(195px,55vw,250px);
+    min-height:0;
+    aspect-ratio:auto;
+    touch-action:none
+  }
+  .overlay{align-items:center;padding:7px;overflow:hidden}
+  .overlay-box{
+    width:min(100%,350px);max-width:100%;max-height:calc(100% - 4px);
+    margin:0;padding:9px 11px;border-radius:13px;overflow:auto
+  }
+  .overlay-box h2{font-size:19px;line-height:1.15;margin:0 0 4px}
+  .overlay-box p{font-size:12px;line-height:1.3;margin:5px 0}
+  .overlay-actions{margin-top:7px;gap:7px;flex-direction:row}
+  .overlay-actions button{flex:1;min-height:37px;padding:8px 10px;font-size:13px}
+  .runner-result-score{font-size:17px!important}
+  .runner-scoreboard{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:7px;
+    padding:0 10px 14px
+  }
+  .runner-stat{padding:12px 5px 13px;border-radius:0 0 13px 13px}
+  .runner-stat-label{font-size:10px;line-height:1.3;letter-spacing:0}
+  .runner-stat-label span{margin-right:2px}
+  .runner-stat-value{font-size:clamp(17px,5.2vw,25px);margin-top:5px}
+  .game-dashboard{display:flex;flex-direction:column;gap:12px;padding:0 10px 18px}
+  .game-dashboard .dashboard-panel{border-radius:17px;padding:15px}
+  .desktop-ranking-heading h2{font-size:20px}
+  .desktop-ranking-heading>span{font-size:11px;padding:6px 10px}
+  .game-dashboard .desktop-ranking-subtitle{font-size:12px;margin:6px 0 11px}
+  .live-ranking ol{list-style:none;padding:0;counter-reset:rank}
+  .live-ranking li{gap:4px 9px;padding:11px 0;font-size:12px;line-height:1.4}
+  .live-ranking li::before{width:29px;height:29px;border-radius:9px;font-size:12px}
+  .live-ranking li strong{min-width:0;flex:1 1 85px;font-size:13px;overflow-wrap:anywhere}
+  .desktop-howto .control-tips{grid-template-columns:1fr;gap:10px}
+  .desktop-howto .tip-card{padding:13px;font-size:12px}
+  .app-footer{
+    display:block;
+    margin:0 auto;
+    padding:15px 12px max(15px,env(safe-area-inset-bottom));
+    font-size:12px
+  }
+  .fs-btn{display:flex;width:38px;height:38px;border-radius:10px}
+  .fs-btn svg{width:20px;height:20px}
+  .fullscreen-btn{right:9px;bottom:8px}
+  .exit-fullscreen-btn{right:9px}
+  #resetRankingButton{width:100%;white-space:normal}
+}
+@media(max-width:350px){
+  .desktop-brand-mark{width:34px;height:34px}
+  .topbar{padding:10px}
+  .desktop-back-button{padding:8px;font-size:11px}
+  .runner-scoreboard{padding:0 7px 12px;gap:5px}
+  .runner-stat-label{font-size:9px}
+  .runner-stat-value{font-size:16px}
+  .game-dashboard{padding:0 8px 16px}
+}
+@media(max-width:700px) and (orientation:landscape){
+  canvas{height:clamp(170px,42vh,230px)}
 }
 </style>
 </head>
@@ -2648,16 +2744,11 @@ const mrDesktopGamePosition = document.createComment("Originale Position des Mas
 gameWrap.before(mrDesktopGamePosition);
 const mrMobileMedia = window.matchMedia("(max-width: 700px)");
 function mrPositionGameWrap(){
-  // Vollbild nicht durch eine DOM-Verschiebung unterbrechen.
+  // PC und Smartphone verwenden dauerhaft dieselbe Spieloberfläche.
+  // Das Canvas nie mehr in die versteckte mobile Start-Illustration verschieben.
   if(document.fullscreenElement === gameWrap || document.webkitFullscreenElement === gameWrap) return;
-  const slot = document.getElementById("mrGameSlot");
-  if(mrMobileMedia.matches && slot){
-    if(gameWrap.parentElement !== slot) slot.appendChild(gameWrap);
-    if(gameRunning) document.body.classList.add("mr-playing");
-  }else{
-    if(gameWrap.previousSibling !== mrDesktopGamePosition) mrDesktopGamePosition.after(gameWrap);
-    document.body.classList.remove("mr-playing");
-  }
+  if(gameWrap.previousSibling !== mrDesktopGamePosition) mrDesktopGamePosition.after(gameWrap);
+  document.body.classList.remove("mr-playing");
 }
 mrPositionGameWrap();
 if(mrMobileMedia.addEventListener){
