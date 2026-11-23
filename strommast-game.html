@@ -1778,9 +1778,10 @@ function update(){
 function drawGround(){
   const pathY = groundY + player.height;
   // Klare Spielboden-Kante: nur Objekte vor dieser Linie sind Hindernisse.
-  ctx.fillStyle = "#d8e4ed";
+  const night = getNightAmount();
+  ctx.fillStyle = blendHex("#d8e4ed", "#8398ac", night);
   ctx.fillRect(0, pathY, canvas.width, canvas.height - pathY);
-  ctx.fillStyle = "#9ab5c5";
+  ctx.fillStyle = blendHex("#9ab5c5", "#b4c4d3", night);
   ctx.fillRect(0, pathY - 2, canvas.width, 3);
   ctx.strokeStyle = "rgba(133,167,190,.37)";
   ctx.lineWidth = 2;
@@ -2122,32 +2123,116 @@ function drawNuclearPlant(ob){
   ctx.fillRect(x + 24, y + ob.height - 25, w - 48, 25);
 }
 
+function clamp01(value){
+  return Math.max(0, Math.min(1, value));
+}
+
+function smoothStep(a, b, value){
+  const t = clamp01((value - a) / (b - a));
+  return t * t * (3 - 2 * t);
+}
+
+function getDayNightPhase(){
+  return (distanceMeters % DAY_NIGHT_CYCLE_METERS) / DAY_NIGHT_CYCLE_METERS;
+}
+
+function getNightAmount(){
+  const phase = getDayNightPhase();
+  // Dämmerung und Sonnenaufgang erfolgen fliessend.
+  return smoothStep(.46, .60, phase) * (1 - smoothStep(.89, 1, phase));
+}
+
+function blendHex(dayColor, nightColor, amount){
+  const t = clamp01(amount);
+  const d = parseInt(dayColor.slice(1), 16);
+  const n = parseInt(nightColor.slice(1), 16);
+  const red = Math.round(((d >> 16) & 255) * (1 - t) + ((n >> 16) & 255) * t);
+  const green = Math.round(((d >> 8) & 255) * (1 - t) + ((n >> 8) & 255) * t);
+  const blue = Math.round((d & 255) * (1 - t) + (n & 255) * t);
+  return "rgb(" + red + "," + green + "," + blue + ")";
+}
+
+function drawSkyOrb(x, y, radius, glowRadius, color, glowColor, alpha){
+  if(alpha <= .01) return;
+  ctx.save();
+  ctx.globalAlpha = clamp01(alpha);
+  const glow = ctx.createRadialGradient(x, y, radius * .25, x, y, glowRadius);
+  glow.addColorStop(0, glowColor);
+  glow.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(x, y, glowRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawAnimatedSky(){
+  const phase = getDayNightPhase();
+  const night = getNightAmount();
   const sky = ctx.createLinearGradient(0, 0, 0, groundY + player.height);
-  sky.addColorStop(0, "#d7eafb");
-  sky.addColorStop(.62, "#eef5fa");
-  sky.addColorStop(1, "#f5f8f1");
+  sky.addColorStop(0, blendHex("#d7eafb", "#10223e", night));
+  sky.addColorStop(.62, blendHex("#eef5fa", "#243b5d", night));
+  sky.addColorStop(1, blendHex("#f5f8f1", "#4b6379", night));
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Heller Sonnenschein ohne harte, mit Sammelobjekten verwechselbare Silhouette.
-  const sunlight = ctx.createRadialGradient(810, 60, 8, 810, 60, 175);
-  sunlight.addColorStop(0, "rgba(255,250,219,.42)");
-  sunlight.addColorStop(1, "rgba(255,250,219,0)");
-  ctx.fillStyle = sunlight;
-  ctx.fillRect(630, 0, 370, 245);
+  // Die Sterne werden erst bei Dunkelheit eingeblendet; tagsüber keine Sterne.
+  if(night > .30){
+    const visibility = smoothStep(.30, .85, night);
+    ctx.save();
+    for(let i = 0; i < 43; i++){
+      const sx = 18 + ((i * 197 + 49) % 963);
+      const sy = 8 + ((i * 71 + 23) % 120);
+      const twinkle = .72 + Math.sin(frameCount * .028 + i * 1.9) * .18;
+      ctx.globalAlpha = visibility * twinkle * (i % 4 === 0 ? .68 : .43);
+      ctx.fillStyle = "#fffdf3";
+      ctx.beginPath();
+      ctx.arc(sx, sy, i % 7 === 0 ? 1.6 : .9, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
 
-  // Kleine, durchscheinende Wolken ganz oben, weit ausserhalb der Laufbahn.
-  // Sie bewegen sich langsamer als die Hindernisse (Parallax-Effekt).
-  const cloudDrift = (distanceMeters * .06) % 340;
+  // Sonne tagsüber und Vollmond nachts: beide wandern von links nach rechts.
+  const sunProgress = clamp01(phase / .55);
+  const sunX = 65 + sunProgress * (canvas.width - 130);
+  const sunY = 110 - Math.sin(sunProgress * Math.PI) * 63;
+  drawSkyOrb(sunX, sunY, 21, 100, "#ffebaa",
+    "rgba(255,230,153,.43)", 1 - night);
+
+  if(phase >= .47){
+    const moonProgress = clamp01((phase - .53) / .47);
+    const moonX = 65 + moonProgress * (canvas.width - 130);
+    const moonY = 97 - Math.sin(moonProgress * Math.PI) * 45;
+    drawSkyOrb(moonX, moonY, 18, 73, "#f0f2fa",
+      "rgba(234,239,255,.31)", night);
+    if(night > .15){
+      ctx.save();
+      ctx.globalAlpha = night * .18;
+      ctx.fillStyle = "#9da9c2";
+      ctx.beginPath();
+      ctx.arc(moonX - 5, moonY - 3, 3.7, 0, Math.PI * 2);
+      ctx.arc(moonX + 6, moonY + 5, 2.7, 0, Math.PI * 2);
+      ctx.arc(moonX + 4, moonY - 7, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // Transparente Wolken bewegen sich weit langsamer als echte Hindernisse.
+  const drift = (distanceMeters * .06) % 340;
   for(let i = -1; i < 5; i++){
-    const x = i * 340 + 105 - cloudDrift;
-    const y = 45 + (i % 3) * 17;
+    const x = i * 340 + 105 - drift;
+    const y = 42 + (i % 3) * 15;
     const scale = .82 + (i % 2) * .18;
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(scale, scale);
-    ctx.fillStyle = "rgba(255,255,255,.67)";
+    ctx.fillStyle = "rgba(255,255,255," + (.65 - night * .53) + ")";
     ctx.beginPath();
     ctx.ellipse(-16, 8, 25, 10, 0, 0, Math.PI * 2);
     ctx.ellipse(4, 0, 27, 16, 0, 0, Math.PI * 2);
@@ -2157,11 +2242,46 @@ function drawAnimatedSky(){
   }
 }
 
+function drawStreetLamp(x, y, night){
+  // Kleine entsättigte Hintergrundleuchte, niemals ein Kollisionsobjekt.
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.lineCap = "round";
+  ctx.strokeStyle = blendHex("#a4b8c3", "#6f849a", night);
+  ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(0, -54);
+  ctx.quadraticCurveTo(0, -63, 12, -63);
+  ctx.lineTo(20, -63);
+  ctx.stroke();
+  ctx.fillStyle = blendHex("#b6c6ce", "#8fa7b8", night);
+  ctx.beginPath();
+  ctx.ellipse(22, -62, 9, 3.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  if(night > .05){
+    const glow = ctx.createRadialGradient(22, -58, 2, 22, -53, 62);
+    glow.addColorStop(0, "rgba(255,235,168," + (.60 * night) + ")");
+    glow.addColorStop(.4, "rgba(255,224,151," + (.19 * night) + ")");
+    glow.addColorStop(1, "rgba(255,220,145,0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(22, -53, 62, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,242,182," + (.96 * night) + ")";
+    ctx.beginPath();
+    ctx.ellipse(22, -59, 7, 2.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 function drawLandscape(){
-  // Bewusst KEINE Masten, Häuser, Windräder oder Bäume im Hintergrund:
-  // diese Objekte kommen nur als tatsächliche Hindernisse vor.
-  function ridge(color, baseY, amplitude, wavelength, speed, secondary = 0){
-    ctx.fillStyle = color;
+  const night = getNightAmount();
+  // Keine Bäume, Häuser, Masten oder Windräder als Pseudo-Hindernisse.
+  function ridge(day, dark, baseY, amplitude, wavelength, speed, secondary = 0){
+    ctx.fillStyle = blendHex(day, dark, night);
     ctx.beginPath();
     ctx.moveTo(0, canvas.height);
     for(let x = 0; x <= canvas.width + 10; x += 10){
@@ -2175,16 +2295,19 @@ function drawLandscape(){
     ctx.fill();
   }
 
-  // Blaugraue Ferne, sanfte grüne Hügel, ruhige Wiesen im Vordergrund.
-  // Helle, kontrastarme Flächen statt dunkler Silhouetten.
-  ridge("#d9e5ed", 178, 18, 145, .08, 4);
-  ridge("#d9e6df", 212, 15, 112, .16, 3);
-  ridge("#c7daca", 248, 13, 135, .30, 2);
-  ridge("#bcd1bc", 280, 8, 100, .42, 1.5);
+  ridge("#d9e5ed", "#415778", 178, 18, 145, .08, 4);
+  ridge("#d9e6df", "#41596a", 212, 15, 112, .16, 3);
+  // Leuchten stehen hinter der Spiellinie und haben keine Kollisionsbox.
+  const lampShift = (distanceMeters * 1.2) % 245;
+  for(let i = -1; i < 7; i++){
+    const x = i * 245 + 100 - lampShift;
+    drawStreetLamp(x, 259, night);
+  }
+  ridge("#c7daca", "#47685c", 248, 13, 135, .30, 2);
+  ridge("#bcd1bc", "#3d5b50", 280, 8, 100, .42, 1.5);
 
-  // Leichte Feldkonturen erzeugen Tiefe ohne neue 'Pseudo-Hindernisse'.
   ctx.save();
-  ctx.strokeStyle = "rgba(242,250,237,.43)";
+  ctx.strokeStyle = night < .5 ? "rgba(242,250,237,.43)" : "rgba(194,216,206,.16)";
   ctx.lineWidth = 2;
   for(let i = 0; i < 2; i++){
     const y = 277 + i * 15;
