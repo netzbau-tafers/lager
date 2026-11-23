@@ -21,6 +21,17 @@ const levels=value=>Object.fromEntries(areas.map(key=>[key,value]));
   await setRights({...levels('none'),archiv:'view'});await assertSucceeds(getDoc(doc(worker,'baustellen/b')));await assertFails(deleteDoc(doc(worker,'baustellen/b')));await assertFails(getDoc(doc(worker,'bobinen/a')));
   await setRights({...levels('none'),kabelreport:'view'});await assertSucceeds(getDoc(doc(worker,'logs/a')));await assertSucceeds(getDoc(doc(worker,'kabel_report_snapshots/a')));await assertFails(updateDoc(doc(worker,'kabel_report_snapshots/a'),{test:true}));
   await setRights({...levels('edit'),materialvorlagen:'edit'});for(const path of ['bobinen/a','baustellen/a','baustellen_material/a','material_vorlagen/a','kabel_report_snapshots/a','gespart_tarife/a'])await assertSucceeds(updateDoc(doc(worker,path),{test:true}));await assertFails(updateDoc(doc(worker,'logs/a'),{test:true}));await assertSucceeds(deleteDoc(doc(worker,'baustellen/b')));
+  // Mast Runner 2.0: players may only save their own improving record;
+  // only the master may delete ranking documents.
+  const runnerEntry=score=>({name:'Max',score,distance:100,obstacles:3,createdAt:serverTimestamp()});
+  await assertSucceeds(setDoc(doc(worker,'strommastRankingV2/worker'),runnerEntry(20)));
+  await assertSucceeds(getDoc(doc(worker,'strommastRankingV2/worker')));
+  await assertFails(setDoc(doc(worker,'strommastRankingV2/other'),runnerEntry(999)));
+  await assertFails(deleteDoc(doc(worker,'strommastRankingV2/worker')));
+  await assertFails(updateDoc(doc(worker,'strommastRankingV2/worker'),{score:19,createdAt:serverTimestamp()}));
+  await assertSucceeds(updateDoc(doc(worker,'strommastRankingV2/worker'),{score:21,createdAt:serverTimestamp()}));
+  await assertFails(getDoc(doc(anon,'strommastRankingV2/worker')));
+  await assertSucceeds(deleteDoc(doc(master,'strommastRankingV2/worker')));
   await setRights({...levels('edit'),materialvorlagen:'none'});await assertSucceeds(getDoc(doc(worker,'material_vorlagen/a')));await assertFails(setDoc(doc(worker,'material_vorlagen/new'),{material:'Neu'}));await assertFails(updateDoc(doc(worker,'material_vorlagen/a'),{material:'Geändert'}));await assertFails(deleteDoc(doc(worker,'material_vorlagen/a')));
   await setRights({...levels('edit'),materialvorlagen:'edit'});await assertSucceeds(setDoc(doc(worker,'material_vorlagen/new'),{material:'Neu'}));await assertSucceeds(updateDoc(doc(worker,'material_vorlagen/new'),{material:'Geändert'}));await assertSucceeds(deleteDoc(doc(worker,'material_vorlagen/new')));
   await assertFails(setDoc(doc(master,'user_access/'+MASTER),{permissions:levels('none'),updatedAt:serverTimestamp(),updatedBy:MASTER}));await assertFails(setDoc(doc(master,'user_access/worker'),{permissions:{...levels('edit'),kabellager:'invalid'},updatedAt:serverTimestamp(),updatedBy:MASTER}));
