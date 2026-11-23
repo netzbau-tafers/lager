@@ -2,6 +2,7 @@
 // Ereignisgesteuerte Jahresübersicht: Neuberechnung nur bei Änderungen der Quelldaten.
 const MONTHS=12;
 const SHARED_CACHE_MS=12*60*60*1000;
+const DASHBOARD_SCHEMA_VERSION=2;
 const {entriesForMonth,mergeInterimSnapshot}=require('./cable-monthly-snapshot.cjs');
 
 function swissYear(date){
@@ -46,30 +47,31 @@ async function calculateDashboard({db,Timestamp,year,now}){
       if(type)byType.set(type,round((byType.get(type)||0)+safeNum(row.meter)));
     }
   });
-  // Den laufenden Monat aus neuen Kabel-Logs ergänzen; historische Abschlüsse
-  // bleiben unverändert. Vorläufige Snapshots werden anhand sourceKeys dedupliziert.
+  // Gleich wie im Kabelreport: Alle noch nicht finalisierten Monate ergänzen.
+  // Sonst fehlen z.B. Oktober-Buchungen, wenn der Oktober-Snapshot vorläufig ist.
   const currentMonth=Number(new Intl.DateTimeFormat('en',{timeZone:'Europe/Zurich',month:'numeric'}).format(now));
-  const from=Timestamp.fromDate(new Date(Date.UTC(year,currentMonth-1,1)-86400000));
-  const to=Timestamp.fromDate(new Date(Date.UTC(year,currentMonth,1)+86400000));
-  const liveLogs=[];
-  let cursor=null;
-  for(;;){
-    let query=db.collection('logs').where('createdAt','>=',from).where('createdAt','<',to)
-      .orderBy('createdAt').orderBy('__name__').limit(500);
-    if(cursor)query=query.startAfter(cursor);
-    const page=await query.get();
-    for(const doc of page.docs){
-      const data=doc.data();
-      if(data.createdAt&&typeof data.createdAt.toMillis==='function'&&data.bereich==='Kabellager')liveLogs.push({id:doc.id,...data});
+  for(let month=1;month<=currentMonth;month++){
+    const saved=snapshotsByMonth.get(month);
+    if(saved?.finalized===true)continue;
+    const from=Timestamp.fromDate(new Date(Date.UTC(year,month-1,1)-86400000));
+    const to=Timestamp.fromDate(new Date(Date.UTC(year,month,1)+86400000));
+    const liveLogs=[];
+    let cursor=null;
+    for(;;){
+      let query=db.collection('logs').where('createdAt','>=',from).where('createdAt','<',to)
+        .orderBy('createdAt').orderBy('__name__').limit(500);
+      if(cursor)query=query.startAfter(cursor);
+      const page=await query.get();
+      for(const doc of page.docs){
+        const data=doc.data();
+        if(data.createdAt&&typeof data.createdAt.toMillis==='function'&&data.bereich==='Kabellager')liveLogs.push({id:doc.id,...data});
+      }
+      if(page.size<500)break;
+      cursor=page.docs[page.docs.length-1];
     }
-    if(page.size<500)break;
-    cursor=page.docs[page.docs.length-1];
-  }
-  const saved=snapshotsByMonth.get(currentMonth);
-  if(!saved||saved.finalized!==true){
-    const entries=entriesForMonth(liveLogs,year,currentMonth-1);
-    const interim=mergeInterimSnapshot(saved||null,year,currentMonth-1,entries);
-    monthlyMeters[currentMonth-1]=round(safeNum(interim.totalMeters));
+    const entries=entriesForMonth(liveLogs,year,month-1);
+    const interim=mergeInterimSnapshot(saved||null,year,month-1,entries);
+    monthlyMeters[month-1]=round(safeNum(interim.totalMeters));
     bookings+=safeNum(interim.totalBookings)-safeNum(saved?.totalBookings);
     for(const row of Array.isArray(saved?.rows)?saved.rows:[]){
       const type=String(row.typ||'').trim();
@@ -109,13 +111,13 @@ function createDashboardGet({db,Timestamp,logger,now=()=>new Date()}){
       const lastUpdate=data.calculatedAt&&typeof data.calculatedAt.toMillis==='function'
         ?data.calculatedAt.toMillis():0;
       const invalidatedAt=data.invalidatedAt&&typeof data.invalidatedAt.toMillis==='function'?data.invalidatedAt.toMillis():0;
-      if(lastUpdate>0&&at.getTime()-lastUpdate<SHARED_CACHE_MS&&lastUpdate>=invalidatedAt){
+      if(data.schemaVersion===DASHBOARD_SCHEMA_VERSION&&lastUpdate>0&&at.getTime()-lastUpdate<SHARED_CACHE_MS&&lastUpdate>=invalidatedAt){
         const {calculatedAt,invalidatedAt,...payload}=data;
         return payload;
       }
     }
     const payload=await calculateDashboard({db,Timestamp,year,now:at});
-    await ref.set({...payload,calculatedAt:Timestamp.fromDate(at)},{merge:true});
+    await ref.set({...payload,schemaVersion:DASHBOARD_SCHEMA_VERSION,calculatedAt:Timestamp.fromDate(at)},{merge:true});
     logger.info('Jahres-Dashboard erneuert',{year,monthsWithMeters:payload.monthlyMeters.filter(Boolean).length});
     return payload;
   };
