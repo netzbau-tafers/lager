@@ -23,6 +23,10 @@ function fixture(){
         assert.equal(field,'year');assert.equal(op,'==');assert.equal(value,2026);
         return {async get(){state.reads++;return {forEach(fn){snapshots.forEach((x,i)=>fn({id:String(i),data:()=>x}));}};}};
       }};
+      if(name==='logs')return {where(){return {
+        where(){return this;},orderBy(){return this;},limit(){return this;},startAfter(){return this;},
+        async get(){state.reads++;return {docs:[],size:0};}
+      };}};
       if(name==='baustellen')return {where(field,op,value){
         state.where.push({field,op,value});
         return {
@@ -71,4 +75,15 @@ test('shared result is reused for 12 hours without scanning snapshots again',asy
 test('Swiss year changes on December 31 at 23:00 UTC',()=>{
   assert.equal(swissYear(new Date('2026-12-31T22:59:59Z')),2026);
   assert.equal(swissYear(new Date('2026-12-31T23:00:00Z')),2027);
+});
+
+test('invalidated cache is recalculated before twelve hours',async()=>{
+  const {db,Timestamp,state}=fixture();
+  let clock=new Date('2026-11-21T13:00:00Z');
+  const callback=createDashboardGet({db,Timestamp,logger:{info(){}},now:()=>clock});
+  await callback({auth:{uid:'test'}});
+  state.document.invalidatedAt=Timestamp.fromDate(new Date('2026-11-21T13:30:00Z'));
+  clock=new Date('2026-11-21T14:00:00Z');
+  await callback({auth:{uid:'test'}});
+  assert.equal(state.writes,2);
 });
