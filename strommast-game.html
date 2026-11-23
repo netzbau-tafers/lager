@@ -938,7 +938,7 @@ canvas{
     </div>
   </div>
 
-<script src="mast-runner-music.js?v=20261123"></script>
+<script src="mast-runner-music.js?v=20261123-challenge"></script>
 <script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -1081,8 +1081,6 @@ let obstacles = [];
 let distanceUntilNextObstacle = 0;
 let gameOverSaved = false;
 let gameInitialized = false;
-
-const obstacleTypes = ["mast", "solar", "tree", "bagger", "house", "wind"];
 
 function getObstacleDimensions(type){
   let width = 26;
