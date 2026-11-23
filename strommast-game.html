@@ -835,22 +835,32 @@ canvas{
   border:1px solid rgba(167,213,248,.32);background:rgba(134,192,225,.14);
   color:#e5f5ff;font-size:11px;letter-spacing:.035em;font-weight:850
 }
-.runner-level-badge[data-level="5"]{color:#ffe8a5;background:rgba(250,192,72,.17)}
+.runner-level-badge[data-level="5"],
+.runner-level-badge[data-level="6"],
+.runner-level-badge[data-level="7"],
+.runner-level-badge[data-level="8"],
+.runner-level-badge[data-level="9"]{color:#ffe8a5;background:rgba(250,192,72,.17)}
 .runner-level-toast{
-  position:absolute;left:50%;top:17px;transform:translateX(-50%);
-  pointer-events:none;z-index:9;padding:9px 17px;border-radius:13px;
+  position:absolute;z-index:24;left:50%;top:39%;transform:translate(-50%,-50%);
+  pointer-events:none;box-sizing:border-box;width:max-content;max-width:min(78%,470px);
+  padding:9px 17px;border-radius:13px;text-align:center;
   background:rgba(15,47,70,.89);border:1px solid rgba(255,234,165,.55);
   box-shadow:0 7px 20px rgba(11,31,48,.25);color:#fff2b2;
-  font-size:16px;font-weight:850;letter-spacing:.05em;white-space:nowrap
+  font-size:16px;font-weight:850;letter-spacing:.05em;white-space:normal
 }
 .runner-level-toast[hidden]{display:none!important}
 @media(max-width:700px){
   .desktop-game-eyebrow{flex-wrap:wrap}
   .runner-level-badge{font-size:9px;margin-left:0;padding:4px 8px}
-  .runner-level-toast{font-size:12px;padding:6px 10px;top:8px;max-width:calc(100% - 78px);white-space:normal;text-align:center}
+  .runner-level-toast{font-size:12px;padding:6px 10px;max-width:72%;top:55%}
   .runner-music-toggle{backdrop-filter:none;-webkit-backdrop-filter:none}
 }
-
+.canvas-wrap:fullscreen .runner-level-toast,
+.canvas-wrap:-webkit-full-screen .runner-level-toast{top:50%;max-width:min(62vw,470px)}
+@media(max-width:700px){
+  .canvas-wrap:fullscreen .runner-level-toast,
+  .canvas-wrap:-webkit-full-screen .runner-level-toast{max-width:70%}
+}
 /* Vollbild zeigt ausschliesslich das Spielfeld. Die 1000:320-Zeichenfläche
    bleibt vollständig und unverzerrt – auch auf schmalen Telefonen. */
 .canvas-wrap:fullscreen,
@@ -933,19 +943,6 @@ canvas{
   }
 }
 
-/* Mast Runner 4.0: eindeutige mobile Touchzonen ohne zusätzliche Button-Overlays. */
-.runner-touch-guide{display:none;pointer-events:none;position:absolute;bottom:11px;left:12px;right:64px;z-index:8;justify-content:space-between;gap:12px;font:800 12px/1.25 system-ui,sans-serif;color:#173f5f;text-shadow:0 1px 3px rgba(255,255,255,.8)}
-.runner-touch-guide span{padding:4px 7px;border-radius:8px;background:rgba(230,243,252,.79);border:1px solid rgba(77,131,168,.22)}
-@media(pointer:coarse){
-  .runner-touch-guide{display:flex}
-  .canvas-wrap:fullscreen .runner-touch-guide,.canvas-wrap:-webkit-full-screen .runner-touch-guide{bottom:max(13px,env(safe-area-inset-bottom));right:18px;left:18px}
-}
-@media(max-width:700px){
-  .runner-touch-guide{font-size:9px;left:6px;right:49px;bottom:7px;gap:5px}
-  .runner-touch-guide span{padding:3px 4px}
-}
-@media(max-width:360px){.runner-touch-guide{font-size:8px}}
-
 /* Vollbild-HUD: Musik und Punkte nebeneinander oben rechts am Canvas-Rand. */
 .runner-fullscreen-score{display:none;pointer-events:none}
 .canvas-wrap:fullscreen .runner-game-hud,
@@ -1002,9 +999,6 @@ canvas{
     <div class="canvas-wrap">
       <canvas id="gameCanvas" width="1000" height="320"></canvas>
 
-      <div class="runner-touch-guide" aria-hidden="true">
-        <span>↓ LINKS: DUCKEN</span><span>RECHTS: SPRINGEN ↑</span>
-      </div>
       <p class="runner-rotate-hint" aria-hidden="true">↻ Für ein grösseres Spielfeld das Smartphone quer halten.</p>
       <div class="runner-level-toast" id="runnerLevelToast" role="status" aria-live="polite" hidden></div>
       <div class="runner-game-hud">
@@ -1135,19 +1129,23 @@ let animationId = null;
 let gameRunning = false;
 const FRAME_DURATION = 1000 / 60;
 const MAX_UPDATES_PER_FRAME = 5;
-const BASE_GAME_SPEED = 3.9;
-const MAX_GAME_SPEED = 9.3;
+const BASE_GAME_SPEED = 4.3;
+const MAX_GAME_SPEED = 11.4;
 const METERS_PER_PIXEL = 0.1;
 const POINTS_PER_OBSTACLE = 10;
 const POINTS_PER_PICKUP = 25;
 const BASE_GRAVITY = 0.47;
 const DAY_NIGHT_CYCLE_METERS = 2600;
 const DIFFICULTY_LEVELS=[
-  {from:0,name:"Anfänger",speed:3.9,minGap:340,maxGap:560,comboChance:0,movingChance:0},
-  {from:400,name:"Fortgeschritten",speed:5.0,minGap:280,maxGap:480,comboChance:.18,movingChance:0},
-  {from:1000,name:"Profi",speed:6.4,minGap:255,maxGap:425,comboChance:.43,movingChance:.12},
-  {from:2000,name:"Experte",speed:7.7,minGap:235,maxGap:375,comboChance:.66,movingChance:.30},
-  {from:3500,name:"Elite",speed:8.6,minGap:205,maxGap:320,comboChance:.79,movingChance:.42}
+  {from:0,name:"Anfänger",speed:4.3,minGap:320,maxGap:470,comboChance:0,movingChance:0},
+  {from:500,name:"Fortgeschritten",speed:5.4,minGap:270,maxGap:420,comboChance:.28,movingChance:0},
+  {from:1500,name:"Profi",speed:6.6,minGap:245,maxGap:385,comboChance:.52,movingChance:.14},
+  {from:3000,name:"Experte",speed:7.5,minGap:225,maxGap:350,comboChance:.68,movingChance:.26},
+  {from:5000,name:"Elite",speed:8.4,minGap:205,maxGap:325,comboChance:.78,movingChance:.35},
+  {from:7500,name:"Meister",speed:9.1,minGap:200,maxGap:310,comboChance:.84,movingChance:.42},
+  {from:10000,name:"Extrem",speed:9.8,minGap:195,maxGap:290,comboChance:.88,movingChance:.48},
+  {from:15000,name:"Legende",speed:10.4,minGap:195,maxGap:285,comboChance:.91,movingChance:.55},
+  {from:20000,name:"Endlos",speed:10.8,minGap:195,maxGap:275,comboChance:.93,movingChance:.60}
 ];
 const SPECIAL_EVENT_EVERY_METERS=1000;
 const SPECIAL_EVENT_REWARD=150;
@@ -1157,6 +1155,10 @@ const DUCK_TAP_FRAMES=22;
 const OBSTACLE_TYPES_BY_LEVEL=[
   ["solar","tree"],
   ["solar","tree","mast","house"],
+  ["solar","tree","mast","house","bagger","wind"],
+  ["solar","tree","mast","house","bagger","wind"],
+  ["solar","tree","mast","house","bagger","wind"],
+  ["solar","tree","mast","house","bagger","wind"],
   ["solar","tree","mast","house","bagger","wind"],
   ["solar","tree","mast","house","bagger","wind"],
   ["solar","tree","mast","house","bagger","wind"]
@@ -1278,7 +1280,8 @@ function getDifficultyLevel(distance=distanceMeters){
 }
 function getTargetGameSpeed(distance=distanceMeters){
   const i=getDifficultyLevel(distance),current=DIFFICULTY_LEVELS[i],next=DIFFICULTY_LEVELS[i+1];
-  if(!next)return Math.min(MAX_GAME_SPEED,current.speed+(distance-current.from)/4500);
+  // Nach 20 km langsam weiter steigendes Tempo bis zur spielbaren Obergrenze.
+  if(!next)return Math.min(MAX_GAME_SPEED,current.speed+(distance-current.from)/7000);
   const t=Math.min(1,Math.max(0,(distance-current.from)/(next.from-current.from)));
   return current.speed+(next.speed-current.speed)*t;
 }
@@ -1287,21 +1290,22 @@ function getMinimumObstacleDistance(previousWave){
   const level=getDifficultyLevel();
   // Wave span contains the last obstacle, so the reaction reserve starts after
   // the LAST element in a scripted combo, not after its first element.
-  const reactionFrames=level>=4?8:level>=2?10:14;
+  // Mindestabstand der Wellen respektiert weiterhin Sprung-/Landungsdauer.
+  const reactionFrames=level>=6?7:level>=3?9:13;
   const landingFrames=previousWave.endAction==="duck" ? 24 :
-    previousWave.endTall ? 66 : previousWave.combo ? 57 : 54;
-  const movingBuffer=previousWave.moving?gameSpeed*7:0;
+    previousWave.endTall ? 70 : previousWave.combo ? 59 : 57;
+  const movingBuffer=previousWave.moving?gameSpeed*9:0;
   return previousWave.span+gameSpeed*(landingFrames+reactionFrames)+20+movingBuffer;
 }
 function getNextObstacleDistance(previousWave=null){
   if(!previousWave)return 410+Math.random()*90;
   const index=getDifficultyLevel(),level=DIFFICULTY_LEVELS[index];
   const minimum=Math.max(level.minGap,getMinimumObstacleDistance(previousWave));
-  const range=Math.max(105,level.maxGap-minimum);
+  const range=Math.max(60,level.maxGap-minimum);
   const roll=Math.random();
-  // Mixed rhythm: most late-game waves approach the safe timing boundary.
-  if(roll<(.16+index*.10))return minimum+Math.random()*Math.min(45,range*.38);
-  if(roll>.92)return minimum+range*.8+Math.random()*90;
+  const tightChance=Math.min(.80,.16+index*.095);
+  if(roll<tightChance)return minimum+Math.random()*Math.min(38,range*.35);
+  if(roll>.94)return minimum+range*.8+Math.random()*55;
   return minimum+Math.pow(Math.random(),1.9+index*.18)*range;
 }
 
@@ -1845,8 +1849,7 @@ function endGame(){
 function makeObstacle(type,x,extra={}){
   const {width,height}=getObstacleDimensions(type);
   const overhead=type==="cable"||type==="hook";
-  // A complete hanging barrier: jumping above the obstacle is not an exploit.
-  // Its visible hazard curtain matches the collider; ducking below y=285 works.
+  // Sichtbare Kranlast mit passender Kollision; unter y=285 kann geduckt werden.
   const y=overhead ? 0 : groundY+player.height-height;
   return {type,x,y,baseY:y,width,height,passed:false,...extra};
 }
@@ -1869,7 +1872,7 @@ function announceSpecialEvent(index){
   runnerLevelToast.textContent="⚠️ SPEZIALBAUSTELLE "+index+"!";
   runnerLevelToast.hidden=false;
   levelToastFrames=145;
-  setFeedback("🏗️ Kran-Baustelle!",100,"#ffdf98");
+  // Spezialbaustelle hat bereits einen mittig platzierten Hinweis.
   playSound(540,.18,"triangle");
 }
 
@@ -1884,35 +1887,30 @@ function maybeSpawnRiskyPickup(waveObstacles){
   });
 }
 
-// Tested movement vocabulary: jump / duck. No simultaneous jump+duck needed.
+// Alle Folgen lassen sich mit abwechselndem Springen und Ducken meistern.
 function createComboPattern(actions,special=false){
   const id=special?++specialCounter:0;
   const startX=canvas.width+20;
   let nextX=startX,last=null;
   const created=[];
+  const difficulty=getDifficultyLevel();
   actions.forEach((action,index)=>{
-    let type;
-    if(action==="duck"){
-      type=special&&(index%2===1)?"hook":"cable";
-    }else{
-      type=index%2===0?"solar":"bagger";
-    }
+    const type=action==="duck" ?
+      (difficulty>=4&&(special||index%2===1)?"hook":"cable") :
+      (index%2===0?"solar":"bagger");
     const extra={
-      action,
-      pattern:id||null,
-      specialId:id||null,
-      ...((type==="hook")?{swingPhase:index*1.8}: {})
+      action,pattern:id||null,specialId:id||null,
+      ...(type==="hook"?{swingPhase:index*1.8,swingOffset:0}:{})
     };
     const ob=makeObstacle(type,nextX,extra);
     obstacles.push(ob);
     created.push(ob);
     nextX+=ob.width;
     if(index<actions.length-1){
-      // A short jump lasts ~50-55 physics ticks, a duck needs ~14-22 ticks.
-      // Extra reaction time is preserved at every game speed.
-      const reserve=action==="jump" ? (getDifficultyLevel()>=4?55:60) :
-        (getDifficultyLevel()>=4?24:29);
-      nextX+=gameSpeed*reserve+10+Math.random()*gameSpeed*6;
+      // Der Mindestabstand bleibt an die Dauer der Aktionen gebunden.
+      const reserve=action==="jump"?Math.max(57,65-difficulty):
+        Math.max(24,32-difficulty);
+      nextX+=gameSpeed*reserve+12+Math.random()*gameSpeed*7;
     }
     last=ob;
   });
@@ -1921,12 +1919,31 @@ function createComboPattern(actions,special=false){
   lastWavePattern=actions.join("-");
   lastWaveWasCombo=true;
   lastWaveDouble=actions.length>1;
-  return {
-    span:last.x+last.width-startX,
-    endAction:actions[actions.length-1],
-    endTall:false,
-    combo:true, moving:false, special
-  };
+  return {span:last.x+last.width-startX,
+    endAction:actions[actions.length-1],endTall:false,combo:true,moving:false,special};
+}
+
+function getSpecialActions(eventNumber,difficulty){
+  const odd=eventNumber%2!==0;
+  if(difficulty>=6)return odd?
+    ["jump","duck","jump","duck","jump","duck"]:
+    ["duck","jump","duck","jump","duck","jump"];
+  if(difficulty>=4)return odd?
+    ["jump","duck","jump","duck","jump"]:
+    ["duck","jump","duck","jump","duck"];
+  return odd?["jump","duck","jump","duck"]:["duck","jump","duck","jump"];
+}
+
+function getComboVariants(difficulty){
+  const doubles=[["jump","duck"],["duck","jump"]];
+  if(difficulty<3)return doubles;
+  const triples=[["jump","duck","jump"],["duck","jump","duck"]];
+  if(difficulty<5)return doubles.concat(triples);
+  const quadruples=[["jump","duck","jump","duck"],["duck","jump","duck","jump"]];
+  if(difficulty<6)return doubles.concat(triples,quadruples);
+  const quintets=[["jump","duck","jump","duck","jump"],["duck","jump","duck","jump","duck"]];
+  return difficulty>=7?triples.concat(quadruples,quintets,quintets):
+    doubles.concat(triples,quadruples,quintets);
 }
 
 function createObstacleWave(){
@@ -1934,20 +1951,17 @@ function createObstacleWave(){
 
   if(distanceMeters>=nextSpecialAt){
     const eventNumber=Math.floor(nextSpecialAt/SPECIAL_EVENT_EVERY_METERS);
-    nextSpecialAt+=SPECIAL_EVENT_EVERY_METERS;
+    nextSpecialAt+=index>=6?750:index>=4?900:SPECIAL_EVENT_EVERY_METERS;
     announceSpecialEvent(eventNumber);
-    return createComboPattern(eventNumber%2===0 ?
-      ["duck","jump","duck","jump"] : ["jump","duck","jump","duck"],true);
+    return createComboPattern(getSpecialActions(eventNumber,index),true);
   }
 
-  const comboProbability=lastWaveWasCombo?level.comboChance*.63:level.comboChance;
+  const comboProbability=lastWaveWasCombo?level.comboChance*.81:level.comboChance;
   if(index>=1&&Math.random()<comboProbability){
-    const variants=index>=3?
-      [["jump","duck"],["duck","jump"],["jump","duck","jump"],["duck","jump","duck"]]:
-      [["jump","duck"],["duck","jump"]];
+    const variants=getComboVariants(index);
     const choices=variants.filter(v=>v.join("-")!==lastWavePattern);
-    return createComboPattern((choices.length?choices:variants)[
-      Math.floor(Math.random()*(choices.length?choices:variants).length)]);
+    const pool=choices.length?choices:variants;
+    return createComboPattern(pool[Math.floor(Math.random()*pool.length)]);
   }
 
   const options=OBSTACLE_TYPES_BY_LEVEL[index].slice();
@@ -1957,9 +1971,12 @@ function createObstacleWave(){
   let type=(unique.length?unique:options)[
     Math.floor(Math.random()*(unique.length?unique:options).length)];
   const moving=index>=2&&Math.random()<level.movingChance;
-  if(moving)type=index>=3&&Math.random()<.32?"hook":"bagger";
+  if(moving)type=index>=3&&Math.random()<Math.min(.72,.30+(index-3)*.08)?"hook":"bagger";
   const extra=type==="bagger"&&moving?{moving:true,moveSpeed:1.1+Math.random()*1.3}: {};
-  if(type==="hook")extra.swingPhase=Math.random()*Math.PI*2;
+  if(type==="hook"){
+    extra.swingPhase=0;extra.swingOffset=0;
+    extra.moving=true;extra.moveSpeed=0;
+  }
   const ob=makeObstacle(type,startX,extra);
   obstacles.push(ob);
   maybeSpawnRiskyPickup([ob]);
@@ -1988,8 +2005,8 @@ function updateDifficulty(){
     updateLevelBadge();
     runnerLevelToast.textContent="LEVEL "+(currentLevel+1)+" · "+DIFFICULTY_LEVELS[currentLevel].name.toUpperCase()+"!";
     runnerLevelToast.hidden=false;
-    levelToastFrames=145;
-    setFeedback("⚡ Level "+(currentLevel+1)+"!",105,"#fff4a3");
+    levelToastFrames=125;
+    // Keine zweite Canvas-Meldung ueber dem Level-Banner.
     playSound(790,.15,"triangle");
   }
 }
@@ -2055,8 +2072,12 @@ function update(){
     const ob = obstacles[i];
     ob.x -= gameSpeed+(ob.moving?ob.moveSpeed:0);
     if(ob.type==="hook"){
-      ob.swingPhase+=.062;
-      ob.x+=Math.sin(ob.swingPhase)*1.05;
+      // Haken und Last pendeln gemeinsam an der ortsfesten Laufkatze.
+      const previousOffset=ob.swingOffset||0;
+      ob.swingPhase+=.052+Math.max(0,currentLevel-3)*.004;
+      const amplitude=12+Math.min(18,Math.max(0,currentLevel-2)*3);
+      ob.swingOffset=Math.sin(ob.swingPhase)*amplitude;
+      ob.x+=ob.swingOffset-previousOffset;
       ob.y=ob.baseY;
     }
     const hit = needsDuck(ob.type)
@@ -2732,61 +2753,65 @@ function drawLandscape(){
 
 
 function drawOverheadHazard(ob){
-  // Einzelnes Stahlseil, Kranhaken und gelb-schwarz gestreifter Lasttraeger.
+  // Ein einziges Kranseil, Haken GREIFT in den Ring der Anschlagmittel.
   const x=ob.x,w=ob.width,bottom=ob.y+ob.height;
-  const center=x+w/2,beamTop=bottom-24,housingTop=bottom-105;
+  const center=x+w/2,beamTop=bottom-24;
+  const housingTop=bottom-115,ringY=bottom-64;
+  const trolleyX=center-(ob.swingOffset||0);
   ctx.save();
 
-  // Oberer Seilwagen.
+  // Laufkatze ist beim Pendeln die feste Aufhaengung.
   ctx.fillStyle="#516a7c";
-  roundedRect(center-17,ob.y+3,34,12,5);ctx.fill();
+  roundedRect(trolleyX-17,ob.y+3,34,12,5);ctx.fill();
   ctx.fillStyle="#ffc13c";
-  roundedRect(center-14,ob.y+11,28,7,3);ctx.fill();
-  for(const wheelX of [center-11,center+11]){
+  roundedRect(trolleyX-14,ob.y+11,28,7,3);ctx.fill();
+  for(const wheelX of [trolleyX-11,trolleyX+11]){
     ctx.fillStyle="#34495b";
     ctx.beginPath();ctx.arc(wheelX,ob.y+18,4,0,Math.PI*2);ctx.fill();
   }
 
-  // Genau ein senkrechtes Stahlseil mit Lichtkante.
+  // Stahlseil: bei beweglicher Last diagonal, sonst vertikal.
   ctx.strokeStyle="#40515e";ctx.lineWidth=3;
-  ctx.beginPath();ctx.moveTo(center,ob.y+19);ctx.lineTo(center,housingTop);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(trolleyX,ob.y+19);ctx.lineTo(center,housingTop);ctx.stroke();
   ctx.strokeStyle="#8fa6b6";ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(center-1,ob.y+21);ctx.lineTo(center-1,housingTop-2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(trolleyX-1,ob.y+21);ctx.lineTo(center-1,housingTop-2);ctx.stroke();
 
-  // Flaschenzug und gebogener Kranhaken.
-  ctx.fillStyle="#ffc441";
-  roundedRect(center-12,housingTop,24,23,5);ctx.fill();
-  ctx.strokeStyle="#df9524";ctx.lineWidth=1.5;ctx.stroke();
-  ctx.strokeStyle="#394a57";ctx.lineWidth=4.5;ctx.lineCap="round";
-  ctx.beginPath();ctx.moveTo(center,housingTop+22);ctx.lineTo(center,housingTop+34);
-  ctx.bezierCurveTo(center-3,housingTop+49,center+18,housingTop+47,center+14,housingTop+33);
-  ctx.stroke();
-
-  // Kurze Anschlagmittel von einem Haken zu beiden Enden der Last.
-  const slingTop=bottom-53;
-  ctx.strokeStyle="#344958";ctx.lineWidth=3.5;
+  // Beidseitige Anschlagmittel treffen sich in EINEM Ring.
+  ctx.strokeStyle="#344958";ctx.lineWidth=3.5;ctx.lineCap="round";
   ctx.beginPath();
-  ctx.moveTo(center,slingTop);ctx.lineTo(x+8,beamTop+3);
-  ctx.moveTo(center,slingTop);ctx.lineTo(x+w-8,beamTop+3);
+  ctx.moveTo(center,ringY);ctx.lineTo(x+8,beamTop+4);
+  ctx.moveTo(center,ringY);ctx.lineTo(x+w-8,beamTop+4);
   ctx.stroke();
 
-  // Kompakter Lasttraeger mit Warnstreifen.
-  ctx.fillStyle="#263642";
-  roundedRect(x,beamTop,w,24,5);ctx.fill();
-  ctx.save();
-  roundedRect(x+3,beamTop+3,w-6,17,3);ctx.clip();
+  ctx.fillStyle="#b9c8d1";
+  ctx.beginPath();ctx.arc(center,ringY,6.5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#4b5e68";
+  ctx.beginPath();ctx.arc(center,ringY,3.4,0,Math.PI*2);ctx.fill();
+
+  // Hakenende erreicht und umfasst den Ring sichtbar.
+  ctx.fillStyle="#ffc441";
+  roundedRect(center-12,housingTop,24,25,5);ctx.fill();
+  ctx.strokeStyle="#df9524";ctx.lineWidth=1.5;ctx.stroke();
+  ctx.strokeStyle="#394a57";ctx.lineWidth=5;ctx.lineCap="round";ctx.lineJoin="round";
+  ctx.beginPath();
+  ctx.moveTo(center,housingTop+24);ctx.lineTo(center,housingTop+34);
+  ctx.bezierCurveTo(center-1,ringY+12,center+15,ringY+13,center+13,ringY);
+  ctx.lineTo(center+8,ringY-7);ctx.stroke();
+
+  // Massiver Lasttraeger mit klaren Befestigungsaugen.
+  ctx.fillStyle="#263642";roundedRect(x,beamTop,w,24,5);ctx.fill();
+  ctx.save();roundedRect(x+3,beamTop+3,w-6,17,3);ctx.clip();
   ctx.fillStyle="#f8bc2e";ctx.fillRect(x+3,beamTop+3,w-6,17);
   ctx.fillStyle="#27343d";
   for(let stripe=x-15;stripe<x+w+16;stripe+=19){
-    ctx.beginPath();
-    ctx.moveTo(stripe,beamTop+3);ctx.lineTo(stripe+10,beamTop+3);
+    ctx.beginPath();ctx.moveTo(stripe,beamTop+3);ctx.lineTo(stripe+10,beamTop+3);
     ctx.lineTo(stripe-1,beamTop+20);ctx.lineTo(stripe-11,beamTop+20);
     ctx.closePath();ctx.fill();
   }
   ctx.restore();
-  for(const boltX of [x+7,x+w-7]){
-    ctx.fillStyle="#9daeba";ctx.beginPath();
-    ctx.arc(boltX,beamTop+12,2.5,0,Math.PI*2);ctx.fill();
+  for(const boltX of [x+8,x+w-8]){
+    ctx.fillStyle="#c0ccd4";ctx.beginPath();ctx.arc(boltX,beamTop+6,3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#6a7780";ctx.beginPath();ctx.arc(boltX,beamTop+6,1.5,0,Math.PI*2);ctx.fill();
   }
   ctx.restore();
 }
@@ -2856,7 +2881,8 @@ function drawDust(){
 }
 
 function drawFeedback(){
-  if(!feedback) return;
+  // Keine Rueckmeldung ueber dem Level-/Spezialbaustellen-Hinweis.
+  if(!feedback||!runnerLevelToast.hidden)return;
   ctx.save();
   ctx.globalAlpha=Math.min(1,feedback.frames/20);
   ctx.textAlign="center";
@@ -2864,7 +2890,7 @@ function drawFeedback(){
   ctx.shadowColor="rgba(0,0,0,.65)";
   ctx.shadowBlur=9;
   ctx.fillStyle=feedback.color;
-  ctx.fillText(feedback.message,canvas.width/2,55);
+  ctx.fillText(feedback.message,canvas.width/2,120,600);
   ctx.restore();
 }
 
