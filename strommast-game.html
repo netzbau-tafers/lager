@@ -972,6 +972,27 @@ canvas{
 @media(max-width:700px) and (orientation:landscape){
   canvas{height:clamp(170px,42vh,230px)}
 }
+.runner-level-badge{
+  display:inline-flex;align-items:center;white-space:nowrap;
+  margin-left:auto;padding:5px 10px;border-radius:999px;
+  border:1px solid rgba(167,213,248,.32);background:rgba(134,192,225,.14);
+  color:#e5f5ff;font-size:11px;letter-spacing:.035em;font-weight:850
+}
+.runner-level-badge[data-level="5"]{color:#ffe8a5;background:rgba(250,192,72,.17)}
+.runner-level-toast{
+  position:absolute;left:50%;top:17px;transform:translateX(-50%);
+  pointer-events:none;z-index:9;padding:9px 17px;border-radius:13px;
+  background:rgba(15,47,70,.89);border:1px solid rgba(255,234,165,.55);
+  box-shadow:0 7px 20px rgba(11,31,48,.25);color:#fff2b2;
+  font-size:16px;font-weight:850;letter-spacing:.05em;white-space:nowrap
+}
+.runner-level-toast[hidden]{display:none!important}
+@media(max-width:700px){
+  .desktop-game-eyebrow{flex-wrap:wrap}
+  .runner-level-badge{font-size:9px;margin-left:0;padding:4px 8px}
+  .runner-level-toast{font-size:12px;padding:6px 10px;top:8px;max-width:calc(100% - 78px);white-space:normal;text-align:center}
+  .runner-music-toggle{backdrop-filter:none;-webkit-backdrop-filter:none}
+}
 </style>
 </head>
 <body class="auth-loading">
@@ -1117,6 +1138,9 @@ canvas{
 <script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+// Weniger Canvas-Zeichenoperationen auf kleinen/Touch-Displays;
+// Spielphysik und Kollisionsfrequenz bleiben trotzdem bei 60 Updates/s.
+const reducedMobileEffects = window.matchMedia("(max-width:700px), (pointer:coarse)");
 const musicToggle = document.getElementById("musicToggle");
 // Bei einem Fehler oder einem nicht verfügbaren Musikscript muss das Spiel
 // trotzdem vollständig funktionieren (Bestenliste, Steuerung, Spielgeräusche).
@@ -2143,7 +2167,7 @@ function drawMast(ob){
 
   ctx.save();
   ctx.shadowColor = "rgba(90,58,28,0.15)";
-  ctx.shadowBlur = 6;
+  ctx.shadowBlur = reducedMobileEffects.matches?0:6;
 
   ctx.fillStyle = "#8a5a2b";
   ctx.fillRect(cx - 4, y, 8, h);
@@ -2298,6 +2322,18 @@ function drawBagger(ob){
 
   drawWheel(x + 21, wheelY, 6, frameCount * 0.18);
   drawWheel(x + 43, wheelY, 6, frameCount * 0.18);
+  if(ob.moving){
+    // Orange Warnblinkleuchte signalisiert eine fahrende Baumaschine.
+    ctx.save();
+    ctx.fillStyle=frameCount%28<14?"#ffe47b":"#ff9e16";
+    ctx.beginPath();
+    ctx.arc(x+35,y-4,4,0,Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle="#8e5c18";
+    ctx.lineWidth=2;
+    ctx.stroke();
+    ctx.restore();
+  }
 }
 
 function drawNuclearPlant(ob){
@@ -2363,13 +2399,21 @@ function drawSkyOrb(x, y, radius, glowRadius, color, glowColor, alpha){
   if(alpha <= .01) return;
   ctx.save();
   ctx.globalAlpha = clamp01(alpha);
-  const glow = ctx.createRadialGradient(x, y, radius * .25, x, y, glowRadius);
-  glow.addColorStop(0, glowColor);
-  glow.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = glow;
-  ctx.beginPath();
-  ctx.arc(x, y, glowRadius, 0, Math.PI * 2);
-  ctx.fill();
+  if(reducedMobileEffects.matches){
+    // Günstiger Halo statt eines pro Frame neu berechneten Radialgradienten.
+    ctx.fillStyle="rgba(255,243,195,.10)";
+    ctx.beginPath();
+    ctx.arc(x,y,glowRadius*.66,0,Math.PI*2);
+    ctx.fill();
+  }else{
+    const glow=ctx.createRadialGradient(x,y,radius*.25,x,y,glowRadius);
+    glow.addColorStop(0,glowColor);
+    glow.addColorStop(1,"rgba(255,255,255,0)");
+    ctx.fillStyle=glow;
+    ctx.beginPath();
+    ctx.arc(x,y,glowRadius,0,Math.PI*2);
+    ctx.fill();
+  }
   ctx.fillStyle = color;
   ctx.beginPath();
   ctx.arc(x, y, radius, 0, Math.PI * 2);
@@ -2391,7 +2435,7 @@ function drawAnimatedSky(){
   if(night > .30){
     const visibility = smoothStep(.30, .85, night);
     ctx.save();
-    for(let i = 0; i < 43; i++){
+    for(let i=0;i<(reducedMobileEffects.matches?22:43);i++){
       const sx = 18 + ((i * 197 + 49) % 963);
       const sy = 8 + ((i * 71 + 23) % 120);
       const twinkle = .72 + Math.sin(frameCount * .028 + i * 1.9) * .18;
@@ -2432,7 +2476,7 @@ function drawAnimatedSky(){
 
   // Transparente Wolken bewegen sich weit langsamer als echte Hindernisse.
   const drift = (distanceMeters * .06) % 340;
-  for(let i = -1; i < 5; i++){
+  for(let i=-1;i<(reducedMobileEffects.matches?3:5);i++){
     const x = i * 340 + 105 - drift;
     const y = 42 + (i % 3) * 15;
     const scale = .82 + (i % 2) * .18;
@@ -2467,15 +2511,22 @@ function drawStreetLamp(x, y, night){
   ctx.ellipse(22, -62, 9, 3.5, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  if(night > .05){
-    const glow = ctx.createRadialGradient(22, -58, 2, 22, -53, 62);
-    glow.addColorStop(0, "rgba(255,235,168," + (.60 * night) + ")");
-    glow.addColorStop(.4, "rgba(255,224,151," + (.19 * night) + ")");
-    glow.addColorStop(1, "rgba(255,220,145,0)");
-    ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(22, -53, 62, 0, Math.PI * 2);
-    ctx.fill();
+  if(night>.05){
+    if(reducedMobileEffects.matches){
+      ctx.fillStyle="rgba(255,230,157,"+(.14*night)+")";
+      ctx.beginPath();
+      ctx.ellipse(22,-43,35,43,0,0,Math.PI*2);
+      ctx.fill();
+    }else{
+      const glow=ctx.createRadialGradient(22,-58,2,22,-53,62);
+      glow.addColorStop(0,"rgba(255,235,168,"+(.60*night)+")");
+      glow.addColorStop(.4,"rgba(255,224,151,"+(.19*night)+")");
+      glow.addColorStop(1,"rgba(255,220,145,0)");
+      ctx.fillStyle=glow;
+      ctx.beginPath();
+      ctx.arc(22,-53,62,0,Math.PI*2);
+      ctx.fill();
+    }
     ctx.fillStyle = "rgba(255,242,182," + (.96 * night) + ")";
     ctx.beginPath();
     ctx.ellipse(22, -59, 7, 2.5, 0, 0, Math.PI * 2);
@@ -2491,7 +2542,7 @@ function drawLandscape(){
     ctx.fillStyle = blendHex(day, dark, night);
     ctx.beginPath();
     ctx.moveTo(0, canvas.height);
-    for(let x = 0; x <= canvas.width + 10; x += 10){
+    for(let x=0;x<=canvas.width+20;x+=(reducedMobileEffects.matches?20:10)){
       const phase = x + distanceMeters * speed;
       const y = baseY + Math.sin(phase / wavelength) * amplitude
         + Math.sin(phase / (wavelength * .49) + 1.6) * secondary;
@@ -2506,7 +2557,7 @@ function drawLandscape(){
   ridge("#d9e6df", "#41596a", 212, 15, 112, .16, 3);
   // Leuchten stehen hinter der Spiellinie und haben keine Kollisionsbox.
   const lampShift = (distanceMeters * 1.2) % 245;
-  for(let i = -1; i < 7; i++){
+  for(let i=-1;i<(reducedMobileEffects.matches?6:7);i++){
     const x = i * 245 + 100 - lampShift;
     drawStreetLamp(x, 259, night);
   }
@@ -2611,6 +2662,19 @@ function draw(){
   }
   drawPlayer();
   drawDust();
+  if(recordFlashFrames>0){
+    // Kleiner visuell erkennbarer Rekord-Effekt ohne zusätzliche Partikelobjekte.
+    ctx.save();
+    const fade=recordFlashFrames/120;
+    for(let i=0;i<(reducedMobileEffects.matches?6:12);i++){
+      const x=120+(i*79)%780,y=28+Math.sin(frameCount*.09+i*1.4)*14;
+      ctx.fillStyle="rgba(255,217,87,"+(fade*.52)+")";
+      ctx.beginPath();
+      ctx.arc(x,y,2.3,0,Math.PI*2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
   drawFeedback();
 }
 
