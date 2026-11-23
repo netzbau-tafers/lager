@@ -112,7 +112,7 @@ function createDashboardGet({db,Timestamp,logger,now=()=>new Date()}){
         ?data.calculatedAt.toMillis():0;
       const invalidatedAt=data.invalidatedAt&&typeof data.invalidatedAt.toMillis==='function'?data.invalidatedAt.toMillis():0;
       if(data.schemaVersion===DASHBOARD_SCHEMA_VERSION&&lastUpdate>0&&at.getTime()-lastUpdate<SHARED_CACHE_MS&&lastUpdate>=invalidatedAt){
-        const {calculatedAt,invalidatedAt,...payload}=data;
+        const {calculatedAt,invalidatedAt,schemaVersion,...payload}=data;
         return payload;
       }
     }
