@@ -662,138 +662,6 @@ canvas{
   }
 }
 
-/* Mobile Startübersicht – getrennt von Spielgrafik und Spielmechanik. */
-#mrMobileLanding,#mrBackToOverview{display:none}
-@media(max-width:700px){#mrBackToOverview{display:inline-flex}}
-@media(max-width:700px){
-  body.auth-loading #mrMobileLanding{display:none!important}
-  body:not(.mr-playing) .game-wrap{display:none}
-  body>.app-footer{display:none}
-  #mrMobileLanding{display:block;margin:0 auto;max-width:570px;min-height:100dvh;background:#f4f7fa;color:#132c42;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
-  body.mr-playing #mrMobileLanding{display:block}
-  #mrMobileLanding *{box-sizing:border-box}
-  #mrMobileLanding button{font:inherit;cursor:pointer;box-shadow:none;transform:none;transition:background .18s,border-color .18s,transform .18s}
-  #mrMobileLanding button:focus-visible,#mrMobileLanding summary:focus-visible{outline:3px solid #4aa9ff;outline-offset:3px}
-  .mr-header{background:#102a43;color:#fff;padding:max(18px,env(safe-area-inset-top)) 22px 19px;display:flex;justify-content:space-between;align-items:center;gap:12px}
-  .mr-brand{display:flex;gap:11px;align-items:center;min-width:0}
-  .mr-mark{width:42px;height:42px;border:1px solid rgba(174,219,255,.17);border-radius:13px;display:grid;place-items:center;background:rgba(138,199,249,.14);flex:none}
-  .mr-mark svg{width:25px;height:25px}
-  .mr-brand small{display:block;font-size:10px;font-weight:800;letter-spacing:.13em;color:#acc8d9;margin-bottom:4px}
-  .mr-brand strong{font-size:18px;letter-spacing:-.04em}
-  #mrMobileLanding .mr-back{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.13);padding:11px 12px;border-radius:13px;color:#fff;font-size:12px;font-weight:700;white-space:nowrap}
-  .mr-back svg{width:16px;height:16px}
-  .mr-hero{background:linear-gradient(160deg,#102a43,#16415c 92%);color:#fff;padding:24px 22px 0;overflow:hidden}
-  .mr-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.15em;font-weight:800;color:#b6dfef;display:flex;align-items:center;gap:9px}
-  .mr-dot{width:7px;height:7px;background:#79dcb5;border-radius:50%;box-shadow:0 0 0 4px rgba(121,220,181,.11)}
-  #mrMobileLanding .mr-hero h1{margin:10px 0 6px;color:#fff;font-size:clamp(39px,9.3vw,56px);line-height:1.03;font-weight:850;letter-spacing:-.075em}
-  .mr-hero p{margin:0;color:#bfd4e3;font-size:14px;line-height:1.55;max-width:310px}
-  .mr-scene{height:155px;position:relative;overflow:hidden;margin:20px -22px 0}
-  .mr-scene svg{width:100%;height:100%;display:block}
-  .mr-scene::after{content:"";height:9px;position:absolute;left:0;right:0;bottom:0;background:#234960}
-  .mr-scene-figure{position:absolute;z-index:1;bottom:12px;left:20%;width:46px;height:46px;display:grid;place-items:center;border-radius:50%;font-size:29px;background:#fff;border:4px solid #d6ecfa;box-shadow:0 8px 18px rgba(9,32,49,.23)}
-  .mr-main{padding:0 16px 28px}
-  .mr-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 12px}
-  .mr-stat{background:#fff;padding:14px 17px 13px;border:1px solid #e5edf3;border-radius:0 0 17px 17px;min-width:0}
-  .mr-stat-label{color:#6c8190;font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase}
-  .mr-stat-label span{color:#2884c6;margin-right:5px}
-  .mr-stat-value{font-size:28px;letter-spacing:-.055em;font-weight:850;margin-top:5px;line-height:1.2;font-variant-numeric:tabular-nums}
-  .mr-card{border:1px solid #e3ebf0;box-shadow:0 15px 30px rgba(14,42,65,.075);background:#fff;border-radius:22px;margin-top:14px;overflow:hidden}
-  .mr-pick{padding:21px 0 17px}
-  .mr-section-head{padding:0 19px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-  #mrMobileLanding h2{font-size:19px;line-height:1.15;letter-spacing:-.045em;margin:0;font-weight:800;color:#132c42}
-  .mr-section-sub{font-size:12px;line-height:1.5;color:#768898;margin:6px 0 0}
-  .mr-tag{background:#edf6fb;border:1px solid #dfedf7;color:#3c7197;padding:5px 9px;border-radius:100px;font-size:11px;font-weight:750;white-space:nowrap}
-  .mr-characters{display:flex;gap:9px;overflow-x:auto;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;padding:18px 19px 10px;scrollbar-width:thin;scrollbar-color:#c4d7e7 transparent}
-  #mrMobileLanding .mr-character{min-width:110px;max-width:110px;min-height:136px;padding:15px 8px 12px;scroll-snap-align:center;background:#f7fafd;border:1.5px solid #e6edf3;border-radius:16px;color:#132c42;display:flex;align-items:center;flex-direction:column;gap:5px;position:relative;text-align:center}
-  #mrMobileLanding .mr-character[aria-pressed="true"]{background:#e9f5ff;border-color:#3289d5;box-shadow:inset 0 0 0 1px #3289d5}
-  .mr-character[aria-pressed="true"]::after{content:"✓";position:absolute;right:8px;top:7px;background:#2378ca;color:#fff;width:19px;height:19px;line-height:19px;text-align:center;border-radius:50%;font-size:11px;font-weight:800}
-  .mr-character .mr-emoji{font-size:32px;line-height:1.3;margin:8px 0 5px}
-  .mr-character strong{font-size:12px;white-space:nowrap;letter-spacing:-.015em}
-  .mr-character small{font-size:10px;line-height:1.3;max-width:95px;color:#758d9d}
-  .mr-pick-caption{padding:5px 19px 0;display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11px}
-  #mrChosenCharacter{color:#51758d;font-weight:700}
-  .mr-swipe{color:#8ca0b0}
-  .mr-action{padding:15px 19px 19px}
-  #mrMobileLanding .mr-start{width:100%;display:flex;align-items:center;justify-content:center;gap:11px;background:linear-gradient(135deg,#268ce0,#116cbf);color:white;border:0;border-radius:14px;padding:16px 20px;font-size:16px;font-weight:850;box-shadow:0 9px 20px rgba(25,113,198,.18)}
-  .mr-play-icon{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.18);font-size:12px;padding-left:2px}
-  .mr-micro-help{display:flex;justify-content:center;gap:7px;align-items:center;margin:13px 0 0;font-size:11px;color:#8395a2}
-  .mr-ranking-wrap{padding:20px 19px 5px}
-  .mr-rank-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}
-  .mr-rank-heading{display:flex;align-items:center;gap:10px}
-  .mr-trophy{font-size:24px;color:#d7a550}
-  .mr-ranking{list-style:none;padding:0;margin:0}
-  .mr-ranking li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:11px;padding:12px 0;border-top:1px solid #f0f3f5}
-  .mr-rank-num{height:27px;width:27px;display:grid;place-items:center;background:#f0f4f7;color:#718294;border-radius:9px;font-size:12px;font-weight:850}
-  .mr-ranking li:first-child .mr-rank-num{background:#fff1d5;color:#bd8524}
-  .mr-rank-num.mr-rank-gold{background:#fff1d5;color:#bd8524}
-  .mr-rank-num.mr-rank-silver{background:#eef3f8;color:#8194a7}
-  .mr-rank-num.mr-rank-bronze{background:#fff0e7;color:#ad7349}
-  .mr-rank-num svg{width:21px;height:21px;display:block}
-  .mr-rank-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:750}
-  .mr-rank-score{white-space:nowrap;font-size:13px;font-weight:850;font-variant-numeric:tabular-nums;color:#31516b}
-  .mr-rank-score small{font-weight:500;color:#8496a4;font-size:10px}
-  #mrMobileLanding .mr-more{width:100%;background:#f4f8fb;border:0;border-radius:11px;color:#3d7094;font-size:12px;font-weight:800;padding:12px;margin:8px 0 16px}
-  #mrMobileLanding .mr-more[hidden]{display:none}
-  .mr-rules{margin-top:14px;background:#fff;border:1px solid #e3ebf0;border-radius:18px;overflow:hidden}
-  .mr-rules summary{list-style:none;padding:18px 19px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-size:13px;font-weight:780}
-  .mr-rules summary::-webkit-details-marker{display:none}
-  .mr-rule-body{padding:0 19px 16px;color:#647d90;font-size:12px;line-height:1.6}
-  .mr-rule-body p{margin:0 0 8px}
-  .mr-footer{color:#a4b0b9;font-size:11px;text-align:center;padding:20px 12px max(16px,env(safe-area-inset-bottom))}
-
-  /* Der laufende Spielbereich ersetzt nur die Illustration. Der Rest der
-     mobilen Oberfläche bleibt beim Start und nach Spielende sichtbar. */
-  body.mr-playing .mr-scene{height:220px}
-  body.mr-playing .mr-scene > svg,
-  body.mr-playing .mr-scene-figure{display:none}
-  body.mr-playing .mr-pick,
-  body.mr-playing .mr-rules{display:none}
-  .mr-game-slot{display:none;position:absolute;inset:0;z-index:6;background:#dbe9f7}
-  body.mr-playing .mr-game-slot{display:block}
-  .mr-game-slot .game-wrap{
-    display:block;width:100%;height:100%;min-height:0;margin:0;
-    background:#dbe9f7;border:0;border-radius:0;box-shadow:none;overflow:hidden
-  }
-  .mr-game-slot .topbar,
-  .mr-game-slot .desktop-game-intro,
-  .mr-game-slot .runner-scoreboard,
-  .mr-game-slot .game-dashboard{display:none}
-  .mr-game-slot .canvas-wrap{display:flex;width:100%;height:100%;align-items:stretch;overflow:hidden}
-  .mr-game-slot canvas{width:100%;height:100%;min-height:0;max-width:100%;aspect-ratio:auto}
-  .mr-game-slot .overlay{align-items:center;overflow:auto;padding:10px}
-  .mr-game-slot .overlay-box{
-    width:min(100%,310px);max-height:100%;margin:0;
-    padding:13px 12px;border-radius:14px
-  }
-  .mr-game-slot .overlay-box h2{font-size:21px;margin:0 0 5px}
-  .mr-game-slot .overlay-box p{font-size:12px;line-height:1.35;margin:6px 0}
-  .mr-game-slot .overlay-actions{gap:8px;margin-top:8px;flex-direction:row}
-  .mr-game-slot .overlay-actions button{flex:1;min-height:39px;font-size:12px;padding:8px 6px}
-  .mr-game-slot .fs-btn{width:36px;height:36px;right:8px;bottom:8px;border-radius:10px}
-  .mr-game-slot .fs-btn svg{width:19px;height:19px}
-  .mr-game-slot .exit-fullscreen-btn{top:9px;bottom:auto;transform:none}
-  .mr-game-slot .game-wrap:fullscreen,
-  .mr-game-slot .game-wrap:-webkit-full-screen{
-    width:100%;height:100%;min-height:0;border-radius:0;
-    display:flex;align-items:center;justify-content:center
-  }
-  .mr-game-slot .game-wrap:fullscreen .canvas-wrap,
-  .mr-game-slot .game-wrap:-webkit-full-screen .canvas-wrap{
-    height:auto;max-height:100%;align-items:center
-  }
-  .mr-game-slot .game-wrap:fullscreen canvas,
-  .mr-game-slot .game-wrap:-webkit-full-screen canvas{
-    height:auto;max-height:100%;aspect-ratio:1000 / 320
-  }
-}
-@media(max-width:370px){
-  #mrMobileLanding .mr-header,#mrMobileLanding .mr-hero{padding-left:16px;padding-right:16px}
-  #mrMobileLanding .mr-scene{margin-left:-16px;margin-right:-16px}
-  #mrMobileLanding .mr-main{padding-left:12px;padding-right:12px}
-  #mrMobileLanding .mr-brand strong{font-size:16px}
-}
-
-
 /* Mast Runner 2.0: HUD, mobile Steuerung und Hauptadministrator-Aktion */
 .mr-admin-reset[hidden],.runner-new-record[hidden]{display:none!important}
 .mr-admin-reset:focus-visible{outline:3px solid #f9ca46;outline-offset:2px}
@@ -801,15 +669,6 @@ canvas{
 .runner-new-record{color:#9a6410!important;font-weight:850}
 .mr-admin-reset{margin:13px 0 0;padding:10px 13px;background:#fff1f0;border:1px solid #d78b86;color:#8c2525;box-shadow:none;font-size:12px;font-weight:800}
 .mr-admin-reset:hover{background:#ffe0dc;box-shadow:none}
-@media(max-width:700px){
-  .mr-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .mr-stat{padding:12px 9px;text-align:center}
-  .mr-stat-value{font-size:clamp(16px,5vw,26px)}
-  .mr-pick .mr-section-head{align-items:center}
-  .mr-scene-figure{background:#f0f8fc}
-  #mrMobileLanding .mr-admin-reset{width:100%;margin:0 0 16px}
-}
-
 /* Eine gemeinsame Mast-Runner-Oberfläche für Desktop, Tablet und Smartphone. */
   body{background:radial-gradient(circle at 15% 5%,#edf5fb 0%,#e5edf6 55%,#dae6f0 100%)}
   .game-wrap{width:min(1180px,100%);border:1px solid #dce5ed;border-radius:24px;box-shadow:0 20px 52px rgba(13,42,66,.14)}
@@ -872,12 +731,9 @@ canvas{
 @media(max-width:700px){
   .runner-music-toggle{right:6px;top:6px;min-height:32px;padding:5px 8px;font-size:13px}
   .runner-music-toggle span{display:none}
-  .mr-game-slot .runner-music-toggle{right:6px;top:6px}
 }
 /* Smartphone zeigt das identische PC-Layout, nur mit responsiven Abständen.
    Der frühere mobile Launcher ist nicht mehr Bestandteil der sichtbaren UI. */
-#mrMobileLanding{display:none!important}
-#mrBackToOverview{display:none!important}
 @media(max-width:700px){
   html,body{width:100%;overflow-x:hidden}
   body{
@@ -887,8 +743,7 @@ canvas{
     background:#f4f7fa;
   }
   body.auth-loading .game-wrap{visibility:hidden}
-  body:not(.mr-playing) .game-wrap,
-  body.mr-playing .game-wrap{
+  .game-wrap{
     display:block;
     width:100%;
     min-height:100dvh;
@@ -996,57 +851,6 @@ canvas{
 </style>
 </head>
 <body class="auth-loading">
-
-  <!-- Die mobile Übersicht ist ein reiner Launcher; die bestehende Spieloberfläche bleibt darunter unverändert. -->
-  <div id="mrMobileLanding" aria-label="Mast Runner Spielübersicht">
-    <header class="mr-header">
-      <div class="mr-brand">
-        <div class="mr-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="#a8dcfa" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M16 3 8 29M16 3l8 26M11 12h10M8 21h16M11 12l12 9M21 12 9 21M5 29h22"/></svg></div>
-        <div><small>NETZBAU TAFERS</small><strong>Mast Runner</strong></div>
-      </div>
-      <button class="mr-back" type="button" onclick="window.location.href='home.html'" aria-label="Zur Startseite">← Zurück</button>
-    </header>
-    <section class="mr-hero">
-      <div class="mr-eyebrow"><span class="mr-dot"></span>Das Netzelektriker-Arcade-Spiel</div>
-      <h1>Mast<br>Runner<span style="color:#69bcef">.</span></h1>
-      <p>Laufe mit unserem Netzelektriker, sammle Blitze und knacke die Top 10.</p>
-      <div class="mr-scene"><svg viewBox="0 0 560 155" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-  <defs><linearGradient id="mrSky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#286281"/><stop offset="1" stop-color="#7aacc1"/></linearGradient></defs>
-  <rect width="560" height="155" fill="url(#mrSky)"/>
-  <g fill="#d4e8ec" opacity=".65"><path d="M26 57c0-9 8-16 18-16 5-15 27-19 39-6 14-1 25 9 25 22z"/><path d="M357 33c0-8 7-13 16-13 9-11 25-10 31 3 13-1 20 4 21 10z"/></g>
-  <path d="M0 115Q75 79 148 115T300 112T560 103V155H0Z" fill="#9fbead"/>
-  <path d="M0 124Q84 91 170 125T390 119T560 123V155H0Z" fill="#86a89d"/>
-  <g fill="none" stroke="#d3e4e7" stroke-width="2.3" opacity=".9"><path d="M402 41 379 150M402 41l23 109M387 72h30M382 91h41M378 112h49M384 72l38 40M419 72l-40 40"/><path d="M502 63 485 150M502 63l17 87M491 85h23M487 104h31M489 85l28 19M514 85l-26 19"/><path d="M402 42q50 12 100 20M402 54q50 11 100 20" stroke-width="1.7"/></g>
-  <path d="M0 141h560" stroke="#d7d2b0" stroke-width="3"/>
-  <g fill="#3a6b6c"><path d="M292 123l15-37 15 37zM299 122v20h17v-20M331 128l10-24 10 24zM336 127v15h10v-15"/></g>
-  <path d="M0 147h560" stroke="#30566a" stroke-width="6"/>
-</svg><div class="mr-scene-figure" id="mrSceneFigure" aria-hidden="true">👷</div><div class="mr-game-slot" id="mrGameSlot" aria-label="Spielfeld"></div></div>
-    </section>
-    <main class="mr-main">
-      <section class="mr-stats" aria-label="Spielstatistik">
-        <div class="mr-stat"><div class="mr-stat-label"><span>◷</span> Punkte</div><div class="mr-stat-value" id="mrCurrentScore">0</div></div>
-        <div class="mr-stat"><div class="mr-stat-label"><span>↗</span> Distanz</div><div class="mr-stat-value" id="mrDistance">0 m</div></div>
-        <div class="mr-stat"><div class="mr-stat-label"><span>♜</span> Dein Rekord</div><div class="mr-stat-value" id="mrBestScore">0</div></div>
-      </section>
-      <section class="mr-card mr-pick" aria-labelledby="mrCharactersTitle">
-        <div class="mr-section-head"><div><h2 id="mrCharactersTitle">Bereit für die nächste Baustelle?</h2><p class="mr-section-sub">Ein Netzelektriker. Eine Strecke. Dein Rekord.</p></div><div class="mr-tag">👷 Netzelektriker</div></div>
-        <div class="mr-action">
-          <button id="mrStartButton" class="mr-start" type="button"><span class="mr-play-icon" aria-hidden="true">▶</span> Spiel starten</button>
-          <p class="mr-micro-help">Tippen = kurzer Sprung · Gedrückt halten = höher springen</p>
-        </div>
-      </section>
-      <section class="mr-card mr-ranking-wrap" aria-labelledby="mrRankingTitle">
-        <div class="mr-rank-head"><div class="mr-rank-heading"><span class="mr-trophy" aria-hidden="true">🏆</span><div><h2 id="mrRankingTitle">Bestenliste</h2><p class="mr-section-sub">Top 10 · Live in der App</p></div></div><span class="mr-tag">TOP 10</span></div>
-        <ol id="mrRanking" class="mr-ranking" aria-live="polite"><li>Noch keine Einträge</li></ol>
-        <button id="mrRankingToggle" class="mr-more" type="button" aria-expanded="false" hidden>Alle 10 Plätze anzeigen ⌄</button>
-        <button id="mrResetRankingButton" class="mr-admin-reset" type="button" hidden>Bestenliste zurücksetzen (Hauptadministrator)</button>
-      </section>
-      <details class="mr-rules"><summary>ⓘ &nbsp; So funktioniert Mast Runner <span aria-hidden="true">⌄</span></summary>
-        <div class="mr-rule-body"><p>Tippe auf das Spielfeld oder nutze Leertaste / Pfeil nach oben. Gedrückt halten verlängert den Sprung.</p><p>10 Meter = 1 Punkt, Hindernis = 10 Punkte, jede 5er-Serie = 25 Bonuspunkte. Sammle Blitze für 25 Punkte und knacke die Top 10. Der Spielton ist immer aktiviert.</p></div>
-      </details>
-    </main>
-    <footer class="mr-footer">Mast Runner · Netzbau Tafers</footer>
-  </div>
 
   <div class="game-wrap" id="gameWrap">
     <header class="topbar">
@@ -1369,8 +1173,7 @@ function updateScore(force=false){
   const distanceText = Math.floor(distanceMeters).toLocaleString("de-CH") + " m";
   const fields = [
     [scoreEl, scoreText],
-    [document.getElementById("distance"), distanceText],
-    [document.getElementById("mrDistance"), distanceText]
+    [document.getElementById("distance"), distanceText]
   ];
   for(const [element, value] of fields){
     if(element && element.textContent !== value) element.textContent = value;
@@ -1498,7 +1301,6 @@ function renderRanking(){
       (dateLabel?" · "+dateLabel:"")));
     liveRankingList.appendChild(li);
   }
-  mrRenderRanking(ranking);
 }
 
 function canScoreReachLeaderboard(scoreValue,ranking=cloudRanking.length?cloudRanking:loadRanking()){
@@ -1559,10 +1361,8 @@ function isRankingMaster(){
   return !!auth.currentUser && auth.currentUser.uid===LagerAccess.MASTER;
 }
 function updateMasterRankingButtons(){
-  for(const id of ["resetRankingButton","mrResetRankingButton"]){
-    const btn=document.getElementById(id);
-    if(btn) btn.hidden=!isRankingMaster();
-  }
+  const btn=document.getElementById("resetRankingButton");
+  if(btn)btn.hidden=!isRankingMaster();
 }
 async function resetRankingAsMaster(){
   if(!isRankingMaster()){
@@ -1572,7 +1372,7 @@ async function resetRankingAsMaster(){
   const text=prompt("Mast Runner 2.0: Alle Bestenlisten-Einträge unwiderruflich löschen? Zum Bestätigen ZURÜCKSETZEN eingeben:");
   if(text!=="ZURÜCKSETZEN") return;
   if(!confirm("Letzte Bestätigung: Die gesamte Mast-Runner-2.0-Bestenliste löschen?")) return;
-  const buttons=["resetRankingButton","mrResetRankingButton"].map(id=>document.getElementById(id)).filter(Boolean);
+  const buttons=[document.getElementById("resetRankingButton")].filter(Boolean);
   buttons.forEach(button=>button.disabled=true);
   try{
     // Bei mehr als 250 Einträgen mehrere Firestore-Batches verwenden.
@@ -2799,114 +2599,7 @@ LagerAccess.onAuthStateChanged((user) => {
 });
 
 
-/* Mast Runner 2.0: mobiler Schnellstart ohne Figurenwahl. */
-let mrShowWholeRanking = false;
-function mrSyncStats(){
-  const current=document.getElementById("mrCurrentScore");
-  const record=document.getElementById("mrBestScore");
-  if(current) current.textContent=scoreEl.textContent;
-  if(record) record.textContent=bestScoreEl.textContent;
-}
-
-function mrRenderRanking(ranking){
-  const container=document.getElementById("mrRanking");
-  const toggle=document.getElementById("mrRankingToggle");
-  if(!container||!toggle) return;
-  const entries=Array.isArray(ranking) ? ranking.slice(0,10) : [];
-  container.replaceChildren();
-  if(!entries.length){
-    const empty=document.createElement("li");
-    empty.textContent="Noch keine Einträge";
-    container.appendChild(empty);
-  }
-  entries.slice(0,mrShowWholeRanking?10:3).forEach((entry,index)=>{
-    const li=document.createElement("li");
-    const number=document.createElement("span");
-    const name=document.createElement("span");
-    const value=document.createElement("span");
-    number.className="mr-rank-num";
-    name.className="mr-rank-name";
-    value.className="mr-rank-score";
-    const place=index+1;
-    if(place<=3){
-      number.classList.add(place===1?"mr-rank-gold":place===2?"mr-rank-silver":"mr-rank-bronze");
-      number.setAttribute("aria-label","Platz "+place);
-      number.textContent=place===1?"🏆":place===2?"🥈":"🥉";
-    }else number.textContent=String(place);
-    name.textContent=String(entry.name||"Unbekannt");
-    value.textContent=Number(entry.score||0).toLocaleString("de-CH")+" Pkt.";
-    const extra=document.createElement("small");
-    extra.textContent=" · "+Math.floor(Number(entry.distance)||0).toLocaleString("de-CH")+" m";
-    value.appendChild(extra);
-    li.append(number,name,value);
-    container.appendChild(li);
-  });
-  toggle.hidden=entries.length<=3;
-  toggle.setAttribute("aria-expanded",String(mrShowWholeRanking));
-  toggle.textContent=mrShowWholeRanking?"Weniger anzeigen ⌃":"Alle "+entries.length+" Plätze anzeigen ⌄";
-}
-
-function mrOpenOverview(){
-  if(gameRunning || gamePaused) return;
-  document.body.classList.remove("mr-playing");
-  mrSyncStats();
-  mrRenderRanking(cloudRanking.length?cloudRanking:loadRanking());
-  window.scrollTo(0,0);
-}
-
-function mrInitLanding(){
-  const start=document.getElementById("mrStartButton");
-  const toggle=document.getElementById("mrRankingToggle");
-  if(!start||!toggle) return;
-  start.addEventListener("click",()=>{
-    document.body.classList.add("mr-playing");
-    window.scrollTo(0,0);
-    startGame();
-  });
-  toggle.addEventListener("click",()=>{
-    mrShowWholeRanking=!mrShowWholeRanking;
-    mrRenderRanking(cloudRanking.length?cloudRanking:loadRanking());
-  });
-  const backButton=document.createElement("button");
-  backButton.type="button";
-  backButton.textContent="Zur Übersicht";
-  backButton.id="mrBackToOverview";
-  backButton.addEventListener("click",mrOpenOverview);
-  document.querySelector("#gameOverOverlay .overlay-actions")?.appendChild(backButton);
-  mrSyncStats();
-  mrRenderRanking(cloudRanking.length?cloudRanking:loadRanking());
-}
-mrInitLanding();
-
-/* Ein und dasselbe Canvas wird auf kleinen Displays in die Vorschau
-   eingebettet. Spielzustand, Kollisionslogik und Eventhandler bleiben erhalten. */
-const mrDesktopGamePosition = document.createComment("Originale Position des Mast-Runner-Spiels");
-gameWrap.before(mrDesktopGamePosition);
-const mrMobileMedia = window.matchMedia("(max-width: 700px)");
-function mrPositionGameWrap(){
-  // PC und Smartphone verwenden dauerhaft dieselbe Spieloberfläche.
-  // Das Canvas nie mehr in die versteckte mobile Start-Illustration verschieben.
-  if(document.fullscreenElement === gameWrap || document.webkitFullscreenElement === gameWrap) return;
-  if(gameWrap.previousSibling !== mrDesktopGamePosition) mrDesktopGamePosition.after(gameWrap);
-  document.body.classList.remove("mr-playing");
-}
-mrPositionGameWrap();
-if(mrMobileMedia.addEventListener){
-  mrMobileMedia.addEventListener("change",mrPositionGameWrap);
-}else if(mrMobileMedia.addListener){
-  mrMobileMedia.addListener(mrPositionGameWrap);
-}
-document.addEventListener("fullscreenchange",mrPositionGameWrap);
-document.addEventListener("webkitfullscreenchange",mrPositionGameWrap);
-
-/* Die zwei Zahlen in der mobilen Kopfübersicht entsprechen immer
-   den originalen Punkte- und Rekordwerten des unveränderten Spiels. */
-const mrStatsObserver = new MutationObserver(mrSyncStats);
-mrStatsObserver.observe(scoreEl,{childList:true,characterData:true,subtree:true});
-mrStatsObserver.observe(bestScoreEl,{childList:true,characterData:true,subtree:true});
-
 document.getElementById("resetRankingButton").addEventListener("click",resetRankingAsMaster);
-document.getElementById("mrResetRankingButton").addEventListener("click",resetRankingAsMaster);
 document.getElementById("resumeButton").addEventListener("click",resumeGame);
 
 document.addEventListener("visibilitychange",()=>{if(document.hidden) pauseGame();});
