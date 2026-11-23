@@ -140,7 +140,7 @@ service cloud.firestore {
       allow read: if canRead('logs') || canRead('kabelreport');
       allow create: if canWrite('kabellager') || canWrite('baustellen') || canWrite('archiv') || manageTemplates();
       allow update: if false;
-      allow delete: if manager('logs');
+      allow delete: if master();
     }
     match /kabel_report_snapshots/{document} {
       allow read: if canRead('kabelreport');

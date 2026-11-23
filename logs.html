@@ -447,6 +447,12 @@ input, select{
     </div>
   </div>
 
+  <div id="logDeleteTools" style="display:none; margin:0 0 16px; align-items:center; gap:12px; flex-wrap:wrap;">
+    <button id="deleteFilteredLogsButton" class="delete" onclick="deleteFilteredLogs()">
+      <i class="fa-solid fa-trash-can"></i> Gefilterte Protokolle löschen
+    </button>
+    <span style="font-size:13px;color:#76551a;">Achtung: Der aktuelle Monat kann für den Kabel Report noch benötigt werden.</span>
+  </div>
   <div id="resultInfo" class="info-box"></div>
   <div id="logsListe" class="logs-grid"></div>
   <div style="text-align:center; margin-top:12px;">
@@ -484,6 +490,8 @@ const hasLimitedAccess = (uid) => LIMITED_ACCESS_UIDS.includes(uid);
 let unsubscribeLogs = null;
 let alleLogs = [];
 let isAdminUser = false;
+let isMasterUser = false;
+let logDeleteInProgress = false;
 let logsVisibleCount = 30;
 const LOGS_PAGE_SIZE = 30;
 
@@ -795,6 +803,8 @@ LagerAccess.onAuthStateChanged((user) => {
   if(user){
 
     isAdminUser = LagerAccess.manager("logs", user.uid);
+    isMasterUser = user.uid === LagerAccess.MASTER;
+    document.getElementById("logDeleteTools").style.display = isMasterUser ? "flex" : "none";
 
 
 
@@ -804,6 +814,7 @@ LagerAccess.onAuthStateChanged((user) => {
     startLogsListener();
   }else{
     isAdminUser = false;
+    isMasterUser = false;
     stopListeners();
     closeMenu();
     window.location.href = "home.html";
@@ -896,6 +907,52 @@ function passtZurSuche(log){
   return textPasst && bereichPasst && benutzerPasst;
 }
 
+async function deleteLogIds(ids){
+  if(!isMasterUser || auth.currentUser?.uid !== LagerAccess.MASTER){
+    alert("Nur der Hauptadministrator darf Protokolle löschen.");
+    return;
+  }
+  if(logDeleteInProgress || !ids.length) return;
+  logDeleteInProgress = true;
+  const deleteButton = document.getElementById("deleteFilteredLogsButton");
+  if(deleteButton) deleteButton.disabled = true;
+  let deleted = 0;
+  try{
+    // Firestore batches: keep each request below the 500-write limit.
+    for(let start=0;start<ids.length;start+=400){
+      const batch = db.batch();
+      ids.slice(start,start+400).forEach(id => batch.delete(logsCollection.doc(id)));
+      await batch.commit();
+      deleted += Math.min(400,ids.length-start);
+    }
+    alert(deleted + " Protokoll(e) gelöscht.");
+  }catch(error){
+    console.error("Protokolle löschen fehlgeschlagen:", error);
+    alert("Löschen fehlgeschlagen. Bereits gelöscht: " + deleted + ". Bitte Berechtigungen und Verbindung prüfen.");
+  }finally{
+    logDeleteInProgress = false;
+    if(deleteButton) deleteButton.disabled = false;
+  }
+}
+
+async function deleteSingleLog(id){
+  if(!isMasterUser || logDeleteInProgress) return;
+  const log = alleLogs.find(entry => entry.id === id);
+  if(!log) return;
+  if(!confirm("Dieses Protokoll unwiderruflich löschen?\\n\\nAchtung: Aktuelle Protokolle können den Kabel Report beeinflussen."))return;
+  await deleteLogIds([id]);
+}
+
+async function deleteFilteredLogs(){
+  if(!isMasterUser || logDeleteInProgress) return;
+  const selected = alleLogs.filter(passtZurSuche);
+  if(!selected.length) return;
+  const count = selected.length;
+  if(!confirm(count + " gefilterte Protokolle endgültig löschen?\\n\\nDies betrifft ALLE Treffer, auch diejenigen, die noch nicht angezeigt werden.\\nProtokolle des laufenden Monats können für den Kabel Report notwendig sein."))return;
+  if(prompt('Zur Bestätigung bitte LÖSCHEN eingeben:') !== 'LÖSCHEN')return;
+  await deleteLogIds(selected.map(log=>log.id));
+}
+
 function getBereichBadgeClass(bereich){
   return bereich === "Kabellager" ? "badge badge-kabellager" : "badge badge-baustellen";
 }
@@ -936,7 +993,11 @@ function renderLogs(){
         <div class="log-meta"><strong>Objekt:</strong> ${objektTyp}</div>
 
         <div class="log-details">${details}</div>
+        ${isMasterUser ? '<button class="delete log-single-delete" type="button"><i class="fa-solid fa-trash"></i> Löschen</button>' : ''}
       `;
+      if(isMasterUser){
+        card.querySelector(".log-single-delete").addEventListener("click", () => deleteSingleLog(log.id));
+      }
 
       container.appendChild(card);
     });
@@ -948,6 +1009,8 @@ function renderLogs(){
   }
 
   document.getElementById("resultInfo").innerText = "Angezeigte Logs: " + sichtbareLogs.length + " von " + logs.length;
+  const filteredDelete = document.getElementById("deleteFilteredLogsButton");
+  if(filteredDelete) filteredDelete.disabled = logDeleteInProgress || !logs.length;
 }
 </script>
 
