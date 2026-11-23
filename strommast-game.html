@@ -795,10 +795,8 @@ canvas{
 
 
 /* Mast Runner 2.0: HUD, mobile Steuerung und Hauptadministrator-Aktion */
-.runner-tools{position:absolute;right:10px;top:9px;z-index:9;display:flex;gap:6px}
-.runner-tools button{background:rgba(13,50,76,.88);color:#fff;box-shadow:none;border:1px solid rgba(255,255,255,.3);width:34px;height:34px;padding:0;border-radius:10px;font-size:18px}
-.runner-tools button[hidden],.mr-admin-reset[hidden],.runner-new-record[hidden]{display:none!important}
-.runner-tools button:focus-visible,.mr-admin-reset:focus-visible{outline:3px solid #f9ca46;outline-offset:2px}
+.mr-admin-reset[hidden],.runner-new-record[hidden]{display:none!important}
+.mr-admin-reset:focus-visible{outline:3px solid #f9ca46;outline-offset:2px}
 .runner-result-score{font-weight:850;font-size:20px!important;color:#164b74}
 .runner-new-record{color:#9a6410!important;font-weight:850}
 .mr-admin-reset{margin:13px 0 0;padding:10px 13px;background:#fff1f0;border:1px solid #d78b86;color:#8c2525;box-shadow:none;font-size:12px;font-weight:800}
@@ -809,11 +807,8 @@ canvas{
   .mr-stat-value{font-size:clamp(16px,5vw,26px)}
   .mr-pick .mr-section-head{align-items:center}
   .mr-scene-figure{background:#f0f8fc}
-  .runner-tools{right:6px;top:5px;gap:3px}
-  .runner-tools button{width:30px;height:30px;font-size:15px}
   #mrMobileLanding .mr-admin-reset{width:100%;margin:0 0 16px}
 }
-@media(prefers-reduced-motion:reduce){.runner-tools button{transition:none}}
 
 /* Desktop folgt der mobilen Mast-Runner-Optik: Spiel frei von Punktanzeigen,
    gemeinsame Statistik direkt unter dem Spielfeld. */
@@ -915,7 +910,7 @@ canvas{
         <button id="mrResetRankingButton" class="mr-admin-reset" type="button" hidden>Bestenliste zurücksetzen (Hauptadministrator)</button>
       </section>
       <details class="mr-rules"><summary>ⓘ &nbsp; So funktioniert Mast Runner <span aria-hidden="true">⌄</span></summary>
-        <div class="mr-rule-body"><p>Tippe auf das Spielfeld oder nutze Leertaste / Pfeil nach oben. Gedrückt halten verlängert den Sprung.</p><p>10 Meter = 1 Punkt, Hindernis = 10 Punkte, jede 5er-Serie = 25 Bonuspunkte. Sammle Blitze für 25 Punkte und knacke die Top 10. Ton lässt sich im Spiel einschalten.</p></div>
+        <div class="mr-rule-body"><p>Tippe auf das Spielfeld oder nutze Leertaste / Pfeil nach oben. Gedrückt halten verlängert den Sprung.</p><p>10 Meter = 1 Punkt, Hindernis = 10 Punkte, jede 5er-Serie = 25 Bonuspunkte. Sammle Blitze für 25 Punkte und knacke die Top 10. Der Spielton ist immer aktiviert.</p></div>
       </details>
     </main>
     <footer class="mr-footer">Mast Runner · Netzbau Tafers</footer>
@@ -938,7 +933,6 @@ canvas{
 
     <div class="canvas-wrap">
       <canvas id="gameCanvas" width="1000" height="320"></canvas>
-      <div class="runner-tools"><button type="button" id="pauseButton" aria-label="Spiel pausieren" title="Pause" hidden>⏸</button><button type="button" id="soundButton" aria-label="Ton einschalten" title="Ton einschalten">🔇</button></div>
 
       <div id="startOverlay" class="overlay">
         <div class="overlay-box">
@@ -1032,12 +1026,13 @@ const METERS_PER_PIXEL = 0.1;
 const POINTS_PER_OBSTACLE = 10;
 const POINTS_PER_PICKUP = 25;
 const BASE_GRAVITY = 0.47;
-const SPAWN_DISTANCE_MIN = 340;
-const SPAWN_DISTANCE_MAX = 610;
-const SPAWN_DISTANCE_SHRINK_RATE = 0.025;
+const SPAWN_DISTANCE_MIN = 350;
+const SPAWN_DISTANCE_MAX = 715;
+const SPAWN_DISTANCE_SHRINK_RATE = 0.035;
 const SAFE_OBSTACLE_CLEARANCE_MIN = 150;
 const SAFE_OBSTACLE_CLEARANCE_SPEED_FACTOR = 24;
 const SAFE_OBSTACLE_CLEARANCE_SPEED_CURVE = 10;
+const DAY_NIGHT_CYCLE_METERS = 2600;
 let gameSpeed = BASE_GAME_SPEED;
 let gravity = BASE_GRAVITY;
 let score = 0;
@@ -1050,7 +1045,7 @@ let pickups = [];
 let dustParticles = [];
 let feedback = null;
 let gamePaused = false;
-let soundEnabled = localStorage.getItem("mastRunnerSound") === "on";
+// Ton ist dauerhaft eingeschaltet; keine gespeicherte Stummschaltung.
 let audioContext = null;
 let frameCount = 0;
 let lastFrameTime = 0;
@@ -1139,7 +1134,8 @@ function getMinimumObstacleDistance(previousObstacle){
   const speedBuffer = extraSpeed * SAFE_OBSTACLE_CLEARANCE_SPEED_FACTOR;
   const speedCurveBuffer = extraSpeed * extraSpeed * SAFE_OBSTACLE_CLEARANCE_SPEED_CURVE;
   const sizeBuffer = Math.max(previousObstacle.width - 34, 0) * 0.55;
-  const jumpFlightBuffer = previousObstacle.width + gameSpeed * 72 + 45;
+  // Sprungreserve erlaubt anspruchsvolle, aber fair spielbare Passagen.
+  const jumpFlightBuffer = previousObstacle.width + gameSpeed * 68 + 40;
   return Math.max(
     previousObstacle.width + SAFE_OBSTACLE_CLEARANCE_MIN + speedBuffer + speedCurveBuffer + sizeBuffer,
     jumpFlightBuffer
@@ -1147,13 +1143,26 @@ function getMinimumObstacleDistance(previousObstacle){
 }
 
 function getNextObstacleDistance(previousObstacle = null){
-  // Breitere und höhere Hindernisse erhalten ausreichend Landeraum.
-  const difficultyOffset = Math.min(95, Math.floor(frameCount * SPAWN_DISTANCE_SHRINK_RATE));
-  const minDistance = Math.max(250, SPAWN_DISTANCE_MIN - difficultyOffset);
-  const safeDistance = getMinimumObstacleDistance(previousObstacle);
-  const adjustedMin = Math.max(minDistance, safeDistance);
-  const adjustedMax = Math.max(adjustedMin + 100, SPAWN_DISTANCE_MAX - difficultyOffset);
-  return adjustedMin + Math.random() * (adjustedMax - adjustedMin);
+  const difficulty = Math.min(1, distanceMeters / 4500);
+  const shrink = Math.min(155, frameCount * SPAWN_DISTANCE_SHRINK_RATE);
+  const safeMin = getMinimumObstacleDistance(previousObstacle);
+  const minimum = Math.max(safeMin, Math.max(245, SPAWN_DISTANCE_MIN - shrink));
+  const spread = Math.max(150, SPAWN_DISTANCE_MAX - SPAWN_DISTANCE_MIN - shrink * .8);
+  const roll = Math.random();
+
+  // Das erste Hindernis muss gut sichtbar sein.
+  if(!previousObstacle) return 450 + Math.random() * 150;
+
+  if(roll < .10 + .24 * difficulty){
+    // Mit steigendem Level entstehen häufiger kurze Hindernis-Serien.
+    return minimum + 18 + Math.random() * Math.min(95, spread * .36);
+  }
+  if(roll > .87){
+    // Gelegentliche Erholungspause, damit der Rhythmus nicht monoton ist.
+    return minimum + spread * (.65 + Math.random() * .45);
+  }
+  return minimum + 65 + Math.pow(Math.random(), 1 + difficulty * .8) *
+    Math.max(80, spread - 65);
 }
 
 function setFeedback(message, frames = 75, color = "#fff1a4"){
@@ -1161,7 +1170,6 @@ function setFeedback(message, frames = 75, color = "#fff1a4"){
 }
 
 function playSound(frequency = 560, duration = 0.08, wave = "sine"){
-  if(!soundEnabled) return;
   try{
     const AudioClass = window.AudioContext || window.webkitAudioContext;
     if(!AudioClass) return;
@@ -1214,7 +1222,6 @@ function pauseGame(){
   cancelAnimationFrame(animationId);
   player.jumpHolding = false;
   document.getElementById("pauseOverlay").classList.remove("hidden");
-  document.getElementById("pauseButton").hidden = true;
 }
 
 function resumeGame(){
@@ -1224,7 +1231,6 @@ function resumeGame(){
   lastFrameTime = 0;
   accumulatedTime = 0;
   document.getElementById("pauseOverlay").classList.add("hidden");
-  document.getElementById("pauseButton").hidden = false;
   loop();
 }
 
@@ -1538,7 +1544,6 @@ function resetGameState(){
   document.getElementById("finalObstacles").textContent = "0";
   document.getElementById("newRecordMessage").hidden = true;
   document.getElementById("pauseOverlay").classList.add("hidden");
-  document.getElementById("pauseButton").hidden = false;
   saveStatusEl.textContent = "";
   newGameButton.classList.remove("hidden");
   startOverlay.classList.add("hidden");
@@ -1570,7 +1575,6 @@ function showStartScreen(){
   finalScoreEl.textContent = "0";
   saveStatusEl.textContent = "";
   document.getElementById("pauseOverlay").classList.add("hidden");
-  document.getElementById("pauseButton").hidden = true;
   startOverlay.classList.remove("hidden");
   gameOverOverlay.classList.add("hidden");
   draw();
@@ -1579,6 +1583,8 @@ function showStartScreen(){
 function startGame(){
   cancelAnimationFrame(animationId);
   resetGameState();
+  // Freischaltung des Audiokontexts durch den Benutzer-Klick auf Spiel starten.
+  playSound(700, 0.10, "sine");
   loop();
 }
 
@@ -1611,7 +1617,6 @@ function endGame(){
   document.getElementById("finalDistance").textContent = Math.floor(distanceMeters).toLocaleString("de-CH") + " m";
   document.getElementById("finalObstacles").textContent = String(clearedObstacles);
   saveStatusEl.textContent = "";
-  document.getElementById("pauseButton").hidden = true;
   if(navigator.vibrate) navigator.vibrate(65);
   playSound(170, 0.19, "triangle");
 
@@ -1773,14 +1778,15 @@ function update(){
 function drawGround(){
   const pathY = groundY + player.height;
   // Klare Spielboden-Kante: nur Objekte vor dieser Linie sind Hindernisse.
-  ctx.fillStyle = "#d8e4ed";
+  const night = getNightAmount();
+  ctx.fillStyle = blendHex("#d8e4ed", "#8398ac", night);
   ctx.fillRect(0, pathY, canvas.width, canvas.height - pathY);
-  ctx.fillStyle = "#9ab5c5";
+  ctx.fillStyle = blendHex("#9ab5c5", "#b4c4d3", night);
   ctx.fillRect(0, pathY - 2, canvas.width, 3);
   ctx.strokeStyle = "rgba(133,167,190,.37)";
   ctx.lineWidth = 2;
   ctx.setLineDash([22, 24]);
-  ctx.lineDashOffset = -(distanceMeters * 2.2) % 46;
+  ctx.lineDashOffset = (distanceMeters * 2.2) % 46;
   ctx.beginPath();
   ctx.moveTo(0, pathY + 9);
   ctx.lineTo(canvas.width, pathY + 9);
@@ -2117,32 +2123,116 @@ function drawNuclearPlant(ob){
   ctx.fillRect(x + 24, y + ob.height - 25, w - 48, 25);
 }
 
+function clamp01(value){
+  return Math.max(0, Math.min(1, value));
+}
+
+function smoothStep(a, b, value){
+  const t = clamp01((value - a) / (b - a));
+  return t * t * (3 - 2 * t);
+}
+
+function getDayNightPhase(){
+  return (distanceMeters % DAY_NIGHT_CYCLE_METERS) / DAY_NIGHT_CYCLE_METERS;
+}
+
+function getNightAmount(){
+  const phase = getDayNightPhase();
+  // Dämmerung und Sonnenaufgang erfolgen fliessend.
+  return smoothStep(.46, .60, phase) * (1 - smoothStep(.89, 1, phase));
+}
+
+function blendHex(dayColor, nightColor, amount){
+  const t = clamp01(amount);
+  const d = parseInt(dayColor.slice(1), 16);
+  const n = parseInt(nightColor.slice(1), 16);
+  const red = Math.round(((d >> 16) & 255) * (1 - t) + ((n >> 16) & 255) * t);
+  const green = Math.round(((d >> 8) & 255) * (1 - t) + ((n >> 8) & 255) * t);
+  const blue = Math.round((d & 255) * (1 - t) + (n & 255) * t);
+  return "rgb(" + red + "," + green + "," + blue + ")";
+}
+
+function drawSkyOrb(x, y, radius, glowRadius, color, glowColor, alpha){
+  if(alpha <= .01) return;
+  ctx.save();
+  ctx.globalAlpha = clamp01(alpha);
+  const glow = ctx.createRadialGradient(x, y, radius * .25, x, y, glowRadius);
+  glow.addColorStop(0, glowColor);
+  glow.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(x, y, glowRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawAnimatedSky(){
+  const phase = getDayNightPhase();
+  const night = getNightAmount();
   const sky = ctx.createLinearGradient(0, 0, 0, groundY + player.height);
-  sky.addColorStop(0, "#d7eafb");
-  sky.addColorStop(.62, "#eef5fa");
-  sky.addColorStop(1, "#f5f8f1");
+  sky.addColorStop(0, blendHex("#d7eafb", "#10223e", night));
+  sky.addColorStop(.62, blendHex("#eef5fa", "#243b5d", night));
+  sky.addColorStop(1, blendHex("#f5f8f1", "#4b6379", night));
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Heller Sonnenschein ohne harte, mit Sammelobjekten verwechselbare Silhouette.
-  const sunlight = ctx.createRadialGradient(810, 60, 8, 810, 60, 175);
-  sunlight.addColorStop(0, "rgba(255,250,219,.42)");
-  sunlight.addColorStop(1, "rgba(255,250,219,0)");
-  ctx.fillStyle = sunlight;
-  ctx.fillRect(630, 0, 370, 245);
+  // Die Sterne werden erst bei Dunkelheit eingeblendet; tagsüber keine Sterne.
+  if(night > .30){
+    const visibility = smoothStep(.30, .85, night);
+    ctx.save();
+    for(let i = 0; i < 43; i++){
+      const sx = 18 + ((i * 197 + 49) % 963);
+      const sy = 8 + ((i * 71 + 23) % 120);
+      const twinkle = .72 + Math.sin(frameCount * .028 + i * 1.9) * .18;
+      ctx.globalAlpha = visibility * twinkle * (i % 4 === 0 ? .68 : .43);
+      ctx.fillStyle = "#fffdf3";
+      ctx.beginPath();
+      ctx.arc(sx, sy, i % 7 === 0 ? 1.6 : .9, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
 
-  // Kleine, durchscheinende Wolken ganz oben, weit ausserhalb der Laufbahn.
-  // Sie bewegen sich langsamer als die Hindernisse (Parallax-Effekt).
-  const cloudDrift = (distanceMeters * .06) % 340;
+  // Sonne tagsüber und Vollmond nachts: beide wandern von links nach rechts.
+  const sunProgress = clamp01(phase / .55);
+  const sunX = 65 + sunProgress * (canvas.width - 130);
+  const sunY = 110 - Math.sin(sunProgress * Math.PI) * 63;
+  drawSkyOrb(sunX, sunY, 21, 100, "#ffebaa",
+    "rgba(255,230,153,.43)", 1 - night);
+
+  if(phase >= .47){
+    const moonProgress = clamp01((phase - .53) / .47);
+    const moonX = 65 + moonProgress * (canvas.width - 130);
+    const moonY = 97 - Math.sin(moonProgress * Math.PI) * 45;
+    drawSkyOrb(moonX, moonY, 18, 73, "#f0f2fa",
+      "rgba(234,239,255,.31)", night);
+    if(night > .15){
+      ctx.save();
+      ctx.globalAlpha = night * .18;
+      ctx.fillStyle = "#9da9c2";
+      ctx.beginPath();
+      ctx.arc(moonX - 5, moonY - 3, 3.7, 0, Math.PI * 2);
+      ctx.arc(moonX + 6, moonY + 5, 2.7, 0, Math.PI * 2);
+      ctx.arc(moonX + 4, moonY - 7, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // Transparente Wolken bewegen sich weit langsamer als echte Hindernisse.
+  const drift = (distanceMeters * .06) % 340;
   for(let i = -1; i < 5; i++){
-    const x = i * 340 + 105 - cloudDrift;
-    const y = 45 + (i % 3) * 17;
+    const x = i * 340 + 105 - drift;
+    const y = 42 + (i % 3) * 15;
     const scale = .82 + (i % 2) * .18;
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(scale, scale);
-    ctx.fillStyle = "rgba(255,255,255,.67)";
+    ctx.fillStyle = "rgba(255,255,255," + (.65 - night * .53) + ")";
     ctx.beginPath();
     ctx.ellipse(-16, 8, 25, 10, 0, 0, Math.PI * 2);
     ctx.ellipse(4, 0, 27, 16, 0, 0, Math.PI * 2);
@@ -2152,11 +2242,46 @@ function drawAnimatedSky(){
   }
 }
 
+function drawStreetLamp(x, y, night){
+  // Kleine entsättigte Hintergrundleuchte, niemals ein Kollisionsobjekt.
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.lineCap = "round";
+  ctx.strokeStyle = blendHex("#a4b8c3", "#6f849a", night);
+  ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(0, -54);
+  ctx.quadraticCurveTo(0, -63, 12, -63);
+  ctx.lineTo(20, -63);
+  ctx.stroke();
+  ctx.fillStyle = blendHex("#b6c6ce", "#8fa7b8", night);
+  ctx.beginPath();
+  ctx.ellipse(22, -62, 9, 3.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  if(night > .05){
+    const glow = ctx.createRadialGradient(22, -58, 2, 22, -53, 62);
+    glow.addColorStop(0, "rgba(255,235,168," + (.60 * night) + ")");
+    glow.addColorStop(.4, "rgba(255,224,151," + (.19 * night) + ")");
+    glow.addColorStop(1, "rgba(255,220,145,0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(22, -53, 62, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,242,182," + (.96 * night) + ")";
+    ctx.beginPath();
+    ctx.ellipse(22, -59, 7, 2.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 function drawLandscape(){
-  // Bewusst KEINE Masten, Häuser, Windräder oder Bäume im Hintergrund:
-  // diese Objekte kommen nur als tatsächliche Hindernisse vor.
-  function ridge(color, baseY, amplitude, wavelength, speed, secondary = 0){
-    ctx.fillStyle = color;
+  const night = getNightAmount();
+  // Keine Bäume, Häuser, Masten oder Windräder als Pseudo-Hindernisse.
+  function ridge(day, dark, baseY, amplitude, wavelength, speed, secondary = 0){
+    ctx.fillStyle = blendHex(day, dark, night);
     ctx.beginPath();
     ctx.moveTo(0, canvas.height);
     for(let x = 0; x <= canvas.width + 10; x += 10){
@@ -2170,16 +2295,19 @@ function drawLandscape(){
     ctx.fill();
   }
 
-  // Blaugraue Ferne, sanfte grüne Hügel, ruhige Wiesen im Vordergrund.
-  // Helle, kontrastarme Flächen statt dunkler Silhouetten.
-  ridge("#d9e5ed", 178, 18, 145, .08, 4);
-  ridge("#d9e6df", 212, 15, 112, .16, 3);
-  ridge("#c7daca", 248, 13, 135, .30, 2);
-  ridge("#bcd1bc", 280, 8, 100, .42, 1.5);
+  ridge("#d9e5ed", "#415778", 178, 18, 145, .08, 4);
+  ridge("#d9e6df", "#41596a", 212, 15, 112, .16, 3);
+  // Leuchten stehen hinter der Spiellinie und haben keine Kollisionsbox.
+  const lampShift = (distanceMeters * 1.2) % 245;
+  for(let i = -1; i < 7; i++){
+    const x = i * 245 + 100 - lampShift;
+    drawStreetLamp(x, 259, night);
+  }
+  ridge("#c7daca", "#47685c", 248, 13, 135, .30, 2);
+  ridge("#bcd1bc", "#3d5b50", 280, 8, 100, .42, 1.5);
 
-  // Leichte Feldkonturen erzeugen Tiefe ohne neue 'Pseudo-Hindernisse'.
   ctx.save();
-  ctx.strokeStyle = "rgba(242,250,237,.43)";
+  ctx.strokeStyle = night < .5 ? "rgba(242,250,237,.43)" : "rgba(194,216,206,.16)";
   ctx.lineWidth = 2;
   for(let i = 0; i < 2; i++){
     const y = 277 + i * 15;
@@ -2513,21 +2641,8 @@ mrStatsObserver.observe(bestScoreEl,{childList:true,characterData:true,subtree:t
 
 document.getElementById("resetRankingButton").addEventListener("click",resetRankingAsMaster);
 document.getElementById("mrResetRankingButton").addEventListener("click",resetRankingAsMaster);
-document.getElementById("pauseButton").addEventListener("click",pauseGame);
 document.getElementById("resumeButton").addEventListener("click",resumeGame);
-const soundButton=document.getElementById("soundButton");
-function updateSoundButton(){
-  soundButton.textContent=soundEnabled?"🔊":"🔇";
-  soundButton.title=soundEnabled?"Ton ausschalten":"Ton einschalten";
-  soundButton.setAttribute("aria-label",soundButton.title);
-}
-soundButton.addEventListener("click",()=>{
-  soundEnabled=!soundEnabled;
-  localStorage.setItem("mastRunnerSound",soundEnabled?"on":"off");
-  updateSoundButton();
-  playSound(660,0.09);
-});
-updateSoundButton();
+
 document.addEventListener("visibilitychange",()=>{if(document.hidden) pauseGame();});
 window.addEventListener("blur",()=>{if(gameRunning) pauseGame();});
 
