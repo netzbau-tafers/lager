@@ -1209,22 +1209,6 @@ function getScoreUsername(){
   return "Unbekannt";
 }
 
-function getCharacterMeta(character){
-  const fallback = { key: "worker", icon: "👷" };
-  const characterMap = {
-    worker: { key: "worker", icon: "👷" },
-    frog: { key: "frog", icon: "🐸" },
-    donkey: { key: "donkey", icon: "🫏" },
-    unimog: { key: "unimog", icon: "🚛" },
-    sprinter: { key: "sprinter", icon: "🚐" },
-    chef: { key: "chef", icon: "👑" },
-    muskelprotz: { key: "muskelprotz", icon: "💪" },
-    buezer: { key: "muskelprotz", icon: "💪" }
-  };
-
-  return characterMap[character] || fallback;
-}
-
 function normalizeCreatedAt(value){
   if(!value){
     return null;
@@ -1264,175 +1248,120 @@ function formatDateOnly(value){
 }
 
 function renderRanking(){
-  const ranking = cloudRanking.length ? cloudRanking : loadRanking();
-
-  const html = ranking.length
-    ? ranking.map((entry) => {
-      const character = getCharacterMeta(entry.character);
-      const dateLabel = formatDateOnly(entry.createdAt);
-      const rankingDate = dateLabel ? ` · ${dateLabel}` : "";
-      return `<li><strong>${escapeHtml(entry.name)}</strong> - ${entry.score} Punkte ${character.icon}${rankingDate}</li>`;
-    }).join("")
-    : "<li>Noch keine Einträge</li>";
-
-  liveRankingList.innerHTML = html;
+  const ranking=cloudRanking.length?cloudRanking:loadRanking();
+  liveRankingList.replaceChildren();
+  if(!ranking.length){
+    const li=document.createElement("li");li.textContent="Noch keine Einträge";
+    liveRankingList.appendChild(li);
+  }
+  for(const entry of ranking){
+    const li=document.createElement("li");
+    const strong=document.createElement("strong");
+    strong.textContent=String(entry.name||"Unbekannt");
+    const dateLabel=formatDateOnly(entry.createdAt);
+    li.append(strong,document.createTextNode(" – "+Number(entry.score||0).toLocaleString("de-CH")+
+      " Punkte · "+Math.floor(Number(entry.distance)||0).toLocaleString("de-CH")+" m"+
+      (dateLabel?" · "+dateLabel:"")));
+    liveRankingList.appendChild(li);
+  }
   mrRenderRanking(ranking);
 }
 
-function canScoreReachLeaderboard(scoreValue, ranking = cloudRanking.length ? cloudRanking : loadRanking()){
-  const numericScore = Math.floor(Number(scoreValue) || 0);
+function canScoreReachLeaderboard(scoreValue,ranking=cloudRanking.length?cloudRanking:loadRanking()){
+  const numericScore=Math.floor(Number(scoreValue)||0);
+  return numericScore>0 && (ranking.length<RANKING_LIMIT ||
+    numericScore>Number(ranking[RANKING_LIMIT-1]?.score||0));
+}
 
-  if(numericScore <= 0){
-    return false;
-  }
-
-  if(ranking.length < RANKING_LIMIT){
-    return true;
-  }
-
-  const lastVisibleScore = Number(ranking[RANKING_LIMIT - 1]?.score || 0);
-  return numericScore > lastVisibleScore;
+function mapRankingDoc(doc){
+  const data=doc.data()||{};
+  return {id:doc.id,name:typeof data.name==="string"?data.name:"Unbekannt",
+    score:Number(data.score)||0,distance:Number(data.distance)||0,
+    obstacles:Number(data.obstacles)||0,createdAt:normalizeCreatedAt(data.createdAt)};
 }
 
 async function fetchRankingFromFirestore(){
   try{
-    const snapshot = await db.collection(SCORE_COLLECTION)
-      .orderBy("score", "desc")
-      .orderBy("createdAt", "asc")
-      .limit(RANKING_LIMIT)
-      .get();
-
-    const ranking = snapshot.docs.map((doc) => {
-      const data = doc.data() || {};
-      return {
-        id: doc.id,
-        name: typeof data.name === "string" ? data.name : "Unbekannt",
-        score: Number(data.score) || 0,
-        character: getCharacterMeta(data.character).key,
-        createdAt: normalizeCreatedAt(data.createdAt)
-      };
-    });
-
-    cloudRanking = ranking;
-    saveRankingLocal(ranking);
+    const snapshot=await db.collection(SCORE_COLLECTION).orderBy("score","desc").limit(RANKING_LIMIT).get();
+    cloudRanking=snapshot.docs.map(mapRankingDoc);
+    saveRankingLocal(cloudRanking);
     renderRanking();
-    return ranking;
+    return cloudRanking;
   }catch(error){
-    console.warn("Ranking mit createdAt konnte nicht geladen werden:", error);
-
-    try{
-      const fallbackSnapshot = await db.collection(SCORE_COLLECTION)
-        .orderBy("score", "desc")
-        .limit(RANKING_LIMIT)
-        .get();
-
-      const fallbackRanking = fallbackSnapshot.docs.map((doc) => {
-        const data = doc.data() || {};
-        return {
-          id: doc.id,
-          name: typeof data.name === "string" ? data.name : "Unbekannt",
-          score: Number(data.score) || 0,
-          character: getCharacterMeta(data.character).key,
-          createdAt: normalizeCreatedAt(data.createdAt)
-        };
-      });
-
-      cloudRanking = fallbackRanking;
-      saveRankingLocal(fallbackRanking);
-      renderRanking();
-      return fallbackRanking;
-    }catch(fallbackError){
-      console.error("Firestore Ranking-Update fehlgeschlagen:", fallbackError);
-      renderRanking();
-      return loadRanking();
-    }
-  }
-}
-
-async function cleanupRanking(){
-  try{
-    const snapshot = await db.collection(SCORE_COLLECTION)
-      .orderBy("score", "desc")
-      .orderBy("createdAt", "asc")
-      .get();
-
-    const docsToDelete = snapshot.docs.slice(RANKING_LIMIT);
-    await Promise.all(docsToDelete.map((doc) => doc.ref.delete()));
-  }catch(error){
-    console.warn("Ranking-Cleanup mit createdAt fehlgeschlagen:", error);
-
-    try{
-      const fallbackSnapshot = await db.collection(SCORE_COLLECTION)
-        .orderBy("score", "desc")
-        .get();
-
-      const docsToDelete = fallbackSnapshot.docs.slice(RANKING_LIMIT);
-      await Promise.all(docsToDelete.map((doc) => doc.ref.delete()));
-    }catch(fallbackError){
-      console.error("Ranking-Cleanup fehlgeschlagen:", fallbackError);
-    }
+    console.warn("Mast-Runner-Bestenliste konnte nicht geladen werden:",error);
+    renderRanking();
+    return loadRanking();
   }
 }
 
 async function saveScore(){
-  if(!LagerAccess.requireWrite("spiel")) return;
-  if(gameOverSaved || !canScoreReachLeaderboard(score)){
+  if(!LagerAccess.requireWrite("spiel") || gameOverSaved) return;
+  const user=auth.currentUser;
+  if(!user){saveStatusEl.textContent="Anmeldung für die Bestenliste erforderlich.";return;}
+  const name=getScoreUsername();
+  const ref=db.collection(SCORE_COLLECTION).doc(user.uid);
+  const value=Math.floor(score);
+  gameOverSaved=true;
+  try{
+    const previous=await ref.get();
+    if(previous.exists && Number(previous.data().score||0)>=value){
+      saveStatusEl.textContent="Dein bisheriger Ranglisten-Rekord ist höher.";
+      return;
+    }
+    // Eine Zeile pro Benutzer. Die Regeln erlauben nur eigene, steigende Rekorde.
+    await ref.set({name:name.slice(0,20),score:value,
+      distance:Math.floor(distanceMeters),obstacles:clearedObstacles,
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    saveStatusEl.textContent="Rekord für "+name+" gespeichert.";
+    await fetchRankingFromFirestore();
+  }catch(error){
+    gameOverSaved=false;
+    console.error("Mast-Runner-Rekord konnte nicht gespeichert werden:",error);
+    saveStatusEl.textContent="Speichern fehlgeschlagen. Bitte Verbindung prüfen.";
+  }
+}
+
+function isRankingMaster(){
+  return !!auth.currentUser && auth.currentUser.uid===LagerAccess.MASTER;
+}
+function updateMasterRankingButtons(){
+  for(const id of ["resetRankingButton","mrResetRankingButton"]){
+    const btn=document.getElementById(id);
+    if(btn) btn.hidden=!isRankingMaster();
+  }
+}
+async function resetRankingAsMaster(){
+  if(!isRankingMaster()){
+    alert("Nur der Hauptadministrator darf die Bestenliste zurücksetzen.");
     return;
   }
-
-  const name = getScoreUsername();
-
-  const newEntry = {
-    name: name.slice(0, 20),
-    score: Math.floor(score),
-    character: getCharacterMeta(selectedCharacter).key,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  };
-
-  let saveWorked = false;
-
+  const text=prompt("Mast Runner 2.0: Alle Bestenlisten-Einträge unwiderruflich löschen? Zum Bestätigen ZURÜCKSETZEN eingeben:");
+  if(text!=="ZURÜCKSETZEN") return;
+  if(!confirm("Letzte Bestätigung: Die gesamte Mast-Runner-2.0-Bestenliste löschen?")) return;
+  const buttons=["resetRankingButton","mrResetRankingButton"].map(id=>document.getElementById(id)).filter(Boolean);
+  buttons.forEach(button=>button.disabled=true);
   try{
-    await db.collection(SCORE_COLLECTION).add(newEntry);
-    saveWorked = true;
-    console.log("Score erfolgreich in Firestore gespeichert.");
+    // Bei mehr als 250 Einträgen mehrere Firestore-Batches verwenden.
+    let deleted=0;
+    while(true){
+      const snapshot=await db.collection(SCORE_COLLECTION).limit(250).get();
+      if(snapshot.empty) break;
+      const batch=db.batch();
+      snapshot.docs.forEach(doc=>batch.delete(doc.ref));
+      await batch.commit();
+      deleted+=snapshot.size;
+    }
+    cloudRanking=[];
+    saveRankingLocal([]);
+    renderRanking();
+    alert("Bestenliste erfolgreich zurückgesetzt ("+deleted+" Einträge).");
   }catch(error){
-    console.error("Firestore speichern fehlgeschlagen:", error);
+    console.error("Bestenliste konnte nicht zurückgesetzt werden:",error);
+    alert("Zurücksetzen fehlgeschlagen. Berechtigungen/Verbindung prüfen.");
+    await fetchRankingFromFirestore();
+  }finally{
+    buttons.forEach(button=>button.disabled=false);
   }
-
-  let rankingAfterSave = loadRanking();
-
-  if(saveWorked){
-    rankingAfterSave = await fetchRankingFromFirestore();
-    await cleanupRanking();
-    rankingAfterSave = await fetchRankingFromFirestore();
-  }else{
-    rankingAfterSave.push({
-      name: newEntry.name,
-      score: newEntry.score,
-      character: newEntry.character,
-      createdAt: Date.now()
-    });
-    rankingAfterSave.sort((a, b) => b.score - a.score);
-    rankingAfterSave = rankingAfterSave.slice(0, RANKING_LIMIT);
-    saveRankingLocal(rankingAfterSave);
-  }
-
-  if(score > bestScore){
-    bestScore = Math.floor(score);
-    localStorage.setItem("strommastBestScore", bestScore);
-    bestScoreEl.textContent = bestScore;
-  }
-
-  cloudRanking = rankingAfterSave.map(entry => ({
-    name: entry.name,
-    score: entry.score,
-    character: getCharacterMeta(entry.character).key,
-    createdAt: normalizeCreatedAt(entry.createdAt)
-  }));
-
-  gameOverSaved = true;
-  saveStatusEl.textContent = `Punkte wurden für ${name} gespeichert.`;
-  renderRanking();
 }
 
 async function lockLandscapeOnMobile(){
@@ -1501,54 +1430,14 @@ function updateFullscreenButtons(){
 }
 
 function subscribeRanking(){
-  db.collection(SCORE_COLLECTION)
-    .orderBy("score", "desc")
-    .orderBy("createdAt", "asc")
-    .limit(RANKING_LIMIT)
-    .onSnapshot((snapshot) => {
-      cloudRanking = snapshot.docs.map((doc) => {
-        const data = doc.data() || {};
-        return {
-          id: doc.id,
-          name: typeof data.name === "string" ? data.name : "Unbekannt",
-          score: Number(data.score) || 0,
-          character: getCharacterMeta(data.character).key
-        };
-      });
-
-      if(cloudRanking.length){
-        saveRankingLocal(cloudRanking);
-      }
-
+  db.collection(SCORE_COLLECTION).orderBy("score","desc").limit(RANKING_LIMIT)
+    .onSnapshot(snapshot=>{
+      cloudRanking=snapshot.docs.map(mapRankingDoc);
+      saveRankingLocal(cloudRanking);
       renderRanking();
-    }, async (error) => {
-      console.warn("Live-Ranking mit createdAt fehlgeschlagen:", error);
-
-      try{
-        const fallbackSnapshot = await db.collection(SCORE_COLLECTION)
-          .orderBy("score", "desc")
-          .limit(RANKING_LIMIT)
-          .get();
-
-        cloudRanking = fallbackSnapshot.docs.map((doc) => {
-          const data = doc.data() || {};
-          return {
-            id: doc.id,
-            name: typeof data.name === "string" ? data.name : "Unbekannt",
-            score: Number(data.score) || 0,
-            character: getCharacterMeta(data.character).key
-          };
-        });
-
-        if(cloudRanking.length){
-          saveRankingLocal(cloudRanking);
-        }
-
-        renderRanking();
-      }catch(fallbackError){
-        console.error("Fallback-Ranking ebenfalls fehlgeschlagen:", fallbackError);
-        renderRanking();
-      }
+    },error=>{
+      console.warn("Live-Bestenliste konnte nicht aktualisiert werden:",error);
+      renderRanking();
     });
 }
 
@@ -2463,6 +2352,7 @@ function initializeGame(){
   fetchRankingFromFirestore();
   renderRanking();
   updateFullscreenButtons();
+  updateMasterRankingButtons();
   draw();
 }
 
@@ -2587,6 +2477,8 @@ const mrStatsObserver = new MutationObserver(mrSyncStats);
 mrStatsObserver.observe(scoreEl,{childList:true,characterData:true,subtree:true});
 mrStatsObserver.observe(bestScoreEl,{childList:true,characterData:true,subtree:true});
 
+document.getElementById("resetRankingButton").addEventListener("click",resetRankingAsMaster);
+document.getElementById("mrResetRankingButton").addEventListener("click",resetRankingAsMaster);
 document.getElementById("pauseButton").addEventListener("click",pauseGame);
 document.getElementById("resumeButton").addEventListener("click",resumeGame);
 const soundButton=document.getElementById("soundButton");
