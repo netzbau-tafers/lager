@@ -1411,8 +1411,11 @@ textarea{
 .voltage-dot.ms{background:#dc7777}
 #typSelect.voltage-ns,#typCustom.voltage-ns{background-color:#dff3e7!important;color:#185b38!important;border:1px solid #68b88c!important}
 #typSelect.voltage-ms,#typCustom.voltage-ms{background-color:#fae3e3!important;color:#802c2c!important;border:1px solid #dc7777!important}
-#typSelect option.voltage-option-ns{background-color:#dff3e7;color:#185b38}
-#typSelect option.voltage-option-ms{background-color:#fae3e3;color:#802c2c}
+/* Platzhalter, Gruppenüberschriften und freie Kabeltypen bleiben neutral. */
+#typSelect option:not(.voltage-option-ns):not(.voltage-option-ms),
+#typSelect optgroup{background-color:#fff!important;color:#171717!important}
+#typSelect option.voltage-option-ns{background-color:#dff3e7!important;color:#185b38!important}
+#typSelect option.voltage-option-ms{background-color:#fae3e3!important;color:#802c2c!important}
 
 
 /* Mobile: Das native Android-Auswahlmenü ignoriert option-Farben. */
