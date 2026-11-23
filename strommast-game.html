@@ -966,8 +966,6 @@ const gameOverOverlay = document.getElementById("gameOverOverlay");
 const saveStatusEl = document.getElementById("saveStatus");
 const newGameButton = document.getElementById("newGameButton");
 const liveRankingList = document.getElementById("liveRankingList");
-const characterButtons = document.querySelectorAll(".character-button");
-const characterHint = document.getElementById("characterHint");
 
 let animationId = null;
 let gameRunning = false;
@@ -1049,7 +1047,6 @@ const player = {
 let obstacles = [];
 let distanceUntilNextObstacle = 0;
 let gameOverSaved = false;
-const selectedCharacter = "worker";
 let gameInitialized = false;
 
 const obstacleTypes = ["mast", "solar", "tree", "bagger", "house", "wind"];
@@ -1087,7 +1084,11 @@ function getMinimumObstacleDistance(previousObstacle){
   const speedBuffer = extraSpeed * SAFE_OBSTACLE_CLEARANCE_SPEED_FACTOR;
   const speedCurveBuffer = extraSpeed * extraSpeed * SAFE_OBSTACLE_CLEARANCE_SPEED_CURVE;
   const sizeBuffer = Math.max(previousObstacle.width - 34, 0) * 0.55;
-  return previousObstacle.width + SAFE_OBSTACLE_CLEARANCE_MIN + speedBuffer + speedCurveBuffer + sizeBuffer;
+  const jumpFlightBuffer = previousObstacle.width + gameSpeed * 72 + 45;
+  return Math.max(
+    previousObstacle.width + SAFE_OBSTACLE_CLEARANCE_MIN + speedBuffer + speedCurveBuffer + sizeBuffer,
+    jumpFlightBuffer
+  );
 }
 
 function getNextObstacleDistance(previousObstacle = null){
@@ -1354,7 +1355,7 @@ async function resetRankingAsMaster(){
     cloudRanking=[];
     saveRankingLocal([]);
     renderRanking();
-    alert("Bestenliste erfolgreich zurückgesetzt ("+deleted+" Einträge).");
+    alert("Bestenliste erfolgreich zurückgesetzt ("+deleted+" Einträge). Persönliche Rekorde auf anderen Geräten bleiben bestehen.");
   }catch(error){
     console.error("Bestenliste konnte nicht zurückgesetzt werden:",error);
     alert("Zurücksetzen fehlgeschlagen. Berechtigungen/Verbindung prüfen.");
