@@ -795,10 +795,8 @@ canvas{
 
 
 /* Mast Runner 2.0: HUD, mobile Steuerung und Hauptadministrator-Aktion */
-.runner-tools{position:absolute;right:10px;top:9px;z-index:9;display:flex;gap:6px}
-.runner-tools button{background:rgba(13,50,76,.88);color:#fff;box-shadow:none;border:1px solid rgba(255,255,255,.3);width:34px;height:34px;padding:0;border-radius:10px;font-size:18px}
-.runner-tools button[hidden],.mr-admin-reset[hidden],.runner-new-record[hidden]{display:none!important}
-.runner-tools button:focus-visible,.mr-admin-reset:focus-visible{outline:3px solid #f9ca46;outline-offset:2px}
+.mr-admin-reset[hidden],.runner-new-record[hidden]{display:none!important}
+.mr-admin-reset:focus-visible{outline:3px solid #f9ca46;outline-offset:2px}
 .runner-result-score{font-weight:850;font-size:20px!important;color:#164b74}
 .runner-new-record{color:#9a6410!important;font-weight:850}
 .mr-admin-reset{margin:13px 0 0;padding:10px 13px;background:#fff1f0;border:1px solid #d78b86;color:#8c2525;box-shadow:none;font-size:12px;font-weight:800}
@@ -809,11 +807,8 @@ canvas{
   .mr-stat-value{font-size:clamp(16px,5vw,26px)}
   .mr-pick .mr-section-head{align-items:center}
   .mr-scene-figure{background:#f0f8fc}
-  .runner-tools{right:6px;top:5px;gap:3px}
-  .runner-tools button{width:30px;height:30px;font-size:15px}
   #mrMobileLanding .mr-admin-reset{width:100%;margin:0 0 16px}
 }
-@media(prefers-reduced-motion:reduce){.runner-tools button{transition:none}}
 
 /* Desktop folgt der mobilen Mast-Runner-Optik: Spiel frei von Punktanzeigen,
    gemeinsame Statistik direkt unter dem Spielfeld. */
@@ -915,7 +910,7 @@ canvas{
         <button id="mrResetRankingButton" class="mr-admin-reset" type="button" hidden>Bestenliste zurücksetzen (Hauptadministrator)</button>
       </section>
       <details class="mr-rules"><summary>ⓘ &nbsp; So funktioniert Mast Runner <span aria-hidden="true">⌄</span></summary>
-        <div class="mr-rule-body"><p>Tippe auf das Spielfeld oder nutze Leertaste / Pfeil nach oben. Gedrückt halten verlängert den Sprung.</p><p>10 Meter = 1 Punkt, Hindernis = 10 Punkte, jede 5er-Serie = 25 Bonuspunkte. Sammle Blitze für 25 Punkte und knacke die Top 10. Ton lässt sich im Spiel einschalten.</p></div>
+        <div class="mr-rule-body"><p>Tippe auf das Spielfeld oder nutze Leertaste / Pfeil nach oben. Gedrückt halten verlängert den Sprung.</p><p>10 Meter = 1 Punkt, Hindernis = 10 Punkte, jede 5er-Serie = 25 Bonuspunkte. Sammle Blitze für 25 Punkte und knacke die Top 10. Der Spielton ist immer aktiviert.</p></div>
       </details>
     </main>
     <footer class="mr-footer">Mast Runner · Netzbau Tafers</footer>
@@ -938,7 +933,6 @@ canvas{
 
     <div class="canvas-wrap">
       <canvas id="gameCanvas" width="1000" height="320"></canvas>
-      <div class="runner-tools"><button type="button" id="pauseButton" aria-label="Spiel pausieren" title="Pause" hidden>⏸</button><button type="button" id="soundButton" aria-label="Ton einschalten" title="Ton einschalten">🔇</button></div>
 
       <div id="startOverlay" class="overlay">
         <div class="overlay-box">
@@ -1032,12 +1026,13 @@ const METERS_PER_PIXEL = 0.1;
 const POINTS_PER_OBSTACLE = 10;
 const POINTS_PER_PICKUP = 25;
 const BASE_GRAVITY = 0.47;
-const SPAWN_DISTANCE_MIN = 340;
-const SPAWN_DISTANCE_MAX = 610;
-const SPAWN_DISTANCE_SHRINK_RATE = 0.025;
+const SPAWN_DISTANCE_MIN = 350;
+const SPAWN_DISTANCE_MAX = 715;
+const SPAWN_DISTANCE_SHRINK_RATE = 0.035;
 const SAFE_OBSTACLE_CLEARANCE_MIN = 150;
 const SAFE_OBSTACLE_CLEARANCE_SPEED_FACTOR = 24;
 const SAFE_OBSTACLE_CLEARANCE_SPEED_CURVE = 10;
+const DAY_NIGHT_CYCLE_METERS = 2600;
 let gameSpeed = BASE_GAME_SPEED;
 let gravity = BASE_GRAVITY;
 let score = 0;
@@ -1050,7 +1045,7 @@ let pickups = [];
 let dustParticles = [];
 let feedback = null;
 let gamePaused = false;
-let soundEnabled = localStorage.getItem("mastRunnerSound") === "on";
+// Ton ist dauerhaft eingeschaltet; keine gespeicherte Stummschaltung.
 let audioContext = null;
 let frameCount = 0;
 let lastFrameTime = 0;
@@ -1139,7 +1134,8 @@ function getMinimumObstacleDistance(previousObstacle){
   const speedBuffer = extraSpeed * SAFE_OBSTACLE_CLEARANCE_SPEED_FACTOR;
   const speedCurveBuffer = extraSpeed * extraSpeed * SAFE_OBSTACLE_CLEARANCE_SPEED_CURVE;
   const sizeBuffer = Math.max(previousObstacle.width - 34, 0) * 0.55;
-  const jumpFlightBuffer = previousObstacle.width + gameSpeed * 72 + 45;
+  // Sprungreserve erlaubt anspruchsvolle, aber fair spielbare Passagen.
+  const jumpFlightBuffer = previousObstacle.width + gameSpeed * 68 + 40;
   return Math.max(
     previousObstacle.width + SAFE_OBSTACLE_CLEARANCE_MIN + speedBuffer + speedCurveBuffer + sizeBuffer,
     jumpFlightBuffer
@@ -1147,13 +1143,26 @@ function getMinimumObstacleDistance(previousObstacle){
 }
 
 function getNextObstacleDistance(previousObstacle = null){
-  // Breitere und höhere Hindernisse erhalten ausreichend Landeraum.
-  const difficultyOffset = Math.min(95, Math.floor(frameCount * SPAWN_DISTANCE_SHRINK_RATE));
-  const minDistance = Math.max(250, SPAWN_DISTANCE_MIN - difficultyOffset);
-  const safeDistance = getMinimumObstacleDistance(previousObstacle);
-  const adjustedMin = Math.max(minDistance, safeDistance);
-  const adjustedMax = Math.max(adjustedMin + 100, SPAWN_DISTANCE_MAX - difficultyOffset);
-  return adjustedMin + Math.random() * (adjustedMax - adjustedMin);
+  const difficulty = Math.min(1, distanceMeters / 4500);
+  const shrink = Math.min(155, frameCount * SPAWN_DISTANCE_SHRINK_RATE);
+  const safeMin = getMinimumObstacleDistance(previousObstacle);
+  const minimum = Math.max(safeMin, Math.max(245, SPAWN_DISTANCE_MIN - shrink));
+  const spread = Math.max(150, SPAWN_DISTANCE_MAX - SPAWN_DISTANCE_MIN - shrink * .8);
+  const roll = Math.random();
+
+  // Das erste Hindernis muss gut sichtbar sein.
+  if(!previousObstacle) return 450 + Math.random() * 150;
+
+  if(roll < .10 + .24 * difficulty){
+    // Mit steigendem Level entstehen häufiger kurze Hindernis-Serien.
+    return minimum + 18 + Math.random() * Math.min(95, spread * .36);
+  }
+  if(roll > .87){
+    // Gelegentliche Erholungspause, damit der Rhythmus nicht monoton ist.
+    return minimum + spread * (.65 + Math.random() * .45);
+  }
+  return minimum + 65 + Math.pow(Math.random(), 1 + difficulty * .8) *
+    Math.max(80, spread - 65);
 }
 
 function setFeedback(message, frames = 75, color = "#fff1a4"){
@@ -1161,7 +1170,6 @@ function setFeedback(message, frames = 75, color = "#fff1a4"){
 }
 
 function playSound(frequency = 560, duration = 0.08, wave = "sine"){
-  if(!soundEnabled) return;
   try{
     const AudioClass = window.AudioContext || window.webkitAudioContext;
     if(!AudioClass) return;
@@ -1214,7 +1222,6 @@ function pauseGame(){
   cancelAnimationFrame(animationId);
   player.jumpHolding = false;
   document.getElementById("pauseOverlay").classList.remove("hidden");
-  document.getElementById("pauseButton").hidden = true;
 }
 
 function resumeGame(){
@@ -1224,7 +1231,6 @@ function resumeGame(){
   lastFrameTime = 0;
   accumulatedTime = 0;
   document.getElementById("pauseOverlay").classList.add("hidden");
-  document.getElementById("pauseButton").hidden = false;
   loop();
 }
 
@@ -1538,7 +1544,6 @@ function resetGameState(){
   document.getElementById("finalObstacles").textContent = "0";
   document.getElementById("newRecordMessage").hidden = true;
   document.getElementById("pauseOverlay").classList.add("hidden");
-  document.getElementById("pauseButton").hidden = false;
   saveStatusEl.textContent = "";
   newGameButton.classList.remove("hidden");
   startOverlay.classList.add("hidden");
@@ -1570,7 +1575,6 @@ function showStartScreen(){
   finalScoreEl.textContent = "0";
   saveStatusEl.textContent = "";
   document.getElementById("pauseOverlay").classList.add("hidden");
-  document.getElementById("pauseButton").hidden = true;
   startOverlay.classList.remove("hidden");
   gameOverOverlay.classList.add("hidden");
   draw();
@@ -1579,6 +1583,8 @@ function showStartScreen(){
 function startGame(){
   cancelAnimationFrame(animationId);
   resetGameState();
+  // Freischaltung des Audiokontexts durch den Benutzer-Klick auf Spiel starten.
+  playSound(700, 0.10, "sine");
   loop();
 }
 
@@ -1611,7 +1617,6 @@ function endGame(){
   document.getElementById("finalDistance").textContent = Math.floor(distanceMeters).toLocaleString("de-CH") + " m";
   document.getElementById("finalObstacles").textContent = String(clearedObstacles);
   saveStatusEl.textContent = "";
-  document.getElementById("pauseButton").hidden = true;
   if(navigator.vibrate) navigator.vibrate(65);
   playSound(170, 0.19, "triangle");
 
@@ -1780,7 +1785,7 @@ function drawGround(){
   ctx.strokeStyle = "rgba(133,167,190,.37)";
   ctx.lineWidth = 2;
   ctx.setLineDash([22, 24]);
-  ctx.lineDashOffset = -(distanceMeters * 2.2) % 46;
+  ctx.lineDashOffset = (distanceMeters * 2.2) % 46;
   ctx.beginPath();
   ctx.moveTo(0, pathY + 9);
   ctx.lineTo(canvas.width, pathY + 9);
@@ -2513,21 +2518,8 @@ mrStatsObserver.observe(bestScoreEl,{childList:true,characterData:true,subtree:t
 
 document.getElementById("resetRankingButton").addEventListener("click",resetRankingAsMaster);
 document.getElementById("mrResetRankingButton").addEventListener("click",resetRankingAsMaster);
-document.getElementById("pauseButton").addEventListener("click",pauseGame);
 document.getElementById("resumeButton").addEventListener("click",resumeGame);
-const soundButton=document.getElementById("soundButton");
-function updateSoundButton(){
-  soundButton.textContent=soundEnabled?"🔊":"🔇";
-  soundButton.title=soundEnabled?"Ton ausschalten":"Ton einschalten";
-  soundButton.setAttribute("aria-label",soundButton.title);
-}
-soundButton.addEventListener("click",()=>{
-  soundEnabled=!soundEnabled;
-  localStorage.setItem("mastRunnerSound",soundEnabled?"on":"off");
-  updateSoundButton();
-  playSound(660,0.09);
-});
-updateSoundButton();
+
 document.addEventListener("visibilitychange",()=>{if(document.hidden) pauseGame();});
 window.addEventListener("blur",()=>{if(gameRunning) pauseGame();});
 
