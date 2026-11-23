@@ -1240,24 +1240,27 @@ function getTargetGameSpeed(distance=distanceMeters){
   const t=Math.min(1,Math.max(0,(distance-current.from)/(next.from-current.from)));
   return current.speed+(next.speed-current.speed)*t;
 }
-// Gap is spawn-to-spawn. Always reserve a full landing and reaction window.
 function getMinimumObstacleDistance(previousWave){
   if(!previousWave)return 0;
-  const width=previousWave.span||previousWave.width||44;
-  const flightFrames=previousWave.double?70:previousWave.tall?66:58;
-  const movingBuffer=previousWave.moving?68:0;
-  return width+gameSpeed*(flightFrames+6)+30+movingBuffer;
+  const level=getDifficultyLevel();
+  // Wave span contains the last obstacle, so the reaction reserve starts after
+  // the LAST element in a scripted combo, not after its first element.
+  const reactionFrames=level>=4?8:level>=2?10:14;
+  const landingFrames=previousWave.endAction==="duck" ? 24 :
+    previousWave.endTall ? 66 : previousWave.combo ? 57 : 54;
+  const movingBuffer=previousWave.moving?gameSpeed*7:0;
+  return previousWave.span+gameSpeed*(landingFrames+reactionFrames)+20+movingBuffer;
 }
 function getNextObstacleDistance(previousWave=null){
-  if(!previousWave)return 460+Math.random()*155;
-  const levelIndex=getDifficultyLevel(),level=DIFFICULTY_LEVELS[levelIndex];
+  if(!previousWave)return 410+Math.random()*90;
+  const index=getDifficultyLevel(),level=DIFFICULTY_LEVELS[index];
   const minimum=Math.max(level.minGap,getMinimumObstacleDistance(previousWave));
-  const maximum=Math.max(minimum+105,level.maxGap);
-  const range=maximum-minimum,roll=Math.random();
-  if(roll<[.07,.14,.29,.36,.45][levelIndex])
-    return minimum+10+Math.random()*Math.min(85,range*.48);
-  if(roll>.88)return maximum+Math.random()*110;
-  return minimum+Math.pow(Math.random(),1.4+levelIndex*.1)*range;
+  const range=Math.max(105,level.maxGap-minimum);
+  const roll=Math.random();
+  // Mixed rhythm: most late-game waves approach the safe timing boundary.
+  if(roll<(.16+index*.10))return minimum+Math.random()*Math.min(45,range*.38);
+  if(roll>.92)return minimum+range*.8+Math.random()*90;
+  return minimum+Math.pow(Math.random(),1.9+index*.18)*range;
 }
 
 function setFeedback(message, frames = 75, color = "#fff1a4"){
@@ -1317,6 +1320,7 @@ function pauseGame(){
   gameRunning = false;
   cancelAnimationFrame(animationId);
   player.jumpHolding = false;
+  releaseDuck(true);
   document.getElementById("pauseOverlay").classList.remove("hidden");
   MastRunnerMusic.stop();
 }
@@ -1610,6 +1614,17 @@ function escapeHtml(text){
     .replaceAll("'", "&#39;");
 }
 
+
+function resetChallengeState(){
+  duckPressed=false;
+  duckFrames=0;
+  nextSpecialAt=SPECIAL_EVENT_EVERY_METERS;
+  specialCounter=0;
+  specialRemaining.clear();
+  eventFlashFrames=0;
+  lastWaveWasCombo=false;
+}
+
 function resetGameState(){
   gameRunning = true;
   gamePaused = false;
@@ -1646,6 +1661,7 @@ function resetGameState(){
   player.jumpHolding = false;
   player.jumpsUsed = 0;
   player.coyoteTime = 0;
+  resetChallengeState();
 
   updateScore();
   finalScoreEl.textContent = "0";
@@ -1689,6 +1705,7 @@ function showStartScreen(){
   player.jumpHolding = false;
   player.jumpsUsed = 0;
   player.coyoteTime = 0;
+  resetChallengeState();
   updateScore();
   finalScoreEl.textContent = "0";
   saveStatusEl.textContent = "";
@@ -1708,23 +1725,43 @@ function startGame(){
 }
 
 function beginJump(){
-  if(!gameRunning) return;
-
-  const canGroundJump = player.grounded || player.coyoteTime > 0;
-
-  if(canGroundJump){
-    player.vy = player.jumpPower;
-    player.grounded = false;
-    player.coyoteTime = 0;
-    player.jumpsUsed = 1;
-    player.jumpHolding = true;
-    player.jumpHoldTime = 0;
-    playSound(480, 0.07);
+  if(!gameRunning)return;
+  // Ducking must be released before jumping; never block legitimate inputs.
+  releaseDuck(true);
+  if(player.grounded||player.coyoteTime>0){
+    player.vy=player.jumpPower;
+    player.grounded=false;
+    player.coyoteTime=0;
+    player.jumpsUsed=1;
+    player.jumpHolding=true;
+    player.jumpHoldTime=0;
+    playSound(480,.07);
   }
 }
-
 function releaseJump(){
-  player.jumpHolding = false;
+  player.jumpHolding=false;
+}
+function beginDuck(){
+  if(!gameRunning)return;
+  duckPressed=true;
+  if(player.grounded){
+    duckFrames=DUCK_TAP_FRAMES;
+    player.jumpHolding=false;
+  }
+}
+function releaseDuck(immediate=false){
+  duckPressed=false;
+  if(immediate)duckFrames=0;
+}
+function isPlayerDucking(){
+  return player.grounded && duckFrames>0;
+}
+function updateDuck(){
+  if(duckPressed && player.grounded){
+    duckFrames=DUCK_TAP_FRAMES;
+  }else if(duckFrames>0){
+    duckFrames--;
+  }
 }
 
 function endGame(){
@@ -1819,6 +1856,10 @@ function updateJumpHold(){
 }
 
 function getPlayerHitbox(){
+  if(isPlayerDucking()){
+    return {x:player.x+5,y:groundY+player.height-DUCK_HEIGHT-1,
+      width:player.width-10,height:DUCK_HEIGHT-1};
+  }
   return {x:player.x+8,y:player.y+8,width:player.width-14,height:player.height-10};
 }
 
@@ -1844,6 +1885,7 @@ function update(){
   }else{
     player.grounded = false;
   }
+  updateDuck();
 
   distanceMeters += gameSpeed * METERS_PER_PIXEL;
   distanceUntilNextObstacle -= gameSpeed;
