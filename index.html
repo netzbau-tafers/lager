@@ -2555,7 +2555,7 @@ function updateVoltageTypeAppearance(){
   const custom = document.getElementById("typCustom");
   if(!select || !custom) return;
   const type = (select.value === "__ANDERER__" ? custom.value : select.value).trim().toUpperCase();
-  const voltage = /^(GKN|TT)(?=\\s|$)/.test(type) ? "ns" : /^XKDT(?=\\s|$)/.test(type) ? "ms" : "";
+  const voltage = /^(GKN|TT)(?=\s|$)/.test(type) ? "ns" : /^XKDT(?=\s|$)/.test(type) ? "ms" : "";
   [select,custom].forEach(field => {
     field.classList.toggle("voltage-ns",voltage === "ns");
     field.classList.toggle("voltage-ms",voltage === "ms");
