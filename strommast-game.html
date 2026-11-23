@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="screen-orientation" content="landscape">
-<title>Mast Runner</title>
+<title>Mast Runner 2.0</title>
 
 <link rel="icon" type="image/png" sizes="any" href="favicon.png">
 <link rel="shortcut icon" href="favicon.png" type="image/png">
@@ -791,6 +791,31 @@ canvas{
   #mrMobileLanding .mr-brand strong{font-size:16px}
 }
 
+
+/* Mast Runner 2.0: HUD, mobile Steuerung und Hauptadministrator-Aktion */
+.runner-hud{position:absolute;left:12px;top:10px;z-index:7;pointer-events:none;display:flex;gap:7px;flex-wrap:wrap;max-width:calc(100% - 130px)}
+.runner-hud span{background:rgba(9,35,56,.83);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:9px;padding:6px 10px;font:800 13px/1.2 system-ui,sans-serif;font-variant-numeric:tabular-nums;box-shadow:0 3px 10px rgba(0,0,0,.09)}
+.runner-tools{position:absolute;right:10px;top:9px;z-index:9;display:flex;gap:6px}
+.runner-tools button{background:rgba(13,50,76,.88);color:#fff;box-shadow:none;border:1px solid rgba(255,255,255,.3);width:34px;height:34px;padding:0;border-radius:10px;font-size:18px}
+.runner-tools button[hidden],.mr-admin-reset[hidden],.runner-new-record[hidden]{display:none!important}
+.runner-tools button:focus-visible,.mr-admin-reset:focus-visible{outline:3px solid #f9ca46;outline-offset:2px}
+.runner-result-score{font-weight:850;font-size:20px!important;color:#164b74}
+.runner-new-record{color:#9a6410!important;font-weight:850}
+.mr-admin-reset{margin:13px 0 0;padding:10px 13px;background:#fff1f0;border:1px solid #d78b86;color:#8c2525;box-shadow:none;font-size:12px;font-weight:800}
+.mr-admin-reset:hover{background:#ffe0dc;box-shadow:none}
+@media(max-width:700px){
+  .mr-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .mr-stat{padding:12px 9px;text-align:center}
+  .mr-stat-value{font-size:clamp(16px,5vw,26px)}
+  .mr-pick .mr-section-head{align-items:center}
+  .mr-scene-figure{background:#f0f8fc}
+  .runner-hud{left:6px;top:6px;gap:4px;max-width:calc(100% - 90px)}
+  .runner-hud span{font-size:10px;padding:5px 6px}
+  .runner-tools{right:6px;top:5px;gap:3px}
+  .runner-tools button{width:30px;height:30px;font-size:15px}
+  #mrMobileLanding .mr-admin-reset{width:100%;margin:0 0 16px}
+}
+@media(prefers-reduced-motion:reduce){.runner-tools button{transition:none}}
 </style>
 </head>
 <body class="auth-loading">
@@ -807,7 +832,7 @@ canvas{
     <section class="mr-hero">
       <div class="mr-eyebrow"><span class="mr-dot"></span>Das Netzelektriker-Arcade-Spiel</div>
       <h1>Mast<br>Runner<span style="color:#69bcef">.</span></h1>
-      <p>Spring über Hindernisse, sammle Punkte und kämpfe um die Top 10.</p>
+      <p>Laufe mit unserem Netzelektriker, sammle Blitze und knacke die Top 10.</p>
       <div class="mr-scene"><svg viewBox="0 0 560 155" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
   <defs><linearGradient id="mrSky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#286281"/><stop offset="1" stop-color="#7aacc1"/></linearGradient></defs>
   <rect width="560" height="155" fill="url(#mrSky)"/>
@@ -823,32 +848,24 @@ canvas{
     <main class="mr-main">
       <section class="mr-stats" aria-label="Spielstatistik">
         <div class="mr-stat"><div class="mr-stat-label"><span>◷</span> Punkte</div><div class="mr-stat-value" id="mrCurrentScore">0</div></div>
+        <div class="mr-stat"><div class="mr-stat-label"><span>↗</span> Distanz</div><div class="mr-stat-value" id="mrDistance">0 m</div></div>
         <div class="mr-stat"><div class="mr-stat-label"><span>♜</span> Dein Rekord</div><div class="mr-stat-value" id="mrBestScore">0</div></div>
       </section>
       <section class="mr-card mr-pick" aria-labelledby="mrCharactersTitle">
-        <div class="mr-section-head"><div><h2 id="mrCharactersTitle">Deine Spielfigur</h2><p class="mr-section-sub">Wähle deinen Favoriten aus.</p></div><div class="mr-tag">7 Figuren</div></div>
-        <div class="mr-characters" role="group" aria-label="Figur auswählen">
-<button type="button" class="mr-character" data-character="worker" aria-pressed="true"><span class="mr-emoji">👷</span><strong>Lehrling</strong><small>Starter</small></button>
-<button type="button" class="mr-character" data-character="frog" aria-pressed="false"><span class="mr-emoji">🐸</span><strong>Santivastler</strong><small>Sprungfreudig</small></button>
-<button type="button" class="mr-character" data-character="donkey" aria-pressed="false"><span class="mr-emoji">🫏</span><strong>Düdinger</strong><small>Robust</small></button>
-<button type="button" class="mr-character" data-character="unimog" aria-pressed="false"><span class="mr-emoji">🚛</span><strong>Unimog</strong><small>Breit gebaut</small></button>
-<button type="button" class="mr-character" data-character="sprinter" aria-pressed="false"><span class="mr-emoji">🚐</span><strong>Käta</strong><small>Flach gebaut</small></button>
-<button type="button" class="mr-character" data-character="chef" aria-pressed="false"><span class="mr-emoji">👑</span><strong>Chef</strong><small>Mit Stil</small></button>
-<button type="button" class="mr-character" data-character="buezer" aria-pressed="false"><span class="mr-emoji">💪</span><strong>Büezer</strong><small>Volle Energie</small></button>
-        </div>
-        <div class="mr-pick-caption"><span id="mrChosenCharacter">✓ Lehrling ausgewählt</span><span class="mr-swipe">← Wischen →</span></div>
+        <div class="mr-section-head"><div><h2 id="mrCharactersTitle">Bereit für die nächste Baustelle?</h2><p class="mr-section-sub">Ein Netzelektriker. Eine Strecke. Dein Rekord.</p></div><div class="mr-tag">👷 Netzelektriker</div></div>
         <div class="mr-action">
-          <button id="mrStartButton" class="mr-start" type="button"><span class="mr-play-icon" aria-hidden="true">▶</span>Spiel starten</button>
-          <p class="mr-micro-help">♧ Im Spiel tippen, um zu springen</p>
+          <button id="mrStartButton" class="mr-start" type="button"><span class="mr-play-icon" aria-hidden="true">▶</span> Spiel starten</button>
+          <p class="mr-micro-help">Tippen = kurzer Sprung · Gedrückt halten = höher springen</p>
         </div>
       </section>
       <section class="mr-card mr-ranking-wrap" aria-labelledby="mrRankingTitle">
         <div class="mr-rank-head"><div class="mr-rank-heading"><span class="mr-trophy" aria-hidden="true">🏆</span><div><h2 id="mrRankingTitle">Bestenliste</h2><p class="mr-section-sub">Top 10 · Live in der App</p></div></div><span class="mr-tag">TOP 10</span></div>
         <ol id="mrRanking" class="mr-ranking" aria-live="polite"><li>Noch keine Einträge</li></ol>
         <button id="mrRankingToggle" class="mr-more" type="button" aria-expanded="false" hidden>Alle 10 Plätze anzeigen ⌄</button>
+        <button id="mrResetRankingButton" class="mr-admin-reset" type="button" hidden>Bestenliste zurücksetzen (Hauptadministrator)</button>
       </section>
       <details class="mr-rules"><summary>ⓘ &nbsp; So funktioniert Mast Runner <span aria-hidden="true">⌄</span></summary>
-        <div class="mr-rule-body"><p>Tippe auf das Spielfeld, um zu springen. Am Computer funktionieren auch die Leertaste und die Pfeiltaste nach oben.</p><p>Weiche Hindernissen aus und versuche, in die Top 10 der Bestenliste zu kommen.</p></div>
+        <div class="mr-rule-body"><p>Tippe auf das Spielfeld oder nutze Leertaste / Pfeil nach oben. Gedrückt halten verlängert den Sprung.</p><p>10 Meter = 1 Punkt, Hindernis = 10 Punkte, jede 5er-Serie = 25 Bonuspunkte. Sammle Blitze für 25 Punkte und knacke die Top 10. Ton lässt sich im Spiel einschalten.</p></div>
       </details>
     </main>
     <footer class="mr-footer">Mast Runner · Netzbau Tafers</footer>
@@ -863,17 +880,20 @@ canvas{
 
       <div class="topbar-right score">
         <span class="pill">Punkte: <span id="score">0</span></span>
+        <span class="pill">Distanz: <span id="distance">0 m</span></span>
         <span class="pill">Rekord: <span id="bestScore">0</span></span>
       </div>
     </div>
 
     <div class="canvas-wrap">
       <canvas id="gameCanvas" width="1000" height="320"></canvas>
+      <div class="runner-hud" aria-live="off"><span id="hudScore">0 Pkt.</span><span id="hudDistance">0 m</span><span id="hudObstacles">0 Hindernisse</span></div>
+      <div class="runner-tools"><button type="button" id="pauseButton" aria-label="Spiel pausieren" title="Pause" hidden>⏸</button><button type="button" id="soundButton" aria-label="Ton einschalten" title="Ton einschalten">🔇</button></div>
 
       <div id="startOverlay" class="overlay">
         <div class="overlay-box">
           <h2>Start</h2>
-          <p>Wähle ein Charakter und drücke Start.</p>
+          <p>Weiche Hindernissen aus, sammle Blitze und erreiche einen neuen Rekord!</p><p>Tippen oder Leertaste: springen · Halten: höher springen</p>
           <button type="button" onclick="startGame()">Spiel starten</button>
         </div>
       </div>
@@ -881,7 +901,9 @@ canvas{
       <div id="gameOverOverlay" class="overlay hidden">
         <div class="overlay-box">
           <h2>Game Over</h2>
-          <p>Punkte: <span id="finalScore">0</span></p>
+          <p class="runner-result-score"><span id="finalScore">0</span> Punkte</p>
+          <p><strong id="finalDistance">0 m</strong> Distanz · <strong id="finalObstacles">0</strong> Hindernisse</p>
+          <p id="newRecordMessage" class="runner-new-record" hidden>🏆 Neuer persönlicher Rekord!</p>
           <p id="saveStatus"></p>
 
           <div class="overlay-actions">
@@ -889,6 +911,8 @@ canvas{
           </div>
         </div>
       </div>
+
+      <div id="pauseOverlay" class="overlay hidden"><div class="overlay-box"><h2>⏸ Pause</h2><p>Bereit für die nächste Etappe?</p><button id="resumeButton" type="button">Weiterspielen</button></div></div>
 
       <button id="fullscreenBtn" class="fs-btn fullscreen-btn" type="button" aria-label="Vollbild">
         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -912,34 +936,17 @@ canvas{
           </div>
           <div class="tip-card">
             <strong>Ziel</strong>
-            <span>Weiche Hindernissen aus und knacke die Top&nbsp;10 der Bestenliste.</span>
+            <span>Distanz und Hindernisse zählen. Sammle Blitze und knacke die Top&nbsp;10.</span>
           </div>
         </div>
 
-        <div class="character-select">
-          <div class="character-header">
-            <div>
-              <div class="character-label">Charakter wählen</div>
-              <div class="character-subtext">Jede Figur ist sofort spielbereit – wähle einfach deinen Favoriten.</div>
-            </div>
-            <p id="characterHint" class="character-hint hidden-message">Bitte zuerst einen Charakter auswählen.</p>
-          </div>
-
-          <div class="character-buttons">
-            <button type="button" class="character-button" data-character="worker"><span class="character-button-icon">👷</span><span class="character-button-name">Lehrling</span><span class="character-button-role">Klassischer Starter</span></button>
-            <button type="button" class="character-button" data-character="frog"><span class="character-button-icon">🐸</span><span class="character-button-name">Santivastler</span><span class="character-button-role">Sprungfreudig</span></button>
-            <button type="button" class="character-button" data-character="donkey"><span class="character-button-icon">🫏</span><span class="character-button-name">Düdinger</span><span class="character-button-role">Hart im Nehmen</span></button>
-            <button type="button" class="character-button" data-character="unimog"><span class="character-button-icon">🚛</span><span class="character-button-name">Unimog</span><span class="character-button-role">Breit gebaut</span></button>
-            <button type="button" class="character-button" data-character="sprinter"><span class="character-button-icon">🚐</span><span class="character-button-name">Käta</span><span class="character-button-role">Flacher Trefferbereich</span></button>
-            <button type="button" class="character-button" data-character="chef"><span class="character-button-icon">👑</span><span class="character-button-name">Chef</span><span class="character-button-role">Mit Stil unterwegs</span></button>
-            <button type="button" class="character-button" data-character="buezer"><span class="character-button-icon">💪</span><span class="character-button-name">Büezer</span><span class="character-button-role">Volle Energie</span></button>
-          </div>
-        </div>
+        
       </div>
 
       <div class="dashboard-panel live-ranking">
         <h3>Live-Bestenliste (Top 10)</h3>
         <ol id="liveRankingList"></ol>
+        <button type="button" id="resetRankingButton" class="mr-admin-reset" hidden>Bestenliste zurücksetzen (Hauptadministrator)</button>
       </div>
     </div>
   </div>
