@@ -31,7 +31,7 @@ function fixture(){
         state.where.push({field,op,value});
         return {
           where(){return this;},
-          count(){return {async get(){state.reads++;return {data:()=>({count:field==='status'?(value==='rausschreiben'?1:4):12})};}};}
+          count(){return {async get(){state.reads++;return {data:()=>({count:field==='status'?4:12})};}};}
         };
       }};
       throw Error('unexpected collection: '+name);
@@ -46,8 +46,8 @@ test('calculates totals, records and cable types only from ready snapshots',asyn
   assert.equal(output.totalMeters,4000.5);
   assert.equal(output.bookings,8);
   assert.equal(output.archivedSites,12);
-  assert.equal(output.activeSites,5);
-  assert.equal(output.totalSites,17);
+  assert.equal(output.activeSites,4);
+  assert.equal(output.totalSites,16);
   assert.equal(output.recordMonth,2);
   assert.equal(output.recordMeters,2500);
   assert.equal(output.topType,'GKN');
