@@ -1858,290 +1858,85 @@ function drawLimb(x, y, length, angle, width = 4){
   ctx.stroke();
 }
 
+// Einzige Spielfigur: Netzelektriker mit Helm, Warnweste und Werkzeugtasche.
 function drawSideViewRunner(){
-  const x = player.x;
-  const y = player.y;
-
-  const running = gameRunning && player.grounded;
-  const legSwing = running ? Math.sin(frameCount * 0.35) * 0.9 : 0;
-  const armSwing = running ? Math.sin(frameCount * 0.35) * 0.7 : 0;
-
-  const hipX1 = x + 15;
-  const hipX2 = x + 21;
-  const hipY = y + 38;
-
-  const shoulderX1 = x + 11;
-  const shoulderX2 = x + 25;
-  const shoulderY = y + 24;
-
-  ctx.fillStyle = "#1f2d3a";
-
-  ctx.fillRect(x + 7, y + 14, 7, 2);
-
-  ctx.beginPath();
-  ctx.arc(x + 20, y + 12, 8, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillRect(x + 15, y + 20, 8, 18);
-
-  ctx.fillStyle = "#f1c40f";
-  ctx.beginPath();
-  ctx.arc(x + 20, y + 10, 10, Math.PI, 0);
-  ctx.fill();
-  ctx.fillRect(x + 12, y + 10, 16, 4);
-
-  ctx.fillStyle = "#ffffff";
-  ctx.beginPath();
-  ctx.arc(x + 22, y + 10, 2.2, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = "#1f2d3a";
-  ctx.beginPath();
-  ctx.arc(x + 22.3, y + 10, 0.9, 0, Math.PI * 2);
-  ctx.fill();
-
-  if(player.grounded){
-    drawLimb(shoulderX1, shoulderY, 11, Math.PI * 0.9 + armSwing, 4);
-    drawLimb(shoulderX2, shoulderY, 11, Math.PI * 0.1 - armSwing, 4);
-
-    drawLimb(hipX1, hipY, 18, Math.PI / 2 + legSwing, 4);
-    drawLimb(hipX2, hipY, 18, Math.PI / 2 - legSwing, 4);
-  }else{
-    drawLimb(shoulderX1, shoulderY, 11, Math.PI * 0.95, 4);
-    drawLimb(shoulderX2, shoulderY, 11, Math.PI * 0.05, 4);
-
-    drawLimb(hipX1, hipY, 18, Math.PI / 2 + 0.55, 4);
-    drawLimb(hipX2, hipY, 18, Math.PI / 2 - 0.35, 4);
-  }
-}
-
-function drawFrog(){
-  const x = player.x;
-  const y = player.y;
-
-  const running = gameRunning && player.grounded;
-  const legSwing = running ? Math.sin(frameCount * 0.35) * 2.6 : 0;
-
-  ctx.fillStyle = "#2fb15f";
-  ctx.beginPath();
-  ctx.ellipse(x + 18, y + 34, 16, 11, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.ellipse(x + 22, y + 22, 11, 9, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.arc(x + 26, y + 16, 4, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = "#fff";
-  ctx.beginPath();
-  ctx.arc(x + 27, y + 15.5, 1.6, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = "#163722";
-  ctx.beginPath();
-  ctx.arc(x + 27.3, y + 15.7, 0.8, 0, Math.PI * 2);
-  ctx.fill();
-
-  drawLimb(x + 12, y + 37, 11, Math.PI * 0.95 - legSwing * 0.07, 5);
-  drawLimb(x + 22, y + 38, 12, Math.PI * 0.75 + legSwing * 0.06, 5);
-}
-
-function drawDonkey(){
-  const x = player.x;
-  const y = player.y;
-
-  const running = gameRunning && player.grounded;
-  const legSwing = running ? Math.sin(frameCount * 0.35) * 0.3 : 0;
-
-  ctx.fillStyle = "#8a7560";
-  ctx.fillRect(x + 8, y + 22, 22, 15);
-
-  ctx.beginPath();
-  ctx.ellipse(x + 32, y + 21, 8, 6, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillRect(x + 36, y + 15, 3, 8);
-  ctx.fillRect(x + 32, y + 14, 3, 8);
-
-  ctx.fillStyle = "#f2f2f2";
-  ctx.beginPath();
-  ctx.arc(x + 35, y + 20, 1.6, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = "#1f2d3a";
-  ctx.beginPath();
-  ctx.arc(x + 35.3, y + 20, 0.7, 0, Math.PI * 2);
-  ctx.fill();
-
-  drawLimb(x + 11, y + 37, 13, Math.PI / 2 + legSwing, 4);
-  drawLimb(x + 20, y + 37, 13, Math.PI / 2 - legSwing, 4);
-  drawLimb(x + 27, y + 37, 13, Math.PI / 2 + legSwing, 4);
-
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = "#6f5c48";
-  ctx.beginPath();
-  ctx.moveTo(x + 7, y + 23);
-  ctx.lineTo(x + 3, y + 28);
-  ctx.stroke();
-}
-
-function drawUnimog(){
-  const x = player.x;
-  const y = player.y + 7;
-  const running = gameRunning && player.grounded;
-  const wheelTurn = frameCount * 0.22;
-  const bodyBob = running ? Math.sin(frameCount * 0.35) * 1.1 : 0;
-  const cabBob = running ? Math.sin(frameCount * 0.35 + 0.5) * 0.7 : 0;
-
+  const x=player.x, y=player.y;
+  const running=gameRunning && player.grounded;
+  const step=running ? Math.sin(frameCount*0.32) : 0;
+  const legSwing=step*0.68;
+  const armSwing=-step*0.55;
+  const bob=running ? Math.abs(step)*1.1 : 0;
   ctx.save();
-  ctx.translate(0, bodyBob);
+  ctx.translate(0,-bob);
 
-  ctx.fillStyle = "#2f78b7";
-  ctx.fillRect(x + 8, y + 18, 34, 15);
-  ctx.fillRect(x + 18, y + 8 + cabBob, 18, 13);
-
-  ctx.fillStyle = "#cfe8fb";
-  ctx.fillRect(x + 21, y + 10 + cabBob, 6, 6);
-  ctx.fillRect(x + 29, y + 10 + cabBob, 5, 6);
-
-  ctx.fillStyle = "#f0c420";
-  ctx.fillRect(x + 9, y + 24, 4, 4);
-
-  ctx.fillStyle = "#284c6e";
-  ctx.fillRect(x + 40, y + 20, 6, 4);
-
-  ctx.strokeStyle = "#1c405d";
-  ctx.lineWidth = 2;
+  // Dunkle Arbeitshose und bewegte Sicherheitsschuhe.
+  ctx.strokeStyle="#20384e";
+  ctx.lineWidth=6;
+  ctx.lineCap="round";
   ctx.beginPath();
-  ctx.moveTo(x + 41, y + 18);
-  ctx.lineTo(x + 44, y + 9);
+  ctx.moveTo(x+17,y+39);
+  ctx.lineTo(x+17+Math.sin(legSwing)*9,y+52);
+  ctx.moveTo(x+25,y+39);
+  ctx.lineTo(x+25-Math.sin(legSwing)*9,y+52);
+  ctx.stroke();
+  ctx.strokeStyle="#182a38";
+  ctx.lineWidth=5;
+  ctx.beginPath();
+  ctx.moveTo(x+15+Math.sin(legSwing)*9,y+52);
+  ctx.lineTo(x+22+Math.sin(legSwing)*9,y+52);
+  ctx.moveTo(x+23-Math.sin(legSwing)*9,y+52);
+  ctx.lineTo(x+30-Math.sin(legSwing)*9,y+52);
   ctx.stroke();
 
-  drawWheel(x + 17, y + 36, 7, wheelTurn);
-  drawWheel(x + 38, y + 36, 7, wheelTurn);
-
-  ctx.restore();
-}
-
-function drawSprinter(){
-  const x = player.x;
-  const y = player.y + 8;
-  const running = gameRunning && player.grounded;
-  const wheelTurn = frameCount * 0.22;
-  const bodyBob = running ? Math.sin(frameCount * 0.35) * 0.9 : 0;
-
-  ctx.save();
-  ctx.translate(0, bodyBob);
-
-  ctx.fillStyle = "#e8edf3";
-  roundedRect(x + 6, y + 14, 40, 20, 5);
+  // Orange Warnweste mit gelben Reflexstreifen.
+  ctx.fillStyle="#ef7c23";
+  roundedRect(x+10,y+20,23,22,5);
   ctx.fill();
+  ctx.fillStyle="#ffe59e";
+  ctx.fillRect(x+12,y+26,19,3);
+  ctx.fillRect(x+12,y+35,19,3);
+  ctx.fillStyle="#284b60";
+  ctx.fillRect(x+20,y+21,3,20);
 
-  ctx.fillStyle = "#d5dce5";
-  roundedRect(x + 28, y + 8, 16, 16, 4);
-  ctx.fill();
-
-  ctx.fillStyle = "#a8d3f0";
-  roundedRect(x + 30, y + 10, 12, 8, 2);
-  ctx.fill();
-
-  ctx.fillStyle = "#f6c949";
-  ctx.fillRect(x + 7, y + 24, 4, 4);
-
-  ctx.fillStyle = "#95a0ad";
-  ctx.fillRect(x + 44, y + 19, 3, 3);
-
-  drawWheel(x + 17, y + 36, 6.5, wheelTurn);
-  drawWheel(x + 37, y + 36, 6.5, wheelTurn);
-
-  ctx.restore();
-}
-
-function drawChef(){
-  const x = player.x;
-  const y = player.y;
-  const running = gameRunning && player.grounded;
-  const legSwing = running ? Math.sin(frameCount * 0.35) * 0.9 : 0;
-  const armSwing = running ? Math.sin(frameCount * 0.35) * 0.65 : 0;
-
-  ctx.fillStyle = "#e7edf7";
-  ctx.fillRect(x + 14, y + 20, 11, 20);
-
-  ctx.fillStyle = "#15263a";
-  ctx.fillRect(x + 17, y + 21, 3, 19);
-
-  ctx.fillStyle = "#f2d2ae";
+  // Arbeitshandschuhe und Arme.
+  ctx.strokeStyle="#d7631c";
+  ctx.lineWidth=5;
   ctx.beginPath();
-  ctx.arc(x + 20, y + 13, 8, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = "#ffe066";
-  ctx.beginPath();
-  ctx.moveTo(x + 10, y + 7);
-  ctx.lineTo(x + 14, y - 2);
-  ctx.lineTo(x + 20, y + 5);
-  ctx.lineTo(x + 26, y - 2);
-  ctx.lineTo(x + 30, y + 7);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.fillStyle = "#ffd43b";
-  ctx.fillRect(x + 10, y + 7, 20, 3);
-
-  drawLimb(x + 14, y + 26, 11, Math.PI * 0.92 + armSwing, 4);
-  drawLimb(x + 25, y + 26, 11, Math.PI * 0.08 - armSwing, 4);
-  drawLimb(x + 16, y + 40, 18, Math.PI / 2 + legSwing, 4);
-  drawLimb(x + 23, y + 40, 18, Math.PI / 2 - legSwing, 4);
-}
-
-function drawMuskelprotz(){
-  const x = player.x;
-  const y = player.y;
-  const running = gameRunning && player.grounded;
-  const sway = running ? Math.sin(frameCount * 0.35) * 0.7 : 0;
-
-  ctx.fillStyle = "#4f75c9";
-  roundedRect(x + 9, y + 21, 23, 21, 7);
-  ctx.fill();
-
-  ctx.fillStyle = "#f2c7a3";
-  ctx.beginPath();
-  ctx.arc(x + 20, y + 12, 8.5, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = "#4a2f1f";
-  roundedRect(x + 12, y + 5, 16, 7, 3);
-  ctx.fill();
-
-  ctx.fillStyle = "#f2c7a3";
-  roundedRect(x + 6, y + 21, 7, 16, 3);
-  ctx.fill();
-  roundedRect(x + 29, y + 21, 7, 16, 3);
-  ctx.fill();
-
-  ctx.fillStyle = "#ffffff";
-  ctx.beginPath();
-  ctx.arc(x + 17, y + 12, 1.9, 0, Math.PI * 2);
-  ctx.arc(x + 23, y + 12, 1.9, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = "#1f1b19";
-  ctx.beginPath();
-  ctx.arc(x + 17, y + 12, 0.8, 0, Math.PI * 2);
-  ctx.arc(x + 23, y + 12, 0.8, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.strokeStyle = "#1f1b19";
-  ctx.lineWidth = 1.1;
-  ctx.beginPath();
-  ctx.arc(x + 20, y + 15, 3, 0.1, Math.PI - 0.1);
+  ctx.moveTo(x+12,y+24);
+  ctx.lineTo(x+7+Math.sin(armSwing)*5,y+37);
+  ctx.moveTo(x+31,y+24);
+  ctx.lineTo(x+34-Math.sin(armSwing)*5,y+37);
   ctx.stroke();
+  ctx.fillStyle="#383b3d";
+  ctx.beginPath();
+  ctx.arc(x+7+Math.sin(armSwing)*5,y+38,3,0,Math.PI*2);
+  ctx.arc(x+34-Math.sin(armSwing)*5,y+38,3,0,Math.PI*2);
+  ctx.fill();
 
-  drawLimb(x + 14, y + 42, 17, Math.PI / 2 + sway, 5);
-  drawLimb(x + 26, y + 42, 17, Math.PI / 2 - sway, 5);
+  // Kleine Werkzeugtasche am Gürtel.
+  ctx.fillStyle="#536879";
+  roundedRect(x+29,y+34,9,10,2);
+  ctx.fill();
+  ctx.fillStyle="#e8b24e";
+  ctx.fillRect(x+30,y+35,7,2);
+
+  // Gesicht und markanter gelber Schutzhelm.
+  ctx.fillStyle="#f1c5a0";
+  ctx.beginPath();
+  ctx.arc(x+21,y+12,8,0,Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle="#f3c631";
+  ctx.beginPath();
+  ctx.arc(x+21,y+10,10,Math.PI,0);
+  ctx.fill();
+  ctx.fillRect(x+11,y+9,22,4);
+  ctx.fillStyle="#dfa522";
+  ctx.fillRect(x+17,y+3,8,3);
+  ctx.fillStyle="#172d41";
+  ctx.beginPath();
+  ctx.arc(x+25,y+12,1.4,0,Math.PI*2);
+  ctx.fill();
+  ctx.restore();
 }
 
 function drawWheel(cx, cy, r, angle){
@@ -2166,44 +1961,7 @@ function drawWheel(cx, cy, r, angle){
   }
 }
 
-function drawPlayer(){
-  if(selectedCharacter === "worker"){
-    drawSideViewRunner();
-    return;
-  }
-
-  if(selectedCharacter === "frog"){
-    drawFrog();
-    return;
-  }
-
-  if(selectedCharacter === "donkey"){
-    drawDonkey();
-    return;
-  }
-
-  if(selectedCharacter === "unimog"){
-    drawUnimog();
-    return;
-  }
-
-  if(selectedCharacter === "sprinter"){
-    drawSprinter();
-    return;
-  }
-
-  if(selectedCharacter === "chef"){
-    drawChef();
-    return;
-  }
-
-  if(selectedCharacter === "muskelprotz" || selectedCharacter === "buezer"){
-    drawMuskelprotz();
-    return;
-  }
-
-  drawSideViewRunner();
-}
+function drawPlayer(){ drawSideViewRunner(); }
 
 function roundedRect(x, y, w, h, r){
   ctx.beginPath();
@@ -2416,8 +2174,8 @@ function drawNuclearPlant(ob){
 }
 
 function drawAnimatedSky(){
-  for(let i = 0; i < 6; i++){
-    const offset = 0;
+  for(let i = -1; i < 7; i++){
+    const offset = (distanceMeters * 0.16) % 220;
     const cx = i * 220 + 60 - offset;
     const cy = 52 + (i % 2) * 18;
 
@@ -2430,8 +2188,8 @@ function drawAnimatedSky(){
     ctx.fill();
   }
 
-  for(let i = 0; i < 4; i++){
-    const offset = 0;
+  for(let i = -1; i < 5; i++){
+    const offset = (distanceMeters * 0.07) % 340;
     const cx = i * 340 + 130 - offset;
     const cy = 86 + (i % 2) * 10;
 
@@ -2446,10 +2204,10 @@ function drawAnimatedSky(){
 }
 
 function drawLandscape(){
-  const farShift = 0;
-  const midShift = 0;
-  const nearShift = 0;
-  const villageShift = 0;
+  const farShift = Math.sin(distanceMeters / 160) * 45;
+  const midShift = Math.sin(distanceMeters / 95) * 28;
+  const nearShift = (distanceMeters * 0.45) % 44;
+  const villageShift = (distanceMeters * 0.24) % 165;
 
   ctx.fillStyle = "#dce6d8";
   ctx.beginPath();
@@ -2549,16 +2307,53 @@ function drawObstacle(ob){
   drawMast(ob);
 }
 
+function drawCollectibles(){
+  for(const p of pickups){
+    const pulse = 1 + Math.sin(frameCount*.12)*.09;
+    ctx.save();
+    ctx.translate(p.x,p.y);
+    ctx.scale(pulse,pulse);
+    ctx.shadowColor="#ffc52c";ctx.shadowBlur=15;
+    ctx.fillStyle="#ffc52c";
+    ctx.beginPath();
+    ctx.moveTo(-1,-14);ctx.lineTo(9,-14);ctx.lineTo(2,-2);
+    ctx.lineTo(10,-2);ctx.lineTo(-8,15);ctx.lineTo(-3,2);
+    ctx.lineTo(-10,2);ctx.closePath();ctx.fill();
+    ctx.strokeStyle="#fff8dc";ctx.lineWidth=1.5;ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawDust(){
+  for(const p of dustParticles){
+    ctx.fillStyle="rgba(115,109,85," + (p.life/50) + ")";
+    ctx.beginPath();ctx.arc(p.x,p.y,3+(26-p.life)*.09,0,Math.PI*2);ctx.fill();
+  }
+}
+
+function drawFeedback(){
+  if(!feedback) return;
+  ctx.save();
+  ctx.globalAlpha=Math.min(1,feedback.frames/20);
+  ctx.textAlign="center";
+  ctx.font="bold 21px system-ui,sans-serif";
+  ctx.shadowColor="rgba(0,0,0,.65)";
+  ctx.shadowBlur=9;
+  ctx.fillStyle=feedback.color;
+  ctx.fillText(feedback.message,canvas.width/2,55);
+  ctx.restore();
+}
+
 function draw(){
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
   drawAnimatedSky();
   drawLandscape();
   drawGround();
+  drawCollectibles();
+  for(const ob of obstacles) drawObstacle(ob);
   drawPlayer();
-
-  for(const ob of obstacles){
-    drawObstacle(ob);
-  }
+  drawDust();
+  drawFeedback();
 }
 
 function loop(timestamp = performance.now()){
@@ -2681,98 +2476,82 @@ LagerAccess.onAuthStateChanged((user) => {
 });
 
 
-/* Oberfläche des mobilen Startbildschirms. Keine Änderungen an Spielphysik oder Punkten. */
-let mrSelectedCharacter = "worker";
+/* Mast Runner 2.0: mobiler Schnellstart ohne Figurenwahl. */
 let mrShowWholeRanking = false;
-
 function mrSyncStats(){
-  const current = document.getElementById("mrCurrentScore");
-  const record = document.getElementById("mrBestScore");
-  if(current) current.textContent = scoreEl.textContent;
-  if(record) record.textContent = bestScoreEl.textContent;
+  const current=document.getElementById("mrCurrentScore");
+  const record=document.getElementById("mrBestScore");
+  if(current) current.textContent=scoreEl.textContent;
+  if(record) record.textContent=bestScoreEl.textContent;
 }
 
 function mrRenderRanking(ranking){
-  const container = document.getElementById("mrRanking");
-  const toggle = document.getElementById("mrRankingToggle");
-  if(!container || !toggle) return;
-  const entries = Array.isArray(ranking) ? ranking.slice(0,10) : [];
+  const container=document.getElementById("mrRanking");
+  const toggle=document.getElementById("mrRankingToggle");
+  if(!container||!toggle) return;
+  const entries=Array.isArray(ranking) ? ranking.slice(0,10) : [];
   container.replaceChildren();
   if(!entries.length){
-    const empty = document.createElement("li");
-    empty.textContent = "Noch keine Einträge";
+    const empty=document.createElement("li");
+    empty.textContent="Noch keine Einträge";
     container.appendChild(empty);
   }
-  entries.slice(0,mrShowWholeRanking ? 10 : 3).forEach((entry,index) => {
-    const li = document.createElement("li");
-    const number = document.createElement("span");
-    const name = document.createElement("span");
-    const value = document.createElement("span");
-    number.className = "mr-rank-num";
-    name.className = "mr-rank-name";
-    value.className = "mr-rank-score";
-    const place = index + 1;
-    if(place <= 3){
-      // Die Podestplätze erhalten farbige Pokale statt Rangzahlen.
-      number.classList.add(place === 1 ? "mr-rank-gold" : place === 2 ? "mr-rank-silver" : "mr-rank-bronze");
-      number.setAttribute("aria-label", "Platz " + place);
-      number.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 3.5h10v6a5 5 0 0 1-10 0v-6Z" fill="currentColor"/><path d="M7 5H4v2a4 4 0 0 0 4 4m9-6h3v2a4 4 0 0 1-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12 14.5v4m-3.5 2h7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
-    }else{
-      number.textContent = String(place);
-    }
-    name.textContent = String(entry.name || "Unbekannt");
-    value.textContent = Number(entry.score || 0).toLocaleString("de-CH") + " Pkt.";
+  entries.slice(0,mrShowWholeRanking?10:3).forEach((entry,index)=>{
+    const li=document.createElement("li");
+    const number=document.createElement("span");
+    const name=document.createElement("span");
+    const value=document.createElement("span");
+    number.className="mr-rank-num";
+    name.className="mr-rank-name";
+    value.className="mr-rank-score";
+    const place=index+1;
+    if(place<=3){
+      number.classList.add(place===1?"mr-rank-gold":place===2?"mr-rank-silver":"mr-rank-bronze");
+      number.setAttribute("aria-label","Platz "+place);
+      number.textContent=place===1?"🏆":place===2?"🥈":"🥉";
+    }else number.textContent=String(place);
+    name.textContent=String(entry.name||"Unbekannt");
+    value.textContent=Number(entry.score||0).toLocaleString("de-CH")+" Pkt.";
+    const extra=document.createElement("small");
+    extra.textContent=" · "+Math.floor(Number(entry.distance)||0).toLocaleString("de-CH")+" m";
+    value.appendChild(extra);
     li.append(number,name,value);
     container.appendChild(li);
   });
-  toggle.hidden = entries.length <= 3;
-  toggle.setAttribute("aria-expanded", String(mrShowWholeRanking));
-  toggle.textContent = mrShowWholeRanking ? "Weniger anzeigen ⌃" : "Alle " + entries.length + " Plätze anzeigen ⌄";
+  toggle.hidden=entries.length<=3;
+  toggle.setAttribute("aria-expanded",String(mrShowWholeRanking));
+  toggle.textContent=mrShowWholeRanking?"Weniger anzeigen ⌃":"Alle "+entries.length+" Plätze anzeigen ⌄";
 }
 
 function mrOpenOverview(){
-  if(gameRunning) return;
+  if(gameRunning || gamePaused) return;
   document.body.classList.remove("mr-playing");
   mrSyncStats();
-  mrRenderRanking(cloudRanking.length ? cloudRanking : loadRanking());
+  mrRenderRanking(cloudRanking.length?cloudRanking:loadRanking());
   window.scrollTo(0,0);
 }
 
 function mrInitLanding(){
-  const landing = document.getElementById("mrMobileLanding");
-  const start = document.getElementById("mrStartButton");
-  const toggle = document.getElementById("mrRankingToggle");
-  if(!landing || !start || !toggle) return;
-  landing.querySelectorAll(".mr-character").forEach(button => {
-    button.addEventListener("click", () => {
-      mrSelectedCharacter = button.dataset.character;
-      landing.querySelectorAll(".mr-character").forEach(item => {
-        item.setAttribute("aria-pressed",String(item === button));
-      });
-      document.getElementById("mrSceneFigure").textContent = button.querySelector(".mr-emoji").textContent;
-      document.getElementById("mrChosenCharacter").textContent = "✓ " + button.querySelector("strong").textContent + " ausgewählt";
-    });
-  });
-  start.addEventListener("click", () => {
-    const original = document.querySelector(".character-button[data-character='" + mrSelectedCharacter + "']");
-    if(!original || original.disabled) return;
-    original.click();
+  const start=document.getElementById("mrStartButton");
+  const toggle=document.getElementById("mrRankingToggle");
+  if(!start||!toggle) return;
+  start.addEventListener("click",()=>{
     document.body.classList.add("mr-playing");
     window.scrollTo(0,0);
     startGame();
   });
-  toggle.addEventListener("click", () => {
-    mrShowWholeRanking = !mrShowWholeRanking;
-    mrRenderRanking(cloudRanking.length ? cloudRanking : loadRanking());
+  toggle.addEventListener("click",()=>{
+    mrShowWholeRanking=!mrShowWholeRanking;
+    mrRenderRanking(cloudRanking.length?cloudRanking:loadRanking());
   });
-  const backButton = document.createElement("button");
-  backButton.type = "button";
-  backButton.textContent = "Zur Übersicht";
-  backButton.id = "mrBackToOverview";
+  const backButton=document.createElement("button");
+  backButton.type="button";
+  backButton.textContent="Zur Übersicht";
+  backButton.id="mrBackToOverview";
   backButton.addEventListener("click",mrOpenOverview);
   document.querySelector("#gameOverOverlay .overlay-actions")?.appendChild(backButton);
   mrSyncStats();
-  mrRenderRanking(cloudRanking.length ? cloudRanking : loadRanking());
+  mrRenderRanking(cloudRanking.length?cloudRanking:loadRanking());
 }
 mrInitLanding();
 
@@ -2808,22 +2587,24 @@ const mrStatsObserver = new MutationObserver(mrSyncStats);
 mrStatsObserver.observe(scoreEl,{childList:true,characterData:true,subtree:true});
 mrStatsObserver.observe(bestScoreEl,{childList:true,characterData:true,subtree:true});
 
-characterButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    if(gameRunning){
-      return;
-    }
-
-    selectedCharacter = button.dataset.character;
-    characterHint.classList.add("hidden-message");
-
-    characterButtons.forEach((btn) => {
-      btn.classList.toggle("active", btn === button);
-    });
-
-    draw();
-  });
+document.getElementById("pauseButton").addEventListener("click",pauseGame);
+document.getElementById("resumeButton").addEventListener("click",resumeGame);
+const soundButton=document.getElementById("soundButton");
+function updateSoundButton(){
+  soundButton.textContent=soundEnabled?"🔊":"🔇";
+  soundButton.title=soundEnabled?"Ton ausschalten":"Ton einschalten";
+  soundButton.setAttribute("aria-label",soundButton.title);
+}
+soundButton.addEventListener("click",()=>{
+  soundEnabled=!soundEnabled;
+  localStorage.setItem("mastRunnerSound",soundEnabled?"on":"off");
+  updateSoundButton();
+  playSound(660,0.09);
 });
+updateSoundButton();
+document.addEventListener("visibilitychange",()=>{if(document.hidden) pauseGame();});
+window.addEventListener("blur",()=>{if(gameRunning) pauseGame();});
+
 </script>
 
   <footer class="app-footer">© 2026 Martin Gross. Alle Rechte vorbehalten.</footer>
