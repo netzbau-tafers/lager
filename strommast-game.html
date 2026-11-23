@@ -948,6 +948,34 @@ canvas{
   .runner-touch-guide span{padding:3px 4px}
 }
 @media(max-width:360px){.runner-touch-guide{font-size:8px}}
+/* Kompakte, kontrastreiche Punktetafel nur im Vollbild – nicht auf Normalansicht. */
+.runner-fullscreen-score{display:none;pointer-events:none}
+.canvas-wrap:fullscreen .runner-fullscreen-score,
+.canvas-wrap:-webkit-full-screen .runner-fullscreen-score{
+  position:absolute;z-index:21;top:max(8px,env(safe-area-inset-top));
+  left:max(8px,env(safe-area-inset-left));
+  display:flex;flex-direction:column;align-items:flex-start;gap:1px;
+  min-width:84px;padding:7px 11px;border-radius:12px;
+  background:rgba(13,44,67,.85);
+  border:1px solid rgba(213,237,255,.30);
+  box-shadow:0 4px 12px rgba(12,29,47,.16);
+  color:#fff;font:800 10px/1.18 system-ui,sans-serif;
+  font-variant-numeric:tabular-nums;
+}
+.runner-fullscreen-score strong{font-size:clamp(17px,2.8vw,26px);line-height:1.1;color:#ffdf77}
+.runner-fullscreen-score small{font-size:10px;font-weight:700;color:#daeaf7}
+.canvas-wrap:fullscreen .runner-music-toggle,
+.canvas-wrap:-webkit-full-screen .runner-music-toggle{
+  top:86px!important;
+  left:max(8px,env(safe-area-inset-left));
+  right:auto
+}
+@media(max-height:390px){
+  .canvas-wrap:fullscreen .runner-fullscreen-score,
+  .canvas-wrap:-webkit-full-screen .runner-fullscreen-score{padding:5px 8px;min-width:65px}
+  .canvas-wrap:fullscreen .runner-music-toggle,
+  .canvas-wrap:-webkit-full-screen .runner-music-toggle{top:72px!important}
+}
 </style>
 </head>
 <body class="auth-loading">
@@ -969,6 +997,11 @@ canvas{
 
     <div class="canvas-wrap">
       <canvas id="gameCanvas" width="1000" height="320"></canvas>
+      <div class="runner-fullscreen-score" id="fullscreenScore" aria-label="Aktueller Punktestand">
+        <span>PUNKTE</span>
+        <strong id="fullscreenScoreValue">0</strong>
+        <small id="fullscreenDistanceValue">0 m</small>
+      </div>
       <div class="runner-touch-guide" aria-hidden="true">
         <span>↓ LINKS: DUCKEN</span><span>RECHTS: SPRINGEN ↑</span>
       </div>
@@ -1088,6 +1121,8 @@ const newGameButton = document.getElementById("newGameButton");
 const liveRankingList = document.getElementById("liveRankingList");
 const runnerLevelBadge=document.getElementById("runnerLevelBadge");
 const runnerLevelToast=document.getElementById("runnerLevelToast");
+const fullscreenScoreValue=document.getElementById("fullscreenScoreValue");
+const fullscreenDistanceValue=document.getElementById("fullscreenDistanceValue");
 
 let animationId = null;
 let gameRunning = false;
@@ -1296,7 +1331,9 @@ function updateScore(force=false){
   const distanceText = Math.floor(distanceMeters).toLocaleString("de-CH") + " m";
   const fields = [
     [scoreEl, scoreText],
-    [document.getElementById("distance"), distanceText]
+    [document.getElementById("distance"), distanceText],
+    [fullscreenScoreValue, scoreText],
+    [fullscreenDistanceValue, distanceText]
   ];
   for(const [element, value] of fields){
     if(element && element.textContent !== value) element.textContent = value;
