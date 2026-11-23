@@ -861,6 +861,21 @@ canvas{
   .game-dashboard{padding:0 15px 20px}
   .live-ranking li strong{min-width:0}
 }
+.runner-music-toggle{
+  position:absolute;z-index:23;right:12px;top:10px;
+  min-height:36px;display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:7px 12px;border:1px solid rgba(255,255,255,.4);border-radius:12px;
+  background:rgba(13,49,76,.84);color:#fff;font:700 13px/1.1 system-ui,sans-serif;
+  box-shadow:0 4px 12px rgba(16,42,67,.20);backdrop-filter:blur(4px)
+}
+.runner-music-toggle:hover{background:rgba(22,74,111,.94)}
+.runner-music-toggle:focus-visible{outline:3px solid #ffd562;outline-offset:2px}
+.runner-music-toggle[aria-pressed="true"]{background:rgba(71,85,99,.88)}
+@media(max-width:700px){
+  .runner-music-toggle{right:6px;top:6px;min-height:32px;padding:5px 8px;font-size:13px}
+  .runner-music-toggle span{display:none}
+  .mr-game-slot .runner-music-toggle{right:6px;top:6px}
+}
 </style>
 </head>
 <body class="auth-loading">
@@ -933,6 +948,7 @@ canvas{
 
     <div class="canvas-wrap">
       <canvas id="gameCanvas" width="1000" height="320"></canvas>
+      <button type="button" id="musicToggle" class="runner-music-toggle" aria-label="Musik stummschalten" aria-pressed="false" title="Musik stummschalten">🎵 <span>Musik</span></button>
 
       <div id="startOverlay" class="overlay">
         <div class="overlay-box">
@@ -1000,9 +1016,23 @@ canvas{
     </div>
   </div>
 
+<script src="mast-runner-music.js?v=20261123"></script>
 <script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+const musicToggle = document.getElementById("musicToggle");
+function updateMusicToggle(){
+  const muted = MastRunnerMusic.isMuted();
+  musicToggle.setAttribute("aria-pressed",String(muted));
+  musicToggle.setAttribute("aria-label",muted?"Musik einschalten":"Musik stummschalten");
+  musicToggle.title = muted?"Musik einschalten":"Musik stummschalten";
+  musicToggle.innerHTML = muted?"🔇 <span>Musik aus</span>":"🎵 <span>Musik</span>";
+}
+musicToggle.addEventListener("click",()=>{
+  MastRunnerMusic.setMuted(!MastRunnerMusic.isMuted());
+  updateMusicToggle();
+});
+updateMusicToggle();
 const gameWrap = document.getElementById("gameWrap");
 const fullscreenBtn = document.getElementById("fullscreenBtn");
 const exitFullscreenBtn = document.getElementById("exitFullscreenBtn");
@@ -1222,6 +1252,7 @@ function pauseGame(){
   cancelAnimationFrame(animationId);
   player.jumpHolding = false;
   document.getElementById("pauseOverlay").classList.remove("hidden");
+  MastRunnerMusic.stop();
 }
 
 function resumeGame(){
@@ -1231,6 +1262,7 @@ function resumeGame(){
   lastFrameTime = 0;
   accumulatedTime = 0;
   document.getElementById("pauseOverlay").classList.add("hidden");
+  MastRunnerMusic.start(audioContext);
   loop();
 }
 
@@ -1551,6 +1583,7 @@ function resetGameState(){
 }
 
 function showStartScreen(){
+  MastRunnerMusic.stop();
   cancelAnimationFrame(animationId);
   gameRunning = false;
   gamePaused = false;
@@ -1585,6 +1618,7 @@ function startGame(){
   resetGameState();
   // Freischaltung des Audiokontexts durch den Benutzer-Klick auf Spiel starten.
   playSound(700, 0.10, "sine");
+  MastRunnerMusic.start(audioContext);
   loop();
 }
 
@@ -1609,6 +1643,7 @@ function releaseJump(){
 }
 
 function endGame(){
+  MastRunnerMusic.stop();
   gameRunning = false;
   gamePaused = false;
   const finalValue = Math.floor(score);
