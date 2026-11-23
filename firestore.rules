@@ -113,6 +113,11 @@ service cloud.firestore {
         request.resource.data.keys().hasOnly(['updatedAt']) && request.resource.data.updatedAt == request.time;
       allow delete: if readVehicles() && request.auth.uid == userId;
     }
+    // Nur lesbare Jahreskennzahlen; Änderungen erfolgen ausschliesslich serverseitig.
+    match /dashboard_stats/{year} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
     match /bobinen/{document} {
       allow read: if canRead('kabellager');
       allow create, update, delete: if canWrite('kabellager');
