@@ -1613,34 +1613,38 @@ textarea{
       <select id="typSelect" aria-label="Kabeltyp" onchange="handleTypChange()">
         <option value="">Kabeltyp auswählen</option>
 
-        <option class="voltage-option-ns" value="GKN 3x6/6mm² Cu">GKN 3x6/6mm² Cu</option>
-        <option class="voltage-option-ns" value="GKN 3x10/10mm² Cu">GKN 3x10/10mm² Cu</option>
-        <option class="voltage-option-ns" value="GKN 3x16/16mm² Cu">GKN 3x16/16mm² Cu</option>
-        <option class="voltage-option-ns" value="GKN 3x25/25mm² Cu">GKN 3x25/25mm² Cu</option>
-        <option class="voltage-option-ns" value="GKN 3x50/50mm² Cu">GKN 3x50/50mm² Cu</option>
-        <option class="voltage-option-ns" value="GKN 3x95/95mm² Cu">GKN 3x95/95mm² Cu</option>
-        <option class="voltage-option-ns" value="GKN 3x95/95mm² Cu Flex">GKN 3x95/95mm² Cu Flex</option>
-        <option class="voltage-option-ns" value="GKN 3x150/150mm² Cu">GKN 3x150/150mm² Cu</option>
-        <option class="voltage-option-ns" value="GKN 3x1x150/50mm² Cu">GKN 3x1x150/50mm² Cu</option>
-        <option class="voltage-option-ns" value="GKN 3x1x240/80mm² Cu">GKN 3x1x240/80mm² Cu</option>
+        <optgroup label="Kupferkabel (Cu)">
+          <option class="voltage-option-ns" value="GKN 3x6/6mm² Cu">GKN 3x6/6mm² Cu</option>
+          <option class="voltage-option-ns" value="GKN 3x10/10mm² Cu">GKN 3x10/10mm² Cu</option>
+          <option class="voltage-option-ns" value="GKN 3x16/16mm² Cu">GKN 3x16/16mm² Cu</option>
+          <option class="voltage-option-ns" value="GKN 3x25/25mm² Cu">GKN 3x25/25mm² Cu</option>
+          <option class="voltage-option-ns" value="GKN 3x50/50mm² Cu">GKN 3x50/50mm² Cu</option>
+          <option class="voltage-option-ns" value="GKN 3x95/95mm² Cu">GKN 3x95/95mm² Cu</option>
+          <option class="voltage-option-ns" value="GKN 3x95/95mm² Cu Flex">GKN 3x95/95mm² Cu Flex</option>
+          <option class="voltage-option-ns" value="GKN 3x150/150mm² Cu">GKN 3x150/150mm² Cu</option>
+          <option class="voltage-option-ns" value="GKN 3x1x150/50mm² Cu">GKN 3x1x150/50mm² Cu</option>
+          <option class="voltage-option-ns" value="GKN 3x1x240/80mm² Cu">GKN 3x1x240/80mm² Cu</option>
+          <option class="voltage-option-ms" value="XKDT 3x1x50mm² Cu">XKDT 3x1x50mm² Cu</option>
+          <option class="voltage-option-ms" value="XKDT 3x1x95mm² Cu">XKDT 3x1x95mm² Cu</option>
+          <option class="voltage-option-ms" value="XKDT 3x1x150mm² Cu">XKDT 3x1x150mm² Cu</option>
+          <option class="voltage-option-ms" value="XKDT 3x1x240mm² Cu">XKDT 3x1x240mm² Cu</option>
+        </optgroup>
 
-        <option class="voltage-option-ms" value="XKDT 3x1x50mm² Cu">XKDT 3x1x50mm² Cu</option>
-        <option class="voltage-option-ms" value="XKDT 3x1x95mm² Cu">XKDT 3x1x95mm² Cu</option>
-        <option class="voltage-option-ms" value="XKDT 3x1x150mm² Cu">XKDT 3x1x150mm² Cu</option>
-        <option class="voltage-option-ms" value="XKDT 3x1x240mm² Cu">XKDT 3x1x240mm² Cu</option>
+        <optgroup label="Aluminiumkabel (Al)">
+          <option class="voltage-option-ns" value="GKN 3x95/50mm² AL">GKN 3x95/50mm² AL</option>
+          <option class="voltage-option-ns" value="GKN 3x150/95mm² AL">GKN 3x150/95mm² AL</option>
+          <option class="voltage-option-ns" value="GKN 3x1x240/150mm² AL">GKN 3x1x240/150mm² AL</option>
+          <option class="voltage-option-ms" value="XKDT 3x1x95mm² AL">XKDT 3x1x95mm² AL</option>
+          <option class="voltage-option-ms" value="XKDT 3x1x150mm² AL">XKDT 3x1x150mm² AL</option>
+          <option class="voltage-option-ms" value="XKDT 3x1x240mm² AL">XKDT 3x1x240mm² AL</option>
+        </optgroup>
 
-        <option class="voltage-option-ns" value="GKN 3x95/50mm² AL">GKN 3x95/50mm² AL</option>
-        <option class="voltage-option-ns" value="GKN 3x150/95mm² AL">GKN 3x150/95mm² AL</option>
-        <option class="voltage-option-ns" value="GKN 3x1x240/150mm² AL">GKN 3x1x240/150mm² AL</option>
-
-        <option class="voltage-option-ms" value="XKDT 3x1x95mm² AL">XKDT 3x1x95mm² AL</option>
-        <option class="voltage-option-ms" value="XKDT 3x1x150mm² AL">XKDT 3x1x150mm² AL</option>
-        <option class="voltage-option-ms" value="XKDT 3x1x240mm² AL">XKDT 3x1x240mm² AL</option>
-
-        <option class="voltage-option-ns" value="TT 150mm² Cu Flex">TT 150mm² Cu Flex</option>
-        <option class="voltage-option-ns" value="TT 185mm² Cu Flex">TT 185mm² Cu Flex</option>
-        <option class="voltage-option-ns" value="TT 240mm² Cu Flex">TT 240mm² Cu Flex</option>
-        <option class="voltage-option-ns" value="TT 5x50mm² Cu">TT 5x50mm² Cu</option>
+        <optgroup label="TT-Kabel">
+          <option class="voltage-option-ns" value="TT 150mm² Cu Flex">TT 150mm² Cu Flex</option>
+          <option class="voltage-option-ns" value="TT 185mm² Cu Flex">TT 185mm² Cu Flex</option>
+          <option class="voltage-option-ns" value="TT 240mm² Cu Flex">TT 240mm² Cu Flex</option>
+          <option class="voltage-option-ns" value="TT 5x50mm² Cu">TT 5x50mm² Cu</option>
+        </optgroup>
 
         <option value="__ANDERER__">Anderer Kabeltyp</option>
       </select>
