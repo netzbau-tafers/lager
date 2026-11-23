@@ -1404,7 +1404,7 @@ textarea{
 }
 
 /* Die Spannungsklasse wird ausschliesslich visuell gekennzeichnet. */
-.voltage-legend{display:flex;flex-wrap:wrap;align-items:center;gap:7px 16px;margin:10px 0 7px;font-size:12px;color:#d7dde3}
+.voltage-legend{display:flex;flex-wrap:wrap;align-items:center;gap:7px 16px;margin:10px 0 7px;font-size:12px;color:#000;font-weight:500}
 .voltage-legend>span{display:inline-flex;align-items:center;gap:6px}
 .voltage-dot{display:inline-block;flex:0 0 9px;width:9px;height:9px;border-radius:50%}
 .voltage-dot.ns{background:#68b88c}
@@ -1413,6 +1413,25 @@ textarea{
 #typSelect.voltage-ms,#typCustom.voltage-ms{background-color:#fae3e3!important;color:#802c2c!important;border:1px solid #dc7777!important}
 #typSelect option.voltage-option-ns{background-color:#dff3e7;color:#185b38}
 #typSelect option.voltage-option-ms{background-color:#fae3e3;color:#802c2c}
+
+
+/* Mobile: Das native Android-Auswahlmenü ignoriert option-Farben. */
+.mobile-cable-picker{display:none}
+@media(max-width:700px){
+  #typSelect{display:none!important}
+  .mobile-cable-picker{display:block;position:relative;margin:6px 0 10px}
+  .mobile-cable-picker-button{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid #bfc4cb;border-radius:8px;background:#fff;color:#171717;text-align:left;font:inherit;cursor:pointer}
+  .mobile-cable-picker-button.voltage-ns{background:#dff3e7;color:#185b38;border-color:#68b88c}
+  .mobile-cable-picker-button.voltage-ms{background:#fae3e3;color:#802c2c;border-color:#dc7777}
+  .mobile-cable-picker-list{max-height:min(48vh,380px);overflow-y:auto;overscroll-behavior:contain;background:#fff;border:1px solid #cbd0d5;border-radius:8px;margin-top:4px;box-shadow:0 6px 20px #0002}
+  .mobile-cable-picker-list[hidden]{display:none!important}
+  .mobile-cable-group{padding:10px 12px;font-size:13px;font-weight:700;color:#242424;background:#e8edf1;position:sticky;top:0;z-index:1}
+  .mobile-cable-option{width:100%;display:flex;align-items:center;gap:10px;padding:12px;border:0;border-bottom:1px solid #e1e5e8;text-align:left;font:inherit;cursor:pointer;background:#fff;color:#191919;min-height:46px}
+  .mobile-cable-option.voltage-ns{background:#e6f5ec;color:#185b38}
+  .mobile-cable-option.voltage-ms{background:#fbe8e8;color:#802c2c}
+  .mobile-cable-option[aria-selected="true"]{font-weight:700;outline:2px solid currentColor;outline-offset:-2px}
+  .mobile-cable-option .voltage-dot{flex-shrink:0;width:10px;height:10px}
+}
 
 </style>
 <link rel="stylesheet" href="navigation.css?v=20261005-menu-style">
@@ -1648,6 +1667,11 @@ textarea{
 
         <option value="__ANDERER__">Anderer Kabeltyp</option>
       </select>
+
+      <div id="mobileCablePicker" class="mobile-cable-picker">
+        <button type="button" id="mobileCablePickerButton" class="mobile-cable-picker-button" aria-expanded="false" aria-controls="mobileCablePickerList" onclick="toggleMobileCablePicker()">Kabeltyp auswählen <span aria-hidden="true">▾</span></button>
+        <div id="mobileCablePickerList" class="mobile-cable-picker-list" role="listbox" aria-label="Kabeltyp auswählen" hidden></div>
+      </div>
 
       <input id="typCustom" class="hidden" placeholder="Anderen Kabeltyp eingeben" maxlength="120" oninput="updateVoltageTypeAppearance()">
 
@@ -2445,6 +2469,87 @@ function getBobinenBadgeHtml(istDreiBobinen, mehrereKabelAufBobine){
 }
 
 
+
+function syncMobileCablePicker(){
+  const select = document.getElementById("typSelect");
+  const button = document.getElementById("mobileCablePickerButton");
+  const list = document.getElementById("mobileCablePickerList");
+  if(!select || !button || !list) return;
+  const option = select.selectedOptions[0];
+  button.firstChild.textContent = option ? option.textContent.trim() + " " : "Kabeltyp auswählen ";
+  button.classList.toggle("voltage-ns",select.classList.contains("voltage-ns"));
+  button.classList.toggle("voltage-ms",select.classList.contains("voltage-ms"));
+  list.querySelectorAll(".mobile-cable-option").forEach(item => {
+    item.setAttribute("aria-selected",String(item.dataset.value === select.value));
+  });
+}
+function closeMobileCablePicker(){
+  const button = document.getElementById("mobileCablePickerButton");
+  const list = document.getElementById("mobileCablePickerList");
+  if(!button || !list) return;
+  list.hidden = true;
+  button.setAttribute("aria-expanded","false");
+}
+function toggleMobileCablePicker(){
+  const button = document.getElementById("mobileCablePickerButton");
+  const list = document.getElementById("mobileCablePickerList");
+  if(!button || !list) return;
+  if(!list.children.length) buildMobileCablePicker();
+  list.hidden = !list.hidden;
+  button.setAttribute("aria-expanded",String(!list.hidden));
+}
+function buildMobileCablePicker(){
+  const select = document.getElementById("typSelect");
+  const list = document.getElementById("mobileCablePickerList");
+  if(!select || !list) return;
+  list.replaceChildren();
+  function addOption(option){
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "mobile-cable-option";
+    row.dataset.value = option.value;
+    row.setAttribute("role","option");
+    row.setAttribute("aria-selected",String(select.value === option.value));
+    const voltage = option.classList.contains("voltage-option-ns") ? "ns" :
+      option.classList.contains("voltage-option-ms") ? "ms" : "";
+    if(voltage){
+      row.classList.add("voltage-" + voltage);
+      const dot = document.createElement("span");
+      dot.className = "voltage-dot " + voltage;
+      dot.setAttribute("aria-hidden","true");
+      row.appendChild(dot);
+    }
+    const label = document.createElement("span");
+    label.textContent = option.textContent;
+    row.appendChild(label);
+    row.addEventListener("click",() => {
+      select.value = option.value;
+      handleTypChange();
+      closeMobileCablePicker();
+    });
+    list.appendChild(row);
+  }
+  Array.from(select.children).forEach(child => {
+    if(child.tagName === "OPTGROUP"){
+      const heading = document.createElement("div");
+      heading.className = "mobile-cable-group";
+      heading.textContent = child.label;
+      list.appendChild(heading);
+      Array.from(child.children).forEach(addOption);
+    }else if(child.tagName === "OPTION"){
+      addOption(child);
+    }
+  });
+  syncMobileCablePicker();
+}
+document.addEventListener("keydown",event => {
+  if(event.key === "Escape") closeMobileCablePicker();
+});
+document.addEventListener("click",event => {
+  const picker = document.getElementById("mobileCablePicker");
+  if(picker && !picker.contains(event.target)) closeMobileCablePicker();
+});
+
 function updateVoltageTypeAppearance(){
   const select = document.getElementById("typSelect");
   const custom = document.getElementById("typCustom");
@@ -2455,6 +2560,7 @@ function updateVoltageTypeAppearance(){
     field.classList.toggle("voltage-ns",voltage === "ns");
     field.classList.toggle("voltage-ms",voltage === "ms");
   });
+  syncMobileCablePicker();
 }
 
 function handleTypChange(){
@@ -3426,6 +3532,7 @@ function openAdd(){
   document.getElementById("typCustom").value = "";
   document.getElementById("typCustom").classList.add("hidden");
   updateVoltageTypeAppearance();
+  closeMobileCablePicker();
   setBobinenHinweisSelection(false, false);
   document.getElementById("laenge").value = "";
   document.getElementById("baustelle").value = "";
@@ -3455,6 +3562,7 @@ function editBobine(id){
     document.getElementById("modalTitle").innerText = "Bobine bearbeiten";
     document.getElementById("nummer").value = nummerBereinigen(b.nummer || "");
     setTypFields(b.typ || "");
+    closeMobileCablePicker();
     setBobinenHinweisSelection(!!b.istDreiBobinen, !!b.mehrereKabelAufBobine);
     document.getElementById("laenge").value = sanitizeInput(b.laenge || "", 40);
     document.getElementById("baustelle").value = sanitizeInput(b.baustelle || "", 120);
@@ -3996,6 +4104,7 @@ function deleteBobine(id){
 }
 
 function closeModal(){
+  closeMobileCablePicker();
   reserviertVonPrefillVersion++;
   document.getElementById("modal").style.display = "none";
   document.getElementById("returnModal").style.display = "none";
