@@ -405,8 +405,7 @@ canvas{
 }
 
 .canvas-wrap:fullscreen .fs-btn,
-.canvas-wrap:-webkit-full-screen .fs-btn,
-.canvas-wrap:-ms-fullscreen .fs-btn{
+.canvas-wrap:-webkit-full-screen .fs-btn{
   display:flex;
 }
 
@@ -852,8 +851,7 @@ canvas{
 /* Vollbild zeigt ausschliesslich das Spielfeld. Die 1000:320-Zeichenfläche
    bleibt vollständig und unverzerrt – auch auf schmalen Telefonen. */
 .canvas-wrap:fullscreen,
-.canvas-wrap:-webkit-full-screen,
-.canvas-wrap:-ms-fullscreen{
+.canvas-wrap:-webkit-full-screen{
   box-sizing:border-box;
   display:flex!important;
   flex-direction:column;
@@ -872,8 +870,7 @@ canvas{
   background:#102a43;
 }
 .canvas-wrap:fullscreen canvas,
-.canvas-wrap:-webkit-full-screen canvas,
-.canvas-wrap:-ms-fullscreen canvas{
+.canvas-wrap:-webkit-full-screen canvas{
   box-sizing:border-box;
   display:block;
   flex:0 1 auto;
@@ -888,23 +885,20 @@ canvas{
   touch-action:none;
 }
 .canvas-wrap:fullscreen .overlay,
-.canvas-wrap:-webkit-full-screen .overlay,
-.canvas-wrap:-ms-fullscreen .overlay{
+.canvas-wrap:-webkit-full-screen .overlay{
   align-items:center;
   justify-content:center;
   overflow:auto;
 }
 .canvas-wrap:fullscreen .overlay-box,
-.canvas-wrap:-webkit-full-screen .overlay-box,
-.canvas-wrap:-ms-fullscreen .overlay-box{
+.canvas-wrap:-webkit-full-screen .overlay-box{
   width:min(420px,calc(100vw - 24px));
   max-width:calc(100% - 16px);
   max-height:min(86dvh,calc(100% - 24px));
   margin:0;
 }
 .canvas-wrap:fullscreen .exit-fullscreen-btn,
-.canvas-wrap:-webkit-full-screen .exit-fullscreen-btn,
-.canvas-wrap:-ms-fullscreen .exit-fullscreen-btn{
+.canvas-wrap:-webkit-full-screen .exit-fullscreen-btn{
   display:flex;
   position:absolute;
   top:max(8px,env(safe-area-inset-top));
@@ -914,11 +908,9 @@ canvas{
   z-index:25;
 }
 .canvas-wrap:fullscreen .exit-fullscreen-btn:hover,
-.canvas-wrap:-webkit-full-screen .exit-fullscreen-btn:hover,
-.canvas-wrap:-ms-fullscreen .exit-fullscreen-btn:hover{transform:none}
+.canvas-wrap:-webkit-full-screen .exit-fullscreen-btn:hover{transform:none}
 .canvas-wrap:fullscreen .runner-music-toggle,
-.canvas-wrap:-webkit-full-screen .runner-music-toggle,
-.canvas-wrap:-ms-fullscreen .runner-music-toggle{
+.canvas-wrap:-webkit-full-screen .runner-music-toggle{
   top:max(8px,env(safe-area-inset-top));
   left:max(8px,env(safe-area-inset-left));
   right:auto;
@@ -926,8 +918,7 @@ canvas{
 .runner-rotate-hint{display:none}
 @media (orientation:portrait){
   .canvas-wrap:fullscreen .runner-rotate-hint,
-  .canvas-wrap:-webkit-full-screen .runner-rotate-hint,
-  .canvas-wrap:-ms-fullscreen .runner-rotate-hint{
+  .canvas-wrap:-webkit-full-screen .runner-rotate-hint{
     display:block;
     position:absolute;
     left:50%;
