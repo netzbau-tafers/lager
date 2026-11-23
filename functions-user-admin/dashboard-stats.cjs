@@ -2,6 +2,7 @@
 // Ereignisgesteuerte Jahresübersicht: Neuberechnung nur bei Änderungen der Quelldaten.
 const MONTHS=12;
 const SHARED_CACHE_MS=12*60*60*1000;
+const DASHBOARD_SCHEMA_VERSION=2;
 const {entriesForMonth,mergeInterimSnapshot}=require('./cable-monthly-snapshot.cjs');
 
 function swissYear(date){
@@ -112,13 +113,13 @@ function createDashboardGet({db,Timestamp,logger,now=()=>new Date()}){
       const lastUpdate=data.calculatedAt&&typeof data.calculatedAt.toMillis==='function'
         ?data.calculatedAt.toMillis():0;
       const invalidatedAt=data.invalidatedAt&&typeof data.invalidatedAt.toMillis==='function'?data.invalidatedAt.toMillis():0;
-      if(lastUpdate>0&&at.getTime()-lastUpdate<SHARED_CACHE_MS&&lastUpdate>=invalidatedAt){
+      if(data.schemaVersion===DASHBOARD_SCHEMA_VERSION&&lastUpdate>0&&at.getTime()-lastUpdate<SHARED_CACHE_MS&&lastUpdate>=invalidatedAt){
         const {calculatedAt,invalidatedAt,...payload}=data;
         return payload;
       }
     }
     const payload=await calculateDashboard({db,Timestamp,year,now:at});
-    await ref.set({...payload,calculatedAt:Timestamp.fromDate(at)},{merge:true});
+    await ref.set({...payload,schemaVersion:DASHBOARD_SCHEMA_VERSION,calculatedAt:Timestamp.fromDate(at)},{merge:true});
     logger.info('Jahres-Dashboard erneuert',{year,monthsWithMeters:payload.monthlyMeters.filter(Boolean).length});
     return payload;
   };
