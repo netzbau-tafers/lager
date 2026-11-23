@@ -164,6 +164,26 @@ service cloud.firestore {
       allow create: if canWrite('spiel');
       allow update, delete: if manager('spiel');
     }
+    // Mast Runner 2.0: each player maintains one personal best.
+    // Only the authenticated master may delete entries to reset the list.
+    function validRunnerV2Score() {
+      let d = request.resource.data;
+      return d.keys().hasAll(['name','score','distance','obstacles','createdAt']) &&
+        d.keys().hasOnly(['name','score','distance','obstacles','createdAt']) &&
+        d.name is string && d.name.size() > 0 && d.name.size() <= 20 &&
+        d.score is int && d.score > 0 && d.score < 100000000 &&
+        d.distance is int && d.distance >= 0 && d.distance < 100000000 &&
+        d.obstacles is int && d.obstacles >= 0 && d.obstacles < 1000000 &&
+        d.createdAt == request.time;
+    }
+    match /strommastRankingV2/{playerUid} {
+      allow read: if canRead('spiel');
+      allow create: if canWrite('spiel') && request.auth.uid == playerUid &&
+        validRunnerV2Score();
+      allow update: if canWrite('spiel') && request.auth.uid == playerUid &&
+        validRunnerV2Score() && request.resource.data.score > resource.data.score;
+      allow delete: if master();
+    }
   }
 }
 
