@@ -935,6 +935,51 @@ canvas{
     pointer-events:none;
   }
 }
+
+/* Mast Runner 4.0: eindeutige mobile Touchzonen ohne zusätzliche Button-Overlays. */
+.runner-touch-guide{display:none;pointer-events:none;position:absolute;bottom:11px;left:12px;right:64px;z-index:8;justify-content:space-between;gap:12px;font:800 12px/1.25 system-ui,sans-serif;color:#173f5f;text-shadow:0 1px 3px rgba(255,255,255,.8)}
+.runner-touch-guide span{padding:4px 7px;border-radius:8px;background:rgba(230,243,252,.79);border:1px solid rgba(77,131,168,.22)}
+@media(pointer:coarse){
+  .runner-touch-guide{display:flex}
+  .canvas-wrap:fullscreen .runner-touch-guide,.canvas-wrap:-webkit-full-screen .runner-touch-guide{bottom:max(13px,env(safe-area-inset-bottom));right:18px;left:18px}
+}
+@media(max-width:700px){
+  .runner-touch-guide{font-size:9px;left:6px;right:49px;bottom:7px;gap:5px}
+  .runner-touch-guide span{padding:3px 4px}
+}
+@media(max-width:360px){.runner-touch-guide{font-size:8px}}
+/* Kompakte, kontrastreiche Punktetafel nur im Vollbild – nicht auf Normalansicht. */
+.runner-fullscreen-score{display:none;pointer-events:none}
+.canvas-wrap:fullscreen .runner-fullscreen-score,
+.canvas-wrap:-webkit-full-screen .runner-fullscreen-score{
+  position:absolute;z-index:21;
+  /* 1000:320 canvas is centred in fullscreen: follow its real top edge. */
+  top:max(calc(env(safe-area-inset-top) + 8px),calc(50dvh - 16vw + 8px));
+  left:max(8px,env(safe-area-inset-left));
+  display:flex;flex-direction:column;align-items:flex-start;gap:1px;
+  min-width:84px;padding:7px 11px;border-radius:12px;
+  background:rgba(13,44,67,.85);
+  border:1px solid rgba(213,237,255,.30);
+  box-shadow:0 4px 12px rgba(12,29,47,.16);
+  color:#fff;font:800 10px/1.18 system-ui,sans-serif;
+  font-variant-numeric:tabular-nums;
+}
+.runner-fullscreen-score strong{font-size:clamp(17px,2.8vw,26px);line-height:1.1;color:#ffdf77}
+.runner-fullscreen-score small{font-size:10px;font-weight:700;color:#daeaf7}
+.canvas-wrap:fullscreen .runner-music-toggle,
+.canvas-wrap:-webkit-full-screen .runner-music-toggle{
+  top:max(calc(env(safe-area-inset-top) + 85px),calc(50dvh - 16vw + 85px))!important;
+  left:max(8px,env(safe-area-inset-left));
+  right:auto
+}
+@media(max-height:390px){
+  .canvas-wrap:fullscreen .runner-fullscreen-score,
+  .canvas-wrap:-webkit-full-screen .runner-fullscreen-score{padding:5px 8px;min-width:65px}
+  .canvas-wrap:fullscreen .runner-music-toggle,
+  .canvas-wrap:-webkit-full-screen .runner-music-toggle{
+    top:max(calc(env(safe-area-inset-top) + 71px),calc(50dvh - 16vw + 71px))!important
+  }
+}
 </style>
 </head>
 <body class="auth-loading">
@@ -951,11 +996,19 @@ canvas{
     <section class="desktop-game-intro" aria-label="Spielbeschreibung">
       <div class="desktop-game-eyebrow"><span class="desktop-game-dot" aria-hidden="true"></span>DAS NETZELEKTRIKER-ARCADE-SPIEL <span class="runner-level-badge" id="runnerLevelBadge">LEVEL 1 · ANFÄNGER</span></div>
       <h1>Mast Runner<span>.</span></h1>
-      <p>Laufe mit unserem Netzelektriker, sammle Blitze und knacke die Top 10.</p>
+      <p>Springe, ducke dich unter Kabeln und meistere die Spezialbaustellen. Knacke die Top 10!</p>
     </section>
 
     <div class="canvas-wrap">
       <canvas id="gameCanvas" width="1000" height="320"></canvas>
+      <div class="runner-fullscreen-score" id="fullscreenScore" aria-label="Aktueller Punktestand">
+        <span>PUNKTE</span>
+        <strong id="fullscreenScoreValue">0</strong>
+        <small id="fullscreenDistanceValue">0 m</small>
+      </div>
+      <div class="runner-touch-guide" aria-hidden="true">
+        <span>↓ LINKS: DUCKEN</span><span>RECHTS: SPRINGEN ↑</span>
+      </div>
       <p class="runner-rotate-hint" aria-hidden="true">↻ Für ein grösseres Spielfeld das Smartphone quer halten.</p>
       <div class="runner-level-toast" id="runnerLevelToast" role="status" aria-live="polite" hidden></div>
       <button type="button" id="musicToggle" class="runner-music-toggle" aria-label="Musik stummschalten" aria-pressed="false" title="Musik stummschalten">🎵 <span>Musik</span></button>
@@ -963,7 +1016,7 @@ canvas{
       <div id="startOverlay" class="overlay">
         <div class="overlay-box">
           <h2>Start</h2>
-          <p>Weiche Hindernissen aus, sammle Blitze und erreiche einen neuen Rekord!</p><p>Tippen oder Leertaste: springen · Halten: höher springen</p>
+          <p>Springe über Hindernisse und ducke dich unter tiefen Kabeln. Alle 1'000 m wartet eine Spezialbaustelle!</p><p>Smartphone: links ducken, rechts springen · PC: ↓ / S ducken, Leertaste / ↑ springen</p>
           <button type="button" onclick="startGame()">Spiel starten</button>
         </div>
       </div>
@@ -1015,11 +1068,11 @@ canvas{
         <div class="control-tips">
           <div class="tip-card">
             <strong>Steuerung</strong>
-            <span>Tippe auf das Spielfeld oder drücke Leertaste / Pfeil nach oben zum Springen.</span>
+            <span>Smartphone: rechte Spielfeldhälfte springen (halten = hoch), linke Hälfte ducken. PC: Leertaste/↑ springen, ↓/S ducken.</span>
           </div>
           <div class="tip-card">
             <strong>Ziel</strong>
-            <span>Fünf Levels mit mehr Tempo, Doppelhindernissen und fahrenden Baggern. Sammle Blitze und knacke die Top&nbsp;10.</span>
+            <span>Spring-Duck-Kombinationen, schwingende Kranlasten und Spezialbaustellen alle 1'000 m. Riskante goldene Blitze bringen 75 Punkte.</span>
           </div>
         </div>
       </section>
@@ -1072,25 +1125,32 @@ const newGameButton = document.getElementById("newGameButton");
 const liveRankingList = document.getElementById("liveRankingList");
 const runnerLevelBadge=document.getElementById("runnerLevelBadge");
 const runnerLevelToast=document.getElementById("runnerLevelToast");
+const fullscreenScoreValue=document.getElementById("fullscreenScoreValue");
+const fullscreenDistanceValue=document.getElementById("fullscreenDistanceValue");
 
 let animationId = null;
 let gameRunning = false;
 const FRAME_DURATION = 1000 / 60;
 const MAX_UPDATES_PER_FRAME = 5;
 const BASE_GAME_SPEED = 3.9;
-const MAX_GAME_SPEED = 8.6;
+const MAX_GAME_SPEED = 9.3;
 const METERS_PER_PIXEL = 0.1;
 const POINTS_PER_OBSTACLE = 10;
 const POINTS_PER_PICKUP = 25;
 const BASE_GRAVITY = 0.47;
 const DAY_NIGHT_CYCLE_METERS = 2600;
 const DIFFICULTY_LEVELS=[
-  {from:0,name:"Anfänger",speed:3.9,minGap:420,maxGap:720,doubleChance:0,movingChance:0},
-  {from:500,name:"Fortgeschritten",speed:4.8,minGap:365,maxGap:655,doubleChance:0,movingChance:0},
-  {from:1200,name:"Profi",speed:5.85,minGap:305,maxGap:590,doubleChance:.16,movingChance:0},
-  {from:2200,name:"Experte",speed:6.95,minGap:290,maxGap:565,doubleChance:.25,movingChance:.13},
-  {from:3500,name:"Elite",speed:8.0,minGap:275,maxGap:530,doubleChance:.34,movingChance:.23}
+  {from:0,name:"Anfänger",speed:3.9,minGap:340,maxGap:560,comboChance:0,movingChance:0},
+  {from:400,name:"Fortgeschritten",speed:5.0,minGap:280,maxGap:480,comboChance:.18,movingChance:0},
+  {from:1000,name:"Profi",speed:6.4,minGap:255,maxGap:425,comboChance:.43,movingChance:.12},
+  {from:2000,name:"Experte",speed:7.7,minGap:235,maxGap:375,comboChance:.66,movingChance:.30},
+  {from:3500,name:"Elite",speed:8.6,minGap:205,maxGap:320,comboChance:.79,movingChance:.42}
 ];
+const SPECIAL_EVENT_EVERY_METERS=1000;
+const SPECIAL_EVENT_REWARD=150;
+const RISKY_PICKUP_REWARD=75;
+const DUCK_HEIGHT=20;
+const DUCK_TAP_FRAMES=22;
 const OBSTACLE_TYPES_BY_LEVEL=[
   ["solar","tree"],
   ["solar","tree","mast","house"],
@@ -1116,6 +1176,13 @@ let newRecordCelebrated=false;
 let recordFlashFrames=0;
 let lastWavePattern="";
 let lastWaveDouble=false;
+let duckPressed=false;
+let duckFrames=0;
+let nextSpecialAt=SPECIAL_EVENT_EVERY_METERS;
+let specialCounter=0;
+let specialRemaining=new Map();
+let eventFlashFrames=0;
+let lastWaveWasCombo=false;
 // Ton ist dauerhaft eingeschaltet; keine gespeicherte Stummschaltung.
 let audioContext = null;
 let frameCount = 0;
@@ -1189,6 +1256,12 @@ function getObstacleDimensions(type){
   }else if(type === "bagger"){
     width = 68;
     height = 42;
+  }else if(type==="cable"){
+    width=88;
+    height=285;
+  }else if(type==="hook"){
+    width=54;
+    height=285;
   }
 
   return { width, height };
@@ -1206,24 +1279,27 @@ function getTargetGameSpeed(distance=distanceMeters){
   const t=Math.min(1,Math.max(0,(distance-current.from)/(next.from-current.from)));
   return current.speed+(next.speed-current.speed)*t;
 }
-// Gap is spawn-to-spawn. Always reserve a full landing and reaction window.
 function getMinimumObstacleDistance(previousWave){
   if(!previousWave)return 0;
-  const width=previousWave.span||previousWave.width||44;
-  const flightFrames=previousWave.double?70:previousWave.tall?66:58;
-  const movingBuffer=previousWave.moving?68:0;
-  return width+gameSpeed*(flightFrames+6)+30+movingBuffer;
+  const level=getDifficultyLevel();
+  // Wave span contains the last obstacle, so the reaction reserve starts after
+  // the LAST element in a scripted combo, not after its first element.
+  const reactionFrames=level>=4?8:level>=2?10:14;
+  const landingFrames=previousWave.endAction==="duck" ? 24 :
+    previousWave.endTall ? 66 : previousWave.combo ? 57 : 54;
+  const movingBuffer=previousWave.moving?gameSpeed*7:0;
+  return previousWave.span+gameSpeed*(landingFrames+reactionFrames)+20+movingBuffer;
 }
 function getNextObstacleDistance(previousWave=null){
-  if(!previousWave)return 460+Math.random()*155;
-  const levelIndex=getDifficultyLevel(),level=DIFFICULTY_LEVELS[levelIndex];
+  if(!previousWave)return 410+Math.random()*90;
+  const index=getDifficultyLevel(),level=DIFFICULTY_LEVELS[index];
   const minimum=Math.max(level.minGap,getMinimumObstacleDistance(previousWave));
-  const maximum=Math.max(minimum+105,level.maxGap);
-  const range=maximum-minimum,roll=Math.random();
-  if(roll<[.07,.14,.29,.36,.45][levelIndex])
-    return minimum+10+Math.random()*Math.min(85,range*.48);
-  if(roll>.88)return maximum+Math.random()*110;
-  return minimum+Math.pow(Math.random(),1.4+levelIndex*.1)*range;
+  const range=Math.max(105,level.maxGap-minimum);
+  const roll=Math.random();
+  // Mixed rhythm: most late-game waves approach the safe timing boundary.
+  if(roll<(.16+index*.10))return minimum+Math.random()*Math.min(45,range*.38);
+  if(roll>.92)return minimum+range*.8+Math.random()*90;
+  return minimum+Math.pow(Math.random(),1.9+index*.18)*range;
 }
 
 function setFeedback(message, frames = 75, color = "#fff1a4"){
@@ -1259,7 +1335,9 @@ function updateScore(force=false){
   const distanceText = Math.floor(distanceMeters).toLocaleString("de-CH") + " m";
   const fields = [
     [scoreEl, scoreText],
-    [document.getElementById("distance"), distanceText]
+    [document.getElementById("distance"), distanceText],
+    [fullscreenScoreValue, scoreText],
+    [fullscreenDistanceValue, distanceText]
   ];
   for(const [element, value] of fields){
     if(element && element.textContent !== value) element.textContent = value;
@@ -1283,6 +1361,7 @@ function pauseGame(){
   gameRunning = false;
   cancelAnimationFrame(animationId);
   player.jumpHolding = false;
+  releaseDuck(true);
   document.getElementById("pauseOverlay").classList.remove("hidden");
   MastRunnerMusic.stop();
 }
@@ -1576,6 +1655,17 @@ function escapeHtml(text){
     .replaceAll("'", "&#39;");
 }
 
+
+function resetChallengeState(){
+  duckPressed=false;
+  duckFrames=0;
+  nextSpecialAt=SPECIAL_EVENT_EVERY_METERS;
+  specialCounter=0;
+  specialRemaining.clear();
+  eventFlashFrames=0;
+  lastWaveWasCombo=false;
+}
+
 function resetGameState(){
   gameRunning = true;
   gamePaused = false;
@@ -1612,6 +1702,7 @@ function resetGameState(){
   player.jumpHolding = false;
   player.jumpsUsed = 0;
   player.coyoteTime = 0;
+  resetChallengeState();
 
   updateScore();
   finalScoreEl.textContent = "0";
@@ -1655,6 +1746,7 @@ function showStartScreen(){
   player.jumpHolding = false;
   player.jumpsUsed = 0;
   player.coyoteTime = 0;
+  resetChallengeState();
   updateScore();
   finalScoreEl.textContent = "0";
   saveStatusEl.textContent = "";
@@ -1674,23 +1766,43 @@ function startGame(){
 }
 
 function beginJump(){
-  if(!gameRunning) return;
-
-  const canGroundJump = player.grounded || player.coyoteTime > 0;
-
-  if(canGroundJump){
-    player.vy = player.jumpPower;
-    player.grounded = false;
-    player.coyoteTime = 0;
-    player.jumpsUsed = 1;
-    player.jumpHolding = true;
-    player.jumpHoldTime = 0;
-    playSound(480, 0.07);
+  if(!gameRunning)return;
+  // Ducking must be released before jumping; never block legitimate inputs.
+  releaseDuck(true);
+  if(player.grounded||player.coyoteTime>0){
+    player.vy=player.jumpPower;
+    player.grounded=false;
+    player.coyoteTime=0;
+    player.jumpsUsed=1;
+    player.jumpHolding=true;
+    player.jumpHoldTime=0;
+    playSound(480,.07);
   }
 }
-
 function releaseJump(){
-  player.jumpHolding = false;
+  player.jumpHolding=false;
+}
+function beginDuck(){
+  if(!gameRunning)return;
+  duckPressed=true;
+  if(player.grounded){
+    duckFrames=DUCK_TAP_FRAMES;
+    player.jumpHolding=false;
+  }
+}
+function releaseDuck(immediate=false){
+  duckPressed=false;
+  if(immediate)duckFrames=0;
+}
+function isPlayerDucking(){
+  return player.grounded && duckFrames>0;
+}
+function updateDuck(){
+  if(duckPressed && player.grounded){
+    duckFrames=DUCK_TAP_FRAMES;
+  }else if(duckFrames>0){
+    duckFrames--;
+  }
 }
 
 function endGame(){
@@ -1729,34 +1841,124 @@ function endGame(){
 
 function makeObstacle(type,x,extra={}){
   const {width,height}=getObstacleDimensions(type);
-  return {type,x,y:groundY+player.height-height,width,height,passed:false,...extra};
+  const overhead=type==="cable"||type==="hook";
+  // A complete hanging barrier: jumping above the obstacle is not an exploit.
+  // Its visible hazard curtain matches the collider; ducking below y=285 works.
+  const y=overhead ? 0 : groundY+player.height-height;
+  return {type,x,y,baseY:y,width,height,passed:false,...extra};
 }
+function needsDuck(type){return type==="cable"||type==="hook";}
+function needsJump(type){return !needsDuck(type);}
+
+function announceSpecialEvent(index){
+  runnerLevelToast.textContent="⚠️ SPEZIALBAUSTELLE "+index+"!";
+  runnerLevelToast.hidden=false;
+  levelToastFrames=145;
+  setFeedback("🏗️ Kran-Baustelle!",100,"#ffdf98");
+  playSound(540,.18,"triangle");
+}
+
+function maybeSpawnRiskyPickup(waveObstacles){
+  if(getDifficultyLevel()<1||Math.random()>.34)return;
+  // Near a *low* jump obstacle. Collecting is optional, but it takes precision.
+  const target=waveObstacles.find(ob=>needsJump(ob.type)&&ob.height<=46&&!ob.moving);
+  if(!target)return;
+  pickups.push({
+    x:target.x+target.width*.55,
+    y:target.y-26, radius:12, reward:RISKY_PICKUP_REWARD, risk:true
+  });
+}
+
+// Tested movement vocabulary: jump / duck. No simultaneous jump+duck needed.
+function createComboPattern(actions,special=false){
+  const id=special?++specialCounter:0;
+  const startX=canvas.width+20;
+  let nextX=startX,last=null;
+  const created=[];
+  actions.forEach((action,index)=>{
+    let type;
+    if(action==="duck"){
+      type=special&&(index%2===1)?"hook":"cable";
+    }else{
+      type=index%2===0?"solar":"bagger";
+    }
+    const extra={
+      action,
+      pattern:id||null,
+      specialId:id||null,
+      ...((type==="hook")?{swingPhase:index*1.8}: {})
+    };
+    const ob=makeObstacle(type,nextX,extra);
+    obstacles.push(ob);
+    created.push(ob);
+    nextX+=ob.width;
+    if(index<actions.length-1){
+      // A short jump lasts ~50-55 physics ticks, a duck needs ~14-22 ticks.
+      // Extra reaction time is preserved at every game speed.
+      const reserve=action==="jump" ? (getDifficultyLevel()>=4?55:60) :
+        (getDifficultyLevel()>=4?24:29);
+      nextX+=gameSpeed*reserve+10+Math.random()*gameSpeed*6;
+    }
+    last=ob;
+  });
+  if(id)specialRemaining.set(id,created.length);
+  maybeSpawnRiskyPickup(created);
+  lastWavePattern=actions.join("-");
+  lastWaveWasCombo=true;
+  lastWaveDouble=actions.length>1;
+  return {
+    span:last.x+last.width-startX,
+    endAction:actions[actions.length-1],
+    endTall:false,
+    combo:true, moving:false, special
+  };
+}
+
 function createObstacleWave(){
   const index=getDifficultyLevel(),level=DIFFICULTY_LEVELS[index],startX=canvas.width+20;
-  if(index>=2&&!lastWaveDouble&&Math.random()<level.doubleChance){
-    // Two low obstacles can be cleared together with one held jump.
-    const firstType=Math.random()<.5?"solar":"bagger",secondType=firstType==="solar"?"bagger":"solar";
-    const first=makeObstacle(firstType,startX,{paired:true});
-    const gap=46+Math.random()*32;
-    const second=makeObstacle(secondType,startX+first.width+gap,{paired:true});
-    obstacles.push(first,second);
-    lastWavePattern=firstType+"+"+secondType;
-    lastWaveDouble=true;
-    return {span:first.width+gap+second.width,double:true,tall:false,moving:false};
+
+  if(distanceMeters>=nextSpecialAt){
+    const eventNumber=Math.floor(nextSpecialAt/SPECIAL_EVENT_EVERY_METERS);
+    nextSpecialAt+=SPECIAL_EVENT_EVERY_METERS;
+    announceSpecialEvent(eventNumber);
+    return createComboPattern(eventNumber%2===0 ?
+      ["duck","jump","duck","jump"] : ["jump","duck","jump","duck"],true);
   }
-  const choices=OBSTACLE_TYPES_BY_LEVEL[index];
-  const fresh=choices.filter(type=>type!==lastWavePattern);
-  const options=fresh.length?fresh:choices;
-  let type=options[Math.floor(Math.random()*options.length)];
-  let moving=index>=3&&Math.random()<level.movingChance;
-  if(moving&&lastWavePattern==="bagger")moving=false;
-  if(moving)type="bagger";
-  const ob=makeObstacle(type,startX,moving?{moving:true,moveSpeed:.35+Math.random()*.35}:{});
+
+  const comboProbability=lastWaveWasCombo?level.comboChance*.63:level.comboChance;
+  if(index>=1&&Math.random()<comboProbability){
+    const variants=index>=3?
+      [["jump","duck"],["duck","jump"],["jump","duck","jump"],["duck","jump","duck"]]:
+      [["jump","duck"],["duck","jump"]];
+    const choices=variants.filter(v=>v.join("-")!==lastWavePattern);
+    return createComboPattern((choices.length?choices:variants)[
+      Math.floor(Math.random()*(choices.length?choices:variants).length)]);
+  }
+
+  const options=OBSTACLE_TYPES_BY_LEVEL[index].slice();
+  if(index>=1)options.push("cable");
+  if(index>=2)options.push("hook");
+  const unique=options.filter(t=>t!==lastWavePattern);
+  let type=(unique.length?unique:options)[
+    Math.floor(Math.random()*(unique.length?unique:options).length)];
+  const moving=index>=2&&Math.random()<level.movingChance;
+  if(moving)type=index>=3&&Math.random()<.32?"hook":"bagger";
+  const extra=type==="bagger"&&moving?{moving:true,moveSpeed:1.1+Math.random()*1.3}: {};
+  if(type==="hook")extra.swingPhase=Math.random()*Math.PI*2;
+  const ob=makeObstacle(type,startX,extra);
   obstacles.push(ob);
+  maybeSpawnRiskyPickup([ob]);
   lastWavePattern=type;
+  lastWaveWasCombo=false;
   lastWaveDouble=false;
-  return {span:ob.width,tall:ob.height>=56,moving};
+  return {
+    span:ob.width,
+    endAction:needsDuck(type)?"duck":"jump",
+    endTall:ob.height>=56,
+    combo:false,moving:!!ob.moving
+  };
 }
+
 function updateLevelBadge(){
   const level=DIFFICULTY_LEVELS[currentLevel];
   runnerLevelBadge.textContent="LEVEL "+(currentLevel+1)+" · "+level.name.toUpperCase();
@@ -1785,6 +1987,10 @@ function updateJumpHold(){
 }
 
 function getPlayerHitbox(){
+  if(isPlayerDucking()){
+    return {x:player.x+5,y:groundY+player.height-DUCK_HEIGHT-1,
+      width:player.width-10,height:DUCK_HEIGHT-1};
+  }
   return {x:player.x+8,y:player.y+8,width:player.width-14,height:player.height-10};
 }
 
@@ -1810,6 +2016,7 @@ function update(){
   }else{
     player.grounded = false;
   }
+  updateDuck();
 
   distanceMeters += gameSpeed * METERS_PER_PIXEL;
   distanceUntilNextObstacle -= gameSpeed;
@@ -1832,6 +2039,11 @@ function update(){
   for(let i = obstacles.length-1; i >= 0; i--){
     const ob = obstacles[i];
     ob.x -= gameSpeed+(ob.moving?ob.moveSpeed:0);
+    if(ob.type==="hook"){
+      ob.swingPhase+=.062;
+      ob.x+=Math.sin(ob.swingPhase)*1.05;
+      ob.y=ob.baseY;
+    }
     const hit = hitbox.x < ob.x + ob.width &&
       hitbox.x + hitbox.width > ob.x &&
       hitbox.y < ob.y + ob.height &&
@@ -1857,6 +2069,16 @@ function update(){
         setFeedback("🔥 "+clearedObstacles+"er-Serie: +"+bonus+"!",90);
         playSound(800,.11);
       }
+      if(ob.specialId&&specialRemaining.has(ob.specialId)){
+        const left=specialRemaining.get(ob.specialId)-1;
+        if(left<=0){
+          specialRemaining.delete(ob.specialId);
+          bonusPoints+=SPECIAL_EVENT_REWARD;
+          eventFlashFrames=120;
+          setFeedback("🏗️ Spezialbaustelle: +"+SPECIAL_EVENT_REWARD+"!",110,"#ffe89c");
+          playSound(1040,.18,"triangle");
+        }else specialRemaining.set(ob.specialId,left);
+      }
     }
     if(ob.x + ob.width < -10) obstacles.splice(i,1);
   }
@@ -1865,8 +2087,9 @@ function update(){
     p.x -= gameSpeed;
     if(hitbox.x < p.x+p.radius && hitbox.x+hitbox.width > p.x-p.radius &&
        hitbox.y < p.y+p.radius && hitbox.y+hitbox.height > p.y-p.radius){
-      bonusPoints += POINTS_PER_PICKUP;
-      setFeedback("⚡ Blitz gesammelt: +25!", 74, "#fff1a4");
+      const reward=p.reward||POINTS_PER_PICKUP;
+      bonusPoints+=reward;
+      setFeedback(p.risk?"⚡ Risiko-Blitz: +"+reward+"!":"⚡ Blitz: +"+reward+"!",74,"#fff1a4");
       playSound(950, 0.15);
       pickups.splice(i,1);
     }else if(p.x < -30){
@@ -1884,6 +2107,7 @@ function update(){
   if(feedback && --feedback.frames <= 0) feedback = null;
   if(levelToastFrames>0&&--levelToastFrames===0)runnerLevelToast.hidden=true;
   if(recordFlashFrames>0)recordFlashFrames--;
+  if(eventFlashFrames>0)eventFlashFrames--;
   if(distanceMeters >= nextMilestone){
     setFeedback("🏁 " + nextMilestone.toLocaleString("de-CH") + " m geschafft!", 105);
     playSound(710, 0.13);
@@ -1934,6 +2158,24 @@ function drawLimb(x, y, length, angle, width = 4){
 // Einzige Spielfigur: Netzelektriker mit Helm, Warnweste und Werkzeugtasche.
 function drawSideViewRunner(){
   const x=player.x, y=player.y;
+  if(isPlayerDucking()){
+    const footY=groundY+player.height;
+    ctx.save();
+    ctx.fillStyle="#24384a";
+    ctx.fillRect(x+3,footY-8,30,7);
+    ctx.fillStyle="#ef7c23";
+    roundedRect(x+4,footY-19,27,11,5);
+    ctx.fill();
+    ctx.fillStyle="#ffe59e";
+    ctx.fillRect(x+7,footY-13,20,2);
+    ctx.fillStyle="#f1c5a0";
+    ctx.beginPath();ctx.arc(x+26,footY-18,7,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#f4c630";
+    ctx.beginPath();ctx.ellipse(x+26,footY-21,10,4,0,Math.PI,0);ctx.fill();
+    ctx.fillRect(x+19,footY-23,17,3);
+    ctx.restore();
+    return;
+  }
   const running=gameRunning && player.grounded;
   const step=running ? Math.sin(frameCount*0.32) : 0;
   const legSwing=step*0.68;
@@ -2471,7 +2713,57 @@ function drawLandscape(){
   ctx.restore();
 }
 
+
+function drawOverheadHazard(ob){
+  // Hanging worksite curtain. Entire collidable region is visibly marked,
+  // unlike an invisible full-height collider around a narrow cable.
+  const x=ob.x,y=ob.y,w=ob.width,bottom=ob.y+ob.height;
+  ctx.save();
+  ctx.fillStyle="rgba(241,121,45,.10)";
+  ctx.fillRect(x+3,y+3,w-6,Math.max(0,bottom-y-4));
+  ctx.strokeStyle="#bd642c";
+  ctx.lineWidth=3;
+  ctx.strokeRect(x+2,y+1,w-4,Math.max(0,bottom-y-2));
+  const stripes=ob.type==="hook"?4:5;
+  for(let i=0;i<stripes;i++){
+    const cx=x+8+i*(w-16)/Math.max(1,stripes-1);
+    ctx.strokeStyle=i%2===0?"#e39b2c":"#be582a";
+    ctx.lineWidth=4;
+    ctx.beginPath();
+    ctx.moveTo(cx,y+4);
+    ctx.bezierCurveTo(cx-4,y+75,cx+4,bottom-55,cx,bottom-13);
+    ctx.stroke();
+  }
+  ctx.fillStyle="#ffc043";
+  ctx.fillRect(x,bottom-25,w,13);
+  ctx.fillStyle="#2c343d";
+  for(let z=0;z<w;z+=18){
+    ctx.beginPath();
+    ctx.moveTo(x+z,bottom-25);
+    ctx.lineTo(x+Math.min(w,z+9),bottom-25);
+    ctx.lineTo(x+z,bottom-12);
+    ctx.closePath();ctx.fill();
+  }
+  ctx.strokeStyle="#2b3c49";ctx.lineWidth=3;
+  ctx.strokeRect(x,bottom-25,w,13);
+  if(ob.type==="hook"){
+    const hx=x+w*.5;
+    ctx.strokeStyle="#3e5565";ctx.lineWidth=5;
+    ctx.beginPath();ctx.moveTo(hx,y+14);ctx.lineTo(hx,bottom-47);ctx.stroke();
+    ctx.fillStyle="#d58e2e";
+    ctx.beginPath();ctx.arc(hx,bottom-41,9,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle="#364958";ctx.lineWidth=5;
+    ctx.beginPath();ctx.arc(hx,bottom-38,12,-Math.PI*.12,Math.PI*.75);ctx.stroke();
+    ctx.fillStyle="#e9f0f5";ctx.font="bold 14px system-ui";
+    ctx.fillText("!",hx-3,bottom-16);
+  }
+  ctx.restore();
+}
 function drawObstacle(ob){
+  if(ob.type==="cable"||ob.type==="hook"){
+    drawOverheadHazard(ob);
+    return;
+  }
   if(ob.type === "wind"){
     drawWindTurbine(ob);
     return;
@@ -2506,8 +2798,16 @@ function drawCollectibles(){
     ctx.save();
     ctx.translate(p.x,p.y);
     ctx.scale(pulse,pulse);
-    ctx.shadowColor="#ffc52c";ctx.shadowBlur=15;
-    ctx.fillStyle="#ffc52c";
+    ctx.shadowColor=p.risk?"#f97316":"#ffc52c";
+    ctx.shadowBlur=reducedMobileEffects.matches?0:15;
+    if(p.risk){
+      ctx.strokeStyle="#f97316";
+      ctx.lineWidth=2.5;
+      ctx.beginPath();
+      ctx.arc(0,0,17,0,Math.PI*2);
+      ctx.stroke();
+    }
+    ctx.fillStyle=p.risk?"#ff9f32":"#ffc52c";
     ctx.beginPath();
     ctx.moveTo(-1,-14);ctx.lineTo(9,-14);ctx.lineTo(2,-2);
     ctx.lineTo(10,-2);ctx.lineTo(-8,15);ctx.lineTo(-3,2);
@@ -2554,10 +2854,10 @@ function draw(){
   }
   drawPlayer();
   drawDust();
-  if(recordFlashFrames>0){
-    // Kleiner visuell erkennbarer Rekord-Effekt ohne zusätzliche Partikelobjekte.
+  if(recordFlashFrames>0||eventFlashFrames>0){
+    // Kleiner visueller Effekt ohne zusätzliche Partikelobjekte.
     ctx.save();
-    const fade=recordFlashFrames/120;
+    const fade=Math.max(recordFlashFrames,eventFlashFrames)/120;
     for(let i=0;i<(reducedMobileEffects.matches?6:12);i++){
       const x=120+(i*79)%780,y=28+Math.sin(frameCount*.09+i*1.4)*14;
       ctx.fillStyle="rgba(255,217,87,"+(fade*.52)+")";
@@ -2602,62 +2902,49 @@ function loop(timestamp = performance.now()){
   }
 }
 
-document.addEventListener("keydown", (e) => {
-  if(e.code === "Space" || e.code === "ArrowUp"){
+document.addEventListener("keydown",(e)=>{
+  if(e.code==="Space"||e.code==="ArrowUp"){
     e.preventDefault();
-
-    if(!gameRunning && startOverlay.classList.contains("hidden") && !gameOverOverlay.classList.contains("hidden")){
-      return;
-    }
-
     if(!startOverlay.classList.contains("hidden")){
-      startGame();
+      if(!e.repeat)startGame();
       return;
     }
-
-    if(!e.repeat){
-      beginJump();
-    }
+    if(!e.repeat)beginJump();
+  }else if(e.code==="ArrowDown"||e.code==="KeyS"){
+    e.preventDefault();
+    if(!e.repeat)beginDuck();
   }
 });
-
-document.addEventListener("keyup", (e) => {
-  if(e.code === "Space" || e.code === "ArrowUp"){
-    releaseJump();
-  }
+document.addEventListener("keyup",(e)=>{
+  if(e.code==="Space"||e.code==="ArrowUp")releaseJump();
+  if(e.code==="ArrowDown"||e.code==="KeyS")releaseDuck();
 });
 
-canvas.addEventListener("mousedown", () => {
-  if(!startOverlay.classList.contains("hidden")){
-    startGame();
-    return;
-  }
-
-  if(gameRunning){
-    beginJump();
-  }
+// Pointer-Events verhindern doppelte Mouse- und Touch-Auslösung.
+// Auf Touchscreens ist links Ducken, rechts Springen; Maus bleibt Springen.
+const activeCanvasPointers=new Map();
+canvas.addEventListener("pointerdown",(e)=>{
+  if(e.pointerType==="touch"||e.pointerType==="pen")e.preventDefault();
+  if(!startOverlay.classList.contains("hidden")){startGame();return;}
+  if(!gameRunning)return;
+  const rect=canvas.getBoundingClientRect();
+  const touch=e.pointerType==="touch"||e.pointerType==="pen";
+  const action=touch&&e.clientX-rect.left<rect.width*.5?"duck":"jump";
+  activeCanvasPointers.set(e.pointerId,action);
+  try{canvas.setPointerCapture(e.pointerId);}catch(_){}
+  if(action==="duck")beginDuck();
+  else beginJump();
 });
-
-canvas.addEventListener("mouseup", releaseJump);
-canvas.addEventListener("mouseleave", releaseJump);
-
-canvas.addEventListener("touchstart", (e) => {
-  e.preventDefault();
-
-  if(!startOverlay.classList.contains("hidden")){
-    startGame();
-    return;
-  }
-
-  if(gameRunning){
-    beginJump();
-  }
-}, { passive:false });
-
-canvas.addEventListener("touchend", (e) => {
-  e.preventDefault();
-  releaseJump();
-}, { passive:false });
+function endCanvasPointer(e){
+  const action=activeCanvasPointers.get(e.pointerId);
+  if(!action)return;
+  activeCanvasPointers.delete(e.pointerId);
+  if(action==="duck")releaseDuck();
+  else releaseJump();
+}
+canvas.addEventListener("pointerup",endCanvasPointer);
+canvas.addEventListener("pointercancel",endCanvasPointer);
+canvas.addEventListener("lostpointercapture",endCanvasPointer);
 
 fullscreenBtn.addEventListener("click", enterFullscreen);
 exitFullscreenBtn.addEventListener("click", exitFullscreen);
