@@ -404,9 +404,9 @@ canvas{
   fill:white;
 }
 
-.game-wrap:fullscreen .fs-btn,
-.game-wrap:-webkit-full-screen .fs-btn,
-.game-wrap:-ms-fullscreen .fs-btn{
+.canvas-wrap:fullscreen .fs-btn,
+.canvas-wrap:-webkit-full-screen .fs-btn,
+.canvas-wrap:-ms-fullscreen .fs-btn{
   display:flex;
 }
 
@@ -848,6 +848,102 @@ canvas{
   .runner-level-toast{font-size:12px;padding:6px 10px;top:8px;max-width:calc(100% - 78px);white-space:normal;text-align:center}
   .runner-music-toggle{backdrop-filter:none;-webkit-backdrop-filter:none}
 }
+
+/* Vollbild zeigt ausschliesslich das Spielfeld. Die 1000:320-Zeichenfläche
+   bleibt vollständig und unverzerrt – auch auf schmalen Telefonen. */
+.canvas-wrap:fullscreen,
+.canvas-wrap:-webkit-full-screen,
+.canvas-wrap:-ms-fullscreen{
+  box-sizing:border-box;
+  display:flex!important;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  width:100vw!important;
+  max-width:none!important;
+  height:100vh!important;
+  height:100dvh!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  overflow:hidden;
+  background:#102a43;
+}
+.canvas-wrap:fullscreen canvas,
+.canvas-wrap:-webkit-full-screen canvas,
+.canvas-wrap:-ms-fullscreen canvas{
+  box-sizing:border-box;
+  display:block;
+  flex:0 1 auto;
+  width:min(100vw,calc(100vh * 3.125))!important;
+  width:min(100vw,calc(100dvh * 3.125))!important;
+  max-width:100%!important;
+  height:auto!important;
+  max-height:100%!important;
+  min-height:0!important;
+  aspect-ratio:1000 / 320!important;
+  object-fit:contain;
+  touch-action:none;
+}
+.canvas-wrap:fullscreen .overlay,
+.canvas-wrap:-webkit-full-screen .overlay,
+.canvas-wrap:-ms-fullscreen .overlay{
+  align-items:center;
+  justify-content:center;
+  overflow:auto;
+}
+.canvas-wrap:fullscreen .overlay-box,
+.canvas-wrap:-webkit-full-screen .overlay-box,
+.canvas-wrap:-ms-fullscreen .overlay-box{
+  width:min(420px,calc(100vw - 24px));
+  max-width:calc(100% - 16px);
+  max-height:min(86dvh,calc(100% - 24px));
+  margin:0;
+}
+.canvas-wrap:fullscreen .exit-fullscreen-btn,
+.canvas-wrap:-webkit-full-screen .exit-fullscreen-btn,
+.canvas-wrap:-ms-fullscreen .exit-fullscreen-btn{
+  display:flex;
+  position:absolute;
+  top:max(8px,env(safe-area-inset-top));
+  right:max(8px,env(safe-area-inset-right));
+  bottom:auto;
+  transform:none;
+  z-index:25;
+}
+.canvas-wrap:fullscreen .exit-fullscreen-btn:hover,
+.canvas-wrap:-webkit-full-screen .exit-fullscreen-btn:hover,
+.canvas-wrap:-ms-fullscreen .exit-fullscreen-btn:hover{transform:none}
+.canvas-wrap:fullscreen .runner-music-toggle,
+.canvas-wrap:-webkit-full-screen .runner-music-toggle,
+.canvas-wrap:-ms-fullscreen .runner-music-toggle{
+  top:max(8px,env(safe-area-inset-top));
+  left:max(8px,env(safe-area-inset-left));
+  right:auto;
+}
+.runner-rotate-hint{display:none}
+@media (orientation:portrait){
+  .canvas-wrap:fullscreen .runner-rotate-hint,
+  .canvas-wrap:-webkit-full-screen .runner-rotate-hint,
+  .canvas-wrap:-ms-fullscreen .runner-rotate-hint{
+    display:block;
+    position:absolute;
+    left:50%;
+    bottom:max(28px,env(safe-area-inset-bottom));
+    transform:translateX(-50%);
+    width:min(310px,calc(100% - 32px));
+    margin:0;
+    text-align:center;
+    padding:10px 13px;
+    border-radius:12px;
+    background:rgba(17,55,81,.90);
+    color:#e7f3fc;
+    font:700 13px/1.45 system-ui,sans-serif;
+    pointer-events:none;
+  }
+}
 </style>
 </head>
 <body class="auth-loading">
@@ -869,6 +965,7 @@ canvas{
 
     <div class="canvas-wrap">
       <canvas id="gameCanvas" width="1000" height="320"></canvas>
+      <p class="runner-rotate-hint" aria-hidden="true">↻ Für ein grösseres Spielfeld das Smartphone quer halten.</p>
       <div class="runner-level-toast" id="runnerLevelToast" role="status" aria-live="polite" hidden></div>
       <button type="button" id="musicToggle" class="runner-music-toggle" aria-label="Musik stummschalten" aria-pressed="false" title="Musik stummschalten">🎵 <span>Musik</span></button>
 
@@ -1396,25 +1493,25 @@ async function resetRankingAsMaster(){
   }
 }
 
+let runnerLandscapeWasLocked = false;
 async function lockLandscapeOnMobile(){
-  if(!window.matchMedia("(max-width: 700px)").matches){
-    return;
-  }
-
-  const orientation = screen.orientation;
-  if(!orientation || typeof orientation.lock !== "function"){
-    return;
-  }
-
+  // Nach Fullscreen kann die Viewportbreite bereits > 700px sein.
+  if(!window.matchMedia("(max-width:700px), (pointer:coarse)").matches) return;
+  const orientation=screen.orientation;
+  if(!orientation || typeof orientation.lock!=="function")return;
   try{
     await orientation.lock("landscape");
+    runnerLandscapeWasLocked=true;
   }catch(error){
-    console.warn("Landscape-Lock nicht möglich:", error);
+    // Beispielsweise Safari: Querformat ist optional, das Canvas passt dennoch.
+    console.info("Querformat-Sperre nicht verfügbar:",error);
   }
 }
 
 async function enterFullscreen(){
-  const element = gameWrap;
+  // Nur der Spielbereich darf Vollbild werden, nicht die gesamte Seite
+  // mit Kopfzeile, Bestenliste und den Score-Kacheln.
+  const element = document.querySelector("#gameWrap .canvas-wrap");
   const request =
     element.requestFullscreen ||
     element.webkitRequestFullscreen ||
@@ -1452,6 +1549,12 @@ function updateFullscreenButtons(){
     document.msFullscreenElement
   );
 
+  if(!isFs && runnerLandscapeWasLocked){
+    try{screen.orientation?.unlock?.();}catch(error){
+      console.info("Orientierung zurücksetzen nicht möglich:",error);
+    }
+    runnerLandscapeWasLocked=false;
+  }
   if(isFs){
     fullscreenBtn.classList.add("hidden");
     exitFullscreenBtn.classList.remove("hidden");
