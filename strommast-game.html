@@ -1037,13 +1037,14 @@ canvas{
     </header>
 
     <section class="desktop-game-intro" aria-label="Spielbeschreibung">
-      <div class="desktop-game-eyebrow"><span class="desktop-game-dot" aria-hidden="true"></span>DAS NETZELEKTRIKER-ARCADE-SPIEL</div>
+      <div class="desktop-game-eyebrow"><span class="desktop-game-dot" aria-hidden="true"></span>DAS NETZELEKTRIKER-ARCADE-SPIEL <span class="runner-level-badge" id="runnerLevelBadge">LEVEL 1 · ANFÄNGER</span></div>
       <h1>Mast Runner<span>.</span></h1>
       <p>Laufe mit unserem Netzelektriker, sammle Blitze und knacke die Top 10.</p>
     </section>
 
     <div class="canvas-wrap">
       <canvas id="gameCanvas" width="1000" height="320"></canvas>
+      <div class="runner-level-toast" id="runnerLevelToast" role="status" aria-live="polite" hidden></div>
       <button type="button" id="musicToggle" class="runner-music-toggle" aria-label="Musik stummschalten" aria-pressed="false" title="Musik stummschalten">🎵 <span>Musik</span></button>
 
       <div id="startOverlay" class="overlay">
@@ -1105,7 +1106,7 @@ canvas{
           </div>
           <div class="tip-card">
             <strong>Ziel</strong>
-            <span>Distanz und Hindernisse zählen. Sammle Blitze und knacke die Top&nbsp;10.</span>
+            <span>Fünf Levels mit mehr Tempo, Doppelhindernissen und fahrenden Baggern. Sammle Blitze und knacke die Top&nbsp;10.</span>
           </div>
         </div>
       </section>
@@ -1153,24 +1154,34 @@ const gameOverOverlay = document.getElementById("gameOverOverlay");
 const saveStatusEl = document.getElementById("saveStatus");
 const newGameButton = document.getElementById("newGameButton");
 const liveRankingList = document.getElementById("liveRankingList");
+const runnerLevelBadge=document.getElementById("runnerLevelBadge");
+const runnerLevelToast=document.getElementById("runnerLevelToast");
 
 let animationId = null;
 let gameRunning = false;
 const FRAME_DURATION = 1000 / 60;
 const MAX_UPDATES_PER_FRAME = 5;
 const BASE_GAME_SPEED = 3.9;
-const MAX_GAME_SPEED = 7.3;
+const MAX_GAME_SPEED = 8.6;
 const METERS_PER_PIXEL = 0.1;
 const POINTS_PER_OBSTACLE = 10;
 const POINTS_PER_PICKUP = 25;
 const BASE_GRAVITY = 0.47;
-const SPAWN_DISTANCE_MIN = 350;
-const SPAWN_DISTANCE_MAX = 715;
-const SPAWN_DISTANCE_SHRINK_RATE = 0.035;
-const SAFE_OBSTACLE_CLEARANCE_MIN = 150;
-const SAFE_OBSTACLE_CLEARANCE_SPEED_FACTOR = 24;
-const SAFE_OBSTACLE_CLEARANCE_SPEED_CURVE = 10;
 const DAY_NIGHT_CYCLE_METERS = 2600;
+const DIFFICULTY_LEVELS=[
+  {from:0,name:"Anfänger",speed:3.9,minGap:420,maxGap:720,doubleChance:0,movingChance:0},
+  {from:500,name:"Fortgeschritten",speed:4.8,minGap:365,maxGap:655,doubleChance:0,movingChance:0},
+  {from:1200,name:"Profi",speed:5.85,minGap:305,maxGap:590,doubleChance:.16,movingChance:0},
+  {from:2200,name:"Experte",speed:6.95,minGap:290,maxGap:565,doubleChance:.25,movingChance:.13},
+  {from:3500,name:"Elite",speed:8.0,minGap:275,maxGap:530,doubleChance:.34,movingChance:.23}
+];
+const OBSTACLE_TYPES_BY_LEVEL=[
+  ["solar","tree"],
+  ["solar","tree","mast","house"],
+  ["solar","tree","mast","house","bagger","wind"],
+  ["solar","tree","mast","house","bagger","wind"],
+  ["solar","tree","mast","house","bagger","wind"]
+];
 let gameSpeed = BASE_GAME_SPEED;
 let gravity = BASE_GRAVITY;
 let score = 0;
@@ -1183,6 +1194,10 @@ let pickups = [];
 let dustParticles = [];
 let feedback = null;
 let gamePaused = false;
+let currentLevel=0;
+let levelToastFrames=0;
+let newRecordCelebrated=false;
+let recordFlashFrames=0;
 // Ton ist dauerhaft eingeschaltet; keine gespeicherte Stummschaltung.
 let audioContext = null;
 let frameCount = 0;
@@ -1263,44 +1278,36 @@ function getObstacleDimensions(type){
   return { width, height };
 }
 
-function getMinimumObstacleDistance(previousObstacle){
-  if(!previousObstacle){
-    return 0;
+function getDifficultyLevel(distance=distanceMeters){
+  for(let i=DIFFICULTY_LEVELS.length-1;i>=0;i--){
+    if(distance>=DIFFICULTY_LEVELS[i].from)return i;
   }
-
-  const extraSpeed = Math.max(0, gameSpeed - BASE_GAME_SPEED);
-  const speedBuffer = extraSpeed * SAFE_OBSTACLE_CLEARANCE_SPEED_FACTOR;
-  const speedCurveBuffer = extraSpeed * extraSpeed * SAFE_OBSTACLE_CLEARANCE_SPEED_CURVE;
-  const sizeBuffer = Math.max(previousObstacle.width - 34, 0) * 0.55;
-  // Sprungreserve erlaubt anspruchsvolle, aber fair spielbare Passagen.
-  const jumpFlightBuffer = previousObstacle.width + gameSpeed * 68 + 40;
-  return Math.max(
-    previousObstacle.width + SAFE_OBSTACLE_CLEARANCE_MIN + speedBuffer + speedCurveBuffer + sizeBuffer,
-    jumpFlightBuffer
-  );
+  return 0;
 }
-
-function getNextObstacleDistance(previousObstacle = null){
-  const difficulty = Math.min(1, distanceMeters / 4500);
-  const shrink = Math.min(155, frameCount * SPAWN_DISTANCE_SHRINK_RATE);
-  const safeMin = getMinimumObstacleDistance(previousObstacle);
-  const minimum = Math.max(safeMin, Math.max(245, SPAWN_DISTANCE_MIN - shrink));
-  const spread = Math.max(150, SPAWN_DISTANCE_MAX - SPAWN_DISTANCE_MIN - shrink * .8);
-  const roll = Math.random();
-
-  // Das erste Hindernis muss gut sichtbar sein.
-  if(!previousObstacle) return 450 + Math.random() * 150;
-
-  if(roll < .10 + .24 * difficulty){
-    // Mit steigendem Level entstehen häufiger kurze Hindernis-Serien.
-    return minimum + 18 + Math.random() * Math.min(95, spread * .36);
-  }
-  if(roll > .87){
-    // Gelegentliche Erholungspause, damit der Rhythmus nicht monoton ist.
-    return minimum + spread * (.65 + Math.random() * .45);
-  }
-  return minimum + 65 + Math.pow(Math.random(), 1 + difficulty * .8) *
-    Math.max(80, spread - 65);
+function getTargetGameSpeed(distance=distanceMeters){
+  const i=getDifficultyLevel(distance),current=DIFFICULTY_LEVELS[i],next=DIFFICULTY_LEVELS[i+1];
+  if(!next)return Math.min(MAX_GAME_SPEED,current.speed+(distance-current.from)/4500);
+  const t=Math.min(1,Math.max(0,(distance-current.from)/(next.from-current.from)));
+  return current.speed+(next.speed-current.speed)*t;
+}
+// Gap is spawn-to-spawn. Always reserve a full landing and reaction window.
+function getMinimumObstacleDistance(previousWave){
+  if(!previousWave)return 0;
+  const width=previousWave.span||previousWave.width||44;
+  const flightFrames=previousWave.double?70:previousWave.tall?66:58;
+  const movingBuffer=previousWave.moving?68:0;
+  return width+gameSpeed*(flightFrames+6)+30+movingBuffer;
+}
+function getNextObstacleDistance(previousWave=null){
+  if(!previousWave)return 460+Math.random()*155;
+  const levelIndex=getDifficultyLevel(),level=DIFFICULTY_LEVELS[levelIndex];
+  const minimum=Math.max(level.minGap,getMinimumObstacleDistance(previousWave));
+  const maximum=Math.max(minimum+105,level.maxGap);
+  const range=maximum-minimum,roll=Math.random();
+  if(roll<[.07,.14,.29,.36,.45][levelIndex])
+    return minimum+10+Math.random()*Math.min(85,range*.48);
+  if(roll>.88)return maximum+Math.random()*110;
+  return minimum+Math.pow(Math.random(),1.4+levelIndex*.1)*range;
 }
 
 function setFeedback(message, frames = 75, color = "#fff1a4"){
@@ -1658,13 +1665,19 @@ function resetGameState(){
   distanceMeters = 0;
   clearedObstacles = 0;
   bonusPoints = 0;
-  nextMilestone = 250;
+  nextMilestone = 500;
   pickupDistance = 850;
   pickups = [];
   dustParticles = [];
   feedback = null;
   frameCount = 0;
-  distanceUntilNextObstacle = getNextObstacleDistance();
+  currentLevel=0;
+  levelToastFrames=0;
+  recordFlashFrames=0;
+  newRecordCelebrated=false;
+  runnerLevelToast.hidden=true;
+  updateLevelBadge();
+  distanceUntilNextObstacle=getNextObstacleDistance();
   obstacles = [];
   gameOverSaved = false;
   lastFrameTime = 0;
@@ -1700,6 +1713,12 @@ function showStartScreen(){
   dustParticles = [];
   frameCount = 0;
   distanceMeters = 0;
+  currentLevel=0;
+  levelToastFrames=0;
+  recordFlashFrames=0;
+  newRecordCelebrated=false;
+  runnerLevelToast.hidden=true;
+  updateLevelBadge();
   clearedObstacles = 0;
   bonusPoints = 0;
   distanceUntilNextObstacle = getNextObstacleDistance();
@@ -1783,27 +1802,47 @@ function endGame(){
   }
 }
 
-function createObstacle(){
-  const unlockedTypes = Math.min(obstacleTypes.length, 1 + Math.floor(frameCount / 1000));
-  const type = obstacleTypes[Math.floor(Math.random() * unlockedTypes)];
-  const { width, height } = getObstacleDimensions(type);
-
-  const obstacle = {
-    type,
-    x: canvas.width + 20,
-    y: groundY + player.height - height,
-    width,
-    height
-  };
-
-  obstacles.push(obstacle);
-  return obstacle;
+function makeObstacle(type,x,extra={}){
+  const {width,height}=getObstacleDimensions(type);
+  return {type,x,y:groundY+player.height-height,width,height,passed:false,...extra};
 }
-
+function createObstacleWave(){
+  const index=getDifficultyLevel(),level=DIFFICULTY_LEVELS[index],startX=canvas.width+20;
+  if(index>=2&&Math.random()<level.doubleChance){
+    // Two low obstacles can be cleared together with one held jump.
+    const firstType=Math.random()<.5?"solar":"bagger",secondType=firstType==="solar"?"bagger":"solar";
+    const first=makeObstacle(firstType,startX,{paired:true});
+    const gap=46+Math.random()*32;
+    const second=makeObstacle(secondType,startX+first.width+gap,{paired:true});
+    obstacles.push(first,second);
+    return {span:first.width+gap+second.width,double:true,tall:false,moving:false};
+  }
+  const choices=OBSTACLE_TYPES_BY_LEVEL[index];
+  let type=choices[Math.floor(Math.random()*choices.length)];
+  const moving=index>=3&&Math.random()<level.movingChance;
+  if(moving)type="bagger";
+  const ob=makeObstacle(type,startX,moving?{moving:true,moveSpeed:.35+Math.random()*.35}:{});
+  obstacles.push(ob);
+  return {span:ob.width,tall:ob.height>=56,moving};
+}
+function updateLevelBadge(){
+  const level=DIFFICULTY_LEVELS[currentLevel];
+  runnerLevelBadge.textContent="LEVEL "+(currentLevel+1)+" · "+level.name.toUpperCase();
+  runnerLevelBadge.dataset.level=String(currentLevel+1);
+}
 function updateDifficulty(){
   frameCount++;
-  // Keine steigende Schwerkraft: jeder Sprung bleibt zuverlässig berechenbar.
-  if(frameCount % 570 === 0) gameSpeed = Math.min(MAX_GAME_SPEED, gameSpeed + 0.15);
+  gameSpeed=Math.min(MAX_GAME_SPEED,getTargetGameSpeed());
+  const level=getDifficultyLevel();
+  if(level!==currentLevel){
+    currentLevel=level;
+    updateLevelBadge();
+    runnerLevelToast.textContent="LEVEL "+(currentLevel+1)+" · "+DIFFICULTY_LEVELS[currentLevel].name.toUpperCase()+"!";
+    runnerLevelToast.hidden=false;
+    levelToastFrames=145;
+    setFeedback("⚡ Level "+(currentLevel+1)+"!",105,"#fff4a3");
+    playSound(790,.15,"triangle");
+  }
 }
 
 function updateJumpHold(){
@@ -1844,8 +1883,8 @@ function update(){
   distanceUntilNextObstacle -= gameSpeed;
   pickupDistance -= gameSpeed;
   if(distanceUntilNextObstacle <= 0){
-    const created = createObstacle();
-    distanceUntilNextObstacle = getNextObstacleDistance(created);
+    const created=createObstacleWave();
+    distanceUntilNextObstacle=getNextObstacleDistance(created);
   }
   if(pickupDistance <= 0){
     // Keine Blitze direkt in hohen Hindernissen platzieren.
@@ -1860,7 +1899,7 @@ function update(){
   const hitbox = getPlayerHitbox();
   for(let i = obstacles.length-1; i >= 0; i--){
     const ob = obstacles[i];
-    ob.x -= gameSpeed;
+    ob.x -= gameSpeed+(ob.moving?ob.moveSpeed:0);
     const hit = hitbox.x < ob.x + ob.width &&
       hitbox.x + hitbox.width > ob.x &&
       hitbox.y < ob.y + ob.height &&
@@ -1880,10 +1919,11 @@ function update(){
       }else{
         setFeedback("+10 Hindernis!", 38);
       }
-      if(clearedObstacles % 5 === 0){
-        bonusPoints += 25;
-        setFeedback("🔥 5er-Serie: +25!", 85);
-        playSound(800, 0.11);
+      if(clearedObstacles%5===0){
+        const bonus=clearedObstacles%20===0?100:clearedObstacles%10===0?50:25;
+        bonusPoints+=bonus;
+        setFeedback("🔥 "+clearedObstacles+"er-Serie: +"+bonus+"!",90);
+        playSound(800,.11);
       }
     }
     if(ob.x + ob.width < -10) obstacles.splice(i,1);
@@ -1910,12 +1950,20 @@ function update(){
     if(p.life <= 0) dustParticles.splice(i,1);
   }
   if(feedback && --feedback.frames <= 0) feedback = null;
+  if(levelToastFrames>0&&--levelToastFrames===0)runnerLevelToast.hidden=true;
+  if(recordFlashFrames>0)recordFlashFrames--;
   if(distanceMeters >= nextMilestone){
     setFeedback("🏁 " + nextMilestone.toLocaleString("de-CH") + " m geschafft!", 105);
     playSound(710, 0.13);
-    nextMilestone += nextMilestone < 1000 ? 250 : 500;
+    nextMilestone += 500;
   }
   updateScore();
+  if(!newRecordCelebrated&&bestScore>=100&&score>bestScore){
+    newRecordCelebrated=true;
+    recordFlashFrames=120;
+    setFeedback("🏆 NEUER REKORD!",110,"#fff0a6");
+    playSound(950,.16,"triangle");
+  }
 }
 
 function drawGround(){
