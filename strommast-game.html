@@ -755,6 +755,8 @@ canvas{
     background:#dbe9f7;border:0;border-radius:0;box-shadow:none;overflow:hidden
   }
   .mr-game-slot .topbar,
+  .mr-game-slot .desktop-game-intro,
+  .mr-game-slot .runner-scoreboard,
   .mr-game-slot .game-dashboard{display:none}
   .mr-game-slot .canvas-wrap{display:flex;width:100%;height:100%;align-items:stretch;overflow:hidden}
   .mr-game-slot canvas{width:100%;height:100%;min-height:0;max-width:100%;aspect-ratio:auto}
@@ -793,8 +795,6 @@ canvas{
 
 
 /* Mast Runner 2.0: HUD, mobile Steuerung und Hauptadministrator-Aktion */
-.runner-hud{position:absolute;left:12px;top:10px;z-index:7;pointer-events:none;display:flex;gap:7px;flex-wrap:wrap;max-width:calc(100% - 130px)}
-.runner-hud span{background:rgba(9,35,56,.83);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:9px;padding:6px 10px;font:800 13px/1.2 system-ui,sans-serif;font-variant-numeric:tabular-nums;box-shadow:0 3px 10px rgba(0,0,0,.09)}
 .runner-tools{position:absolute;right:10px;top:9px;z-index:9;display:flex;gap:6px}
 .runner-tools button{background:rgba(13,50,76,.88);color:#fff;box-shadow:none;border:1px solid rgba(255,255,255,.3);width:34px;height:34px;padding:0;border-radius:10px;font-size:18px}
 .runner-tools button[hidden],.mr-admin-reset[hidden],.runner-new-record[hidden]{display:none!important}
@@ -809,13 +809,63 @@ canvas{
   .mr-stat-value{font-size:clamp(16px,5vw,26px)}
   .mr-pick .mr-section-head{align-items:center}
   .mr-scene-figure{background:#f0f8fc}
-  .runner-hud{left:6px;top:6px;gap:4px;max-width:calc(100% - 90px)}
-  .runner-hud span{font-size:10px;padding:5px 6px}
   .runner-tools{right:6px;top:5px;gap:3px}
   .runner-tools button{width:30px;height:30px;font-size:15px}
   #mrMobileLanding .mr-admin-reset{width:100%;margin:0 0 16px}
 }
 @media(prefers-reduced-motion:reduce){.runner-tools button{transition:none}}
+
+/* Desktop folgt der mobilen Mast-Runner-Optik: Spiel frei von Punktanzeigen,
+   gemeinsame Statistik direkt unter dem Spielfeld. */
+@media (min-width:701px){
+  body{background:radial-gradient(circle at 15% 5%,#edf5fb 0%,#e5edf6 55%,#dae6f0 100%)}
+  .game-wrap{width:min(1180px,100%);border:1px solid #dce5ed;border-radius:24px;box-shadow:0 20px 52px rgba(13,42,66,.14)}
+  .topbar{align-items:center;background:#102a43;border-bottom:1px solid rgba(255,255,255,.07);padding:18px 26px;flex-wrap:nowrap}
+  .topbar-left{align-items:center;gap:14px;flex-wrap:nowrap}
+  .desktop-brand-mark{flex:none;width:52px;height:52px;display:grid;place-items:center;background:rgba(138,199,249,.14);color:#a8dcfa;border:1px solid rgba(174,219,255,.17);border-radius:16px}
+  .desktop-brand-mark svg{width:31px;height:31px}
+  .desktop-brand-text span{display:block;color:#acc8d9;font-size:12px;font-weight:800;letter-spacing:.14em;margin-bottom:5px}
+  .desktop-brand-text strong{display:block;color:#fff;font-size:23px;letter-spacing:-.04em}
+  .desktop-back-button{background:rgba(255,255,255,.09);color:#fff;border:1px solid rgba(255,255,255,.15);box-shadow:none;font-size:15px;border-radius:14px;padding:13px 19px}
+  .desktop-back-button:hover{background:rgba(255,255,255,.16);box-shadow:none}
+  .desktop-game-intro{background:linear-gradient(120deg,#102a43,#16415c);color:#fff;padding:25px 30px 27px}
+  .desktop-game-eyebrow{display:flex;align-items:center;gap:10px;font-size:12px;letter-spacing:.14em;font-weight:800;color:#b6dfef}
+  .desktop-game-dot{width:8px;height:8px;flex:none;background:#79dcb5;border-radius:50%;box-shadow:0 0 0 4px rgba(121,220,181,.11)}
+  .desktop-game-intro h1{font-size:clamp(32px,4vw,46px);letter-spacing:-.06em;color:#fff;margin:12px 0 6px}
+  .desktop-game-intro h1 span{color:#69bcef}
+  .desktop-game-intro p{margin:0;font-size:16px;color:#bfd4e3;line-height:1.5}
+  .runner-scoreboard{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding:0 24px 20px;background:#f4f7fa}
+  .runner-stat{min-width:0;background:#fff;border:1px solid #e1e8ef;border-top:0;border-radius:0 0 20px 20px;text-align:center;padding:18px 16px 19px}
+  .runner-stat-label{font-size:13px;letter-spacing:.07em;text-transform:uppercase;font-weight:800;color:#708492}
+  .runner-stat-label span{color:#2884c6;margin-right:7px}
+  .runner-stat-value{display:block;margin-top:8px;font-size:clamp(25px,3vw,36px);font-weight:850;line-height:1.1;letter-spacing:-.05em;color:#132c42;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+  .game-dashboard{display:flex;flex-direction:column;gap:16px;padding:0 24px 26px;background:#f4f7fa}
+  .game-dashboard .dashboard-panel{border:1px solid #e3ebf0;border-radius:22px;background:#fff;box-shadow:0 12px 28px rgba(14,42,65,.06);padding:24px}
+  .desktop-ranking-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .desktop-ranking-heading h2{font-size:25px;letter-spacing:-.04em;color:#132c42;margin:0}
+  .desktop-ranking-heading>span{background:#edf6fb;border:1px solid #dfedf7;color:#3c7197;padding:8px 13px;border-radius:100px;font-size:12px;font-weight:800;white-space:nowrap}
+  .game-dashboard .desktop-ranking-subtitle{margin:8px 0 18px;color:#768898;font-size:14px}
+  .live-ranking ol{list-style:none;counter-reset:rank;padding:0;margin:0}
+  .live-ranking li{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;counter-increment:rank;border-top:1px solid #eef2f5;padding:15px 0;line-height:1.5;color:#627b8f}
+  .live-ranking li::before{content:counter(rank);width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:10px;background:#edf3f7;color:#627d95;font-size:14px;font-weight:800}
+  .live-ranking li:first-child::before{background:#fff1d5;color:#ad7922}
+  .live-ranking li:nth-child(2)::before{background:#eef3f8;color:#8194a7}
+  .live-ranking li:nth-child(3)::before{background:#fff0e7;color:#ad7349}
+  .live-ranking li strong{color:#132c42;font-size:15px;min-width:160px}
+  .game-dashboard .desktop-howto{background:transparent;border:0;box-shadow:none;padding:0}
+  .desktop-howto .control-tips{margin:0;gap:16px}
+  .desktop-howto .tip-card{border:1px solid #e3ebf0;border-radius:18px;padding:18px 20px;color:#617a8c;font-size:14px;line-height:1.5;background:#fff}
+  .desktop-howto .tip-card strong{color:#204b6a;font-size:15px;margin-bottom:7px}
+  .app-footer{max-width:1180px}
+}
+@media (min-width:701px) and (max-width:850px){
+  .topbar{padding:15px 20px}
+  .desktop-game-intro{padding:20px}
+  .runner-scoreboard{gap:10px;padding:0 15px 15px}
+  .runner-stat{padding:15px 10px}
+  .game-dashboard{padding:0 15px 20px}
+  .live-ranking li strong{min-width:0}
+}
 </style>
 </head>
 <body class="auth-loading">
@@ -872,22 +922,22 @@ canvas{
   </div>
 
   <div class="game-wrap" id="gameWrap">
-    <div class="topbar">
+    <header class="topbar">
       <div class="topbar-left">
-        <h1>Mast Runner</h1>
-        <button type="button" onclick="window.location.href='home.html'">Zurück</button>
+        <div class="desktop-brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M16 3 8 29M16 3l8 26M11 12h10M8 21h16M11 12l12 9M21 12 9 21M5 29h22"/></svg></div>
+        <div class="desktop-brand-text"><span>NETZBAU TAFERS</span><strong>Mast Runner</strong></div>
       </div>
+      <button class="desktop-back-button" type="button" onclick="window.location.href='home.html'">← Zurück</button>
+    </header>
 
-      <div class="topbar-right score">
-        <span class="pill">Punkte: <span id="score">0</span></span>
-        <span class="pill">Distanz: <span id="distance">0 m</span></span>
-        <span class="pill">Rekord: <span id="bestScore">0</span></span>
-      </div>
-    </div>
+    <section class="desktop-game-intro" aria-label="Spielbeschreibung">
+      <div class="desktop-game-eyebrow"><span class="desktop-game-dot" aria-hidden="true"></span>DAS NETZELEKTRIKER-ARCADE-SPIEL</div>
+      <h1>Mast Runner<span>.</span></h1>
+      <p>Laufe mit unserem Netzelektriker, sammle Blitze und knacke die Top 10.</p>
+    </section>
 
     <div class="canvas-wrap">
       <canvas id="gameCanvas" width="1000" height="320"></canvas>
-      <div class="runner-hud" aria-live="off"><span id="hudScore">0 Pkt.</span><span id="hudDistance">0 m</span><span id="hudObstacles">0 Hindernisse</span></div>
       <div class="runner-tools"><button type="button" id="pauseButton" aria-label="Spiel pausieren" title="Pause" hidden>⏸</button><button type="button" id="soundButton" aria-label="Ton einschalten" title="Ton einschalten">🔇</button></div>
 
       <div id="startOverlay" class="overlay">
@@ -927,8 +977,21 @@ canvas{
       </button>
     </div>
 
+    <section class="runner-scoreboard" aria-label="Spielstatistik" aria-live="off">
+      <div class="runner-stat"><div class="runner-stat-label"><span aria-hidden="true">◷</span> Punkte</div><strong class="runner-stat-value" id="score">0</strong></div>
+      <div class="runner-stat"><div class="runner-stat-label"><span aria-hidden="true">↗</span> Distanz</div><strong class="runner-stat-value" id="distance">0 m</strong></div>
+      <div class="runner-stat"><div class="runner-stat-label"><span aria-hidden="true">♜</span> Dein Rekord</div><strong class="runner-stat-value" id="bestScore">0</strong></div>
+    </section>
+
     <div class="game-dashboard">
-      <div class="dashboard-panel">
+      <section class="dashboard-panel live-ranking" aria-label="Bestenliste">
+        <div class="desktop-ranking-heading"><h2>🏆 Bestenliste</h2><span>TOP 10</span></div>
+        <p class="desktop-ranking-subtitle">Top 10 · Live in der App</p>
+        <ol id="liveRankingList"></ol>
+        <button type="button" id="resetRankingButton" class="mr-admin-reset" hidden>Bestenliste zurücksetzen (Hauptadministrator)</button>
+      </section>
+
+      <section class="dashboard-panel desktop-howto" aria-label="Spielanleitung">
         <div class="control-tips">
           <div class="tip-card">
             <strong>Steuerung</strong>
@@ -939,15 +1002,7 @@ canvas{
             <span>Distanz und Hindernisse zählen. Sammle Blitze und knacke die Top&nbsp;10.</span>
           </div>
         </div>
-
-        
-      </div>
-
-      <div class="dashboard-panel live-ranking">
-        <h3>Live-Bestenliste (Top 10)</h3>
-        <ol id="liveRankingList"></ol>
-        <button type="button" id="resetRankingButton" class="mr-admin-reset" hidden>Bestenliste zurücksetzen (Hauptadministrator)</button>
-      </div>
+      </section>
     </div>
   </div>
 
@@ -1134,9 +1189,6 @@ function updateScore(){
   const fields = [
     [scoreEl, scoreText],
     [document.getElementById("distance"), distanceText],
-    [document.getElementById("hudScore"), scoreText + " Pkt."],
-    [document.getElementById("hudDistance"), distanceText],
-    [document.getElementById("hudObstacles"), clearedObstacles + " Hindernisse"],
     [document.getElementById("mrDistance"), distanceText]
   ];
   for(const [element, value] of fields){
@@ -1719,20 +1771,22 @@ function update(){
 }
 
 function drawGround(){
-  ctx.strokeStyle = "#a5b4c3";
+  const pathY = groundY + player.height;
+  // Klare Spielboden-Kante: nur Objekte vor dieser Linie sind Hindernisse.
+  ctx.fillStyle = "#d8e4ed";
+  ctx.fillRect(0, pathY, canvas.width, canvas.height - pathY);
+  ctx.fillStyle = "#9ab5c5";
+  ctx.fillRect(0, pathY - 2, canvas.width, 3);
+  ctx.strokeStyle = "rgba(133,167,190,.37)";
   ctx.lineWidth = 2;
+  ctx.setLineDash([22, 24]);
+  ctx.lineDashOffset = -(distanceMeters * 2.2) % 46;
   ctx.beginPath();
-  ctx.moveTo(0, groundY + player.height);
-  ctx.lineTo(canvas.width, groundY + player.height);
+  ctx.moveTo(0, pathY + 9);
+  ctx.lineTo(canvas.width, pathY + 9);
   ctx.stroke();
-
-  for(let i = 0; i < canvas.width; i += 40){
-    ctx.beginPath();
-    ctx.moveTo(i, groundY + player.height + 8);
-    ctx.lineTo(i + 20, groundY + player.height + 8);
-    ctx.strokeStyle = "#cfd7df";
-    ctx.stroke();
-  }
+  ctx.setLineDash([]);
+  ctx.lineDashOffset = 0;
 }
 
 function drawLimb(x, y, length, angle, width = 4){
@@ -2064,108 +2118,79 @@ function drawNuclearPlant(ob){
 }
 
 function drawAnimatedSky(){
-  for(let i = -1; i < 7; i++){
-    const offset = (distanceMeters * 0.16) % 220;
-    const cx = i * 220 + 60 - offset;
-    const cy = 52 + (i % 2) * 18;
+  const sky = ctx.createLinearGradient(0, 0, 0, groundY + player.height);
+  sky.addColorStop(0, "#d7eafb");
+  sky.addColorStop(.62, "#eef5fa");
+  sky.addColorStop(1, "#f5f8f1");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.fillStyle = "rgba(255,255,255,0.74)";
-    ctx.beginPath();
-    ctx.arc(cx, cy, 18, Math.PI * 0.5, Math.PI * 1.5);
-    ctx.arc(cx + 20, cy - 10, 18, Math.PI, Math.PI * 1.85);
-    ctx.arc(cx + 42, cy, 18, Math.PI * 1.37, Math.PI * 0.37);
-    ctx.closePath();
-    ctx.fill();
-  }
+  // Heller Sonnenschein ohne harte, mit Sammelobjekten verwechselbare Silhouette.
+  const sunlight = ctx.createRadialGradient(810, 60, 8, 810, 60, 175);
+  sunlight.addColorStop(0, "rgba(255,250,219,.42)");
+  sunlight.addColorStop(1, "rgba(255,250,219,0)");
+  ctx.fillStyle = sunlight;
+  ctx.fillRect(630, 0, 370, 245);
 
+  // Kleine, durchscheinende Wolken ganz oben, weit ausserhalb der Laufbahn.
+  // Sie bewegen sich langsamer als die Hindernisse (Parallax-Effekt).
+  const cloudDrift = (distanceMeters * .06) % 340;
   for(let i = -1; i < 5; i++){
-    const offset = (distanceMeters * 0.07) % 340;
-    const cx = i * 340 + 130 - offset;
-    const cy = 86 + (i % 2) * 10;
-
-    ctx.fillStyle = "rgba(255,255,255,0.36)";
+    const x = i * 340 + 105 - cloudDrift;
+    const y = 45 + (i % 3) * 17;
+    const scale = .82 + (i % 2) * .18;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = "rgba(255,255,255,.67)";
     ctx.beginPath();
-    ctx.arc(cx, cy, 12, Math.PI * 0.5, Math.PI * 1.5);
-    ctx.arc(cx + 14, cy - 7, 12, Math.PI, Math.PI * 1.85);
-    ctx.arc(cx + 28, cy, 12, Math.PI * 1.37, Math.PI * 0.37);
-    ctx.closePath();
+    ctx.ellipse(-16, 8, 25, 10, 0, 0, Math.PI * 2);
+    ctx.ellipse(4, 0, 27, 16, 0, 0, Math.PI * 2);
+    ctx.ellipse(32, 8, 25, 10, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
   }
 }
 
 function drawLandscape(){
-  const farShift = Math.sin(distanceMeters / 160) * 45;
-  const midShift = Math.sin(distanceMeters / 95) * 28;
-  const nearShift = (distanceMeters * 0.45) % 44;
-  const villageShift = (distanceMeters * 0.24) % 165;
-
-  ctx.fillStyle = "#dce6d8";
-  ctx.beginPath();
-  ctx.moveTo(-500 - farShift, groundY + 6);
-  ctx.quadraticCurveTo(-250 - farShift, 168, 20 - farShift, groundY + 12);
-  ctx.quadraticCurveTo(260 - farShift, 182, 520 - farShift, groundY + 8);
-  ctx.quadraticCurveTo(750 - farShift, 168, 1040 - farShift, groundY + 12);
-  ctx.quadraticCurveTo(1280 - farShift, 184, 1600 - farShift, groundY + 8);
-  ctx.lineTo(1600 - farShift, groundY + 56);
-  ctx.lineTo(-500 - farShift, groundY + 56);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.fillStyle = "#c7d7c3";
-  ctx.beginPath();
-  ctx.moveTo(-350 - midShift, groundY + 16);
-  ctx.quadraticCurveTo(-70 - midShift, 205, 180 - midShift, groundY + 18);
-  ctx.quadraticCurveTo(420 - midShift, 218, 670 - midShift, groundY + 14);
-  ctx.quadraticCurveTo(920 - midShift, 200, 1240 - midShift, groundY + 18);
-  ctx.lineTo(1240 - midShift, groundY + 56);
-  ctx.lineTo(-350 - midShift, groundY + 56);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.fillStyle = "#b0c4a7";
-  ctx.beginPath();
-  ctx.moveTo(-300 - nearShift, groundY + 28);
-  ctx.quadraticCurveTo(-20 - nearShift, 220, 220 - nearShift, groundY + 22);
-  ctx.quadraticCurveTo(460 - nearShift, 228, 700 - nearShift, groundY + 20);
-  ctx.quadraticCurveTo(930 - nearShift, 214, 1220 - nearShift, groundY + 24);
-  ctx.lineTo(1220 - nearShift, groundY + 56);
-  ctx.lineTo(-300 - nearShift, groundY + 56);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.fillStyle = "#91a98f";
-  for(let i = -2; i < 30; i++){
-    const baseX = i * 44 - nearShift;
-    const h = 16 + (i % 3) * 7;
+  // Bewusst KEINE Masten, Häuser, Windräder oder Bäume im Hintergrund:
+  // diese Objekte kommen nur als tatsächliche Hindernisse vor.
+  function ridge(color, baseY, amplitude, wavelength, speed, secondary = 0){
+    ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.moveTo(baseX, groundY + 10);
-    ctx.lineTo(baseX + 12, groundY - h);
-    ctx.lineTo(baseX + 24, groundY + 10);
+    ctx.moveTo(0, canvas.height);
+    for(let x = 0; x <= canvas.width + 10; x += 10){
+      const phase = x + distanceMeters * speed;
+      const y = baseY + Math.sin(phase / wavelength) * amplitude
+        + Math.sin(phase / (wavelength * .49) + 1.6) * secondary;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(canvas.width, canvas.height);
     ctx.closePath();
     ctx.fill();
   }
 
-  ctx.fillStyle = "rgba(122,136,150,0.22)";
-  for(let i = 0; i < 7; i++){
-    const baseX = 20 + i * 165 - villageShift;
-    const baseY = groundY - 12 - (i % 2) * 4;
+  // Blaugraue Ferne, sanfte grüne Hügel, ruhige Wiesen im Vordergrund.
+  // Helle, kontrastarme Flächen statt dunkler Silhouetten.
+  ridge("#d9e5ed", 178, 18, 145, .08, 4);
+  ridge("#d9e6df", 212, 15, 112, .16, 3);
+  ridge("#c7daca", 248, 13, 135, .30, 2);
+  ridge("#bcd1bc", 280, 8, 100, .42, 1.5);
 
-    ctx.fillRect(baseX, baseY - 18, 24, 18);
+  // Leichte Feldkonturen erzeugen Tiefe ohne neue 'Pseudo-Hindernisse'.
+  ctx.save();
+  ctx.strokeStyle = "rgba(242,250,237,.43)";
+  ctx.lineWidth = 2;
+  for(let i = 0; i < 2; i++){
+    const y = 277 + i * 15;
+    const shift = (distanceMeters * .32) % 300;
     ctx.beginPath();
-    ctx.moveTo(baseX - 3, baseY - 18);
-    ctx.lineTo(baseX + 12, baseY - 30);
-    ctx.lineTo(baseX + 27, baseY - 18);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillRect(baseX + 36, baseY - 14, 18, 14);
-    ctx.beginPath();
-    ctx.moveTo(baseX + 33, baseY - 14);
-    ctx.lineTo(baseX + 45, baseY - 24);
-    ctx.lineTo(baseX + 57, baseY - 14);
-    ctx.closePath();
-    ctx.fill();
+    ctx.moveTo(-60, y + 5);
+    ctx.bezierCurveTo(190 - shift * .12, y - 12, 460 - shift * .12, y + 13, 710, y);
+    ctx.bezierCurveTo(830, y - 6, 950, y + 2, 1060, y - 7);
+    ctx.stroke();
   }
+  ctx.restore();
 }
 
 function drawObstacle(ob){
@@ -2240,7 +2265,15 @@ function draw(){
   drawLandscape();
   drawGround();
   drawCollectibles();
-  for(const ob of obstacles) drawObstacle(ob);
+  for(const ob of obstacles){
+    // Hindernisse erhalten einen kleinen Bodenschatten: sichtbar im Vordergrund.
+    ctx.fillStyle = "rgba(29,52,64,.18)";
+    ctx.beginPath();
+    ctx.ellipse(ob.x + ob.width / 2, groundY + player.height - 2,
+      Math.max(15, ob.width * .6), 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    drawObstacle(ob);
+  }
   drawPlayer();
   drawDust();
   drawFeedback();
