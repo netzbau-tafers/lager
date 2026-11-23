@@ -2333,7 +2333,8 @@ function openUsageNumbersModal(id){
   if(!LagerAccess.requireWrite("kabellager")) return;
   selectedUsageId = id;
 
-  bobinenCollection.doc(id).get().then(doc => {
+  pendingDestructiveActions.add(id);
+  return bobinenCollection.doc(id).get().then(doc => {
     if(!doc.exists){
       alert("Bobine nicht gefunden.");
       return;
@@ -3874,7 +3875,33 @@ function confirmReturn(){
   });
 }
 
+
+const pendingDestructiveActions = new Set();
+function showActionSuccess(message){
+  let toast = document.getElementById("actionSuccessToast");
+  if(!toast){
+    toast = document.createElement("div");
+    toast.id = "actionSuccessToast";
+    toast.setAttribute("role", "status");
+    toast.setAttribute("aria-live", "polite");
+    Object.assign(toast.style, {
+      position:"fixed", top:"20px", left:"50%", transform:"translateX(-50%)",
+      zIndex:"2147483647", maxWidth:"min(92vw, 520px)", boxSizing:"border-box",
+      padding:"15px 20px", borderRadius:"12px", background:"#176b43",
+      color:"#fff", fontSize:"16px", fontWeight:"600",
+      boxShadow:"0 8px 30px rgba(0,0,0,.35)", textAlign:"center",
+      lineHeight:"1.5", pointerEvents:"none"
+    });
+    document.body.appendChild(toast);
+  }
+  toast.textContent = "✓ " + message;
+  toast.style.display = "block";
+  clearTimeout(showActionSuccess.timeout);
+  showActionSuccess.timeout = setTimeout(() => { toast.style.display = "none"; }, 5500);
+}
+
 function deleteBobine(id){
+  if(pendingDestructiveActions.has(id)) return;
   if(!LagerAccess.requireWrite("kabellager")) return;
   if(!auth.currentUser){
     alert("Löschen nicht möglich: Du bist nicht angemeldet. Bitte neu einloggen.");
@@ -3902,7 +3929,7 @@ function deleteBobine(id){
     );
 
     if(bestaetigung && bestaetigung.trim().toLowerCase() === "löschen"){
-      bobinenCollection.doc(id).delete().then(() => {
+      return bobinenCollection.doc(id).delete().then(() => {
         openDetailsRows.delete(id);
         writeLog(
           "Kabellager",
@@ -3918,6 +3945,7 @@ function deleteBobine(id){
           " | Hersteller: " + (b.hersteller || "") +
           " | Infos: " + (b.infos || "")
         );
+        showActionSuccess("Bobine Nr. " + (b.nummer || id) + " wurde gelöscht.");
       }).catch(error => {
         console.error("Fehler beim Löschen:", error);
         alert(getFirebaseActionErrorMessage("Löschen", error));
@@ -3928,7 +3956,7 @@ function deleteBobine(id){
   }).catch(error => {
     console.error("Fehler beim Laden der Bobine:", error);
     alert(getFirebaseActionErrorMessage("Laden der Bobinen-Daten", error));
-  });
+  }).finally(() => pendingDestructiveActions.delete(id));
 }
 
 function closeModal(){
