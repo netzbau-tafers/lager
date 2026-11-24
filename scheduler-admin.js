@@ -12,7 +12,10 @@ const groups=[
  ['kabelreport','Kabelreport-Monatsabschluss','Am 1. jedes Monats um 03:30 Uhr · erstellt den monatlichen Kabelreport-Snapshot']
 ];
 function message(value){status.textContent=value;}
+let pending=false;
 async function refresh(){
+ if(pending||firebase.auth().currentUser?.uid!==MASTER)return;
+ pending=true;
  message('Status wird geladen …');
  try{
   const data=(await read()).data.groups;
@@ -43,9 +46,12 @@ async function refresh(){
   }
   message('');
  }catch(error){message('Status konnte nicht geladen werden: '+(error.message||'Unbekannter Fehler'));}
+ finally{pending=false;}
 }
+const details=document.getElementById('schedulerDetails');
+details.addEventListener('toggle',()=>{if(details.open)refresh();});
 firebase.auth().onAuthStateChanged(user=>{
- if(!user||user.uid!==MASTER){panel.hidden=true;return;}
- panel.hidden=false;refresh();
+ if(!user||user.uid!==MASTER){panel.hidden=true;details.open=false;list.replaceChildren();return;}
+ panel.hidden=false;if(details.open)refresh();
 });
 })();
