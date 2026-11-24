@@ -1,7 +1,7 @@
 (function(){
   'use strict';
   const db=firebase.firestore(),list=document.getElementById('userList'),status=document.getElementById('userStatus'),search=document.getElementById('userSearch'),refresh=document.getElementById('userRefresh');
-  let rows=[],busy=false,pushStatusAvailable=false;
+  let rows=[],busy=false,pushStatusAvailable=false,loadedUid=null;
   const functions=firebase.app().functions("europe-west1");
   const listAccounts=functions.httpsCallable("lagerListUsers"),deleteAccount=functions.httpsCallable("lagerDeleteUser");
   const generateResetLink=functions.httpsCallable("lagerPasswordResetLink");
@@ -192,6 +192,7 @@
       try{let pageToken;const seen=new Set();do{const result=await listAccounts(pageToken?{pageToken}:{});if(!Array.isArray(result.data?.users))throw Error('Ungültige Benutzerliste');accounts.push(...result.data.users);pageToken=result.data.pageToken;if(pageToken){if(seen.has(pageToken))throw Error('Wiederholter Seitenschlüssel');seen.add(pageToken);}}while(pageToken);}
       catch(error){console.error(error);complete=false;accounts=profiles.docs.map(doc=>({uid:doc.id,email:doc.data().email||''}));}
       rows=accounts.map(account=>({...profileMap.get(account.uid),id:account.uid,email:account.email,username:profileMap.get(account.uid)?.username||account.displayName||'',access:accessMap.get(account.uid),pushPreference:pushMap.get(account.uid)})).sort((a,b)=>String(a.username||a.email||a.id).localeCompare(String(b.username||b.email||b.id),'de-CH'));
+      loadedUid=complete?auth.currentUser?.uid:null;
       status.textContent=complete?rows.length+' registrierte Konten':rows.length+' Benutzerprofile – unvollständige Liste. Bitte lagerListUsers in Firebase veröffentlichen.';render();
     }catch(error){console.error(error);list.replaceChildren();status.textContent='Benutzer konnten nicht geladen werden. Bitte zuerst die neuen Firestore-Regeln veröffentlichen.';}
     finally{busy=false;refresh.disabled=false;}
@@ -246,7 +247,7 @@
   });
   document.getElementById('newUserCopy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(newLink.value);newStatus.textContent='Passwort-Link kopiert.';}catch(_){newLink.focus();newLink.select();newStatus.textContent='Bitte den markierten Link kopieren.';}});
   search.addEventListener('input',render);refresh.addEventListener('click',load);
-  LagerAccess.onAuthStateChanged(user=>{if(!user){location.replace('home.html');return;}document.getElementById('openNewUser').hidden=!LagerAccess.write('benutzer');document.getElementById('userAdmin').hidden=false;return load();});
+  LagerAccess.onAuthStateChanged(user=>{if(!user){location.replace('home.html');return;}document.getElementById('openNewUser').hidden=!LagerAccess.write('benutzer');document.getElementById('userAdmin').hidden=false;if(loadedUid===user.uid)return;return load();});
 })();
 
 

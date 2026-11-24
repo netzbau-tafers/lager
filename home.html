@@ -592,7 +592,7 @@ button:hover{
           </div>
         </section>
       </div>
-      <p id="homeDashboardStatus" class="home-dashboard-status" role="status" aria-live="polite">Jahresübersicht wird geladen …</p>
+      <p id="homeDashboardStatus" class="home-dashboard-status" role="status" aria-live="polite">Jahresübersicht wird geladen …</p><button type="button" onclick="homeLoadDashboard()">Statistik aktualisieren</button>
     </section>
 
     <section class="home-infos" aria-live="polite">
@@ -778,10 +778,20 @@ function homeStartDashboardListener(){
   homeSetText("homeDashboardPeriod","01.01. – 31.12."+year);
   // Listener beim ersten Dokumentstand sowie bei Änderungen am Revisionstempel.
   homeDashboardUnsubscribe=firebase.firestore().collection("dashboard_stats").doc(String(year))
-    .onSnapshot(snapshot=>{
-      const revision=snapshot.exists&&snapshot.data().invalidatedAt;
-      const millis=revision&&typeof revision.toMillis==="function"?revision.toMillis():0;
-      if(homeDashboardRevision===null||millis!==homeDashboardRevision){
+    .onSnapshot({includeMetadataChanges:true},snapshot=>{
+      if(auth.currentUser?.uid!==user.uid||homeSwissYear()!==year)return;
+      const data=snapshot.exists?snapshot.data():null;
+      const millis=data?.invalidatedAt?.toMillis?.()||0;
+      const calculated=data?.calculatedAt?.toMillis?.()||0;
+      // Reuse the already delivered shared cache; no callable or extra read.
+      const valid=data?.year===year&&data.schemaVersion===2&&calculated>0&&
+        calculated>=millis&&Date.now()-calculated<12*60*60*1000;
+      if(valid){
+        homeDashboardRevision=millis;
+        homeRenderDashboard(data);
+        return;
+      }
+      if(!snapshot.metadata.fromCache&&(homeDashboardRevision===null||millis!==homeDashboardRevision)){
         homeDashboardRevision=millis;
         homeLoadDashboard();
       }

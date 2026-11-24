@@ -26,13 +26,18 @@
     return setupPromise;
   }
   function enqueue(fn){const result=queue.then(fn);queue=result.catch(()=>{});return result;}
-  async function bind(uid){
+  async function bind(uid,force=false){
     const service=await setup();
     const token=await service.messaging.getToken({vapidKey:VAPID,serviceWorkerRegistration:service.registration});
     if(!token)throw new Error('Gerät konnte nicht registriert werden.');
     if(firebase.auth().currentUser?.uid!==uid)throw new Error('Anmeldung hat sich geändert. Bitte erneut versuchen.');
-    await service.call('lagerRegisterPush',{token});
-    localStorage.setItem(KEY,JSON.stringify({token,uid}));activeUid=uid;
+    const device=saved(),age=Date.now()-Number(device?.registeredAt);
+    // Renew well before the server's 90-day expiration; explicit enable always registers.
+    if(force||device?.uid!==uid||device?.token!==token||!Number.isFinite(age)||age<0||age>=7*86400000){
+      await service.call('lagerRegisterPush',{token});
+      localStorage.setItem(KEY,JSON.stringify({token,uid,registeredAt:Date.now()}));
+    }
+    activeUid=uid;
     status('Benachrichtigungen sind auf diesem Gerät aktiviert.');
     return {service,token};
   }
@@ -52,7 +57,7 @@
       if(!('Notification' in window))return status('Auf dem iPhone: Seite zum Home-Bildschirm hinzufügen und von dort öffnen.');
       // Request synchronously in the click handler, before loading libraries (iOS requirement).
       const permission=Notification.requestPermission();
-      run(async()=>{if(await permission!=='granted')throw new Error('Benachrichtigungen wurden nicht erlaubt. Prüfe die Browser- oder Smartphone-Einstellungen.');const uid=auth.currentUser?.uid;if(!uid)throw new Error('Bitte anmelden.');status('Gerät wird eingerichtet …');await bind(uid);});
+      run(async()=>{if(await permission!=='granted')throw new Error('Benachrichtigungen wurden nicht erlaubt. Prüfe die Browser- oder Smartphone-Einstellungen.');const uid=auth.currentUser?.uid;if(!uid)throw new Error('Bitte anmelden.');status('Gerät wird eingerichtet …');await bind(uid,true);});
     };
     if(off)off.onclick=()=>run(disable);
     if(test)test.onclick=()=>run(async()=>{const device=saved();if(!device||device.uid!==auth.currentUser?.uid)throw new Error('Bitte zuerst Benachrichtigungen aktivieren.');const service=await setup();await service.call('lagerTestPush',{token:device.token});status('Testnachricht versendet. Prüfe die Benachrichtigungen auf deinem Smartphone.');});
