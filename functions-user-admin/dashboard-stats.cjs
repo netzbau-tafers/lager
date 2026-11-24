@@ -2,6 +2,7 @@
 // Ereignisgesteuerte Jahresübersicht: Neuberechnung nur bei Änderungen der Quelldaten.
 const MONTHS=12;
 const SHARED_CACHE_MS=12*60*60*1000;
+const MANUAL_REFRESH_MS=60*1000;
 const DASHBOARD_SCHEMA_VERSION=2;
 const {entriesForMonth,mergeInterimSnapshot}=require('./cable-monthly-snapshot.cjs');
 
@@ -105,21 +106,43 @@ function createDashboardGet({db,Timestamp,logger,now=()=>new Date()}){
     if(!request.auth)throw new Error('unauthenticated');
     const at=now(),year=swissYear(at);
     const ref=db.collection('dashboard_stats').doc(String(year));
-    const previous=await ref.get();
-    if(previous.exists){
-      const data=previous.data()||{};
-      const lastUpdate=data.calculatedAt&&typeof data.calculatedAt.toMillis==='function'
-        ?data.calculatedAt.toMillis():0;
-      const invalidatedAt=data.invalidatedAt&&typeof data.invalidatedAt.toMillis==='function'?data.invalidatedAt.toMillis():0;
-      if(data.schemaVersion===DASHBOARD_SCHEMA_VERSION&&lastUpdate>0&&at.getTime()-lastUpdate<SHARED_CACHE_MS&&lastUpdate>=invalidatedAt){
-        const {calculatedAt,invalidatedAt,schemaVersion,...payload}=data;
-        return payload;
+    const manual=request.data?.forceRefresh===true;
+    const millis=value=>value&&typeof value.toMillis==='function'?value.toMillis():0;
+    const cachedPayload=data=>{
+      const {calculatedAt,invalidatedAt,schemaVersion,manualRefreshStartedAt,...payload}=data;
+      return payload;
+    };
+    if(manual){
+      // Atomare, gemeinsame Sperre pro Jahr, auch über mehrere Cloud-Instanzen hinweg.
+      const reservation=await db.runTransaction(async transaction=>{
+        const previous=await transaction.get(ref);
+        const data=previous.exists?previous.data()||{}:{};
+        const last=millis(data.manualRefreshStartedAt);
+        const remaining=last?MANUAL_REFRESH_MS-(at.getTime()-last):0;
+        if(remaining>0){
+          const payload=data.schemaVersion===DASHBOARD_SCHEMA_VERSION&&data.year===year&&millis(data.calculatedAt)>0
+            ?cachedPayload(data):{};
+          return {...payload,manualRefresh:{status:'cooldown',retryAfterSeconds:Math.ceil(remaining/1000)}};
+        }
+        transaction.set(ref,{manualRefreshStartedAt:Timestamp.fromDate(at)},{merge:true});
+        return null;
+      });
+      if(reservation)return reservation;
+    }else{
+      const previous=await ref.get();
+      if(previous.exists){
+        const data=previous.data()||{};
+        const lastUpdate=millis(data.calculatedAt);
+        const invalidatedAt=millis(data.invalidatedAt);
+        if(data.schemaVersion===DASHBOARD_SCHEMA_VERSION&&lastUpdate>0&&at.getTime()-lastUpdate<SHARED_CACHE_MS&&lastUpdate>=invalidatedAt){
+          return cachedPayload(data);
+        }
       }
     }
     const payload=await calculateDashboard({db,Timestamp,year,now:at});
     await ref.set({...payload,schemaVersion:DASHBOARD_SCHEMA_VERSION,calculatedAt:Timestamp.fromDate(at)},{merge:true});
     logger.info('Jahres-Dashboard erneuert',{year,monthsWithMeters:payload.monthlyMeters.filter(Boolean).length});
-    return payload;
+    return manual?{...payload,manualRefresh:{status:'refreshed'}}:payload;
   };
 }
 

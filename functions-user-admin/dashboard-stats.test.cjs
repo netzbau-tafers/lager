@@ -11,12 +11,26 @@ function fixture(){
     {status:'ready',year:2026,month:2,totalMeters:2500,totalBookings:5,finalized:true,rows:[{typ:'XKDT',meter:500},{typ:'GKN',meter:2000}]},
     {status:'in-progress',year:2026,month:3,totalMeters:5000,totalBookings:2,rows:[]}
   ];
+  let transactionTail=Promise.resolve();
   const db={
+    runTransaction(handler){
+      const run=transactionTail.then(async()=>{
+        const writes=[];
+        const result=await handler({
+          get:ref=>ref.get(),
+          set:(ref,data,options)=>writes.push(()=>ref.set(data,options))
+        });
+        for(const write of writes)await write();
+        return result;
+      });
+      transactionTail=run.catch(()=>{});
+      return run;
+    },
     collection(name){
       if(name==='dashboard_stats')return {doc(){
         return {
           async get(){state.reads++;return state.document?{exists:true,data:()=>state.document}:{exists:false};},
-          async set(data){state.writes++;state.document=data;}
+          async set(data,options){state.writes++;state.document=options?.merge?{...state.document,...data}:data;}
         };
       }};
       if(name==='kabel_report_snapshots')return {where(field,op,value){
@@ -86,4 +100,52 @@ test('invalidated cache is recalculated before twelve hours',async()=>{
   clock=new Date('2026-11-21T14:00:00Z');
   await callback({auth:{uid:'test'}});
   assert.equal(state.writes,2);
+});
+
+test('manual refresh bypasses valid cache, then applies shared 60-second cooldown',async()=>{
+  const {db,Timestamp,state}=fixture();
+  let clock=new Date('2026-11-21T13:00:00Z');
+  const callback=createDashboardGet({db,Timestamp,logger:{info(){}},now:()=>clock});
+  const initial=await callback({auth:{uid:'a'}});
+  clock=new Date('2026-11-21T13:01:00Z');
+  const refresh=await callback({auth:{uid:'a'},data:{forceRefresh:true}});
+  assert.equal(refresh.manualRefresh.status,'refreshed');
+  assert.notEqual(refresh.updatedAt,initial.updatedAt);
+  assert.equal(state.writes,3);
+  const reads=state.reads;
+  clock=new Date('2026-11-21T13:01:10Z');
+  const blocked=await callback({auth:{uid:'b'},data:{forceRefresh:true}});
+  assert.deepEqual(blocked.manualRefresh,{status:'cooldown',retryAfterSeconds:50});
+  assert.equal(state.reads,reads+1);
+  assert.equal(state.writes,3);
+  const normal=await callback({auth:{uid:'b'}});
+  assert.equal(normal.updatedAt,refresh.updatedAt);
+  assert.equal(normal.manualRefresh,undefined);
+  assert.equal(normal.manualRefreshStartedAt,undefined);
+  clock=new Date('2026-11-21T13:02:00Z');
+  const again=await callback({auth:{uid:'b'},data:{forceRefresh:true}});
+  assert.equal(again.manualRefresh.status,'refreshed');
+  assert.equal(state.writes,5);
+});
+
+test('concurrent manual requests reserve only one recomputation, including empty cache',async()=>{
+  const {db,Timestamp,state}=fixture();
+  const clock=new Date('2026-11-21T13:00:00Z');
+  const callback=createDashboardGet({db,Timestamp,logger:{info(){}},now:()=>clock});
+  const results=await Promise.all(['a','b'].map(uid=>callback({auth:{uid},data:{forceRefresh:true}})));
+  assert.deepEqual(results.map(r=>r.manualRefresh.status).sort(),['cooldown','refreshed']);
+  assert.equal(state.writes,2);
+});
+
+test('automatic invalidation still recalculates during manual cooldown',async()=>{
+  const {db,Timestamp,state}=fixture();
+  let clock=new Date('2026-11-21T13:00:00Z');
+  const callback=createDashboardGet({db,Timestamp,logger:{info(){}},now:()=>clock});
+  await callback({auth:{uid:'a'},data:{forceRefresh:true}});
+  state.document.invalidatedAt=Timestamp.fromDate(new Date('2026-11-21T13:00:05Z'));
+  clock=new Date('2026-11-21T13:00:10Z');
+  const result=await callback({auth:{uid:'b'}});
+  assert.equal(result.updatedAt,clock.toISOString());
+  assert.equal(result.manualRefresh,undefined);
+  assert.equal(state.writes,3);
 });

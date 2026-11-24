@@ -463,6 +463,15 @@ button:hover{
 }
 
 .home-dashboard-status{color:#668098;font-size:11px;margin:14px 2px 0;line-height:1.5;}
+.home-dashboard-refresh{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin:10px 2px 0;}
+.home-dashboard-refresh button{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid #456580;border-radius:8px;padding:9px 14px;background:#20364a;color:#fff;font:inherit;font-size:13px;cursor:pointer;}
+.home-dashboard-refresh button:disabled{opacity:.7;cursor:default;}
+.home-dashboard-refresh button[aria-busy="true"] i{animation:homeRefreshSpin .9s linear infinite;}
+.home-dashboard-refresh-feedback{font-size:12px;line-height:1.5;color:#668098;}
+.home-dashboard-refresh-feedback[data-state="success"]{color:#23804c;}
+.home-dashboard-refresh-feedback[data-state="error"]{color:#c0392b;}
+@keyframes homeRefreshSpin{to{transform:rotate(360deg);}}
+@media(prefers-reduced-motion:reduce){.home-dashboard-refresh button[aria-busy="true"] i{animation:none;}}
 .home-infos{margin-top:16px;background:#fff;border:1px solid #dce5ed;border-radius:16px;padding:20px;box-shadow:0 5px 19px rgba(25,55,90,.045);}
 .home-infos h2{color:#18304a;font-size:17px;}
 .home-infos .infos-list{color:#3f5b74;font-size:13px;}
@@ -592,7 +601,10 @@ button:hover{
           </div>
         </section>
       </div>
-      <p id="homeDashboardStatus" class="home-dashboard-status" role="status" aria-live="polite">Jahresübersicht wird geladen …</p><button type="button" onclick="homeLoadDashboard()">Statistik aktualisieren</button>
+      <p id="homeDashboardStatus" class="home-dashboard-status" role="status" aria-live="polite">Jahresübersicht wird geladen …</p><div class="home-dashboard-refresh">
+        <button id="homeDashboardRefresh" type="button" onclick="homeLoadDashboard(true)"><i class="fa-solid fa-rotate" aria-hidden="true"></i><span id="homeDashboardRefreshLabel">Statistik aktualisieren</span></button>
+        <span id="homeDashboardRefreshFeedback" class="home-dashboard-refresh-feedback" role="status" aria-live="polite"></span>
+      </div>
     </section>
 
     <section class="home-infos" aria-live="polite">
@@ -637,6 +649,23 @@ let homeDashboardCached=null;
 let homeDashboardUnsubscribe=null;
 let homeDashboardRevision=null;
 let homeDashboardReloadQueued=false;
+let homeManualRefreshUntil=0;
+let homeManualRefreshTimer=null;
+
+function homeRefreshFeedback(message,state=""){
+  const element=document.getElementById("homeDashboardRefreshFeedback");
+  if(element){element.textContent=message;element.dataset.state=state;}
+}
+function homeSyncRefreshButton(){
+  const button=document.getElementById("homeDashboardRefresh");
+  if(!button)return;
+  const seconds=Math.max(0,Math.ceil((homeManualRefreshUntil-Date.now())/1000));
+  button.disabled=homeDashboardPending||seconds>0;
+  button.setAttribute("aria-busy",String(homeDashboardPending));
+  homeSetText("homeDashboardRefreshLabel",homeDashboardPending?"Wird aktualisiert …":seconds?"Erneut in "+seconds+" s":"Statistik aktualisieren");
+  if(homeManualRefreshTimer!==null)clearTimeout(homeManualRefreshTimer);
+  homeManualRefreshTimer=seconds>0?setTimeout(homeSyncRefreshButton,1000):null;
+}
 
 function homeSwissYear(){
   return Number(new Intl.DateTimeFormat("en",{timeZone:"Europe/Zurich",year:"numeric"}).format(new Date()));
@@ -733,29 +762,50 @@ function homeSetDashboardLoading(loading){
   section.setAttribute("aria-busy",String(loading));
   if(loading)homeSetText("homeDashboardStatus","Jahresstatistik wird geladen …");
 }
-async function homeLoadDashboard(){
+async function homeLoadDashboard(manual=false){
   const user=firebase.auth().currentUser;
   if(!user)return;
-  if(homeDashboardPending){homeDashboardReloadQueued=true;return;}
+  if(homeDashboardPending){if(!manual)homeDashboardReloadQueued=true;return;}
+  if(manual&&Date.now()<homeManualRefreshUntil)return;
   const year=homeSwissYear();
   homeSetText("homeDashboardPeriod","01.01. – 31.12."+year);
   if(!homeDashboardCached)homeSetDashboardLoading(true);
   homeDashboardPending=true;
+  const started=Date.now();
+  if(manual)homeRefreshFeedback("Statistik wird neu berechnet …");
+  homeSyncRefreshButton();
   try{
     const callable=firebase.app().functions("europe-west1").httpsCallable("lagerDashboardGet");
-    const response=await callable({});
+    const response=await callable(manual?{forceRefresh:true}:{});
     const data=response&&response.data;
     if(!firebase.auth().currentUser||firebase.auth().currentUser.uid!==user.uid||homeSwissYear()!==year)return;
+    if(manual&&data?.manualRefresh?.status==="cooldown"){
+      const seconds=Math.max(1,Number(data.manualRefresh.retryAfterSeconds)||1);
+      homeManualRefreshUntil=Date.now()+seconds*1000;
+      if(!homeDashboardCached&&data.year===year)homeRenderDashboard(data);
+      homeRefreshFeedback("Eine manuelle Aktualisierung wurde bereits gestartet. Erneut in "+seconds+" Sekunden möglich.");
+      return;
+    }
     if(!data||data.year!==year)throw new Error("Ungültiges Statistikjahr");
     homeRenderDashboard(data);
+    if(manual){
+      if(data.manualRefresh?.status==="refreshed"){
+        homeManualRefreshUntil=started+60000;
+        homeRefreshFeedback("Statistik erfolgreich neu berechnet.","success");
+      }else{
+        homeRefreshFeedback("Statistik geladen. Manuelle Neuberechnung noch nicht verfügbar – Firebase-Funktion aktualisieren.","error");
+      }
+    }
   }catch(error){
     homeSetDashboardLoading(false);
     console.error("Jahresdashboard konnte nicht geladen werden:",error);
+    if(manual)homeRefreshFeedback("Aktualisierung fehlgeschlagen. Bitte erneut versuchen.","error");
     homeSetText("homeDashboardStatus",homeDashboardCached
       ?"Statistik derzeit nicht aktualisierbar. Angezeigt wird der zuletzt geladene Stand."
       :"Jahresstatistik aktuell nicht verfügbar. Bitte Firebase-Funktionen und Berechtigungen prüfen.");
   }finally{
     homeDashboardPending=false;
+    homeSyncRefreshButton();
     if(homeDashboardReloadQueued){
       homeDashboardReloadQueued=false;
       homeLoadDashboard();
