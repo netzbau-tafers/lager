@@ -15,6 +15,7 @@
   const permissionGroups=[
     {title:'Benutzerverwaltung',description:'Konten ansehen; mit Bearbeitungsrecht auch Passwörter zurücksetzen und Benutzer sowie Berechtigungen verwalten',keys:['benutzer']},
     {title:'Kabellager',keys:['kabellager']},
+    {title:'Stangenlager',description:'Occasion-Material ansehen, erfassen, bearbeiten, reservieren, freigeben und löschen.',keys:['stangenlager']},
     {title:'Baustellenmaterial und Archiv',description:'Materialvorlagen und beendete Baustellen gehören zum Baustellenmaterial; das Archiv hat eine eigene Seite.',keys:['baustellen','materialScannen','materialvorlagen','beendete','archiv']},
     {title:'Fahrzeuge',description:'Fahrzeugseite und Fahrzeugaktionen in Meine Übersicht',keys:['fahrzeuge','fahrzeugeUebernehmen','fahrzeugeErstellen']},
     {title:'Fahrtenbuch',description:'Nutzungs- und Tankverlauf sowie Export und Aufräumen auf der Fahrtenbuchseite',keys:['fahrtenbuch','fahrtenbuchExport']},
@@ -55,11 +56,11 @@
   const titles={hauptadministrator:'Hauptadministrator',administrator:'Administrator',baustellenverantwortlicher:'Baustellenverantwortlicher',mitarbeiter:'Mitarbeiter',techniker:'Techniker',leseberechtigter:'Leseberechtigter'};
   const titleOrder=Object.keys(titles);
   const rolePresets={
-    administrator:{benutzer:'edit',fahrzeuge:'none',fahrzeugeUebernehmen:'none',fahrzeugeErstellen:'none',fahrtenbuch:'none',fahrtenbuchExport:'none',baustellen:'edit',materialScannen:'edit',materialvorlagen:'edit',beendete:'edit',archiv:'edit',kabellager:'edit',kabelreport:'view',logs:'edit',spiel:'edit'},
-    baustellenverantwortlicher:{benutzer:'none',fahrzeuge:'none',fahrzeugeUebernehmen:'none',fahrzeugeErstellen:'none',fahrtenbuch:'none',fahrtenbuchExport:'none',baustellen:'edit',materialScannen:'edit',materialvorlagen:'edit',beendete:'edit',archiv:'view',kabellager:'edit',kabelreport:'view',logs:'none',spiel:'edit'},
-    mitarbeiter:{benutzer:'none',fahrzeuge:'none',fahrzeugeUebernehmen:'none',fahrzeugeErstellen:'none',fahrtenbuch:'none',fahrtenbuchExport:'none',baustellen:'edit',materialScannen:'edit',materialvorlagen:'none',beendete:'none',archiv:'none',kabellager:'edit',kabelreport:'view',logs:'none',spiel:'edit'},
-    techniker:{benutzer:'none',fahrzeuge:'none',fahrzeugeUebernehmen:'none',fahrzeugeErstellen:'none',fahrtenbuch:'none',fahrtenbuchExport:'none',baustellen:'none',materialScannen:'none',materialvorlagen:'none',beendete:'none',archiv:'none',kabellager:'edit',kabelreport:'view',logs:'none',spiel:'edit'},
-    leseberechtigter:{benutzer:'none',fahrzeuge:'view',fahrzeugeUebernehmen:'none',fahrzeugeErstellen:'none',fahrtenbuch:'none',fahrtenbuchExport:'none',baustellen:'view',materialScannen:'none',materialvorlagen:'none',beendete:'none',archiv:'view',kabellager:'view',kabelreport:'view',logs:'none',spiel:'view'}
+    administrator:{benutzer:'edit',fahrzeuge:'none',fahrzeugeUebernehmen:'none',fahrzeugeErstellen:'none',fahrtenbuch:'none',fahrtenbuchExport:'none',baustellen:'edit',materialScannen:'edit',materialvorlagen:'edit',beendete:'edit',archiv:'edit',kabellager:'edit',stangenlager:'edit',kabelreport:'view',logs:'edit',spiel:'edit'},
+    baustellenverantwortlicher:{benutzer:'none',fahrzeuge:'none',fahrzeugeUebernehmen:'none',fahrzeugeErstellen:'none',fahrtenbuch:'none',fahrtenbuchExport:'none',baustellen:'edit',materialScannen:'edit',materialvorlagen:'edit',beendete:'edit',archiv:'view',kabellager:'edit',stangenlager:'edit',kabelreport:'view',logs:'none',spiel:'edit'},
+    mitarbeiter:{benutzer:'none',fahrzeuge:'none',fahrzeugeUebernehmen:'none',fahrzeugeErstellen:'none',fahrtenbuch:'none',fahrtenbuchExport:'none',baustellen:'edit',materialScannen:'edit',materialvorlagen:'none',beendete:'none',archiv:'none',kabellager:'edit',stangenlager:'edit',kabelreport:'view',logs:'none',spiel:'edit'},
+    techniker:{benutzer:'none',fahrzeuge:'none',fahrzeugeUebernehmen:'none',fahrzeugeErstellen:'none',fahrtenbuch:'none',fahrtenbuchExport:'none',baustellen:'none',materialScannen:'none',materialvorlagen:'none',beendete:'none',archiv:'none',kabellager:'edit',stangenlager:'edit',kabelreport:'view',logs:'none',spiel:'edit'},
+    leseberechtigter:{benutzer:'none',fahrzeuge:'view',fahrzeugeUebernehmen:'none',fahrzeugeErstellen:'none',fahrtenbuch:'none',fahrtenbuchExport:'none',baustellen:'view',materialScannen:'none',materialvorlagen:'none',beendete:'none',archiv:'view',kabellager:'view',stangenlager:'view',kabelreport:'view',logs:'none',spiel:'view'}
   };
 
   function effectivePermissions(row){
