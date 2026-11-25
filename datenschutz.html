@@ -1,186 +1,126 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de-CH">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Datenschutz | Lagermanager</title>
-
 <link rel="icon" type="image/png" sizes="any" href="favicon.png">
-<link rel="shortcut icon" href="favicon.png" type="image/png">
-<link rel="apple-touch-icon" sizes="180x180" href="favicon.png">
-<link rel="manifest" href="site.webmanifest">
-
-<script src="https://www.gstatic.com/firebasejs/13.4.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/13.4.0/firebase-auth-compat.js"></script>
-
+<link rel="apple-touch-icon" href="favicon.png">
 <style>
-body{
-  font-family:Arial, sans-serif;
-  background:#e6eaef;
-  margin:40px;
-  color:#222;
-  display:none; /* 🔥 verhindert Aufblitzen */
-}
-
-.card{
-  max-width:900px;
-  margin:0 auto;
-  background:white;
-  border:1px solid #d5dbe3;
-  border-radius:14px;
-  box-shadow:0 8px 22px rgba(0,0,0,0.08);
-  padding:24px;
-  line-height:1.55;
-}
-
-.app-footer{
-  margin:32px auto 0;
-  max-width:900px;
-  padding:14px 18px;
-  text-align:center;
-  color:#5b6570;
-  font-size:14px;
-}
-
-@media (max-width: 680px){
-  body{
-    margin:18px;
-  }
-
-  .card{
-    padding:18px;
-  }
-
-  .app-footer{
-    margin-top:24px;
-    padding:12px 10px;
-    font-size:13px;
-  }
-}
+*{box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#e6eaef;color:#222;margin:0;padding:32px 20px;line-height:1.6}
+.page{max-width:900px;margin:0 auto}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.brand{font-weight:700;color:#20364a;font-size:15px}
+a{color:#245681;overflow-wrap:anywhere}
+a:focus-visible{outline:3px solid #245681;outline-offset:3px}
+.back{display:inline-block;padding:9px 14px;border:1px solid #c5d1dd;background:#fff;border-radius:9px;text-decoration:none;font-weight:600}
+.card{background:#fff;border:1px solid #d5dbe3;border-radius:14px;box-shadow:0 8px 22px rgba(0,0,0,.08);padding:clamp(20px,4vw,40px)}
+h1{font-size:clamp(26px,4vw,34px);line-height:1.2;color:#20364a;margin:0 0 10px}
+.meta{font-size:14px;color:#536574;margin:0 0 20px}
+h2{font-size:19px;line-height:1.4;color:#20364a;margin:26px 0 10px;scroll-margin-top:16px}
+p{margin:0 0 12px}
+ul{padding-left:22px;margin:8px 0 14px}
+li{margin:7px 0}
+.toc{background:#f2f5f8;border:1px solid #dce4eb;border-radius:10px;padding:15px 18px;margin-top:20px}
+.toc ol{margin:8px 0 0;padding-left:22px}
+.toc li{margin:3px 0}
+section+section{border-top:1px solid #e3e9ef;margin-top:24px}
+.app-footer{text-align:center;color:#5b6570;font-size:13px;margin:24px 0 0}
+@media(max-width:680px){body{padding:18px 12px}.card{padding:20px 16px}.topbar{gap:8px}h2{font-size:18px}}
 </style>
-<script src="https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore-compat.js"></script>
-<script src="zugriffsrechte.js?v=20261121-master-display"></script>
-<link rel="stylesheet" href="navigation.css?v=20261005-menu-style">
 </head>
-
 <body>
-
-<div id="appContent">
-<div class="header"><h1>Datenschutz</h1></div>
-<div id="dropdownMenu" class="dropdown-menu">
-<button data-page="home" onclick="closeMenu(); location.href='home.html'">Startseite</button>
-<button data-page="index" onclick="closeMenu(); location.href='index.html'">Kabellager</button>
-<button data-page="kabelreport" onclick="closeMenu(); location.href='kabel-report.html'">Kabel Report</button>
-<button id="baustellenMenuButton" data-page="baustellen" onclick="closeMenu(); location.href='baustellen.html'">Baustellenmaterial</button>
-<button id="archivMenuButton" data-page="archiv" style="display:none" onclick="closeMenu(); location.href='archiv.html'">Archiv</button>
-<button id="logsMenuButton" data-page="logs" style="display:none" onclick="closeMenu(); location.href='logs.html'">Protokoll</button>
-<button data-page="profil" onclick="closeMenu(); location.href='profil.html'">Profil</button>
-<button class="logout-safe" onclick="logout()">Abmelden</button>
+<div class="page">
+  <header class="topbar">
+    <span class="brand">Netzbau Tafers · Lagermanager</span>
+    <a class="back" href="home.html">Zur Startseite</a>
+  </header>
+  <main class="card">
+    <h1>Datenschutzerklärung</h1>
+    <p class="meta">Version 2.0 · Stand: <time datetime="2026-11-25">25. November 2026</time></p>
+    <p>Der Lagermanager dient der internen Verwaltung von Kabeln, Baustellen und Material im Netzbau Team Tafers. Diese Erklärung informiert über die Bearbeitung von Personendaten in diesen Bereichen sowie bei der Anmeldung und den ergänzenden Funktionen des Lagermanagers nach dem Schweizer Datenschutzgesetz (DSG).</p>
+    <nav class="toc" aria-label="Inhaltsverzeichnis">
+      <strong>Inhaltsverzeichnis</strong>
+      <ol>
+        <li><a href="#kontakt">Kontakt und Verantwortlichkeit</a></li>
+        <li><a href="#daten">Bearbeitete Daten und Zwecke</a></li>
+        <li><a href="#berechtigungen">Zugriffsrechte und Datensicherheit</a></li>
+        <li><a href="#dienstleister">Technische Dienstleister</a></li>
+        <li><a href="#ausland">Bearbeitung im Ausland</a></li>
+        <li><a href="#geraet">Browser-Speicher und Gerätefunktionen</a></li>
+        <li><a href="#aufbewahrung">Aufbewahrung und Löschung</a></li>
+        <li><a href="#rechte">Rechte der betroffenen Personen</a></li>
+      </ol>
+    </nav>
+    <section id="kontakt">
+      <h2>1. Kontakt und Verantwortlichkeit</h2>
+      <p>Kontakt für Datenschutzanliegen zum Lagermanager:<br>Martin Gross<br>E-Mail: <a href="mailto:gross.martin1994@gmail.com">gross.martin1994@gmail.com</a></p>
+      <p>Datenschutzanliegen, die die betriebliche Bearbeitung betreffen, können über diesen Kontakt an die zuständige verantwortliche Stelle weitergeleitet werden.</p>
+    </section>
+    <section id="daten">
+      <h2>2. Bearbeitete Daten und Zwecke</h2>
+      <ul>
+        <li><strong>Benutzerkonto und Anmeldung:</strong> Name, E-Mail-Adresse, Benutzer-ID, Rolle und individuelle Berechtigungen werden zur Anmeldung, Zuordnung von Benutzeraktionen und Zugriffsverwaltung bearbeitet. Firebase Authentication verwaltet die Anmeldedaten und die Funktionen zur Passwortzurücksetzung.</li>
+        <li><strong>Benutzeraktivität:</strong> Der Zeitpunkt der letzten erfassten Aktivität wird beim Laden des Benutzerprofils aktualisiert. Er dient der Verwaltung der Benutzerkonten und ist für entsprechend berechtigte Personen einsehbar. Diese Angabe ist keine Arbeitszeiterfassung und bildet nicht die tatsächliche Arbeitsdauer ab.</li>
+        <li><strong>Kabellager:</strong> Bobinennummern, Kabeltypen, Längen, Status, Baustellenzuordnungen und Buchungen können mit Namen, Benutzer-IDs, E-Mail-Adressen und Zeitstempeln verbunden sein. Auch die reservierende Person und die Zuordnung von Bobinen in Gebrauch werden erfasst, um Zuständigkeiten und den Materialbestand nachvollziehen zu können.</li>
+        <li><strong>Baustellen und Material:</strong> Baustellendaten, Materiallisten, Barcodes, verantwortliche Personen sowie Erstellungs-, Bearbeitungs- und Abschlussinformationen dienen der betrieblichen Dokumentation. Abgeschlossene Baustellen werden im Archiv nach Jahren angezeigt.</li>
+        <li><strong>Materialvorlagen und Bilder:</strong> Materialbezeichnungen, Suchbegriffe und gegebenenfalls Bilder werden für die Materialerfassung verwendet. Bilder sollen keine unnötigen Personendaten enthalten.</li>
+        <li><strong>Protokoll:</strong> Aktionen mit Bereich, Aktion, betroffenem Objekt, Benutzerangaben, Details und Zeitstempel ermöglichen die betriebliche Nachvollziehbarkeit, Fehleranalyse und Sicherung des Systems. Die Protokollierung dient nicht der systematischen Verhaltens- oder Leistungskontrolle von Mitarbeitenden.</li>
+        <li><strong>Kabel Report und Jahresstatistik:</strong> Buchungen, Kabellängen, Kabeltypen und Baustelleninformationen werden für Monatsabschlüsse und Jahresauswertungen verarbeitet. Abgeschlossene Monatsberichte werden als Snapshots gespeichert; die Jahresstatistik verwendet vorhandene Auswertungen und aktuelle Daten und kann serverseitig zwischengespeichert werden.</li>
+        <li><strong>Optionale Smartphone-Benachrichtigungen:</strong> Nach Aktivierung werden ein Push-Token, die zugehörige Benutzer-ID und technische Registrierungs- bzw. Versandinformationen bearbeitet. Bobinen-Erinnerungen werden über Firebase Cloud Messaging und die Push-Infrastruktur des Browsers oder Betriebssystems übermittelt. Die Bobinennummer kann auf dem Sperrbildschirm sichtbar sein. Die Benachrichtigungen können je Gerät im Profil ausgeschaltet werden.</li>
+        <li><strong>Mast Runner:</strong> Bei Nutzung des Spiels werden insbesondere Spielername, Benutzer-ID, Punktzahl, Distanz und überwundene Hindernisse für Spielergebnisse und die interne Bestenliste gespeichert. Der Hauptadministrator kann die serverseitige Bestenliste zurücksetzen. Persönliche Bestwerte und zwischengespeicherte Ranglistendaten können zusätzlich im Browser gespeichert sein.</li>
+      </ul>
+      <p>Personendaten werden für die beschriebenen betrieblichen und technischen Zwecke sowie zur Bearbeitung von Datenschutzanliegen verwendet.</p>
+    </section>
+    <section id="berechtigungen">
+      <h2>3. Zugriffsrechte und Datensicherheit</h2>
+      <p>Die internen Betriebsdaten sind nicht für die Öffentlichkeit bestimmt. Der Zugriff erfordert ein Benutzerkonto und richtet sich nach den zugewiesenen Berechtigungen. Die Rollen Master-Admin, Administrator, Techniker und Leseberechtigter dienen als Berechtigungsvorlagen; einzelne Rechte können angepasst werden.</p>
+      <p>Berechtigte Personen können Daten im Umfang ihrer Aufgaben einsehen oder bearbeiten. Die Benutzerverwaltung und Passwortzurücksetzung unterliegen besonderen Berechtigungen; administrative Konten sind zusätzlich geschützt. Der Hauptadministrator kann Protokolle und die Spiel-Bestenliste löschen.</p>
+      <p>Zu den technischen Schutzmassnahmen gehören Firebase Authentication, verschlüsselte HTTPS-Verbindungen, Firestore-Sicherheitsregeln und serverseitige Berechtigungsprüfungen bei administrativen Funktionen. Die Zugangsdaten sind vertraulich zu behandeln. Unbefugte Zugriffe oder vermutete Sicherheitsvorfälle sollen dem Datenschutzkontakt gemeldet werden.</p>
+    </section>
+    <section id="dienstleister">
+      <h2>4. Technische Dienstleister</h2>
+      <ul>
+        <li><strong>Google Firebase und Google Cloud:</strong> Firebase Authentication, Cloud Firestore, Bildspeicherung, Firebase Cloud Messaging, Cloud Functions und Cloud Scheduler unterstützen Anmeldung, Datenspeicherung, Benachrichtigungen, automatische Monatsabschlüsse, Bereinigungen und Auswertungen. Dabei werden je nach Dienst Kontodaten, Betriebsdaten und technische Verbindungs- bzw. Diagnosedaten verarbeitet. <a href="https://firebase.google.com/support/privacy/">Datenschutz bei Firebase</a>.</li>
+        <li><strong>GitHub Pages:</strong> Hosting der Website. Beim Abruf der Seiten werden technische Verbindungsdaten wie IP-Adresse und Browserinformationen verarbeitet. <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement">GitHub-Datenschutzerklärung</a>.</li>
+        <li><strong>Cloudflare/cdnjs und jsDelivr:</strong> Bereitstellung von Symbolen und Programmbibliotheken. Beim Abruf werden technische Verbindungsdaten an die jeweiligen CDN-Dienste übermittelt. <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare-Datenschutz</a> und <a href="https://www.jsdelivr.com/privacy-policy-jsdelivr-com">jsDelivr-Datenschutz</a>.</li>
+        <li><strong>Brevo:</strong> Soweit für betriebliche E-Mail-Benachrichtigungen beim Rausschreiben von Baustellen eingesetzt, werden Empfängeradressen und die erforderlichen Baustellenangaben über den Versanddienst verarbeitet. <a href="https://www.brevo.com/legal/privacypolicy/">Brevo-Datenschutz</a>.</li>
+        <li><strong>Google Sheets:</strong> Soweit Sicherungen von Anwendungsdaten über Google Sheets erstellt oder wiederhergestellt werden, können darin auch Benutzerangaben und Protokolle enthalten sein. <a href="https://policies.google.com/privacy?hl=de-CH">Google-Datenschutz</a>.</li>
+      </ul>
+      <p>Weitere Empfänger können der vom Benutzer verwendete Browser- oder Betriebssystem-Push-Dienst sowie zuständige Stellen sein, soweit eine gesetzliche Verpflichtung zur Bekanntgabe besteht. Die internen Betriebsdaten werden nicht als Bestandteil des öffentlichen Website-Quellcodes bereitgestellt.</p>
+    </section>
+    <section id="ausland">
+      <h2>5. Bearbeitung im Ausland</h2>
+      <p>Die bisher für das Projekt dokumentierte Firestore-Region <strong>nam5</strong> liegt in den Vereinigten Staaten (USA). Die serverseitigen Funktionen des Lagermanagers sind im Quellcode für <strong>europe-west1</strong> (Belgien) konfiguriert. Die Verarbeitungsorte von Firebase Authentication, Cloud Messaging, Hosting, Sicherungen und weiteren technischen Diensten können davon abweichen.</p>
+      <p>Bei der Nutzung internationaler Dienstleister können Personendaten insbesondere in den USA und in Staaten der Europäischen Union bearbeitet werden; weltweit verteilte Infrastruktur kann weitere Verarbeitungsorte umfassen.</p>
+      <p>Google und GitHub geben an, unter dem Swiss-U.S. Data Privacy Framework zertifiziert zu sein. Für vom Zertifizierungsumfang erfasste Datenübermittlungen kann dieses Rahmenwerk ein angemessenes Datenschutzniveau gewährleisten. Soweit ein angemessenes Datenschutzniveau nicht anderweitig gewährleistet ist, sind die nach Schweizer DSG erforderlichen Garantien, etwa anerkannte Standarddatenschutzklauseln, oder eine andere zulässige Grundlage erforderlich. Die anwendbaren Bedingungen ergeben sich aus den Verträgen und Datenschutzinformationen der jeweiligen Dienste. <a href="https://firebase.google.com/terms/data-processing-terms">Firebase-Datenverarbeitungsbedingungen</a>.</p>
+      <p>Auskünfte zu den konkreten Verarbeitungsstaaten und anwendbaren Garantien können beim Datenschutzkontakt angefragt werden.</p>
+    </section>
+    <section id="geraet">
+      <h2>6. Browser-Speicher und Gerätefunktionen</h2>
+      <p>Die Anwendung verwendet Browser-Speicher unter anderem für die Anmeldung, den Benutzernamen, Menüeinstellungen, zwischengespeicherte Materialvorlagen und Spielstände. Bei aktivierten Push-Benachrichtigungen werden auch die Geräteregistrierung und dazugehörige Einstellungen lokal gespeichert.</p>
+      <p>Beim Barcode-Scannen kann nach Erteilung der Browser-Berechtigung die Kamera des Geräts verwendet werden. Der Materialscanner wertet die Kamerabilder im Browser aus; die erkannten Barcodes können in die Materialdaten übernommen werden. Die Kamerabilder werden durch diese Scannerfunktion nicht als Video gespeichert oder hochgeladen. Eine Mikrofonberechtigung ist dafür nicht erforderlich.</p>
+      <p>Kamera- und Benachrichtigungsberechtigungen lassen sich in den Browser- oder Geräteeinstellungen verwalten. Browser-Speicher kann über die Website-Daten gelöscht werden. Dabei können Einstellungen und lokale Spielstände verloren gehen oder eine erneute Anmeldung erforderlich werden. Das Löschen lokaler Daten löscht nicht automatisch serverseitig gespeicherte Daten.</p>
+    </section>
+    <section id="aufbewahrung">
+      <h2>7. Aufbewahrung und Löschung</h2>
+      <ul>
+        <li><strong>Protokolle:</strong> Im Rahmen des automatischen Monatsabschlusses werden Einträge bereinigt, die älter als 60 Tage sind. Kabelprotokolle werden erst gelöscht, wenn der betreffende Monat endgültig als Snapshot gesichert ist. Da die Bereinigung monatlich erfolgt und bei fehlenden Abschlüssen Einträge geschützt bleiben, ist 60 Tage keine garantierte maximale Speicherdauer. Der Hauptadministrator kann Protokolle zusätzlich manuell löschen.</li>
+        <li><strong>Monatsberichte und Archiv:</strong> Gesicherte Monatsberichte und archivierte Baustellen bleiben für die längerfristige betriebliche Dokumentation unabhängig von der Protokollbereinigung erhalten.</li>
+        <li><strong>Benutzerkonten und übrige Betriebsdaten:</strong> Sie werden für den jeweiligen Bearbeitungszweck und entsprechend den betrieblichen und gesetzlichen Aufbewahrungserfordernissen gespeichert. Eine feste allgemeine Löschfrist ist nicht festgelegt.</li>
+        <li><strong>Push-Geräteregistrierungen:</strong> Bei erfolgreicher Deaktivierung im Profil wird die zugehörige serverseitige Geräteregistrierung entfernt. Erkannte ungültige Push-Token werden ebenfalls bereinigt.</li>
+        <li><strong>Spiel-Bestenliste:</strong> Servereinträge können durch den Hauptadministrator zurückgesetzt werden. Lokale Spielstände können über die Browser-Einstellungen gelöscht werden.</li>
+        <li><strong>Sicherungskopien:</strong> Kopien können bis zu ihrer gesonderten Löschung weiterbestehen. Aufbewahrungs- und Löschvorgaben sind auch bei Wiederherstellungen zu berücksichtigen.</li>
+      </ul>
+    </section>
+    <section id="rechte">
+      <h2>8. Rechte der betroffenen Personen</h2>
+      <p>Im Rahmen des anwendbaren Schweizer Datenschutzrechts können betroffene Personen insbesondere Auskunft über die sie betreffenden Personendaten, die Berichtigung unrichtiger Daten sowie gegebenenfalls die Löschung, Einschränkung oder Herausgabe bzw. Übertragung ihrer Daten verlangen. Gesetzliche und betriebliche Aufbewahrungspflichten sowie Rechte Dritter können diesen Ansprüchen Grenzen setzen.</p>
+      <p>Anfragen können an den oben genannten Datenschutzkontakt gerichtet werden. Soweit erforderlich, wird die Identität zur sicheren Bearbeitung geprüft. Weitere Informationen zum Schweizer Datenschutzrecht stellt der <a href="https://www.edoeb.admin.ch/de">Eidgenössische Datenschutz- und Öffentlichkeitsbeauftragte (EDÖB)</a> bereit.</p>
+    </section>
+  </main>
+  <footer class="app-footer">© 2026 Martin Gross. Alle Rechte vorbehalten.</footer>
 </div>
-<main class="card">
-  <h2>Datenschutzerklärung</h2>
-  <p>Stand: 9. Oktober 2026</p>
-  <p>Der Lagermanager dient der internen Verwaltung von Kabeln, Baustellen und Material im Netzbau Team Tafers.</p>
-  <h3>1. Verantwortlicher und Kontakt</h3>
-  <p>Martin Gross<br>E-Mail: <a href="mailto:gross.martin1994@gmail.com">gross.martin1994@gmail.com</a></p>
-  <h3>2. Daten und Verwendungszwecke</h3>
-  <ul>
-    <li><strong>Benutzerkonto:</strong> E-Mail-Adresse, Benutzer-ID und Benutzername für Anmeldung, Benutzerzuordnung und Zugriffsverwaltung. Die Anmeldung erfolgt über Firebase Authentication. Zusätzlich werden Zugriffsrechte und der Zeitpunkt des letzten Seitenaufrufs für die Benutzerverwaltung gespeichert. Nur der Master-Administrator kann die Benutzerübersicht aufrufen und Namen sowie Zugriffsrechte anderer Benutzer ändern.</li>
-    <li><strong>Kabel und Baustellen:</strong> Kabel-, Baustellen- und Materialdaten sowie verantwortliche Personen, Ersteller und Benutzer, die Kabel in Gebrauch setzen. Dazu gehören Namen beziehungsweise E-Mail-Adressen, Benutzer-IDs und Zeitstempel.</li>
-    <li><strong>Fahrzeuge:</strong> Fahrzeugname, Kennzeichen, Kilometerstand beim Tanken sowie Nutzungszeiträume, Übernahmen und nachgetragene Nutzungen mit Benutzer-ID, Benutzername und Zeitstempeln. Berechtigte Personen können diese Angaben einsehen. Fahrzeugfavoriten werden dem jeweiligen Benutzerkonto zugeordnet.</li>
-    <li><strong>Protokoll:</strong> Benutzeraktionen mit Bereich, Aktion, betroffenem Objekt, Benutzerangaben, Details und Zeitpunkt zur betrieblichen Nachverfolgung.</li>
-    <li><strong>Reports und Archiv:</strong> Auswertungen und gespeicherte Kabelreports sowie abgeschlossene Baustellen und zugehöriges Material zur betrieblichen Dokumentation.</li>
-    <li><strong>Materialvorlagen:</strong> Materialangaben und gegebenenfalls hochgeladene Bilder. Bilder sollen keine unnötigen Personendaten enthalten.</li>
-    <li><strong>Optionale Smartphone-Benachrichtigungen:</strong> Nach Aktivierung werden eine technische Gerätekennung (Push-Token), die zugehörige Benutzer-ID und Registrierungs- sowie Versandzeitpunkte gespeichert. Firebase Cloud Messaging und der jeweilige Browser-/Betriebssystem-Push-Dienst übermitteln Bobinen-Erinnerungen. Die Nachricht enthält die Bobinennummer und kann auf dem Sperrbildschirm sichtbar sein. Im Profil kann der Empfang pro Gerät ausgeschaltet werden.</li>
-    <li><strong>Mast Runner:</strong> Bei Nutzung des Spiels werden Spielstände und Ranking-Einträge mit Spielername und Punktzahl verarbeitet.</li>
-  </ul>
-  <p>Die Anwendung zeigt berechtigten Teammitgliedern die für ihre Aufgaben vorgesehenen Angaben. Die persönliche Übersicht und Kabelerinnerungen verwenden bereits vorhandene Kabel- und Baustellendaten.</p>
-  <h3>3. Technische Dienstleister und E-Mails</h3>
-  <ul>
-    <li><strong>Google Firebase:</strong> Anmeldung, Datenbank, Bildspeicherung und serverseitige Funktionen.</li>
-    <li><strong>GitHub Pages:</strong> Bereitstellung der Website. GitHub protokolliert IP-Adressen von Besuchern zu Sicherheitszwecken.</li>
-    <li><strong>Cloudflare/cdnjs und jsDelivr:</strong> Bereitstellung von Symbolen und Programmbibliotheken. Beim Abruf werden technische Verbindungsdaten, insbesondere die IP-Adresse, an den jeweiligen Dienst übertragen.</li>
-    <li><strong>Brevo:</strong> Versand betrieblicher E-Mail-Benachrichtigungen beim Rausschreiben von Baustellen und für fällige Fahrzeug- und Kranservices. Dabei werden Empfängeradressen und die für die Benachrichtigung verwendeten Baustellenangaben beziehungsweise Fahrzeugbezeichnung, Kennzeichen und Servicefälligkeit verarbeitet.</li>
-    <li><strong>Google Sheets:</strong> Sicherung und Wiederherstellung von Anwendungsdaten, einschliesslich Benutzerangaben und Protokollen.</li>
-  </ul>
-  <p>Technische Dienstleister verarbeiten Daten zur Bereitstellung dieser Funktionen. Es erfolgt keine Veröffentlichung der internen Betriebsdaten als Teil des Website-Quellcodes.</p>
-  <h3>4. Speicherung im Ausland</h3>
-  <p>Die Firestore-Datenbank des Projekts netzbau-tafers befindet sich in der Multi-Region <strong>nam5 in den Vereinigten Staaten</strong>. Dort werden auch die in der Datenbank enthaltenen Personendaten gespeichert. Dieser Standort legt nicht automatisch die Verarbeitungsorte aller anderen Dienste fest.</p>
-  <h3>5. Speicherung auf dem verwendeten Gerät</h3>
-  <p>Die Anwendung und die Anmeldung verwenden Browser-Speicher. Dort werden unter anderem Anmeldeinformationen für die Sitzung, der Benutzername, zwischengespeicherte Materialvorlagen, Menüeinstellungen sowie bei Nutzung des Spiels Spielstände gespeichert. Browser-Speicher kann über die Website-Daten in den Browser-Einstellungen gelöscht werden; dadurch kann eine erneute Anmeldung erforderlich werden.</p>
-  <h3>6. Aufbewahrung</h3>
-  <p>Benutzeraktionen im Protokoll (Logs) werden spätestens ein Jahr nach ihrer Erfassung gelöscht. Diese Frist ist auch bei Sicherungen zu berücksichtigen; eine Wiederherstellung darf die Frist nicht verlängern.</p>
-  <p>Für Benutzerkonten, Kabeldaten, Baustellen, Fahrzeuge und deren Verlauf, Materialvorlagen, Archive und Reports ist hier keine feste einjährige Löschfrist festgelegt. Fragen zur Aufbewahrung oder zur Löschung dieser Daten können an den Verantwortlichen gerichtet werden.</p>
-  <h3>7. Auskunft und Berichtigung</h3>
-  <p>Sie können beim Verantwortlichen Auskunft über Ihre bearbeiteten Personendaten und deren Berichtigung verlangen. Anliegen zur Löschung oder zur weiteren Bearbeitung können ebenfalls an die oben genannte E-Mail-Adresse gerichtet werden. Gesetzliche und betriebliche Aufbewahrungspflichten werden dabei berücksichtigt.</p>
-</main>
-</div>
-
-<footer class="app-footer">
-  © 2026 Martin Gross. Alle Rechte vorbehalten.
-</footer>
-
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyAfmH7jDf1kZQpk-Psbl2kvAvzZj3jGX-w",
-  authDomain: "netzbau-tafers.firebaseapp.com",
-  projectId: "netzbau-tafers",
-  storageBucket: "netzbau-tafers.appspot.com",
-  messagingSenderId: "389541837675",
-  appId: "1:389541837675:web:db580ce67c57a9a16dea2e",
-  measurementId: "G-B5MJGD3108"
-};
-
-// 🔥 verhindert doppelte Initialisierung (wichtig bei mehreren Seiten)
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-
-const auth = firebase.auth();
-const ADMIN_UIDS = ["smnnQd4RhEQZR3uuNN0otNALUqi1", "pmyu29TlC3QM7JIysmy2EmiHSWW2", "Tgj9KT6C21XjeistBWRiSVYqTDC2", "hwZEme8xvkasSAGrmOtQRLOnnXn1", "PKDpb7Cb7ig8ZKZRMm23FOKnCHQ2", "PAtM8Lv1TBNLSiQzBLJK9Oda8KK2", "DSMERv7Uu4b4eEYQx5SKbjvdher2"];
-const LIMITED_ACCESS_UIDS = ["POSB6W7xeDZ8Dlba03ZP3J02dMC3", "AX08qKp7lte6vslQMFn76FVqxw53", "KYqiqNKTmkQQYVWAa6bp6vSvTlV2"];
-
-function closeMenu(){}
-function logout(){
-  closeMenu();
-  if(confirm("Wirklich ausloggen?")){
-    auth.signOut().then(() => { window.location.href = "home.html"; })
-      .catch(() => { alert("Fehler beim Logout."); });
-  }
-}
-function setNavigationVisibility(user){
-  const limited = LIMITED_ACCESS_UIDS.includes(user.uid);
-  const admin = ADMIN_UIDS.includes(user.uid) && !limited;
-  document.getElementById("baustellenMenuButton").style.display = limited ? "none" : "inline-flex";
-  document.getElementById("archivMenuButton").style.display = admin ? "inline-flex" : "none";
-  document.getElementById("logsMenuButton").style.display = admin ? "inline-flex" : "none";
-}
-
-
-// 🔥 kleine Timeout-Sicherheit (optional aber gut)
-let timeout = setTimeout(() => {
-  window.location.href = "home.html";
-}, 4000);
-
-LagerAccess.onAuthStateChanged((user) => {
-  clearTimeout(timeout);
-
-  if (user) {
-    setNavigationVisibility(user);
-    document.body.style.display = "block";
-  } else {
-    window.location.href = "home.html";
-  }
-});
-</script>
-
-<script src="bobinen-erinnerung.js"></script>
-<script src="navigation.js?v=20261010-verwaltung-reihenfolge"></script>
 </body>
 </html>
-
-
-
-
-
-
