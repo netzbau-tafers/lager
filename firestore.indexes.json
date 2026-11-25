@@ -84,6 +84,11 @@
       "collectionGroup": "teile",
       "fieldPath": "payload",
       "indexes": []
+    },
+    {
+      "collectionGroup": "stangenlager",
+      "fieldPath": "image",
+      "indexes": []
     }
   ]
 }

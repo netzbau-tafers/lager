@@ -121,7 +121,7 @@ body{
 
 </style>
 <script src="https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore-compat.js"></script>
-<script src="zugriffsrechte.js?v=20261121-master-display"></script>
+<script src="zugriffsrechte.js?v=20261125-stangenlager"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <link rel="stylesheet" href="navigation.css?v=20261005-menu-style">
 </head>
@@ -154,6 +154,7 @@ body{
 <div class="hc-workflow" data-perm="w:baustellen"><h3>Ablauf einer Baustelle</h3><div class="hc-steps"><a href="#baustellenmaterial-1">Erstellen</a><span>→</span><a href="#baustellenmaterial-3">Material erfassen</a><span>→</span><a href="#baustellenmaterial-7">Beenden</a><span data-perm="w:beendete&r:archiv">→</span><a data-perm="w:beendete&r:archiv" href="#baustellenmaterial-9">Archivieren</a></div></div>
 </div></section>
 <section class="hc-category-wrap" aria-labelledby="helpCategoriesTitle"><div class="hc-heading"><h2 id="helpCategoriesTitle">Hilfebereiche</h2><button class="hc-small" id="helpAll" type="button" aria-pressed="true">Alle Bereiche</button></div><p>Du siehst die Themen, für die du eine entsprechende Berechtigung hast.</p><div class="hc-categories"><button type="button" class="hc-category" data-category="meine-uebersicht" aria-pressed="false"><i class="fa-solid fa-house-user" aria-hidden="true"></i><span><strong>Meine Übersicht</strong><small>Deine Bobinen und aktiven Baustellen</small><small class="hc-count"></small></span></button>
+<button type="button" class="hc-category" data-category="stangenlager" aria-pressed="false"><i class="fa-solid fa-warehouse" aria-hidden="true"></i><span><strong>Stangenlager</strong><small>Occasion-Material und Reservationen</small><small class="hc-count"></small></span></button>
 <button type="button" class="hc-category" data-category="kabellager" aria-pressed="false"><i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i><span><strong>Kabellager</strong><small>Bobinen, Reservationen und Kabelbuchungen</small><small class="hc-count"></small></span></button>
 <button type="button" class="hc-category" data-category="baustellenmaterial" aria-pressed="false"><i class="fa-solid fa-helmet-safety" aria-hidden="true"></i><span><strong>Baustellenmaterial</strong><small>Baustellen, Materiallisten und Scanner</small><small class="hc-count"></small></span></button>
 <button type="button" class="hc-category" data-category="archiv" aria-pressed="false"><i class="fa-solid fa-box-archive" aria-hidden="true"></i><span><strong>Archiv</strong><small>Jahresarchiv, Materialsuche und Wiederherstellung</small><small class="hc-count"></small></span></button>
@@ -395,7 +396,7 @@ LagerAccess.onAuthStateChanged((user) => {
 </script>
 
 <script src="bobinen-erinnerung.js"></script>
-<script src="navigation.js?v=20261010-verwaltung-reihenfolge"></script>
+<script src="navigation.js?v=20261125-stangenlager"></script>
 </body>
 </html>
 
