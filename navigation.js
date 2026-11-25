@@ -68,7 +68,7 @@
     const homeLink=menu.querySelector('[data-page="home"]');
     const cableLink=menu.querySelector('[data-page="index"]');
     if(homeLink)homeLink.after(overview);else menu.insertBefore(overview,cableLink||menu.firstChild);
-    const stock=document.createElement('a');stock.href='stangenlager.html';stock.dataset.page='stangenlager';stock.style.display='none';stock.append(icon('stangenlager'),document.createTextNode('Stangenlager'));if(current==='stangenlager.html'){stock.classList.add('active-page');stock.setAttribute('aria-current','page')}menu.insertBefore(stock,works||null);
+    const stock=document.createElement('a');stock.href='stangenlager.html';stock.dataset.page='stangenlager';stock.style.display='none';stock.append(icon('stangenlager'),document.createTextNode('Stangenlager'));if(current==='stangenlager.html'){stock.classList.add('active-page');stock.setAttribute('aria-current','page')}if(works)works.after(stock);else menu.append(stock);
     const privacy=document.createElement('a');privacy.href='datenschutz.html';privacy.dataset.page='datenschutz';privacy.append(icon('datenschutz'),document.createTextNode('Datenschutz'));
     if(current==='datenschutz.html'){privacy.classList.add('active-page');privacy.setAttribute('aria-current','page')}
     const logout=menu.querySelector('.logout-safe');menu.insertBefore(privacy,logout);
@@ -80,7 +80,7 @@
     const helpSection=document.createElement('div');helpSection.className='nt-section';helpSection.dataset.page='hilfe-rechtliches';helpSection.textContent='HILFE & RECHTLICHES';menu.insertBefore(helpSection,helpLink);
     const close=document.createElement('button');close.type='button';close.className='nt-close';close.innerHTML='<span>Netzbau Tafers</span><span aria-hidden="true">✕</span>';close.setAttribute('aria-label','Menü schliessen');menu.prepend(close);
     // Jede Seite verwendet dieselbe Reihenfolge, unabhängig von ihren ursprünglichen Menüeinträgen.
-    const menuOrder=['home','uebersicht','index','stangenlager','baustellen','fahrzeuge','verwaltung','fahrtenbuch','kabelreport','archiv','logs','profil','benutzer','backup','hilfe-rechtliches','hilfe','datenschutz','logout'];
+    const menuOrder=['home','uebersicht','index','baustellen','stangenlager','fahrzeuge','verwaltung','fahrtenbuch','kabelreport','archiv','logs','profil','benutzer','backup','hilfe-rechtliches','hilfe','datenschutz','logout'];
     section.dataset.page='verwaltung';close.dataset.page='menu-close';
     for(const item of menu.children){
       if(item.dataset.page)continue;
