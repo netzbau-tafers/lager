@@ -5,6 +5,6 @@ Vor Merge Firestore-Regeln und Callable lagerCreateUser vom Branch veröffentlic
 ```sh
 git fetch origin
 git switch feature/stangenlager-berechtigungen
-firebase deploy --only firestore:rules,functions:lager-user-admin:lagerCreateUser --project netzbau-tafers
+firebase deploy --only firestore:rules,firestore:indexes,functions:lager-user-admin:lagerCreateUser --project netzbau-tafers
 ```
 Keine zusätzlichen Scheduler oder Storage-Dienste. Fotos werden clientseitig als JPEG auf maximal 240000 Zeichen komprimiert und im Firestore-Dokument gespeichert. Keine Beispieldaten. Nach Merge Berechtigungen zuweisen und auf Testkonto prüfen. Reservation und Änderungen erfolgen in Transaktionen mit Protokolleintrag. Für Techniker ohne Baustellenzugriff freie Baustelleneingabe. Protokoll enthält keine Materialbezeichnung, kein Foto und keine Baustellenangabe.
